@@ -216,17 +216,29 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── GET /api/members — Servermitglieder für Picker ─────────────────────────
     app.get('/api/members', async (req, res) => {
-      const guild = getGuild();
-      if (!guild) return res.json([]);
-      try {
-        await guild.members.fetch();
-        const list = guild.members.cache
-          .filter(m => !m.user.bot)
-          .map(m => ({ id: m.user.id, name: m.displayName || m.user.username }))
-          .sort((a, b) => a.name.localeCompare(b.name, 'de'));
-        res.json(list);
-      } catch { res.json([]); }
-    });
+        const guild = getGuild();
+        if (!guild) return res.json({ error: 'kein_server' });
+        try {
+          if (guild.members.cache.size <= 1) {
+            await guild.members.fetch({ force: true });
+          }
+          const list = guild.members.cache
+            .filter(m => !m.user.bot)
+            .map(m => ({ id: m.user.id, name: m.displayName || m.user.username }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+          res.json(list);
+        } catch(err) {
+          console.error('members fetch error:', err.message);
+          // Fallback: versuche ohne force
+          try {
+            const list2 = guild.members.cache
+              .filter(m => !m.user.bot)
+              .map(m => ({ id: m.user.id, name: m.displayName || m.user.username }))
+              .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+            res.json(list2);
+          } catch { res.json([]); }
+        }
+      });
 
     // ── GET / — Root Redirect ────────────────────────────────────────────────
     app.get('/', (req, res) => res.redirect('/einreise'));
