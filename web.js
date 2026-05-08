@@ -218,16 +218,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
         ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
         <form method="POST" action="/einreise/legal" enctype="multipart/form-data" id="legalForm">
 
-          <p class="section-title">👤 Discord Identifikation</p>
-          <div class="form-row one">
-            <div class="form-group">
-              <label for="discord_id">Deine Discord User ID <span class="req">*</span></label>
-              <input type="text" id="discord_id" name="discord_id" required placeholder="123456789012345678" maxlength="20">
-              <span class="discord-note">Rechtsklick auf deinen Namen → Nutzer-ID kopieren (Entwicklermodus nötig)</span>
-            </div>
-          </div>
-
-          <hr class="divider">
+          
           <p class="section-title">📋 IC Charakter Daten</p>
           ${charFields('', 0)}
 
@@ -253,17 +244,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/legal ──────────────────────────────────────────────────
   app.post('/einreise/legal', upload.single('foto'), async (req, res) => {
-    const { discord_id, vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0 } = req.body;
+    const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0 } = req.body;
 
-    const v = await validateApplicant(discord_id);
-    if (!v.ok) { req.session.legalError = v.reason; return res.redirect('/einreise/legal'); }
     if (!req.file) { req.session.legalError = 'Kein Passbild hochgeladen. Bitte füge ein Bild hinzu.'; return res.redirect('/einreise/legal'); }
     if (!vorname_0 || !nachname_0 || !geburtsdatum_0 || !geburtsort_0 || !nationalitaet_0) {
       req.session.legalError = 'Bitte alle Pflichtfelder ausfüllen.'; return res.redirect('/einreise/legal');
     }
-
-    const ok = await applyRoles(discord_id, true);
-    if (!ok) { req.session.legalError = 'Rollen konnten nicht vergeben werden. Wende dich an einen Admin.'; return res.redirect('/einreise/legal'); }
 
     res.send(page('Einreise Erfolgreich', `
       ${header('Einreise Bestätigt')}
@@ -289,16 +275,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
         ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
         <form method="POST" action="/einreise/illegal" id="illegalForm">
 
-          <p class="section-title">👤 Discord Identifikation</p>
-          <div class="form-row one">
-            <div class="form-group">
-              <label for="discord_id">Deine Discord User ID <span class="req">*</span></label>
-              <input type="text" id="discord_id" name="discord_id" required placeholder="123456789012345678" maxlength="20">
-              <span class="discord-note">Rechtsklick auf deinen Namen → Nutzer-ID kopieren (Entwicklermodus nötig)</span>
-            </div>
-          </div>
-
-          <hr class="divider">
+          
           <div style="background:#1c0a0a;border:1px solid #f85149;border-radius:8px;padding:18px;margin:20px 0;text-align:center">
             <div style="font-size:2em;margin-bottom:8px">⚠️</div>
             <p style="color:#f85149;font-weight:700;margin-bottom:6px">Illegale Einreise</p>
@@ -319,14 +296,9 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/illegal ────────────────────────────────────────────────
   app.post('/einreise/illegal', async (req, res) => {
-    const { discord_id, confirm } = req.body;
+    const { confirm } = req.body;
 
-    const v = await validateApplicant(discord_id);
-    if (!v.ok) { req.session.illegalError = v.reason; return res.redirect('/einreise/illegal'); }
     if (!confirm) { req.session.illegalError = 'Du musst die Konsequenzen bestätigen.'; return res.redirect('/einreise/illegal'); }
-
-    const ok = await applyRoles(discord_id, false);
-    if (!ok) { req.session.illegalError = 'Rollen konnten nicht vergeben werden. Wende dich an einen Admin.'; return res.redirect('/einreise/illegal'); }
 
     res.send(page('Einreise Erfolgreich', `
       ${header('Einreise Bestätigt')}
