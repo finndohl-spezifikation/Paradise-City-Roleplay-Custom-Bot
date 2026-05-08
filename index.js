@@ -281,7 +281,60 @@ client.once('ready', async () => {
       }
     } catch (e) { console.error('Einreise-Embed Fehler:', e.message); }
   }
-});
+
+
+  // ── Einmalig: Startpunkt-Embed senden ─────────────────────────────────────
+    if (!setup.startpunktEmbedSent) {
+      const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+      const LINE2 = '─────────────────────────────────────────';
+      const startEmbed = new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('🗺️  Wo starte ich? — Paradise City Roleplay')
+        .setDescription(
+          `Willkommen in **Paradise City**! Wähle deinen Startpunkt je nach Einreiseart.\n` +
+          `Dein Startfahrzeug findest du in <#1490878162009939998> 🧳\n\n` +
+          LINE
+        )
+        .addFields(
+          {
+            name: '\u200b',
+            value:
+              `🟢  **LEGALE EINREISE**\n` +
+              LINE2 + '\n' +
+              `> Du startest am **Flughafen von Los Santos**.\n` +
+              `> Nimm ein **Taxi** zum Autohaus und hole dein Startfahrzeug ab.`,
+            inline: false,
+          },
+          {
+            name: LINE,
+            value:
+              `🔴  **ILLEGALE EINREISE**\n` +
+              LINE2 + '\n' +
+              `> Du kommst am **Hafen von Los Santos** an.\n` +
+              `> Begib dich **unauffällig** zum Autohaus, ohne vom **LAPD** erwischt zu werden.`,
+            inline: false,
+          },
+          {
+            name: LINE,
+            value: `*Bei Fragen wende dich gerne jederzeit an den Support.*`,
+            inline: false,
+          },
+        )
+        .setFooter({ text: 'Paradise City Roleplay  •  Einreisebehörde' })
+        .setTimestamp();
+
+      try {
+        const startCh = await client.channels.fetch('1490878159032422433');
+        if (startCh) {
+          await startCh.send({ embeds: [startEmbed] });
+          setup.startpunktEmbedSent = true;
+          saveSetup(setup);
+          console.log('✅ Startpunkt-Embed einmalig gesendet.');
+        }
+      } catch (e) { console.error('Startpunkt-Embed Fehler:', e.message); }
+    }
+
+  });
 
 // ─── INVITE EVENTS ────────────────────────────────────────────────────────────
 client.on('inviteCreate', async (invite) => { await buildInviteCache(invite.guild); });
