@@ -71,6 +71,14 @@ function buildAbstimmungEmbed(poll) {
     .setTimestamp();
 }
 
+// ─── Ausweis-Token-System ───────────────────────────────────────────────────
+const AUSWEIS_TOKEN_FILE = path.join(DATA_DIR, 'ausweis_tokens.json');
+if (!fs.existsSync(AUSWEIS_TOKEN_FILE)) fs.writeFileSync(AUSWEIS_TOKEN_FILE, '{}', 'utf8');
+function loadAusweisTokens()  { try { return JSON.parse(fs.readFileSync(AUSWEIS_TOKEN_FILE, 'utf8')); } catch { return {}; } }
+function saveAusweisTokens(d) { fs.writeFileSync(AUSWEIS_TOKEN_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+function genToken() { return require('crypto').randomBytes(20).toString('hex'); }
+function loadAusweisData()  { try { return JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'ausweis.json'), 'utf8')); } catch { return {}; } }
+
 // ─── Aktivitätscheck-System ─────────────────────────────────────────────────
 const AKTIVITAET_CH      = '1502382574310392040';
 const AKTIVITAET_FILE    = path.join(DATA_DIR, 'aktivitaetscheck.json');
@@ -330,6 +338,18 @@ client.once('ready', async () => {
       .addStringOption(opt => opt.setName('frage').setDescription('Die Abstimmungsfrage').setRequired(true))
       .addStringOption(opt => opt.setName('antwort1').setDescription('Erste Option (\uD83D\uDC4D Daumen hoch)').setRequired(true))
       .addStringOption(opt => opt.setName('antwort2').setDescription('Zweite Option (\uD83D\uDC4E Daumen runter)').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('ausweis-create')
+      .setDescription('Erstellt einen Ausweis-Erstellungslink und sendet ihn per DM')
+      .addUserOption(opt => opt.setName('mitglied').setDescription('Für welches Mitglied den Ausweis erstellen').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('ausweis-delete')
+      .setDescription('Löscht den Ausweis eines Mitglieds')
+      .addUserOption(opt => opt.setName('mitglied').setDescription('Mitglied dessen Ausweis gelöscht werden soll').setRequired(true))
       .toJSON(),
 
     new SlashCommandBuilder()
@@ -2037,6 +2057,63 @@ client.on('interactionCreate', async (interaction) => {
       } catch (e) {
         return interaction.reply({ content: '\u274C Fehler: ' + e.message, ephemeral: true });
       }
+    }
+
+    // /ausweis-create
+    if (commandName === 'ausweis-create') {
+      const target  = interaction.options.getUser('mitglied');
+      const ausweise = loadAusweisData();
+      if (ausweise[target.id]) {
+        return interaction.reply({ content: `❌ **${target.tag}** hat bereits einen Ausweis. Erst mit `/ausweis-delete` löschen.`, ephemeral: true });
+      }
+      // Prüfe ob bereits ein Token aussteht
+      const tokens = loadAusweisTokens();
+      const pending = Object.values(tokens).find(t => t.userId === target.id && t.expiresAt > Date.now());
+      if (pending) {
+        return interaction.reply({ content: `❌ Für **${target.tag}** läuft bereits ein Erstellungslink. Token: `${pending.token}``, ephemeral: true });
+      }
+      const tok     = genToken();
+      const domain  = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
+      const link    = `https://${domain}/ausweis/create/${tok}`;
+      tokens[tok]   = { token: tok, userId: target.id, userTag: target.tag, createdBy: interaction.user.id, expiresAt: Date.now() + 24 * 60 * 60 * 1000 };
+      saveAusweisTokens(tokens);
+      try {
+        await target.send({
+          embeds: [new EmbedBuilder()
+            .setColor(DARK_ORANGE)
+            .setTitle('🆔  Ausweis erstellen — Paradise City Roleplay')
+            .setDescription('Du wurdest aufgefordert, deinen Charakter-Ausweis auszufüllen.')
+            .addFields(
+              { name: '🔗  Link', value: `[Hier klicken um Ausweis auszufüllen](${link})`, inline: false },
+              { name: '⏱️  Gültig bis', value: `<t:${Math.floor((Date.now() + 86400000) / 1000)}:F>`, inline: false },
+            )
+            .setFooter({ text: 'Paradise City Roleplay  •  Ausweis-Erstellung' })
+            .setTimestamp()]
+        });
+        return interaction.reply({ content: `✅ DM an **${target.tag}** gesendet mit dem Ausweis-Erstellungslink.`, ephemeral: true });
+      } catch (e) {
+        return interaction.reply({ content: `❌ Konnte keine DM an **${target.tag}** senden. DMs möglicherweise deaktiviert.`, ephemeral: true });
+      }
+    }
+
+    // /ausweis-delete
+    if (commandName === 'ausweis-delete') {
+      const target   = interaction.options.getUser('mitglied');
+      const ausweise = loadAusweisData();
+      if (!ausweise[target.id]) {
+        return interaction.reply({ content: `❌ **${target.tag}** hat keinen Ausweis.`, ephemeral: true });
+      }
+      delete ausweise[target.id];
+      fs.writeFileSync(path.join(DATA_DIR, 'ausweis.json'), JSON.stringify(ausweise, null, 2), 'utf8');
+      // Passbild löschen falls vorhanden
+      try {
+        const uploadsDir = path.join(DATA_DIR, 'uploads');
+        if (fs.existsSync(uploadsDir)) {
+          const files = fs.readdirSync(uploadsDir).filter(f => f.startsWith(target.id + '.'));
+          files.forEach(f => fs.unlinkSync(path.join(uploadsDir, f)));
+        }
+      } catch {}
+      return interaction.reply({ content: `✅ Ausweis von **${target.tag}** wurde gelöscht.`, ephemeral: true });
     }
   
 
