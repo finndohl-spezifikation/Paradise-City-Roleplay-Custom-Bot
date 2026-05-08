@@ -398,17 +398,6 @@ module.exports = function startWebServer(client, DATA_DIR) {
             <div class="form-row one">
               ${memberPicker('discord_id', 'Dein Discord-Account')}
             </div>
-            <p class="section-title" style="margin-top:18px">🎭 Charakter Name</p>
-              <div class="form-row two">
-                <div class="form-group">
-                  <label>Vorname <span class="req">*</span></label>
-                  <input type="text" name="vorname" placeholder="Vorname" required>
-                </div>
-                <div class="form-group">
-                  <label>Nachname <span class="req">*</span></label>
-                  <input type="text" name="nachname" placeholder="Nachname" required>
-                </div>
-              </div>
 
             <button type="submit" class="btn">✅ Einreise Bestätigen</button>
           ${warning()}
