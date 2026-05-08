@@ -684,7 +684,7 @@ client.once('ready', async () => {
     }
 
   // ── Einmalig: Fraktionsregelwerk-Embed senden ──────────────────────────────
-    if (!setup.fraktionsregelwerkEmbedV3) {
+    if (!setup.fraktionsregelwerkEmbedV4) {
       try {
         const fraktCh = await client.channels.fetch('1490882548266696849');
         if (fraktCh) {
@@ -811,7 +811,7 @@ client.once('ready', async () => {
           await fraktCh.send({ embeds: [fraktEmbed2] });
           await fraktCh.send({ embeds: [fraktEmbed3] });
           console.log('Fraktionsregelwerk-Embeds gesendet.');
-          setup.fraktionsregelwerkEmbedV3 = true;
+          setup.fraktionsregelwerkEmbedV4 = true;
           saveSetup(setup);
         }
       } catch (e) { console.error('Fraktionsregelwerk-Embed Fehler:', e.message); }
