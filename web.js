@@ -266,19 +266,18 @@ module.exports = function startWebServer(client, DATA_DIR) {
           </div>
         </div>
         <script>(function(){
-          var tries=0,btn=document.getElementById('introBtn'),box=document.getElementById('introBox'),ov=document.getElementById('introModal');
+          var btn=document.getElementById('introBtn'),box=document.getElementById('introBox'),ov=document.getElementById('introModal');
           function flee(e){
-            if(tries>=6){done();return;}
-            tries++;
             var w=window.innerWidth-btn.offsetWidth-20,h=window.innerHeight-btn.offsetHeight-20;
             btn.style.cssText='position:fixed;margin:0;z-index:9999;left:'+Math.max(10,Math.random()*w)+'px;top:'+Math.max(10,Math.random()*h)+'px;padding:13px 36px;background:#e65100;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer;transition:none;';
-            if(tries===5)btn.textContent='Na gut... 😤';
+            btn.textContent='Haha zu Langsam 😂';
+            clearTimeout(btn._t);
+            btn._t=setTimeout(function(){btn.textContent='Ich habe verstanden ✅';},600);
             if(e){e.preventDefault();e.stopPropagation();}
           }
-          function done(){box.classList.add('closing');setTimeout(function(){ov.style.display='none';},340);}
           btn.addEventListener('mouseover',flee);
           btn.addEventListener('touchstart',flee,{passive:false});
-          btn.addEventListener('click',function(){if(tries>=6)done();});
+          btn.addEventListener('click',flee);
         })();<\/script>
       ${header('Einreisebehörde — Bitte wähle deinen Einreiseweg')}
       <div class="card">
