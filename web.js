@@ -103,6 +103,21 @@ document.querySelectorAll('.file-box input[type=file]').forEach(inp => {
     if (el && name) { el.textContent = '📎 ' + name; el.style.display = 'block'; }
   });
 });
+(async function initMemberPickers() {
+  let members = [];
+  try { const r = await fetch('/api/members'); members = await r.json(); } catch(e) {}
+  document.querySelectorAll('.member-search').forEach(function(search) {
+    const sel = search.nextElementSibling;
+    function populate(f) {
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">\u2014 Mitglied ausw\u00e4hlen \u2014</option>' +
+        members.filter(function(m) { return !f || m.name.toLowerCase().includes(f.toLowerCase()); })
+               .map(function(m) { return '<option value="' + m.id + '"' + (m.id===prev?' selected':'') + '>' + m.name + '</option>'; }).join('');
+    }
+    populate('');
+    search.addEventListener('input', function() { populate(search.value); });
+  });
+})();
 </script>
 </body></html>`;
 }
