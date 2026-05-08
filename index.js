@@ -396,7 +396,7 @@ client.once('ready', async () => {
     }
 
     // ── Einmalig: Regelwerk 1/2 Embed senden ──────────────────────────────────
-    if (!setup.regelwerkEmbed1Sent) {
+    if (!setup.regelwerkEmbed1SentV2) {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const DIV   = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
       const regelEmbed1 = new EmbedBuilder()
@@ -489,7 +489,7 @@ client.once('ready', async () => {
         const regelCh1 = await client.channels.fetch('1490882546144383156');
         if (regelCh1) {
           await regelCh1.send({ embeds: [regelEmbed1] });
-          setup.regelwerkEmbed1Sent = true;
+          setup.regelwerkEmbed1SentV2 = true;
           saveSetup(setup);
           console.log('✅ Regelwerk-Embed 1/2 einmalig gesendet.');
         }
@@ -497,7 +497,7 @@ client.once('ready', async () => {
     }
 
       // ── Einmalig: Regelwerk 2/2 Embed senden ──────────────────────────────────
-    if (!setup.regelwerkEmbed2Sent) {
+    if (!setup.regelwerkEmbed2SentV2) {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const DIV   = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
       const regelEmbed2 = new EmbedBuilder()
@@ -572,7 +572,7 @@ client.once('ready', async () => {
         const regelCh2 = await client.channels.fetch('1490882546144383156');
         if (regelCh2) {
           await regelCh2.send({ embeds: [regelEmbed2] });
-          setup.regelwerkEmbed2Sent = true;
+          setup.regelwerkEmbed2SentV2 = true;
           saveSetup(setup);
           console.log('✅ Regelwerk-Embed 2/2 einmalig gesendet.');
         }
