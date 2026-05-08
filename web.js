@@ -58,6 +58,11 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#e65100}
 .discord-note{font-size:.75em;color:#8b949e;margin-top:4px}
 hr.divider{border:none;border-top:1px solid #21262d;margin:20px 0}
 @media(max-width:560px){.form-row{grid-template-columns:1fr}}
+  .member-search{width:100%;padding:9px 13px;background:#0d1117;border:1px solid #30363d;border-radius:7px 7px 0 0;color:#e0e0e0;font-size:.92em;outline:none;transition:border .15s}
+  .member-search:focus{border-color:#e65100}
+  .member-select{width:100%;padding:4px 2px;background:#0d1117;border:1px solid #30363d;border-top:none;border-radius:0 0 7px 7px;color:#e0e0e0;font-size:.9em;min-height:140px}
+  .member-select:focus{border-color:#e65100;outline:none}
+  .member-select option{padding:6px 10px;cursor:pointer}
 `;
 
 function header(subtitle) {
@@ -73,7 +78,18 @@ function warning() {
   return `<p class="warning-text">⚠️ Bitte gebe hier korrekte Daten zu deinem Charakter an.<br>Änderungen sind nur durch den RP Tod möglich.</p>`;
 }
 
-function page(title, body) {
+function memberPicker(name, label) {
+    return `
+    <div class="form-group">
+      <label>${label} <span class="req">*</span></label>
+      <input type="text" class="member-search" placeholder="🔍 Mitglied suchen..." autocomplete="off">
+      <select name="${name}" class="member-select" required>
+        <option value="">— Wird geladen... —</option>
+      </select>
+    </div>`;
+  }
+
+  function page(title, body) {
   return `<!DOCTYPE html><html lang="de"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} — Paradise City Roleplay</title>
@@ -183,7 +199,21 @@ module.exports = function startWebServer(client, DATA_DIR) {
     } catch { return false; }
   }
 
-  // ── GET / — Root Redirect ────────────────────────────────────────────────
+  // ── GET /api/members — Servermitglieder für Picker ─────────────────────────
+    app.get('/api/members', async (req, res) => {
+      const guild = getGuild();
+      if (!guild) return res.json([]);
+      try {
+        await guild.members.fetch();
+        const list = guild.members.cache
+          .filter(m => !m.user.bot)
+          .map(m => ({ id: m.user.id, name: m.displayName || m.user.username }))
+          .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        res.json(list);
+      } catch { res.json([]); }
+    });
+
+    // ── GET / — Root Redirect ────────────────────────────────────────────────
     app.get('/', (req, res) => res.redirect('/einreise'));
 
     // ── GET /einreise — Auswahlseite ─────────────────────────────────────────
@@ -240,10 +270,10 @@ module.exports = function startWebServer(client, DATA_DIR) {
             </div>
           </div>
 
-            <div style="margin-bottom:16px">
-              <label style="color:#aaa;font-size:.85em;display:block;margin-bottom:6px">Discord ID <span style="color:#e65100">*</span></label>
-              <input type="text" name="discord_id" placeholder="z.B. 123456789012345678" required style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;font-size:.95em">
-              <small style="color:#666;margin-top:4px;display:block">Rechtsklick auf deinen Namen im Discord → "ID kopieren"</small>
+            <hr class="divider">
+            <p class="section-title">👤 Discord Mitglied</p>
+            <div class="form-row one">
+              ${memberPicker('discord_id', 'Mitglied auswählen')}
             </div>
 
             <button type="submit" class="btn">✅ Einreise Bestätigen</button>
@@ -310,16 +340,14 @@ module.exports = function startWebServer(client, DATA_DIR) {
         <form method="POST" action="/einreise/illegal" id="illegalForm">
 
 
-          <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
-          <div style="margin-bottom:16px">
-            <label style="color:#aaa;font-size:.85em;display:block;margin-bottom:6px">Discord ID <span style="color:#e65100">*</span></label>
-            <input type="text" name="discord_id" placeholder="z.B. 123456789012345678" required style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;font-size:.95em">
-            <small style="color:#666;margin-top:4px;display:block">Rechtsklick auf deinen Namen im Discord → "ID kopieren"</small>
-          </div>
-
-            <input type="checkbox" id="confirm" name="confirm" value="1" required style="width:18px;height:18px;accent-color:#e65100;cursor:pointer;flex-shrink:0">
-            <label for="confirm" style="color:#e0e0e0;font-size:.88em;cursor:pointer">Ich verstehe die Konsequenzen und möchte illegal einreisen.</label>
-          </div>
+            <p class="section-title">👤 Discord Mitglied</p>
+            <div class="form-row one">
+              ${memberPicker('discord_id', 'Mitglied auswählen')}
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+              <input type="checkbox" id="confirm" name="confirm" value="1" required style="width:18px;height:18px;accent-color:#e65100;cursor:pointer;flex-shrink:0">
+              <label for="confirm" style="color:#e0e0e0;font-size:.88em;cursor:pointer">Ich verstehe die Konsequenzen und möchte illegal einreisen.</label>
+            </div>
 
           <button type="submit" class="btn" style="background:#b71c1c">🚨 Jetzt Einreisen</button>
           
@@ -373,10 +401,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
         <div class="person-block">
           <div class="person-head">👤 Person ${i + 1}${i === 0 ? ' (Du)' : ''}</div>
           <div class="form-row one">
-            <div class="form-group">
-              <label>Discord User ID <span class="req">*</span></label>
-              <input type="text" name="discord_id_${i}" required placeholder="123456789012345678" maxlength="20" ${i === 0 ? 'id="own_id"' : ''}>
-              ${i === 0 ? '<span class="discord-note">Deine eigene Discord User ID</span>' : ''}
+            ${memberPicker(`discord_id_${i}`, i === 0 ? 'Dein Mitglied (Person 1)' : `Person ${i + 1}`)}
             </div>
           </div>
           <div class="char-data hidden" id="char_${i}">
