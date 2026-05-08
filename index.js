@@ -2027,6 +2027,7 @@ client.on('interactionCreate', async (interaction) => {
       try {
         const ch   = await client.channels.fetch(AKTIVITAET_CH);
         const data = { members: [], createdAt: Date.now(), channelId: AKTIVITAET_CH };
+        await ch.send({ content: '<@&1490855722534310003>' });
         const msg  = await ch.send({ embeds: [buildAktivitaetEmbed(data)] });
         await msg.react('\u2705');
         const all = loadAktivitaet();
