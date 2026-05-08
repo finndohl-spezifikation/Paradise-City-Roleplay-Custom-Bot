@@ -353,6 +353,12 @@ client.once('ready', async () => {
       .toJSON(),
 
     new SlashCommandBuilder()
+      .setName('ausweise')
+      .setDescription('Zeigt den offiziellen Ausweis einer Person an')
+      .addUserOption(opt => opt.setName('person').setDescription('Mitglied dessen Ausweis angezeigt werden soll').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
       .setName('aktivit\u00e4tscheck')
       .setDescription('Startet einen Aktivit\u00e4tscheck im zugeh\u00f6rigen Kanal')
       .toJSON(),
@@ -414,7 +420,7 @@ client.once('ready', async () => {
           value:
             `🟡  **GRUPPEN EINREISE**\n` +
             LINE2 + '\n' +
-            `> Gilt ab **mindestens 6 Personen** — alle gemeinsam, ein Weg.\n` +
+            `> Gilt ab **mindestens 4 Personen** — alle gemeinsam, ein Weg.\n` +
             `> ⚠️ Alle Mitglieder der Gruppe **müssen denselben Lebensweg** wählen.\n` +
             `> ✨ Als Belohnung erhaltet ihr **exklusive Gruppen-Boni**.\n` +
             `> Stärke liegt in der Gemeinschaft — plant euren Einstieg zusammen.`,
@@ -591,7 +597,7 @@ client.once('ready', async () => {
             value:
               `**§1** Einreisebedingungen: Jeder Spieler stimmt zu, dass seine Discord-ID gespeichert wird, solange er aktiv ist.\n` +
               `**§1.1** Charaktererstellung — Keine Whitelist erforderlich. Realistische Angaben sind Pflicht. Charakteränderung nur durch RP-Tod.\n` +
-              `**§1.2** Einreisearten: Legal · Illegal · Gruppeneinreise *(ab 5 Personen)*\n` +
+              `**§1.2** Einreisearten: Legal · Illegal · Gruppeneinreise *(ab 4 Personen)*\n` +
               `**§1.3** Gruppeneinreise: Nachweis im Support erforderlich.\n` +
               `**§1.4** Zweitcharaktere: Nur mit Anmeldung im Support erlaubt.`,
             inline: false,
@@ -2097,6 +2103,22 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.reply({ content: `✅ Ausweis von **${target.tag}** wurde gelöscht.`, ephemeral: true });
     }
   
+
+      // /ausweise
+      if (commandName === 'ausweise') {
+        const target = interaction.options.getUser('person');
+        const ausweisData = loadAusweis();
+        const eintrag     = ausweisData[target.id];
+        if (!eintrag)
+          return interaction.reply({ content: `❌ **${target.username}** hat noch keinen Ausweis.`, ephemeral: true });
+        const domainAW = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
+        const linkAW   = `https://${domainAW}/ausweis/view/${target.id}`;
+        return interaction.reply({
+          content: `🆔 **Ausweis von ${target.username}:**
+🔗 [${eintrag.vorname} ${eintrag.nachname} — Ausweis öffnen](${linkAW})`,
+          ephemeral: false
+        });
+      }
 
 });
 
