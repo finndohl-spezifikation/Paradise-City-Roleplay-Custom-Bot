@@ -106,7 +106,7 @@ function charFields(prefix, idx) {
   <div class="form-row">
     <div class="form-group">
       <label for="${prefix}geburtsdatum_${idx}">Geburtsdatum <span class="req">*</span></label>
-      <input type="date" id="${prefix}geburtsdatum_${idx}" name="${prefix}geburtsdatum_${idx}" required>
+      <input type="text" id="${prefix}geburtsdatum_${idx}" name="${prefix}geburtsdatum_${idx}" placeholder="TT.MM.JJJJ" required>
     </div>
     <div class="form-group">
       <label for="${prefix}geburtsort_${idx}">Geburtsort <span class="req">*</span></label>
