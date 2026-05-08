@@ -2070,7 +2070,7 @@ client.on('interactionCreate', async (interaction) => {
       const tokens = loadAusweisTokens();
       const pending = Object.values(tokens).find(t => t.userId === target.id && t.expiresAt > Date.now());
       if (pending) {
-        return interaction.reply({ content: `❌ Für **${target.tag}** läuft bereits ein Erstellungslink. Token: `${pending.token}``, ephemeral: true });
+        return interaction.reply({ content: `❌ Für **${target.tag}** läuft bereits ein Erstellungslink. Token: \`${pending.token}\``, ephemeral: true });
       }
       const tok     = genToken();
       const domain  = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
