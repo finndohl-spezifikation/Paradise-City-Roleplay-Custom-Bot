@@ -150,6 +150,11 @@ const {
   // ─── NEUER MEMBER ─────────────────────────────────────────────────────────────
   client.on('guildMemberAdd', async (member) => {
     if (!member.user.bot) {
+      // Auto-Rolle vergeben
+      try {
+        await member.roles.add('1490855725516460234');
+      } catch (e) { console.error('Auto-Rolle Fehler:', e.message); }
+
       await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
         .setColor(Colors.Green).setTitle('✅ Mitglied beigetreten')
         .setDescription(`${member.user.tag} hat den Server betreten.`)
