@@ -683,107 +683,128 @@ client.once('ready', async () => {
       } catch (e) { console.error('Regelwerk-Embed 2/2 Fehler:', e.message); }
     }
 
-  // ── Einmalig: Fraktionsregelwerk-Embed senden ─────────────────────────────
-    if (!setup.fraktionsregelwerkEmbedSent) {
-      const DIV = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
-      const fraktionsEmbed = new EmbedBuilder()
-        .setColor(DARK_ORANGE)
-        .setTitle('⚔️  Fraktionsregelwerk — Paradise City Roleplay')
-        .addFields(
-          {
-            name: '§1  Geltungsbereich',
-            value: `Dieses Regelwerk gilt für **alle Fraktionen** auf dem Server. Jedes Fraktionsmitglied ist verpflichtet, sich an die folgenden Bestimmungen zu halten.`,
-            inline: false,
-          },
-          { name: DIV, value: '\u200b', inline: false },
-          {
-            name: '§2  Allgemeines Verhalten',
-            value:
-              `**(1)** Grundloses Angreifen von Spielern, Beamten oder anderen Fraktionen ohne RP-Hintergrund ist untersagt.\n` +
-              `**(2)** Jegliche Form von unrealistischem oder regelwidrigem Verhalten ist zu unterlassen.`,
-            inline: false,
-          },
-          {
-            name: '§3  Illegale Routen',
-            value:
-              `**(1)** Fraktionen sind berechtigt, illegale Routen für sich zu beanspruchen.\n` +
-              `**(2)** Die Klärung und Durchsetzung solcher Ansprüche muss ausschließlich **IC** erfolgen.`,
-            inline: false,
-          },
-          {
-            name: '§4  Gambo-Verhalten',
-            value:
-              `**(1)** Auffälliges, nicht RP-basiertes Kampfverhalten („Gambo") ist untersagt.\n` +
-              `**(2)** Verstöße führen zu Fraktionsverwarnungen.\n` +
-              `**(3)** Im Wiederholungsfall kann die Fraktion aufgelöst werden.`,
-            inline: false,
-          },
-          { name: DIV, value: '\u200b', inline: false },
-          {
-            name: '§5  Fraktionsgründung',
-            value:
-              `**(1)** Jede Fraktion muss vor der Gründung eine Bewerbung einreichen.\n` +
-              `**(2)** Über die Annahme entscheidet die Projektleitung.\n` +
-              `**(3)** Es besteht kein Anspruch auf Genehmigung.`,
-            inline: false,
-          },
-          {
-            name: '§6  Namensgebung',
-            value: `Echtnamen sowie Fraktionsnamen von anderen Servern sind erlaubt.`,
-            inline: false,
-          },
-          {
-            name: '§7  Ausstattung',
-            value:
-              `**(1)** Keine Einschränkungen bei Fraktionskleidung, Fahrzeugen oder Immobilien.\n` +
-              `**(2)** Die Nutzung hat dennoch im Rahmen des Roleplays zu erfolgen.`,
-            inline: false,
-          },
-          {
-            name: '§8  Mitgliederanzahl',
-            value:
-              `**(1)** Kein festes Limit für Fraktionsmitglieder.\n` +
-              `**(2)** Ab **15 Mitgliedern** kann eine Aufteilung durch die Projektleitung angeordnet werden.`,
-            inline: false,
-          },
-          { name: DIV, value: '\u200b', inline: false },
-          {
-            name: '§9  Fraktionsgüter',
-            value:
-              `**(1)** Der Server stellt keine Fraktionsgüter zur Verfügung.\n` +
-              `**(2)** Fahrzeuge, Immobilien, Waffen und Gegenstände müssen **IC** erworben werden.\n` +
-              `**(3)** Ausgenommen: Kleidungsgegenstände.`,
-            inline: false,
-          },
-          {
-            name: '§10  Sanktionen',
-            value:
-              `**(1)** Wiederholtes negatives Auffallen kann zu Fraktionsverwarnungen führen.\n` +
-              `**(2)** Im Extremfall: Fraktionssperre oder Auflösung.\n` +
-              `**(3)** Vergehen einzelner Mitglieder werden individuell bestraft.\n` +
-              `**(4)** Fehlverhalten im Namen der Fraktion kann die gesamte Fraktion sanktionieren.`,
-            inline: false,
-          },
-          {
-            name: '§11  Änderungen',
-            value: `Die Projektleitung behält sich das Recht vor, das Regelwerk jederzeit zu verändern. Änderungen treten sofort in Kraft und werden in <#1490882546144383156> angekündigt.`,
-            inline: false,
-          },
-        )
-        .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung' })
-        .setTimestamp();
-
+  // ── Einmalig: Fraktionsregelwerk-Embed senden (v2) ──────────────────────────
+    if (!setup.fraktionsregelwerkEmbedV2) {
       try {
         const fraktCh = await client.channels.fetch('1490882548266696849');
         if (fraktCh) {
-          await fraktCh.send({ embeds: [fraktionsEmbed] });
-          setup.fraktionsregelwerkEmbedSent = true;
+
+          // ── Embed 1: Einleitung + Verhalten ────────────────────────────────
+          const fraktEmbed1 = new EmbedBuilder()
+            .setColor(DARK_ORANGE)
+            .setTitle('⚔️  Fraktionsregelwerk — Paradise City Roleplay')
+            .setDescription(
+              '> Dieses Regelwerk gilt für **alle Fraktionen** auf dem Server.\n' +
+              '> Jedes Fraktionsmitglied ist verpflichtet, sich an diese Bestimmungen zu halten.'
+            )
+            .addFields(
+              { name: '\u200b', value: '🛡️  **─── VERHALTEN ───**', inline: false },
+              {
+                name: '§1  Allgemeines Verhalten',
+                value:
+                  '> 🔴  Grundloses Angreifen von Spielern, Beamten oder Fraktionen ohne RP-Hintergrund ist **untersagt**.\n' +
+                  '> 🔴  Unrealistisches oder regelwidriges Verhalten ist zu **unterlassen**.',
+                inline: false,
+              },
+              {
+                name: '§2  Illegale Routen',
+                value:
+                  '> 🟢  Fraktionen dürfen illegale Routen für sich **beanspruchen**.\n' +
+                  '> 🔵  Ansprüche müssen ausschließlich **In-Character (IC)** durchgesetzt werden.',
+                inline: false,
+              },
+              {
+                name: '§3  Gambo-Verhalten',
+                value:
+                  '> 🔴  Nicht RP-basiertes Kampfverhalten **(„Gambo")** ist untersagt.\n' +
+                  '> ⚠️   Erster Verstoß → **Fraktionsverwarnung**\n' +
+                  '> ⛔  Wiederholungsfall → **Fraktionsauflösung**',
+                inline: false,
+              },
+            )
+            .setFooter({ text: 'Paradise City Roleplay  •  Seite 1 / 3' });
+
+          // ── Embed 2: Organisation ───────────────────────────────────────────
+          const fraktEmbed2 = new EmbedBuilder()
+            .setColor(DARK_ORANGE)
+            .setTitle('⚔️  Fraktionsregelwerk — Organisation')
+            .addFields(
+              { name: '\u200b', value: '🏛️  **─── ORGANISATION ───**', inline: false },
+              {
+                name: '§4  Fraktionsgründung',
+                value:
+                  '> 📋  Vor der Gründung muss eine **Bewerbung** eingereicht werden.\n' +
+                  '> 👥  Die Entscheidung trifft die **Projektleitung**.\n' +
+                  '> ℹ️   Kein Rechtsanspruch auf Genehmigung.',
+                inline: false,
+              },
+              {
+                name: '§5  Namensgebung',
+                value: '> ✅  Echtnamen und Fraktionsnamen anderer Server sind **erlaubt**.',
+                inline: false,
+              },
+              {
+                name: '§6  Ausstattung',
+                value:
+                  '> ✅  Keine Einschränkungen bei Kleidung, Fahrzeugen oder Immobilien.\n' +
+                  '> 🔵  Nutzung muss stets im Rahmen des **Roleplays** erfolgen.',
+                inline: false,
+              },
+              {
+                name: '§7  Mitgliederanzahl',
+                value:
+                  '> ✅  Kein festes Mitgliederlimit.\n' +
+                  '> ⚠️   Ab **15 Mitgliedern** kann die Projektleitung eine Aufteilung anordnen.',
+                inline: false,
+              },
+            )
+            .setFooter({ text: 'Paradise City Roleplay  •  Seite 2 / 3' });
+
+          // ── Embed 3: Ressourcen & Sanktionen ───────────────────────────────
+          const fraktEmbed3 = new EmbedBuilder()
+            .setColor(DARK_ORANGE)
+            .setTitle('⚔️  Fraktionsregelwerk — Ressourcen & Sanktionen')
+            .addFields(
+              { name: '\u200b', value: '📦  **─── RESSOURCEN ───**', inline: false },
+              {
+                name: '§8  Fraktionsgüter',
+                value:
+                  '> ❌  Der Server stellt **keine** Fraktionsgüter zur Verfügung.\n' +
+                  '> 🔵  Fahrzeuge, Immobilien, Waffen & Gegenstände müssen **IC** erworben werden.\n' +
+                  '> ✅  Ausgenommen: Kleidungsgegenstände.',
+                inline: false,
+              },
+              { name: '\u200b', value: '⚖️  **─── SANKTIONEN ───**', inline: false },
+              {
+                name: '§9  Strafen & Konsequenzen',
+                value:
+                  '> ⚠️   Wiederholte Verstöße → **Fraktionsverwarnung**\n' +
+                  '> 🔒  Extremfall → **Fraktionssperre oder Auflösung**\n' +
+                  '> 👤  Vergehen einzelner Mitglieder werden **individuell** bestraft.\n' +
+                  '> 🔴  Fehlverhalten im Namen der Fraktion kann die **gesamte Fraktion** sanktionieren.',
+                inline: false,
+              },
+              { name: '\u200b', value: '📌  **─── SONSTIGES ───**', inline: false },
+              {
+                name: '§10  Änderungsvorbehalt',
+                value:
+                  '> Die Projektleitung behält sich das Recht vor, das Regelwerk **jederzeit** zu ändern.\n' +
+                  '> Änderungen treten **sofort** in Kraft und werden in <#1490882546144383156> angekündigt.',
+                inline: false,
+              },
+            )
+            .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung  •  Seite 3 / 3' })
+            .setTimestamp();
+
+          await fraktCh.send({ embeds: [fraktEmbed1] });
+          await fraktCh.send({ embeds: [fraktEmbed2] });
+          await fraktCh.send({ embeds: [fraktEmbed3] });
+          setup.fraktionsregelwerkEmbedV2 = true;
           saveSetup(setup);
-          console.log('✅ Fraktionsregelwerk-Embed einmalig gesendet.');
+          console.log('✅ Fraktionsregelwerk-Embeds (v2) gesendet.');
         }
       } catch (e) { console.error('Fraktionsregelwerk-Embed Fehler:', e.message); }
     }
-
     // ── Einmalig: Safe-Zones-Embed senden ────────────────────────────────────
     if (!setup.safeZonesEmbedSent) {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
