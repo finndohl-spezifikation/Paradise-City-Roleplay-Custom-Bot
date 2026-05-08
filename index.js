@@ -3,6 +3,9 @@ const {
   GatewayIntentBits,
   Partials,
   EmbedBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
   PermissionFlagsBits,
   AuditLogEvent,
   SlashCommandBuilder,
@@ -206,9 +209,10 @@ client.once('ready', async () => {
     .setTimestamp()
   );
 
-  // ── Einmalig: Einreise-Embed senden ────────────────────────────────────────
+  // ── Einmalig: Einreise-Embed mit Button senden ─────────────────────────────
   const setup = loadSetup();
-  if (!setup.einreiseEmbedSent) {
+  if (!setup.einreiseEmbedV2Sent) {
+    const WEBAPP_URL = process.env.WEBAPP_URL || `https://${process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:3000'}`;
     const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
     const LINE2 = '─────────────────────────────────────────';
     const einreiseEmbed = new EmbedBuilder()
@@ -261,13 +265,21 @@ client.once('ready', async () => {
       )
       .setFooter({ text: 'Paradise City Roleplay  •  Einreisebehörde' })
       .setTimestamp();
+
+    const einreiseButton = new ButtonBuilder()
+      .setLabel('Einreise starten')
+      .setEmoji('🛂')
+      .setStyle(ButtonStyle.Link)
+      .setURL(`${WEBAPP_URL}/einreise`);
+    const row = new ActionRowBuilder().addComponents(einreiseButton);
+
     try {
       const einreiseCh = await client.channels.fetch('1490878156582686853');
       if (einreiseCh) {
-        await einreiseCh.send({ embeds: [einreiseEmbed] });
-        setup.einreiseEmbedSent = true;
+        await einreiseCh.send({ embeds: [einreiseEmbed], components: [row] });
+        setup.einreiseEmbedV2Sent = true;
         saveSetup(setup);
-        console.log('✅ Einreise-Embed einmalig gesendet.');
+        console.log('✅ Einreise-Embed v2 (mit Button) einmalig gesendet.');
       }
     } catch (e) { console.error('Einreise-Embed Fehler:', e.message); }
   }
@@ -953,3 +965,6 @@ client.on('interactionCreate', async (interaction) => {
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 client.login(process.env.DISCORD_TOKEN);
+
+// ─── WEB SERVER ───────────────────────────────────────────────────────────────
+require('./web')(client, DATA_DIR);
