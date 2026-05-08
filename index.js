@@ -17,15 +17,19 @@ const path = require('path');
 const DATA_DIR      = path.join(__dirname, 'data');
 const WARN_FILE     = path.join(DATA_DIR, 'teamwarns.json');
 const INVITES_FILE  = path.join(DATA_DIR, 'invites.json');
+const SETUP_FILE    = path.join(DATA_DIR, 'setup.json');
 
 if (!fs.existsSync(DATA_DIR))     fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(WARN_FILE))    fs.writeFileSync(WARN_FILE,    '{}', 'utf8');
 if (!fs.existsSync(INVITES_FILE)) fs.writeFileSync(INVITES_FILE, '{}', 'utf8');
+if (!fs.existsSync(SETUP_FILE))   fs.writeFileSync(SETUP_FILE,   '{}', 'utf8');
 
 function loadWarns()    { try { return JSON.parse(fs.readFileSync(WARN_FILE,    'utf8')); } catch { return {}; } }
 function saveWarns(d)   { fs.writeFileSync(WARN_FILE,    JSON.stringify(d, null, 2), 'utf8'); }
 function loadInvites()  { try { return JSON.parse(fs.readFileSync(INVITES_FILE, 'utf8')); } catch { return {}; } }
 function saveInvites(d) { fs.writeFileSync(INVITES_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+function loadSetup()    { try { return JSON.parse(fs.readFileSync(SETUP_FILE,   'utf8')); } catch { return {}; } }
+function saveSetup(d)   { fs.writeFileSync(SETUP_FILE,   JSON.stringify(d, null, 2), 'utf8'); }
 
 const inviteCache = new Map();
 
@@ -185,11 +189,6 @@ client.once('ready', async () => {
       .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
       .toJSON(),
 
-    new SlashCommandBuilder()
-      .setName('einreise-embed')
-      .setDescription('Sendet das Einreise-Informations-Embed in den Einreise-Kanal')
-      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-      .toJSON(),
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -206,6 +205,72 @@ client.once('ready', async () => {
     .addFields({ name: '🕐 Zeitpunkt', value: `<t:${ts()}:F>` })
     .setTimestamp()
   );
+
+  // ── Einmalig: Einreise-Embed senden ────────────────────────────────────────
+  const setup = loadSetup();
+  if (!setup.einreiseEmbedSent) {
+    const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+    const LINE2 = '─────────────────────────────────────────';
+    const einreiseEmbed = new EmbedBuilder()
+      .setColor(DARK_ORANGE)
+      .setTitle('🛂  Einreise — Paradise City Roleplay')
+      .setDescription(
+        `Willkommen! Wähle deinen **Einreiseweg** und starte dein Leben in Paradise City.\n` +
+        `Jeder Weg bringt andere Möglichkeiten und Einschränkungen.\n\n` +
+        LINE
+      )
+      .addFields(
+        {
+          name: '\u200b',
+          value:
+            `🟢  **LEGALE EINREISE**\n` +
+            LINE2 + '\n' +
+            `> Du reist **legal** in den Staat ein und bist offiziell registriert.\n` +
+            `> Du erhältst einen **Ausweis** und darfst **staatliche Jobs** ausführen.\n` +
+            `> ⚠️ Illegale Aktivitäten sind für dich **strikt verboten**.\n` +
+            `> Verstöße werden strafrechtlich verfolgt.`,
+          inline: false,
+        },
+        {
+          name: LINE,
+          value:
+            `🔴  **ILLEGALE EINREISE**\n` +
+            LINE2 + '\n' +
+            `> Du reist **illegal** in den Staat ein — ohne offizielle Registrierung.\n` +
+            `> ❌ Kein **Ausweis**, keine **staatlichen Jobs** möglich.\n` +
+            `> Du bewegst dich im Untergrund und kannst illegale Aktivitäten ausführen.\n` +
+            `> Werde nicht erwischt — die Konsequenzen sind hart.`,
+          inline: false,
+        },
+        {
+          name: LINE,
+          value:
+            `🟡  **GRUPPEN EINREISE**\n` +
+            LINE2 + '\n' +
+            `> Gilt ab **mindestens 6 Personen** — alle gemeinsam, ein Weg.\n` +
+            `> ⚠️ Alle Mitglieder der Gruppe **müssen denselben Lebensweg** wählen.\n` +
+            `> ✨ Als Belohnung erhaltet ihr **exklusive Gruppen-Boni**.\n` +
+            `> Stärke liegt in der Gemeinschaft — plant euren Einstieg zusammen.`,
+          inline: false,
+        },
+        {
+          name: LINE,
+          value: `*Bei Fragen zur Einreise wende dich an einen Mitarbeiter des Staates.*`,
+          inline: false,
+        },
+      )
+      .setFooter({ text: 'Paradise City Roleplay  •  Einreisebehörde' })
+      .setTimestamp();
+    try {
+      const einreiseCh = await client.channels.fetch('1490878156582686853');
+      if (einreiseCh) {
+        await einreiseCh.send({ embeds: [einreiseEmbed] });
+        setup.einreiseEmbedSent = true;
+        saveSetup(setup);
+        console.log('✅ Einreise-Embed einmalig gesendet.');
+      }
+    } catch (e) { console.error('Einreise-Embed Fehler:', e.message); }
+  }
 });
 
 // ─── INVITE EVENTS ────────────────────────────────────────────────────────────
@@ -884,77 +949,6 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
-  // /einreise-embed
-  if (commandName === 'einreise-embed') {
-    if (!member.permissions.has(PermissionFlagsBits.Administrator))
-      return interaction.reply({ content: '⛔ Keine Berechtigung.', ephemeral: true });
-
-    const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
-    const LINE2 = '─────────────────────────────────────────';
-
-    const einreiseEmbed = new EmbedBuilder()
-      .setColor(DARK_ORANGE)
-      .setTitle('🛂  Einreise — Paradise City Roleplay')
-      .setDescription(
-        `Willkommen! Wähle deinen **Einreiseweg** und starte dein Leben in Paradise City.\n` +
-        `Jeder Weg bringt andere Möglichkeiten und Einschränkungen.\n\n` +
-        LINE
-      )
-      .addFields(
-        {
-          name: '\u200b',
-          value:
-            `🟢  **LEGALE EINREISE**\n` +
-            LINE2 + `\n` +
-            `> Du reist **legal** in den Staat ein und bist offiziell registriert.\n` +
-            `> Du erhältst einen **Ausweis** und darfst **staatliche Jobs** ausführen.\n` +
-            `> ⚠️ Illegale Aktivitäten sind für dich **strikt verboten**.\n` +
-            `> Verstöße werden strafrechtlich verfolgt.`,
-          inline: false,
-        },
-        {
-          name: LINE,
-          value:
-            `🔴  **ILLEGALE EINREISE**\n` +
-            LINE2 + `\n` +
-            `> Du reist **illegal** in den Staat ein — ohne offizielle Registrierung.\n` +
-            `> ❌ Kein **Ausweis**, keine **staatlichen Jobs** möglich.\n` +
-            `> Du bewegst dich im Untergrund und kannst illegale Aktivitäten ausführen.\n` +
-            `> Werde nicht erwischt — die Konsequenzen sind hart.`,
-          inline: false,
-        },
-        {
-          name: LINE,
-          value:
-            `🟡  **GRUPPEN EINREISE**\n` +
-            LINE2 + `\n` +
-            `> Gilt ab **mindestens 6 Personen** — alle gemeinsam, ein Weg.\n` +
-            `> ⚠️ Alle Mitglieder der Gruppe **müssen denselben Lebensweg** wählen.\n` +
-            `> ✨ Als Belohnung erhaltet ihr **exklusive Gruppen-Boni**.\n` +
-            `> Stärke liegt in der Gemeinschaft — plant euren Einstieg zusammen.`,
-          inline: false,
-        },
-        {
-          name: LINE,
-          value: `*Bei Fragen zur Einreise wende dich an einen Mitarbeiter des Staates.*`,
-          inline: false,
-        },
-      )
-      .setFooter({ text: 'Paradise City Roleplay  •  Einreisebehörde' })
-      .setTimestamp();
-
-    try {
-      const einreiseCh = await client.channels.fetch('1490878156582686853');
-      if (einreiseCh) {
-        await einreiseCh.send({ embeds: [einreiseEmbed] });
-        await interaction.reply({ content: `✅ Einreise-Embed wurde in <#1490878156582686853> gesendet.`, ephemeral: true });
-      }
-    } catch (e) {
-      console.error('Einreise-Embed Fehler:', e.message);
-      await interaction.reply({ content: `❌ Fehler: ${e.message}`, ephemeral: true });
-    }
-    return;
-  }
 });
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
