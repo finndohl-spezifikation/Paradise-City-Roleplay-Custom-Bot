@@ -976,7 +976,7 @@ client.once('ready', async () => {
       // ── Modal: Nutzer zuweisen ────────────────────────────────────────────────
       if (interaction.isModalSubmit() && interaction.customId === 'ticket_assign_modal') {
         const userId = interaction.fields.getTextInputValue('assign_user_id').trim().replace(/[<@>]/g, '');
-        if (!/^d{17,20}$/.test(userId)) return interaction.reply({ content: '❌ Ungültige User ID.', ephemeral: true });
+        if (!/^\d{17,20}$/.test(userId)) return interaction.reply({ content: '❌ Ungültige User ID.', ephemeral: true });
         const tickets = loadTickets();
         const ticket  = tickets[interaction.channel?.id];
         if (!ticket) return interaction.reply({ content: '❌ Kein Ticket.', ephemeral: true });
@@ -1037,8 +1037,18 @@ client.once('ready', async () => {
           return interaction.update({ content: `✅ Danke für deine Bewertung: ${starsFull} (${starsStr})`, components: [], embeds: [] });
         }
 
-    } catch (e) { console.error('Ticket Interaction Fehler:', e.message); }
-  });
+    } catch (e) {
+        console.error('Ticket Interaction Fehler:', e && e.stack ? e.stack : e);
+        try {
+          const errMsg = String(e && e.message ? e.message : e);
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({ content: 'Interner Fehler: ' + errMsg }).catch(() => {});
+          } else {
+            await interaction.reply({ content: 'Interner Fehler: ' + errMsg, ephemeral: true }).catch(() => {});
+          }
+        } catch {}
+      }
+    });
 
   // ─── BEARBEITER TRACKING ──────────────────────────────────────────────────────
   // ─── INVITE EVENTS ────────────────────────────────────────────────────────────
