@@ -217,26 +217,21 @@ module.exports = function startWebServer(client, DATA_DIR) {
   // ── GET /api/members — Servermitglieder für Picker ─────────────────────────
     app.get('/api/members', async (req, res) => {
         const guild = getGuild();
-        if (!guild) return res.json({ error: 'kein_server' });
+        if (!guild) return res.json([]);
         try {
-          if (guild.members.cache.size <= 1) {
-            await guild.members.fetch({ force: true });
-          }
-          const list = guild.members.cache
+          const fetched = await guild.members.fetch();
+          const list = [...fetched.values()]
             .filter(m => !m.user.bot)
             .map(m => ({ id: m.user.id, name: m.displayName || m.user.username }))
             .sort((a, b) => a.name.localeCompare(b.name, 'de'));
           res.json(list);
         } catch(err) {
           console.error('members fetch error:', err.message);
-          // Fallback: versuche ohne force
-          try {
-            const list2 = guild.members.cache
-              .filter(m => !m.user.bot)
-              .map(m => ({ id: m.user.id, name: m.displayName || m.user.username }))
-              .sort((a, b) => a.name.localeCompare(b.name, 'de'));
-            res.json(list2);
-          } catch { res.json([]); }
+          const list = [...guild.members.cache.values()]
+            .filter(m => !m.user.bot)
+            .map(m => ({ id: m.user.id, name: m.displayName || m.user.username }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+          res.json(list);
         }
       });
 
@@ -300,7 +295,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
             <hr class="divider">
             <p class="section-title">👤 Discord Mitglied</p>
             <div class="form-row one">
-              ${memberPicker('discord_id', 'Mitglied auswählen')}
+              ${memberPicker('discord_id', 'Dein Discord-Account')}
             </div>
 
             <button type="submit" class="btn">✅ Einreise Bestätigen</button>
@@ -369,7 +364,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
             <p class="section-title">👤 Discord Mitglied</p>
             <div class="form-row one">
-              ${memberPicker('discord_id', 'Mitglied auswählen')}
+              ${memberPicker('discord_id', 'Dein Discord-Account')}
             </div>
             <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
               <input type="checkbox" id="confirm" name="confirm" value="1" required style="width:18px;height:18px;accent-color:#e65100;cursor:pointer;flex-shrink:0">
