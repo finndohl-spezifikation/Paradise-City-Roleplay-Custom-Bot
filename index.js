@@ -1810,8 +1810,25 @@ client.on('interactionCreate', async (interaction) => {
 
 });
 
-// ─── LOGIN ────────────────────────────────────────────────────────────────────
-client.login(process.env.DISCORD_TOKEN);
+// ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
+process.on('unhandledRejection', (reason) => {
+  console.error('[UNHANDLED REJECTION]', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION]', err);
+});
 
 // ─── WEB SERVER ───────────────────────────────────────────────────────────────
 require('./web')(client, DATA_DIR);
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+if (!process.env.DISCORD_TOKEN) {
+  console.error('[FEHLER] DISCORD_TOKEN Umgebungsvariable fehlt!');
+  process.exit(1);
+}
+client.login(process.env.DISCORD_TOKEN)
+  .then(() => console.log('[LOGIN] Erfolgreich eingeloggt'))
+  .catch(err => {
+    console.error('[LOGIN FEHLER]', err.message || err);
+    process.exit(1);
+  });
