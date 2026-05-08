@@ -178,7 +178,10 @@ module.exports = function startWebServer(client, DATA_DIR) {
     } catch { return false; }
   }
 
-  // ── GET /einreise — Auswahlseite ─────────────────────────────────────────
+  // ── GET / — Root Redirect ────────────────────────────────────────────────
+    app.get('/', (req, res) => res.redirect('/einreise'));
+
+    // ── GET /einreise — Auswahlseite ─────────────────────────────────────────
   app.get('/einreise', (req, res) => {
     res.send(page('Einreise', `
       ${header('Einreisebehörde — Bitte wähle deinen Einreiseweg')}
@@ -484,6 +487,6 @@ module.exports = function startWebServer(client, DATA_DIR) {
   });
 
   // ── Start ────────────────────────────────────────────────────────────────
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log(`🌐 Web-Server läuft auf Port ${PORT}`));
+  const PORT = process.env.PORT || 8080;
+  app.listen(PORT, '0.0.0.0', () => console.log(`🌐 Web-Server läuft auf Port ${PORT}`));
 };
