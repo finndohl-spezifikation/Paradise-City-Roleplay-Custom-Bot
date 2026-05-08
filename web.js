@@ -525,7 +525,6 @@ module.exports = function startWebServer(client, DATA_DIR) {
           <div class="person-head">👤 Person ${i + 1}${i === 0 ? ' (Du)' : ''}</div>
           <div class="form-row one">
             ${memberPicker(`discord_id_${i}`, i === 0 ? 'Dein Mitglied (Person 1)' : `Person ${i + 1}`)}
-            </div>
           </div>
           <div class="char-data hidden" id="char_${i}">
             <hr class="divider" style="margin:10px 0">
@@ -655,7 +654,85 @@ module.exports = function startWebServer(client, DATA_DIR) {
     `));
   });
 
-  // ── GET /ausweis/create/:token ──────────────────────────────────────────────
+  // ── GET /ausweis/photo/:userId — Passbild ausliefern ────────────────────────
+    app.get('/ausweis/photo/:userId', (req, res) => {
+      const uid  = req.params.userId;
+      const exts = ['jpg','jpeg','png','webp'];
+      for (const ext of exts) {
+        const p = path.join(DATA_DIR, 'uploads', uid + '.' + ext);
+        if (fs.existsSync(p)) return res.sendFile(p);
+      }
+      res.status(404).send('Kein Foto');
+    });
+
+    // ── GET /ausweis/view/:userId — Ausweis-Karte ────────────────────────────────
+    app.get('/ausweis/view/:userId', (req, res) => {
+      const uid     = req.params.userId;
+      const ausweise = loadAusweis();
+      const e       = ausweise[uid];
+      if (!e) return res.status(404).send('Kein Ausweis gefunden.');
+      const issued  = new Date(e.createdAt).toLocaleDateString('de-DE');
+      const hasPhoto = ['jpg','jpeg','png','webp'].some(x => fs.existsSync(path.join(DATA_DIR,'uploads', uid+'.'+x)));
+      res.send(`<!DOCTYPE html><html lang="de"><head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ausweis — ${e.vorname} ${e.nachname}</title>
+  <style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#0a0a0a;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{width:100%;max-width:520px;background:linear-gradient(145deg,#111827,#1a2332);border-radius:18px;overflow:hidden;box-shadow:0 0 0 2px #c8a84b,0 20px 60px rgba(0,0,0,.8);position:relative}
+  .card::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(200,168,75,.03) 10px,rgba(200,168,75,.03) 11px);pointer-events:none}
+  .header{background:linear-gradient(135deg,#0f1f3d 0%,#1a3a6b 50%,#0f1f3d 100%);padding:18px 22px;display:flex;align-items:center;gap:14px;border-bottom:3px solid #c8a84b}
+  .seal{width:54px;height:54px;border-radius:50%;background:radial-gradient(circle,#c8a84b,#8b6914);display:flex;align-items:center;justify-content:center;font-size:1.6em;flex-shrink:0;box-shadow:0 0 12px rgba(200,168,75,.5)}
+  .header-text h1{color:#c8a84b;font-size:.72em;letter-spacing:3px;text-transform:uppercase;font-weight:700}
+  .header-text h2{color:#e0e0e0;font-size:.85em;letter-spacing:1.5px;margin-top:3px;font-weight:400}
+  .header-text h3{color:#a0b4c8;font-size:.7em;margin-top:2px;letter-spacing:1px}
+  .body{display:flex;gap:0;padding:22px}
+  .photo-col{flex-shrink:0;margin-right:20px}
+  .photo{width:110px;height:140px;border-radius:8px;object-fit:cover;border:2px solid #c8a84b;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+  .photo-placeholder{width:110px;height:140px;border-radius:8px;background:#1e2a3a;border:2px dashed #3a4a5a;display:flex;align-items:center;justify-content:center;font-size:2.5em;color:#3a4a5a}
+  .id-num{color:#c8a84b;font-size:.65em;margin-top:8px;text-align:center;letter-spacing:2px;font-weight:700}
+  .data-col{flex:1;min-width:0}
+  .field{margin-bottom:13px}
+  .field-label{color:#a0b4c8;font-size:.6em;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:3px}
+  .field-value{color:#f0f0f0;font-size:.95em;font-weight:600;border-bottom:1px solid rgba(200,168,75,.2);padding-bottom:5px}
+  .name-big{color:#ffffff;font-size:1.2em;font-weight:800;letter-spacing:.5px;border-bottom:2px solid #c8a84b;padding-bottom:6px;margin-bottom:14px}
+  .footer{background:#0f1f3d;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;border-top:2px solid #c8a84b}
+  .footer-text{color:#6a7a8a;font-size:.62em;letter-spacing:1.5px;text-transform:uppercase}
+  .valid-badge{background:#c8a84b;color:#000;font-size:.6em;font-weight:800;padding:4px 10px;border-radius:4px;letter-spacing:2px}
+  .watermark{position:absolute;right:-10px;top:50%;transform:translateY(-50%) rotate(-30deg);font-size:5em;color:rgba(200,168,75,.04);font-weight:900;letter-spacing:8px;pointer-events:none;user-select:none}
+  </style></head><body>
+  <div class="card">
+    <div class="watermark">PARADISE CITY</div>
+    <div class="header">
+      <div class="seal">🏛️</div>
+      <div class="header-text">
+        <h1>Paradise City Roleplay</h1>
+        <h2>Offizieller Personalausweis</h2>
+        <h3>Los Angeles Einwohner Melde Amt</h3>
+      </div>
+    </div>
+    <div class="body">
+      <div class="photo-col">
+        ${hasPhoto ? `<img class="photo" src="/ausweis/photo/${uid}" alt="Passbild">` : '<div class="photo-placeholder">👤</div>'}
+        <div class="id-num">ID-${uid.slice(-6).toUpperCase()}</div>
+      </div>
+      <div class="data-col">
+        <div class="name-big">${e.vorname} ${e.nachname}</div>
+        <div class="field"><div class="field-label">Geburtsdatum</div><div class="field-value">${e.geburtsdatum}</div></div>
+        <div class="field"><div class="field-label">Geburtsort</div><div class="field-value">${e.geburtsort}</div></div>
+        <div class="field"><div class="field-label">Nationalität</div><div class="field-value">${e.nationalitaet}</div></div>
+        <div class="field"><div class="field-label">Ausgestellt am</div><div class="field-value">${issued}</div></div>
+      </div>
+    </div>
+    <div class="footer">
+      <div class="footer-text">Paradise City • Offizielles Dokument</div>
+      <div class="valid-badge">GüLTIG</div>
+    </div>
+  </div>
+  </body></html>`);
+    });
+
+    // ── GET /ausweis/create/:token ──────────────────────────────────────────────
   app.get('/ausweis/create/:token', (req, res) => {
     const tokens = loadAusweisTokens();
     const entry  = tokens[req.params.token];
