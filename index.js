@@ -34,6 +34,16 @@ if (!fs.existsSync(WARN_FILE))    fs.writeFileSync(WARN_FILE,    '{}', 'utf8');
 if (!fs.existsSync(INVITES_FILE)) fs.writeFileSync(INVITES_FILE, '{}', 'utf8');
 if (!fs.existsSync(SETUP_FILE))   fs.writeFileSync(SETUP_FILE,   '{}', 'utf8');
 
+const AUSWEIS_FILE = path.join(DATA_DIR, 'ausweis.json');
+const CODES_FILE   = path.join(DATA_DIR, 'einreise_codes.json');
+if (!fs.existsSync(AUSWEIS_FILE)) fs.writeFileSync(AUSWEIS_FILE, '{}', 'utf8');
+if (!fs.existsSync(CODES_FILE))   fs.writeFileSync(CODES_FILE,   '{}', 'utf8');
+function loadAusweis()  { try { return JSON.parse(fs.readFileSync(AUSWEIS_FILE, 'utf8')); } catch { return {}; } }
+function saveAusweis(d) { fs.writeFileSync(AUSWEIS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+function loadCodes()    { try { return JSON.parse(fs.readFileSync(CODES_FILE,   'utf8')); } catch { return {}; } }
+function saveCodes(d)   { fs.writeFileSync(CODES_FILE,   JSON.stringify(d, null, 2), 'utf8'); }
+function makeCode()     { return Math.random().toString(36).toUpperCase().slice(2, 8); }
+
 function loadWarns()    { try { return JSON.parse(fs.readFileSync(WARN_FILE,    'utf8')); } catch { return {}; } }
 function saveWarns(d)   { fs.writeFileSync(WARN_FILE,    JSON.stringify(d, null, 2), 'utf8'); }
 function loadInvites()  { try { return JSON.parse(fs.readFileSync(INVITES_FILE, 'utf8')); } catch { return {}; } }
@@ -239,6 +249,16 @@ client.once('ready', async () => {
       .addUserOption(opt => opt.setName('nutzer').setDescription('Das Teammitglied').setRequired(true))
       .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
       .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('einreise-code')
+        .setDescription('Generiert deinen persönlichen Einreise-Code für das Webformular')
+        .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('ausweis')
+        .setDescription('Zeigt deinen Ausweis an (nur im Ausweis-Kanal)')
+        .toJSON(),
 
   ];
 
@@ -1448,6 +1468,7 @@ client.on('channelCreate', async (channel) => {
 client.on('channelUpdate', async (oldCh, newCh) => {
   const entry    = await getAuditEntry(newCh.guild, AuditLogEvent.ChannelUpdate);
   const executor = entry?.executor;
+  if (executor?.id === client.user?.id) return;
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
     .setColor(Colors.Yellow).setTitle('✏️ Kanal bearbeitet')
     .addFields(
@@ -1699,3 +1720,76 @@ client.login(process.env.DISCORD_TOKEN);
 
 // ─── WEB SERVER ───────────────────────────────────────────────────────────────
 require('./web')(client, DATA_DIR);
+    // /einreise-code
+    if (commandName === 'einreise-code') {
+      const existingCodes = loadCodes();
+      // Remove expired codes for this user
+      for (const [k, v] of Object.entries(existingCodes)) {
+        if (v.userId === user.id && Date.now() > v.expiresAt) delete existingCodes[k];
+      }
+      // Remove any existing active code for user
+      for (const [k, v] of Object.entries(existingCodes)) {
+        if (v.userId === user.id) delete existingCodes[k];
+      }
+      const code    = makeCode();
+      const expires = Date.now() + 15 * 60 * 1000; // 15 min
+      existingCodes[code] = { userId: user.id, userTag: user.tag, expiresAt: expires };
+      saveCodes(existingCodes);
+      await interaction.reply({
+        embeds: [new EmbedBuilder()
+          .setColor(DARK_ORANGE)
+          .setTitle('🔑 Dein Einreise-Code')
+          .setDescription(
+            `**Code:** ```${code}```\n` +
+            `1. Öffne das Einreise-Formular\n` +
+            `2. Trage diesen Code im Feld **"Einreise-Code"** ein\n` +
+            `3. Deine Rollen werden nach dem Absenden automatisch vergeben\n\n` +
+            `⏳ Gültig für **15 Minuten** · nur einmalig verwendbar`
+          )
+          .setFooter({ text: 'Paradise City Roleplay  •  Einreise-System' })
+        ],
+        ephemeral: true
+      });
+      return;
+    }
+
+    // /ausweis
+    if (commandName === 'ausweis') {
+      const AUSWEIS_CH = '1490882590012604538';
+      if (interaction.channel.id !== AUSWEIS_CH)
+        return interaction.reply({ content: `❌ Dieser Befehl ist nur in <#${AUSWEIS_CH}> verfügbar.`, ephemeral: true });
+      const ausweisData = loadAusweis();
+      const eintrag     = ausweisData[user.id];
+      if (!eintrag)
+        return interaction.reply({ content: '❌ Du hast noch keinen Ausweis. Bitte reise zuerst legal ein.', ephemeral: true });
+      const embed = new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('🪪  Offizieller Ausweis — Paradise City')
+        .addFields(
+          { name: '👤 Vorname',       value: eintrag.vorname,       inline: true },
+          { name: '👤 Nachname',      value: eintrag.nachname,      inline: true },
+          { name: '🎂 Geburtsdatum',  value: eintrag.geburtsdatum,  inline: true },
+          { name: '🏙️ Geburtsort',   value: eintrag.geburtsort,    inline: true },
+          { name: '🌍 Nationalität',  value: eintrag.nationalitaet, inline: true },
+          { name: '📅 Ausgestellt am',value: `<t:${Math.floor(new Date(eintrag.createdAt).getTime()/1000)}:D>`, inline: true },
+        )
+        .setFooter({ text: 'Paradise City Roleplay  •  Einwohnerbehörde' })
+        .setTimestamp();
+      const UPLOADS_DIR = path.join(__dirname, 'data', 'uploads');
+      const exts = ['jpg','jpeg','png','webp'];
+      let photoFile;
+      for (const ext of exts) {
+        const p = path.join(UPLOADS_DIR, `${user.id}.${ext}`);
+        if (fs.existsSync(p)) { photoFile = p; break; }
+      }
+      if (photoFile) {
+        const att = new AttachmentBuilder(photoFile, { name: 'passbild.jpg' });
+        embed.setThumbnail('attachment://passbild.jpg');
+        await interaction.reply({ embeds: [embed], files: [att] });
+      } else {
+        await interaction.reply({ embeds: [embed] });
+      }
+      return;
+    }
+
+  
