@@ -126,6 +126,11 @@ module.exports = function startWebServer(client, DATA_DIR) {
   const CODES_FILE   = path.join(DATA_DIR, 'einreise_codes.json');
   const AUSWEIS_FILE = path.join(DATA_DIR, 'ausweis.json');
   function loadCodes()    { try { return JSON.parse(fs.readFileSync(CODES_FILE,   'utf8')); } catch { return {}; } }
+
+  const AUSWEIS_TOKEN_FILE = path.join(DATA_DIR, 'ausweis_tokens.json');
+  if (!fs.existsSync(AUSWEIS_TOKEN_FILE)) fs.writeFileSync(AUSWEIS_TOKEN_FILE, '{}', 'utf8');
+  function loadAusweisTokens()  { try { return JSON.parse(fs.readFileSync(AUSWEIS_TOKEN_FILE, 'utf8')); } catch { return {}; } }
+  function saveAusweisTokens(d) { fs.writeFileSync(AUSWEIS_TOKEN_FILE, JSON.stringify(d, null, 2), 'utf8'); }
   function saveCodes(d)   { fs.writeFileSync(CODES_FILE,   JSON.stringify(d, null, 2), 'utf8'); }
   function loadAusweis()  { try { return JSON.parse(fs.readFileSync(AUSWEIS_FILE, 'utf8')); } catch { return {}; } }
   function saveAusweis(d) { fs.writeFileSync(AUSWEIS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
@@ -496,6 +501,100 @@ module.exports = function startWebServer(client, DATA_DIR) {
           <h2 style="color:${isLegal ? '#3fb950' : '#f85149'}">Gruppen-Einreise Bestätigt!</h2>
           <p>Alle 6 Mitglieder wurden erfolgreich in Paradise City eingetragen.<br>
           Einreiseart: <strong>${isLegal ? 'Legal' : 'Illegal'}</strong></p>
+          <p style="margin-top:14px;color:#555;font-size:.8em">Du kannst dieses Fenster schließen.</p>
+        </div>
+      </div>
+    `));
+  });
+
+  // ── GET /ausweis/create/:token ──────────────────────────────────────────────
+  app.get('/ausweis/create/:token', (req, res) => {
+    const tokens = loadAusweisTokens();
+    const entry  = tokens[req.params.token];
+    if (!entry || entry.expiresAt < Date.now()) {
+      return res.send(page('Ungültiger Link', `${header('Ungültiger Link')}<div class="card"><p style="color:#f85149;text-align:center">Dieser Link ist ungültig oder abgelaufen.</p></div>`));
+    }
+    const error = req.session.ausweisError || ''; delete req.session.ausweisError;
+    res.send(page('Ausweis erstellen', `
+      ${header('Ausweis Erstellen')}
+      <div class="card">
+        ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
+        <form method="POST" action="/ausweis/create/${req.params.token}" enctype="multipart/form-data">
+          <p class="section-title">Charakter-Daten</p>
+          <div class="form-row two">
+            <div class="form-group">
+              <label>Vorname <span class="req">*</span></label>
+              <input type="text" name="vorname" required placeholder="Max">
+            </div>
+            <div class="form-group">
+              <label>Nachname <span class="req">*</span></label>
+              <input type="text" name="nachname" required placeholder="Mustermann">
+            </div>
+          </div>
+          <div class="form-row two">
+            <div class="form-group">
+              <label>Geburtsdatum <span class="req">*</span></label>
+              <input type="text" name="geburtsdatum" required placeholder="TT.MM.JJJJ">
+            </div>
+            <div class="form-group">
+              <label>Geburtsort <span class="req">*</span></label>
+              <input type="text" name="geburtsort" required placeholder="Berlin">
+            </div>
+          </div>
+          <div class="form-row one">
+            <div class="form-group">
+              <label>Nationalität <span class="req">*</span></label>
+              <input type="text" name="nationalitaet" required placeholder="Deutsch">
+            </div>
+          </div>
+          <div class="form-row one">
+            <div class="form-group">
+              <label>Passbild <span class="req">*</span></label>
+              <input type="file" name="foto" accept="image/*" required>
+            </div>
+          </div>
+          <button type="submit" class="btn">✅ Ausweis einreichen</button>
+          ${warning()}
+        </form>
+      </div>
+    `));
+  });
+
+  // ── POST /ausweis/create/:token ─────────────────────────────────────────────
+  app.post('/ausweis/create/:token', upload.single('foto'), async (req, res) => {
+    const tokens = loadAusweisTokens();
+    const entry  = tokens[req.params.token];
+    if (!entry || entry.expiresAt < Date.now()) {
+      return res.send(page('Ungültiger Link', `${header('Ungültiger Link')}<div class="card"><p style="color:#f85149;text-align:center">Dieser Link ist ungültig oder abgelaufen.</p></div>`));
+    }
+    const { vorname, nachname, geburtsdatum, geburtsort, nationalitaet } = req.body;
+    if (!req.file) { req.session.ausweisError = 'Kein Passbild hochgeladen.'; return res.redirect(`/ausweis/create/${req.params.token}`); }
+    if (!vorname || !nachname || !geburtsdatum || !geburtsort || !nationalitaet) {
+      req.session.ausweisError = 'Bitte alle Pflichtfelder ausfüllen.'; return res.redirect(`/ausweis/create/${req.params.token}`);
+    }
+    // Prüfe ob bereits ein Ausweis existiert
+    const ausweise = loadAusweis();
+    if (ausweise[entry.userId]) {
+      req.session.ausweisError = 'Für diesen Benutzer existiert bereits ein Ausweis.'; return res.redirect(`/ausweis/create/${req.params.token}`);
+    }
+    // Passbild speichern
+    try {
+      const ext = req.file.mimetype.includes('png') ? 'png' : req.file.mimetype.includes('webp') ? 'webp' : 'jpg';
+      fs.writeFileSync(path.join(DATA_DIR, 'uploads', entry.userId + '.' + ext), req.file.buffer);
+    } catch {}
+    // Ausweis speichern (keine Rollenvergabe)
+    ausweise[entry.userId] = { vorname, nachname, geburtsdatum, geburtsort, nationalitaet, createdAt: new Date().toISOString(), createdBy: entry.createdBy };
+    saveAusweis(ausweise);
+    // Token verbrauchen
+    delete tokens[req.params.token];
+    saveAusweisTokens(tokens);
+    res.send(page('Ausweis Erstellt', `
+      ${header('Ausweis Erstellt')}
+      <div class="card">
+        <div class="success-wrap">
+          <div class="icon">🆔</div>
+          <h2>Ausweis erfolgreich erstellt!</h2>
+          <p>Dein Charakter <strong>${vorname} ${nachname}</strong> wurde registriert.</p>
           <p style="margin-top:14px;color:#555;font-size:.8em">Du kannst dieses Fenster schließen.</p>
         </div>
       </div>
