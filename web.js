@@ -531,7 +531,21 @@ module.exports = function startWebServer(client, DATA_DIR) {
           <div class="form-row one">
             ${memberPicker(`discord_id_${i}`, i === 0 ? 'Dein Mitglied (Person 1)' : `Person ${i + 1}`)}
           </div>
-          <div class="char-data hidden" id="char_${i}">
+          <div class="char-name hidden" id="char_name_${i}">
+              <hr class="divider" style="margin:10px 0">
+              <p style="color:#ffd180;font-size:.78em;margin-bottom:12px">🎭 Charakter Name</p>
+              <div class="form-row two">
+                <div class="form-group">
+                  <label>Vorname <span class="req">*</span></label>
+                  <input type="text" name="g_ill_vorname_${i}" placeholder="Vorname">
+                </div>
+                <div class="form-group">
+                  <label>Nachname <span class="req">*</span></label>
+                  <input type="text" name="g_ill_nachname_${i}" placeholder="Nachname">
+                </div>
+              </div>
+            </div>
+            <div class="char-data hidden" id="char_${i}">
             <hr class="divider" style="margin:10px 0">
             <p style="color:#ffd180;font-size:.78em;margin-bottom:12px">📋 IC Charakter Daten</p>
             ${charFields('g_', i)}
@@ -578,10 +592,14 @@ module.exports = function startWebServer(client, DATA_DIR) {
           for (let i = 0; i < 4; i++) {
             const cd = document.getElementById('char_' + i);
             if (cd) cd.classList.toggle('hidden', mode !== 'legal');
+              const cn = document.getElementById('char_name_' + i);
+              if (cn) cn.classList.toggle('hidden', mode !== 'illegal');
             const fotos = document.querySelectorAll('.gruppe-foto');
             fotos.forEach(f => { f.required = mode === 'legal'; });
           }
-          document.querySelectorAll('[name^="g_vorname"]').forEach(f => f.required = mode === 'legal');
+          document.querySelectorAll('[name^="g_ill_vorname"]').forEach(f => f.required = mode === 'illegal');
+            document.querySelectorAll('[name^="g_ill_nachname"]').forEach(f => f.required = mode === 'illegal');
+            document.querySelectorAll('[name^="g_vorname"]').forEach(f => f.required = mode === 'legal');
           document.querySelectorAll('[name^="g_nachname"]').forEach(f => f.required = mode === 'legal');
           document.querySelectorAll('[name^="g_geburtsdatum"]').forEach(f => f.required = mode === 'legal');
           document.querySelectorAll('[name^="g_geburtsort"]').forEach(f => f.required = mode === 'legal');
@@ -627,6 +645,11 @@ module.exports = function startWebServer(client, DATA_DIR) {
         if (!req.files?.[`foto_${i}`]?.[0])
           errors.push(`Person ${i + 1}: Kein Passbild hochgeladen.`);
       }
+    } else {
+      for (let i = 0; i < 4; i++) {
+        if (!req.body[`g_ill_vorname_${i}`] || !req.body[`g_ill_nachname_${i}`])
+          errors.push(`Person ${i + 1}: Charakter Name fehlt.`);
+      }
     }
 
     if (errors.length > 0) {
@@ -639,10 +662,10 @@ module.exports = function startWebServer(client, DATA_DIR) {
       const uid = ids[gi];
       const ok  = await applyRoles(uid, isLegal);
       if (!ok) { failed.push(uid); continue; }
-      if (isLegal) {
-        const nick = (`${req.body[`g_vorname_${gi}`]||''} ${req.body[`g_nachname_${gi}`]||''}`).trim();
-        if (nick) { const mem = await getMember(uid); if (mem) await mem.setNickname(nick).catch(() => {}); }
-      }
+      const nick = isLegal
+        ? (`${req.body[`g_vorname_${gi}`]||''} ${req.body[`g_nachname_${gi}`]||''}`).trim()
+        : (`${req.body[`g_ill_vorname_${gi}`]||''} ${req.body[`g_ill_nachname_${gi}`]||''}`).trim();
+      if (nick) { const mem = await getMember(uid); if (mem) await mem.setNickname(nick).catch(() => {}); }
     }
 
     if (failed.length > 0) {
@@ -656,7 +679,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
         <div class="success-wrap">
           <div class="icon">${isLegal ? '✅' : '⚠️'}</div>
           <h2 style="color:${isLegal ? '#3fb950' : '#f85149'}">Gruppen-Einreise Bestätigt!</h2>
-          <p>Alle 6 Mitglieder wurden erfolgreich in Paradise City eingetragen.<br>
+          <p>Alle 4 Mitglieder wurden erfolgreich in Paradise City eingetragen.<br>
           Einreiseart: <strong>${isLegal ? 'Legal' : 'Illegal'}</strong></p>
           <p style="margin-top:14px;color:#555;font-size:.8em">Du kannst dieses Fenster schließen.</p>
         </div>
