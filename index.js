@@ -939,9 +939,14 @@ client.once('ready', async () => {
         // Rating-DM
         try {
           const opener = await client.users.fetch(ticket.openerId);
+          const bearbeiterName = ticket.bearbeiterTag || 'Kein Bearbeiter';
           const rEmbed = new EmbedBuilder()
             .setColor(DARK_ORANGE).setTitle('⭐ Ticket Bewertung — Paradise City Roleplay')
-            .setDescription(`Dein Ticket **${ticket.label}** wurde geschlossen.\nBitte bewerte den Support!\n\n**Bearbeiter:** ${ticket.bearbeiter ? `<@${ticket.bearbeiter}>` : 'Kein Bearbeiter'}`);
+            .setDescription(`Dein Ticket **${ticket.label}** wurde geschlossen.\nBitte bewerte den Support!`)
+            .addFields(
+              { name: '📂 Ticket-Typ',       value: ticket.label,     inline: true },
+              { name: '\uD83D\uDEE0\uFE0F Bearbeitet von', value: bearbeiterName, inline: true },
+            );
           const rRow = new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
               .setCustomId(`ticket_rate_select_${ticket.id}`)
