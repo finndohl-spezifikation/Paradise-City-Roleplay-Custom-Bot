@@ -435,6 +435,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
       if (member) {
         await member.roles.remove(ROLE_REMOVE).catch(() => {});
         for (const r of [...ROLES_ALL, ...ROLES_LEGAL]) await member.roles.add(r).catch(() => {});
+        await member.setNickname(`${vorname_0} ${nachname_0}`).catch(() => {});
       }
     } catch (e) { console.error('Rollen Fehler legal:', e.message); }
 
@@ -630,9 +631,14 @@ module.exports = function startWebServer(client, DATA_DIR) {
     }
 
     const failed = [];
-    for (const uid of ids) {
-      const ok = await applyRoles(uid, isLegal);
-      if (!ok) failed.push(uid);
+    for (let gi = 0; gi < ids.length; gi++) {
+      const uid = ids[gi];
+      const ok  = await applyRoles(uid, isLegal);
+      if (!ok) { failed.push(uid); continue; }
+      if (isLegal) {
+        const nick = (`${req.body[`g_vorname_${gi}`]||''} ${req.body[`g_nachname_${gi}`]||''}`).trim();
+        if (nick) { const mem = await getMember(uid); if (mem) await mem.setNickname(nick).catch(() => {}); }
+      }
     }
 
     if (failed.length > 0) {
@@ -810,6 +816,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
     // Ausweis speichern (keine Rollenvergabe)
     ausweise[entry.userId] = { vorname, nachname, geburtsdatum, geburtsort, nationalitaet, createdAt: new Date().toISOString(), createdBy: entry.createdBy };
     saveAusweis(ausweise);
+    // Nickname setzen
+    try {
+      const guild9 = client.guilds.cache.first();
+      const mem9   = guild9 ? await guild9.members.fetch(entry.userId).catch(() => null) : null;
+      if (mem9) await mem9.setNickname(`${vorname} ${nachname}`).catch(() => {});
+    } catch {}
     // Token verbrauchen
     delete tokens[req.params.token];
     saveAusweisTokens(tokens);
