@@ -79,47 +79,47 @@ const LINK_EXEMPT_ROLES = ['1490855702225485936', '1490855703370534965'];
 
 // Discord-Invite Regex
 
-  // ─── Ticket-System ────────────────────────────────────────────────────────────
-  const TICKET_TRANSCRIPT_CH = '1490878139306606743';
-  const TICKET_RATING_CH     = '1491788506404491336';
-  const TICKET_PANEL_CH      = '1490885002030874775';
-  const TICKETS_FILE         = path.join(DATA_DIR, 'tickets.json');
-  if (!fs.existsSync(TICKETS_FILE)) fs.writeFileSync(TICKETS_FILE, '{}', 'utf8');
-  function loadTickets()  { try { return JSON.parse(fs.readFileSync(TICKETS_FILE, 'utf8')); } catch { return {}; } }
-  function saveTickets(d) { fs.writeFileSync(TICKETS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+// ─── Ticket-System ────────────────────────────────────────────────────────────
+const TICKET_TRANSCRIPT_CH = '1490878139306606743';
+const TICKET_RATING_CH     = '1491788506404491336';
+const TICKET_PANEL_CH      = '1490885002030874775';
+const TICKETS_FILE         = path.join(DATA_DIR, 'tickets.json');
+if (!fs.existsSync(TICKETS_FILE)) fs.writeFileSync(TICKETS_FILE, '{}', 'utf8');
+function loadTickets()  { try { return JSON.parse(fs.readFileSync(TICKETS_FILE, 'utf8')); } catch { return {}; } }
+function saveTickets(d) { fs.writeFileSync(TICKETS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
 
-  const TICKET_TYPES = {
-    support:    { label: '🎫 Support / Anliegen', category: '1490882554570608751', roles: ['1490855703370534965','1490855702225485936'], pingRoles: [] },
-    beschwerde: { label: '📋 Beschwerde',          category: '1490882554570608751', roles: ['1490855703370534965','1490855702225485936'], pingRoles: [] },
-    sc_crew:    { label: '👥 SC Crew Anfrage',     category: '1490882554570608751', roles: ['1490855703370534965','1490855702225485936'], pingRoles: ['1490855712627233032'] },
-    highteam:   { label: '⭐ Highteam Ticket',     category: '1491069210389119016', roles: ['1490855702225485936'],                      pingRoles: [] },
-    fraktion:   { label: '⚔️ Fraktions Ticket',   category: '1491069425384685750', roles: ['1490855704293277898'],                      pingRoles: [] },
-    bewerbung:  { label: '📝 Team Bewerbung',      category: '1490882554570608751', roles: ['1490855702225485936'],                      pingRoles: [] },
-  };
+const TICKET_TYPES = {
+  support:    { label: '🎫 Support / Anliegen', category: '1490882554570608751', roles: ['1490855703370534965','1490855702225485936'], pingRoles: [] },
+  beschwerde: { label: '📋 Beschwerde',          category: '1490882554570608751', roles: ['1490855703370534965','1490855702225485936'], pingRoles: [] },
+  sc_crew:    { label: '👥 SC Crew Anfrage',     category: '1490882554570608751', roles: ['1490855703370534965','1490855702225485936'], pingRoles: ['1490855712627233032'] },
+  highteam:   { label: '⭐ Highteam Ticket',     category: '1491069210389119016', roles: ['1490855702225485936'],                      pingRoles: [] },
+  fraktion:   { label: '⚔️ Fraktions Ticket',   category: '1491069425384685750', roles: ['1490855704293277898'],                      pingRoles: [] },
+  bewerbung:  { label: '📝 Team Bewerbung',      category: '1490882554570608751', roles: ['1490855702225485936'],                      pingRoles: [] },
+};
 
-  function hasTicketRights(member, type) {
-    if (!member || !TICKET_TYPES[type]) return false;
-    return TICKET_TYPES[type].roles.some(r => member.roles.cache.has(r)) ||
-           member.permissions.has(PermissionFlagsBits.Administrator);
+function hasTicketRights(member, type) {
+  if (!member || !TICKET_TYPES[type]) return false;
+  return TICKET_TYPES[type].roles.some(r => member.roles.cache.has(r)) ||
+         member.permissions.has(PermissionFlagsBits.Administrator);
+}
+
+async function generateTranscript(channel) {
+  const msgs = [];
+  let lastId;
+  while (true) {
+    const fetched = await channel.messages.fetch({ limit: 100, ...(lastId ? { before: lastId } : {}) });
+    if (!fetched.size) break;
+    msgs.push(...fetched.values());
+    lastId = fetched.last().id;
+    if (fetched.size < 100) break;
   }
+  msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+  return msgs.map(m =>
+    `[${new Date(m.createdTimestamp).toLocaleString('de-DE')}] ${m.author.tag}: ${m.content || (m.embeds.length ? '[Embed]' : '[Anhang]')}`
+  ).join('\n');
+}
 
-  async function generateTranscript(channel) {
-    const msgs = [];
-    let lastId;
-    while (true) {
-      const fetched = await channel.messages.fetch({ limit: 100, ...(lastId ? { before: lastId } : {}) });
-      if (!fetched.size) break;
-      msgs.push(...fetched.values());
-      lastId = fetched.last().id;
-      if (fetched.size < 100) break;
-    }
-    msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-    return msgs.map(m =>
-      `[${new Date(m.createdTimestamp).toLocaleString('de-DE')}] ${m.author.tag}: ${m.content || (m.embeds.length ? '[Embed]' : '[Anhang]')}`
-    ).join('\n');
-  }
-
-  const INVITE_REGEX = /(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9\-]+/gi;
+const INVITE_REGEX = /(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9\-]+/gi;
 // Normaler Link Regex (http/https)
 const URL_REGEX = /https?:\/\/[^\s]+/gi;
 
