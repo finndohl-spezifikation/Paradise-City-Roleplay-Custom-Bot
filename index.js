@@ -42,6 +42,34 @@ function loadAusweis()  { try { return JSON.parse(fs.readFileSync(AUSWEIS_FILE, 
 function saveAusweis(d) { fs.writeFileSync(AUSWEIS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
 function loadCodes()    { try { return JSON.parse(fs.readFileSync(CODES_FILE,   'utf8')); } catch { return {}; } }
 function saveCodes(d)   { fs.writeFileSync(CODES_FILE,   JSON.stringify(d, null, 2), 'utf8'); }
+
+// ─── Abstimmungs-System ──────────────────────────────────────────────────────
+const ABSTIMMUNG_CH   = '1490882563575648256';
+const ABSTIMMUNGEN_FILE = path.join(DATA_DIR, 'abstimmungen.json');
+if (!fs.existsSync(ABSTIMMUNGEN_FILE)) fs.writeFileSync(ABSTIMMUNGEN_FILE, '{}', 'utf8');
+function loadAbstimmungen()  { try { return JSON.parse(fs.readFileSync(ABSTIMMUNGEN_FILE, 'utf8')); } catch { return {}; } }
+function saveAbstimmungen(d) { fs.writeFileSync(ABSTIMMUNGEN_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+function makeBar(count, total) {
+  const pct    = total === 0 ? 0 : Math.round((count / total) * 100);
+  const filled = total === 0 ? 0 : Math.round((count / total) * 20);
+  return '\u2588'.repeat(filled) + '\u2591'.repeat(20 - filled) + '  **' + pct + '%**  (' + count + ' Stimmen)';
+}
+function buildAbstimmungEmbed(poll) {
+  const ups   = Object.values(poll.voters).filter(v => v === 'up').length;
+  const downs = Object.values(poll.voters).filter(v => v === 'down').length;
+  const total = ups + downs;
+  return new EmbedBuilder()
+    .setColor(DARK_ORANGE)
+    .setTitle('\uD83D\uDDF3\uFE0F Abstimmung')
+    .setDescription('**' + poll.frage + '**')
+    .addFields(
+      { name: '\uD83D\uDC4D ' + poll.antwort1, value: makeBar(ups,   total), inline: false },
+      { name: '\uD83D\uDC4E ' + poll.antwort2, value: makeBar(downs, total), inline: false },
+      { name: '\uD83D\uDCCA Stimmen gesamt', value: String(total), inline: true },
+    )
+    .setFooter({ text: 'Du kannst nur f\u00FCr eine Option gleichzeitig stimmen' })
+    .setTimestamp();
+}
 function makeCode()     { return Math.random().toString(36).toUpperCase().slice(2, 8); }
 
 function loadWarns()    { try { return JSON.parse(fs.readFileSync(WARN_FILE,    'utf8')); } catch { return {}; } }
@@ -141,7 +169,7 @@ const client = new Client({
     GatewayIntentBits.GuildInvites,
     GatewayIntentBits.GuildMessageReactions,
   ],
-  partials: [Partials.Channel, Partials.Message, Partials.GuildMember],
+  partials: [Partials.Channel, Partials.Message, Partials.GuildMember, Partials.Reaction],
 });
 
 // ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
@@ -259,6 +287,14 @@ client.once('ready', async () => {
         .setName('ausweis')
         .setDescription('Zeigt deinen Ausweis an (nur im Ausweis-Kanal)')
         .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('abstimmung')
+      .setDescription('Erstellt eine neue Abstimmung im Abstimmungs-Kanal')
+      .addStringOption(opt => opt.setName('frage').setDescription('Die Abstimmungsfrage').setRequired(true))
+      .addStringOption(opt => opt.setName('antwort1').setDescription('Erste Option (\uD83D\uDC4D Daumen hoch)').setRequired(true))
+      .addStringOption(opt => opt.setName('antwort2').setDescription('Zweite Option (\uD83D\uDC4E Daumen runter)').setRequired(true))
+      .toJSON(),
 
   ];
 
@@ -1312,6 +1348,51 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
 });
 
 // ─── NACHRICHTEN ─────────────────────────────────────────────────────────────
+// ─── ABSTIMMUNG REAKTIONEN ───────────────────────────────────────────────────
+client.on('messageReactionAdd', async (reaction, user) => {
+  if (user.bot) return;
+  try {
+    if (reaction.partial)         await reaction.fetch();
+    if (reaction.message.partial) await reaction.message.fetch();
+    const polls = loadAbstimmungen();
+    const poll  = polls[reaction.message.id];
+    if (!poll) return;
+    const emoji = reaction.emoji.name;
+    if (emoji !== '\uD83D\uDC4D' && emoji !== '\uD83D\uDC4E') return;
+    const voteDir   = emoji === '\uD83D\uDC4D' ? 'up' : 'down';
+    const otherDir  = voteDir === 'up' ? 'down' : 'up';
+    const otherEmoji = voteDir === 'up' ? '\uD83D\uDC4E' : '\uD83D\uDC4D';
+    const prevVote  = poll.voters[user.id];
+    if (prevVote === voteDir) return;
+    poll.voters[user.id] = voteDir;
+    saveAbstimmungen(polls);
+    if (prevVote === otherDir) {
+      const other = reaction.message.reactions.cache.get(otherEmoji);
+      if (other) await other.users.remove(user.id).catch(() => {});
+    }
+    await reaction.message.edit({ embeds: [buildAbstimmungEmbed(poll)] }).catch(() => {});
+  } catch (e) { console.error('ReactionAdd Fehler:', e.message); }
+});
+
+client.on('messageReactionRemove', async (reaction, user) => {
+  if (user.bot) return;
+  try {
+    if (reaction.partial)         await reaction.fetch();
+    if (reaction.message.partial) await reaction.message.fetch();
+    const polls = loadAbstimmungen();
+    const poll  = polls[reaction.message.id];
+    if (!poll) return;
+    const emoji = reaction.emoji.name;
+    if (emoji !== '\uD83D\uDC4D' && emoji !== '\uD83D\uDC4E') return;
+    const voteDir = emoji === '\uD83D\uDC4D' ? 'up' : 'down';
+    if (poll.voters[user.id] === voteDir) {
+      delete poll.voters[user.id];
+      saveAbstimmungen(polls);
+      await reaction.message.edit({ embeds: [buildAbstimmungEmbed(poll)] }).catch(() => {});
+    }
+  } catch (e) { console.error('ReactionRemove Fehler:', e.message); }
+});
+
 client.on('messageCreate', async (message) => {
     // Bearbeiter-Tracking für Tickets
     if (!message.author.bot && message.guild) {
@@ -1810,6 +1891,26 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.reply({ embeds: [embed] });
       }
       return;
+    }
+
+    // /abstimmung
+    if (commandName === 'abstimmung') {
+      const frage    = interaction.options.getString('frage');
+      const antwort1 = interaction.options.getString('antwort1');
+      const antwort2 = interaction.options.getString('antwort2');
+      try {
+        const ch   = await client.channels.fetch(ABSTIMMUNG_CH);
+        const poll = { frage, antwort1, antwort2, voters: {}, channelId: ABSTIMMUNG_CH };
+        const msg  = await ch.send({ embeds: [buildAbstimmungEmbed(poll)] });
+        await msg.react('\uD83D\uDC4D');
+        await msg.react('\uD83D\uDC4E');
+        const polls = loadAbstimmungen();
+        polls[msg.id] = { ...poll, messageId: msg.id };
+        saveAbstimmungen(polls);
+        return interaction.reply({ content: '\u2705 Abstimmung erstellt: ' + msg.url, ephemeral: true });
+      } catch (e) {
+        return interaction.reply({ content: '\u274C Fehler: ' + e.message, ephemeral: true });
+      }
     }
   
 
