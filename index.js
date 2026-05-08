@@ -101,7 +101,7 @@ const {
         .toJSON(),
 
       new SlashCommandBuilder()
-        .setName('team-warn')
+        .setName('teamwarn')
         .setDescription('Erteilt einem Teammitglied eine offizielle Verwarnung')
         .addUserOption(opt =>
           opt.setName('nutzer').setDescription('Das Teammitglied').setRequired(true))
@@ -530,8 +530,8 @@ const {
       return;
     }
 
-    // ── /team-warn ────────────────────────────────────────────────────────────
-    if (commandName === 'team-warn') {
+    // ── /teamwarn ────────────────────────────────────────────────────────────
+    if (commandName === 'teamwarn') {
       const target     = interaction.options.getUser('nutzer');
       const grund      = interaction.options.getString('grund');
       const konsequenz = interaction.options.getString('konsequenz');
