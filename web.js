@@ -358,7 +358,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
         <a class="select-card" href="/einreise/gruppe">
           <div class="sc-icon">🟡</div>
           <div class="sc-title">Gruppen Einreise</div>
-          <div class="sc-desc">Ab mindestens 6 Personen. Alle müssen denselben Lebensweg wählen und erhalten exklusive Gruppen-Boni.</div>
+          <div class="sc-desc">Ab mindestens 4 Personen. Alle müssen denselben Lebensweg wählen und erhalten exklusive Gruppen-Boni.</div>
         </a>
       </div>
     </div>
@@ -398,6 +398,17 @@ module.exports = function startWebServer(client, DATA_DIR) {
             <div class="form-row one">
               ${memberPicker('discord_id', 'Dein Discord-Account')}
             </div>
+            <p class="section-title" style="margin-top:18px">🎭 Charakter Name</p>
+              <div class="form-row two">
+                <div class="form-group">
+                  <label>Vorname <span class="req">*</span></label>
+                  <input type="text" name="vorname" placeholder="Vorname" required>
+                </div>
+                <div class="form-group">
+                  <label>Nachname <span class="req">*</span></label>
+                  <input type="text" name="nachname" placeholder="Nachname" required>
+                </div>
+              </div>
 
             <button type="submit" class="btn">✅ Einreise Bestätigen</button>
           ${warning()}
@@ -482,7 +493,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/illegal ────────────────────────────────────────────────
   app.post('/einreise/illegal', async (req, res) => {
-    const { confirm, discord_id } = req.body;
+    const { confirm, discord_id, vorname: ill_vor, nachname: ill_nach } = req.body;
 
     if (!confirm) { req.session.illegalError = 'Du musst die Konsequenzen bestätigen.'; return res.redirect('/einreise/illegal'); }
 
@@ -491,6 +502,9 @@ module.exports = function startWebServer(client, DATA_DIR) {
       req.session.illegalError = 'Bitte gib eine gültige Discord-ID ein.';
       return res.redirect('/einreise/illegal');
     }
+    const illVor  = (ill_vor  || '').trim();
+    const illNach = (ill_nach || '').trim();
+    if (!illVor || !illNach) { req.session.illegalError = 'Bitte gib deinen Charakter Vor- und Nachnamen an.'; return res.redirect('/einreise/illegal'); }
     // Rollen vergeben
     try {
       const guild  = client.guilds.cache.first();
@@ -498,6 +512,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
       if (member) {
         await member.roles.remove(ROLE_REMOVE).catch(() => {});
         for (const r of [...ROLES_ALL, ...ROLES_ILLEGAL]) await member.roles.add(r).catch(() => {});
+        await member.setNickname(`${illVor} ${illNach}`).catch(() => {});
       }
     } catch (e) { console.error('Rollen Fehler illegal:', e.message); }
 
@@ -520,7 +535,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
     delete req.session.gruppeError;
 
     let personBlocks = '';
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 4; i++) {
       personBlocks += `
         <div class="person-block">
           <div class="person-head">👤 Person ${i + 1}${i === 0 ? ' (Du)' : ''}</div>
@@ -546,7 +561,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
     }
 
     res.send(page('Gruppen Einreise', `
-      ${header('Gruppen Einreise — Ab 6 Personen')}
+      ${header('Gruppen Einreise — Ab 4 Personen')}
       <div class="card">
         ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
         <form method="POST" action="/einreise/gruppe" enctype="multipart/form-data" id="gruppeForm">
@@ -558,7 +573,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
           </div>
           <input type="hidden" name="gruppe_mode" id="gruppe_mode" value="" required>
 
-          <p class="section-title">👥 Gruppen-Mitglieder (6 Personen)</p>
+          <p class="section-title">👥 Gruppen-Mitglieder (4 Personen)</p>
           ${personBlocks}
 
           <button type="submit" class="btn" id="submitBtn" disabled>✅ Gruppen-Einreise Bestätigen</button>
@@ -571,7 +586,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
           document.getElementById('btn_legal').classList.toggle('active', mode === 'legal');
           document.getElementById('btn_illegal').classList.toggle('active', mode === 'illegal');
           document.getElementById('submitBtn').disabled = false;
-          for (let i = 0; i < 6; i++) {
+          for (let i = 0; i < 4; i++) {
             const cd = document.getElementById('char_' + i);
             if (cd) cd.classList.toggle('hidden', mode !== 'legal');
             const fotos = document.querySelectorAll('.gruppe-foto');
@@ -597,7 +612,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/gruppe ─────────────────────────────────────────────────
   const gruppeFields = [];
-  for (let i = 0; i < 6; i++) gruppeFields.push({ name: `foto_${i}`, maxCount: 1 });
+  for (let i = 0; i < 4; i++) gruppeFields.push({ name: `foto_${i}`, maxCount: 1 });
 
   app.post('/einreise/gruppe', upload.fields(gruppeFields), async (req, res) => {
     const { gruppe_mode } = req.body;
@@ -607,7 +622,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
     const ids = [];
     const errors = [];
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 4; i++) {
       const uid = (req.body[`discord_id_${i}`] || '').trim();
       if (!uid) { errors.push(`Person ${i + 1}: Discord ID fehlt.`); continue; }
       if (ids.includes(uid)) { errors.push(`Person ${i + 1}: Discord ID ${uid} doppelt.`); continue; }
@@ -617,7 +632,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
     }
 
     if (isLegal) {
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 4; i++) {
         if (!req.body[`g_vorname_${i}`] || !req.body[`g_nachname_${i}`] || !req.body[`g_geburtsdatum_${i}`] || !req.body[`g_geburtsort_${i}`] || !req.body[`g_nationalitaet_${i}`])
           errors.push(`Person ${i + 1}: Charakter-Daten unvollständig.`);
         if (!req.files?.[`foto_${i}`]?.[0])
