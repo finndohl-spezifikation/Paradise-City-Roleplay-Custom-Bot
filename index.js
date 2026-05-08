@@ -211,7 +211,7 @@ client.once('ready', async () => {
 
   // ── Einmalig: Einreise-Embed mit Button senden ─────────────────────────────
   const setup = loadSetup();
-  if (!setup.einreiseEmbedV2Sent) {
+  if (!setup.einreiseEmbedV3Sent) {
     const WEBAPP_URL = process.env.WEBAPP_URL || `https://${process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:3000'}`;
     const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
     const LINE2 = '─────────────────────────────────────────';
@@ -231,8 +231,7 @@ client.once('ready', async () => {
             LINE2 + '\n' +
             `> Du reist **legal** in den Staat ein und bist offiziell registriert.\n` +
             `> Du erhältst einen **Ausweis** und darfst **staatliche Jobs** ausführen.\n` +
-            `> ⚠️ Illegale Aktivitäten sind für dich **strikt verboten**.\n` +
-            `> Verstöße werden strafrechtlich verfolgt.`,
+            `> ⚠️ Illegale Aktivitäten sind für dich **strikt verboten**.`,
           inline: false,
         },
         {
@@ -242,8 +241,7 @@ client.once('ready', async () => {
             LINE2 + '\n' +
             `> Du reist **illegal** in den Staat ein — ohne offizielle Registrierung.\n` +
             `> ❌ Kein **Ausweis**, keine **staatlichen Jobs** möglich.\n` +
-            `> Du bewegst dich im Untergrund und kannst illegale Aktivitäten ausführen.\n` +
-            `> Werde nicht erwischt — die Konsequenzen sind hart.`,
+            `> Du bewegst dich im Untergrund und kannst illegale Aktivitäten ausführen.`,
           inline: false,
         },
         {
@@ -259,7 +257,7 @@ client.once('ready', async () => {
         },
         {
           name: LINE,
-          value: `*Bei Fragen zur Einreise wende dich an einen Mitarbeiter des Staates.*`,
+          value: `*Bei Fragen wende dich gerne jederzeit an den Support.*`,
           inline: false,
         },
       )
@@ -277,7 +275,7 @@ client.once('ready', async () => {
       const einreiseCh = await client.channels.fetch('1490878156582686853');
       if (einreiseCh) {
         await einreiseCh.send({ embeds: [einreiseEmbed], components: [row] });
-        setup.einreiseEmbedV2Sent = true;
+        setup.einreiseEmbedV3Sent = true;
         saveSetup(setup);
         console.log('✅ Einreise-Embed v2 (mit Button) einmalig gesendet.');
       }
