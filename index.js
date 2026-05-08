@@ -1821,14 +1821,18 @@ process.on('uncaughtException', (err) => {
 // ─── WEB SERVER ───────────────────────────────────────────────────────────────
 require('./web')(client, DATA_DIR);
 
-// ─── LOGIN ────────────────────────────────────────────────────────────────────
+// ─── LOGIN (mit Retry) ───────────────────────────────────────────────────────
 if (!process.env.DISCORD_TOKEN) {
-  console.error('[FEHLER] DISCORD_TOKEN Umgebungsvariable fehlt!');
-  process.exit(1);
+  console.error('[FEHLER] DISCORD_TOKEN fehlt – Bot startet nicht.');
+} else {
+  (function loginWithRetry(attempt) {
+    client.login(process.env.DISCORD_TOKEN)
+      .then(() => console.log('[LOGIN] Erfolgreich eingeloggt (Versuch ' + attempt + ')'))
+      .catch(err => {
+        const wait = Math.min(30000, attempt * 5000);
+        console.error('[LOGIN FEHLER] Versuch ' + attempt + ':', err.message || err);
+        console.log('[LOGIN] Neuer Versuch in ' + (wait/1000) + 's...');
+        setTimeout(() => loginWithRetry(attempt + 1), wait);
+      });
+  })(1);
 }
-client.login(process.env.DISCORD_TOKEN)
-  .then(() => console.log('[LOGIN] Erfolgreich eingeloggt'))
-  .catch(err => {
-    console.error('[LOGIN FEHLER]', err.message || err);
-    process.exit(1);
-  });
