@@ -51,6 +51,19 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#e65100}
 .select-card .sc-title{font-size:1em;font-weight:700;color:#fff;margin-bottom:4px}
 .select-card .sc-desc{font-size:.8em;color:#8b949e;line-height:1.5}
 .warning-text{color:#f85149;font-size:.72em;text-align:center;margin-top:24px;line-height:1.6;border-top:1px solid #21262d;padding-top:14px}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:flex;align-items:center;justify-content:center;animation:fadeIn .35s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes popIn{from{opacity:0;transform:scale(.7) translateY(40px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes popOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.7) translateY(40px)}}
+  .modal-box{background:#161b22;border:1px solid #e65100;border-radius:16px;padding:32px 28px;max-width:480px;width:92%;animation:popIn .45s cubic-bezier(.34,1.56,.64,1) forwards;position:relative}
+  .modal-box.closing{animation:popOut .35s ease forwards}
+  .modal-title{color:#ffd180;font-size:1.1em;font-weight:700;letter-spacing:1px;text-align:center;margin-bottom:20px}
+  .modal-rule{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start;font-size:.88em;line-height:1.6;color:#c9d1d9}
+  .modal-rule .num{background:#e65100;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8em;flex-shrink:0;margin-top:1px}
+  .modal-wish{text-align:center;color:#3fb950;font-size:.88em;margin:18px 0 22px;font-weight:600}
+  .modal-btn-wrap{display:flex;justify-content:center;min-height:48px;position:relative}
+  .modal-btn{padding:13px 36px;background:#e65100;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer;transition:background .15s;position:relative}
+  .modal-btn:hover{background:#bf360c}
 .toggle-group{display:flex;gap:0;margin-bottom:18px;border:1px solid #30363d;border-radius:8px;overflow:hidden}
 .toggle-btn{flex:1;padding:11px;text-align:center;cursor:pointer;font-size:.88em;font-weight:600;background:#0d1117;color:#8b949e;border:none;transition:all .15s}
 .toggle-btn.active{background:#e65100;color:#fff}
@@ -221,14 +234,14 @@ module.exports = function startWebServer(client, DATA_DIR) {
         try {
           const fetched = await guild.members.fetch();
           const list = [...fetched.values()]
-            .filter(m => !m.user.bot)
+            .filter(m => !m.user.bot && m.roles.cache.has(ROLE_REMOVE))
             .map(m => ({ id: m.user.id, name: m.displayName || m.user.username }))
             .sort((a, b) => a.name.localeCompare(b.name, 'de'));
           res.json(list);
         } catch(err) {
           console.error('members fetch error:', err.message);
           const list = [...guild.members.cache.values()]
-            .filter(m => !m.user.bot)
+            .filter(m => !m.user.bot && m.roles.cache.has(ROLE_REMOVE))
             .map(m => ({ id: m.user.id, name: m.displayName || m.user.username }))
             .sort((a, b) => a.name.localeCompare(b.name, 'de'));
           res.json(list);
@@ -241,6 +254,32 @@ module.exports = function startWebServer(client, DATA_DIR) {
     // ── GET /einreise — Auswahlseite ─────────────────────────────────────────
   app.get('/einreise', (req, res) => {
     res.send(page('Einreise', `
+
+        <div class="modal-overlay" id="introModal">
+          <div class="modal-box" id="introBox">
+            <div class="modal-title">🏛️ Paradise City Roleplay — Willkommen!</div>
+            <div class="modal-rule"><div class="num">1</div><div>Bitte lies dir vor dem Erstellen deines Charakters das <strong>Regelwerk</strong> durch.</div></div>
+            <div class="modal-rule"><div class="num">2</div><div>Stelle sicher, dass du <strong>DM-Nachrichten aktiviert</strong> hast, damit unser Bot dir Nachrichten senden kann.</div></div>
+            <div class="modal-rule"><div class="num">3</div><div>Solltest du <strong>legal einreisen</strong>, gib bitte nur korrekte Daten zu deinem IC-Charakter an. Eine Änderung ist später nur durch den <strong>Tod deines Charakters</strong> möglich.</div></div>
+            <div class="modal-wish">Wir wünschen dir viel Spaß bei deinem Start auf Paradise City Roleplay! 🎮</div>
+            <div class="modal-btn-wrap"><button class="modal-btn" id="introBtn">Ich habe verstanden ✅</button></div>
+          </div>
+        </div>
+        <script>(function(){
+          var tries=0,btn=document.getElementById('introBtn'),box=document.getElementById('introBox'),ov=document.getElementById('introModal');
+          function flee(e){
+            if(tries>=6){done();return;}
+            tries++;
+            var w=window.innerWidth-btn.offsetWidth-20,h=window.innerHeight-btn.offsetHeight-20;
+            btn.style.cssText='position:fixed;margin:0;z-index:9999;left:'+Math.max(10,Math.random()*w)+'px;top:'+Math.max(10,Math.random()*h)+'px;padding:13px 36px;background:#e65100;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer;transition:none;';
+            if(tries===5)btn.textContent='Na gut... 😤';
+            if(e){e.preventDefault();e.stopPropagation();}
+          }
+          function done(){box.classList.add('closing');setTimeout(function(){ov.style.display='none';},340);}
+          btn.addEventListener('mouseover',flee);
+          btn.addEventListener('touchstart',flee,{passive:false});
+          btn.addEventListener('click',function(){if(tries>=6)done();});
+        })();<\/script>
       ${header('Einreisebehörde — Bitte wähle deinen Einreiseweg')}
       <div class="card">
         <p class="section-title">Einreiseweg wählen</p>
