@@ -334,6 +334,150 @@ client.once('ready', async () => {
       } catch (e) { console.error('Startpunkt-Embed Fehler:', e.message); }
     }
 
+  // ── Einmalig: Starterpaket-Embed senden ───────────────────────────────────
+    if (!setup.starterpaketEmbedSent) {
+      const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+      const LINE2 = '─────────────────────────────────────────';
+      const starterEmbed = new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('🧳  Starterpaket — Paradise City Roleplay')
+        .setDescription(
+          `Willkommen auf **Paradise City Roleplay**!\n` +
+          `Je nach Einreiseart erhältst du beim Start folgendes Paket.\n` +
+          `Das Fahrzeug steht bereits am Startpunkt bereit.\n\n` +
+          LINE
+        )
+        .addFields(
+          {
+            name: '\u200b',
+            value:
+              `🟢  **LEGALE EINREISE**\n` +
+              LINE2 + '\n' +
+              `> 💵 **5.000 $** Startkapital\n` +
+              `> 🚗 **Declasse Rhapsody**`,
+            inline: false,
+          },
+          {
+            name: LINE,
+            value:
+              `🔴  **ILLEGALE EINREISE**\n` +
+              LINE2 + '\n' +
+              `> 💵 **5.000 $** Startkapital\n` +
+              `> 🚗 **Karin Kuruma**`,
+            inline: false,
+          },
+          {
+            name: LINE,
+            value:
+              `🟡  **GRUPPENEINREISE** *(ab 5 Personen)*\n` +
+              LINE2 + '\n' +
+              `> 💵 **10.000 $** pro Person Startkapital\n` +
+              `> 🚗 **Enus Huntley S**`,
+            inline: false,
+          },
+          {
+            name: LINE,
+            value: `*Bei Fragen wende dich gerne jederzeit an den Support.*`,
+            inline: false,
+          },
+        )
+        .setFooter({ text: 'Paradise City Roleplay  •  Einreisebehörde' })
+        .setTimestamp();
+
+      try {
+        const starterCh = await client.channels.fetch('1490878159804174470');
+        if (starterCh) {
+          await starterCh.send({ embeds: [starterEmbed] });
+          setup.starterpaketEmbedSent = true;
+          saveSetup(setup);
+          console.log('✅ Starterpaket-Embed einmalig gesendet.');
+        }
+      } catch (e) { console.error('Starterpaket-Embed Fehler:', e.message); }
+    }
+
+    // ── Einmalig: Regelwerk 2/2 Embed senden ──────────────────────────────────
+    if (!setup.regelwerkEmbed2Sent) {
+      const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+      const DIV   = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
+      const regelEmbed2 = new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('📕  Paradise City Roleplay — Serverregelwerk (2/2)')
+        .addFields(
+          {
+            name: '🎒  Inventar & Besitzsystem',
+            value:
+              `**§7** Grundregel: Nur verwenden, was im RP besessen wird.\n` +
+              `**§7.1** Fahrzeuge: Müssen im RP gekauft sein — Fahrzeugdiebstahl ist verboten.\n` +
+              `**§7.2** Waffen & Items: Nur eigene Items erlaubt.\n` +
+              `**§7.3** Lager: Items dürfen nicht verwendet werden, solange sie im Lager liegen.\n` +
+              `**§7.4** Immobilien: Nur mit RP-Besitz nutzbar.`,
+            inline: false,
+          },
+          { name: DIV, value: '👮  **Polizei & Medizin**', inline: false },
+          {
+            name: '\u200b',
+            value:
+              `**§8** PD-Regeln: Kein grundloser Angriff auf die Polizei (PD).\n` +
+              `**§8.1** MD-Regeln: Der Medizinische Dienst (MD) darf nicht ausgeraubt oder entführt werden.`,
+            inline: false,
+          },
+          { name: DIV, value: '💰  **Wirtschaft & Aktivitäten**', inline: false },
+          {
+            name: '\u200b',
+            value:
+              `**§9** Farmregeln: Nur nach Vorgabe erlaubt.\n` +
+              `**§9.1** Minijobs: Nur eine Aktivität gleichzeitig erlaubt.\n` +
+              `**§9.2** Raubüberfälle: Geltende Regeln sind einzuhalten.\n` +
+              `**§9.3** Safezones: Keine Gewalt erlaubt.`,
+            inline: false,
+          },
+          { name: DIV, value: '🚗  **Fahrzeuge & Tuning**', inline: false },
+          {
+            name: '\u200b',
+            value:
+              `**§10** Fahrzeuge: Müssen realistisch genutzt werden.\n` +
+              `**§10.1** Tuning: Bis Stufe 2 erlaubt · Über Stufe 2 gilt als illegal · Jedes Tuning muss im RP erworben werden.\n` +
+              `**§10.2** Illegales Tuning: Nur beim illegalen Tuner erhältlich.\n` +
+              `**§10.3** Bennys Felgen: Nur beim illegalen Tuner erhältlich.\n` +
+              `**§10.4** F1-Reifen: Nur bei Geländewagen erlaubt.\n` +
+              `**§10.5** Kennzeichen: Alle erlaubt, außer Regierungskennzeichen (SA Exempt). Leere Kennzeichen gelten als ungültig.`,
+            inline: false,
+          },
+          { name: DIV, value: '👕  **Kleidung**', inline: false },
+          {
+            name: '\u200b',
+            value:
+              `**§11** Kleidungssystem — Grundsätzlich erlaubt, außer:\n` +
+              `> ❌ Gemoddete Outfits verboten\n` +
+              `> ❌ Verglitchte Kleidung verboten\n` +
+              `> ✅ Joggers erlaubt (wenn keine unsichtbaren Stellen sichtbar sind)\n` +
+              `> ✅ Eselmütze / Spielverderberhut erlaubt\n` +
+              `> ✅ Duffel Bags erlaubt (realistisch einsetzen)`,
+            inline: false,
+          },
+          { name: DIV, value: '⚖️  **Servergrundsatz**', inline: false },
+          {
+            name: '\u200b',
+            value:
+              `**§12** Grundregel: Alles, was nicht ausdrücklich erlaubt ist, kann sanktioniert werden.\n\n` +
+              `*Die Serverleitung behält sich das Recht vor, das Regelwerk jederzeit zu verändern. Änderungen treten sofort in Kraft und werden im <#1490882546144383156> angekündigt.*`,
+            inline: false,
+          },
+        )
+        .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung' })
+        .setTimestamp();
+
+      try {
+        const regelCh2 = await client.channels.fetch('1490882546144383156');
+        if (regelCh2) {
+          await regelCh2.send({ embeds: [regelEmbed2] });
+          setup.regelwerkEmbed2Sent = true;
+          saveSetup(setup);
+          console.log('✅ Regelwerk-Embed 2/2 einmalig gesendet.');
+        }
+      } catch (e) { console.error('Regelwerk-Embed 2/2 Fehler:', e.message); }
+    }
+
   });
 
 // ─── INVITE EVENTS ────────────────────────────────────────────────────────────
