@@ -1993,33 +1993,14 @@ client.on('interactionCreate', async (interaction) => {
       const eintrag     = ausweisData[user.id];
       if (!eintrag)
         return interaction.reply({ content: '❌ Du hast noch keinen Ausweis. Bitte reise zuerst legal ein.', ephemeral: true });
-      const embed = new EmbedBuilder()
-        .setColor(DARK_ORANGE)
-        .setTitle('🪪  Offizieller Ausweis — Paradise City')
-        .addFields(
-          { name: '👤 Vorname',        value: eintrag.vorname,       inline: true },
-          { name: '👤 Nachname',       value: eintrag.nachname,      inline: true },
-          { name: '🎂 Geburtsdatum',   value: eintrag.geburtsdatum,  inline: true },
-          { name: '🏙️ Geburtsort',    value: eintrag.geburtsort,    inline: true },
-          { name: '🌍 Nationalität',   value: eintrag.nationalitaet, inline: true },
-          { name: '📅 Ausgestellt am', value: '<t:' + Math.floor(new Date(eintrag.createdAt).getTime()/1000) + ':D>', inline: true },
-        )
-        .setFooter({ text: 'Paradise City Roleplay  •  Einwohnerbehörde' })
-        .setTimestamp();
-      const UPLOADS_DIR = path.join(__dirname, 'data', 'uploads');
-      let photoFile;
-      for (const ext of ['jpg','jpeg','png','webp']) {
-        const p = path.join(UPLOADS_DIR, user.id + '.' + ext);
-        if (fs.existsSync(p)) { photoFile = p; break; }
-      }
-      if (photoFile) {
-        const att = new AttachmentBuilder(photoFile, { name: 'passbild.jpg' });
-        embed.setThumbnail('attachment://passbild.jpg');
-        await interaction.reply({ embeds: [embed], files: [att] });
-      } else {
-        await interaction.reply({ embeds: [embed] });
-      }
-      return;
+      const domain8 = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
+        const viewLink = `https://${domain8}/ausweis/view/${user.id}`;
+        return interaction.reply({
+          content: `🆔 **Dein offizieller Ausweis:**
+🔗 [${eintrag.vorname} ${eintrag.nachname} — Ausweis öffnen](${viewLink})
+*Nur für dich sichtbar. Der Link ist dauerhaft gültig.*`,
+          ephemeral: true
+        });
     }
 
     // /abstimmung
