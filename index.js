@@ -70,6 +70,42 @@ function buildAbstimmungEmbed(poll) {
     .setFooter({ text: 'Du kannst nur f\u00FCr eine Option gleichzeitig stimmen' })
     .setTimestamp();
 }
+
+// ─── Aktivitätscheck-System ─────────────────────────────────────────────────
+const AKTIVITAET_CH      = '1502382574310392040';
+const AKTIVITAET_FILE    = path.join(DATA_DIR, 'aktivitaetscheck.json');
+if (!fs.existsSync(AKTIVITAET_FILE)) fs.writeFileSync(AKTIVITAET_FILE, '{}', 'utf8');
+function loadAktivitaet()  { try { return JSON.parse(fs.readFileSync(AKTIVITAET_FILE, 'utf8')); } catch { return {}; } }
+function saveAktivitaet(d) { fs.writeFileSync(AKTIVITAET_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+function buildAktivitaetEmbed(data) {
+  const members = data.members || [];
+  const count   = members.length;
+  const names   = members.length > 0 ? members.map(m => '**' + m.tag + '**').join('\n') : '*Noch niemand hat abgestimmt.*';
+  const bar     = count === 0 ? '░░░░░░░░░░░░░░░░░░░░' : '█'.repeat(Math.min(count, 20)) + '░'.repeat(Math.max(0, 20 - count));
+  return new EmbedBuilder()
+    .setColor(DARK_ORANGE)
+    .setTitle('— AKTIVITÄTSCHECK —')
+    .setDescription(
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+      'Bist du derzeit auf **Paradise City Roleplay** aktiv?\n' +
+      'Bestätige deine Aktivität mit einem ✅ unter dieser Nachricht!\n' +
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+    )
+    .addFields(
+      {
+        name: '◈  AKTIVE MITGLIEDER  ◈',
+        value: '```' + bar + '```' + '**' + count + '** Spieler ' + (count === 1 ? 'hat' : 'haben') + ' bestätigt',
+        inline: false,
+      },
+      {
+        name: '\u200b',
+        value: names.length > 1024 ? names.slice(0, 1020) + '...' : names,
+        inline: false,
+      },
+    )
+    .setFooter({ text: 'Paradise City Roleplay  •  Aktivitätscheck  •  Reagiere mit ✅' })
+    .setTimestamp(data.createdAt ? new Date(data.createdAt) : new Date());
+}
 function makeCode()     { return Math.random().toString(36).toUpperCase().slice(2, 8); }
 
 function loadWarns()    { try { return JSON.parse(fs.readFileSync(WARN_FILE,    'utf8')); } catch { return {}; } }
@@ -294,6 +330,11 @@ client.once('ready', async () => {
       .addStringOption(opt => opt.setName('frage').setDescription('Die Abstimmungsfrage').setRequired(true))
       .addStringOption(opt => opt.setName('antwort1').setDescription('Erste Option (\uD83D\uDC4D Daumen hoch)').setRequired(true))
       .addStringOption(opt => opt.setName('antwort2').setDescription('Zweite Option (\uD83D\uDC4E Daumen runter)').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('aktivit\u00e4tscheck')
+      .setDescription('Startet einen Aktivit\u00e4tscheck im zugeh\u00f6rigen Kanal')
       .toJSON(),
 
   ];
@@ -1385,23 +1426,43 @@ client.on('messageReactionAdd', async (reaction, user) => {
   try {
     if (reaction.partial)         await reaction.fetch();
     if (reaction.message.partial) await reaction.message.fetch();
+
+    // ── Abstimmung ──
     const polls = loadAbstimmungen();
     const poll  = polls[reaction.message.id];
-    if (!poll) return;
-    const emoji = reaction.emoji.name;
-    if (emoji !== '\uD83D\uDC4D' && emoji !== '\uD83D\uDC4E') return;
-    const voteDir   = emoji === '\uD83D\uDC4D' ? 'up' : 'down';
-    const otherDir  = voteDir === 'up' ? 'down' : 'up';
-    const otherEmoji = voteDir === 'up' ? '\uD83D\uDC4E' : '\uD83D\uDC4D';
-    const prevVote  = poll.voters[user.id];
-    if (prevVote === voteDir) return;
-    poll.voters[user.id] = voteDir;
-    saveAbstimmungen(polls);
-    if (prevVote === otherDir) {
-      const other = reaction.message.reactions.cache.get(otherEmoji);
-      if (other) await other.users.remove(user.id).catch(() => {});
+    if (poll) {
+      const emoji = reaction.emoji.name;
+      if (emoji === '\uD83D\uDC4D' || emoji === '\uD83D\uDC4E') {
+        const voteDir    = emoji === '\uD83D\uDC4D' ? 'up' : 'down';
+        const otherDir   = voteDir === 'up' ? 'down' : 'up';
+        const otherEmoji = voteDir === 'up' ? '\uD83D\uDC4E' : '\uD83D\uDC4D';
+        const prevVote   = poll.voters[user.id];
+        if (prevVote !== voteDir) {
+          poll.voters[user.id] = voteDir;
+          saveAbstimmungen(polls);
+          if (prevVote === otherDir) {
+            const other = reaction.message.reactions.cache.get(otherEmoji);
+            if (other) await other.users.remove(user.id).catch(() => {});
+          }
+          await reaction.message.edit({ embeds: [buildAbstimmungEmbed(poll)] }).catch(() => {});
+        }
+      }
+      return;
     }
-    await reaction.message.edit({ embeds: [buildAbstimmungEmbed(poll)] }).catch(() => {});
+
+    // ── Aktivitätscheck ──
+    const aktChecks = loadAktivitaet();
+    const aktCheck  = aktChecks[reaction.message.id];
+    if (aktCheck) {
+      const emoji = reaction.emoji.name;
+      if (emoji !== '\u2705') return;
+      const already = aktCheck.members.some(m => m.id === user.id);
+      if (!already) {
+        aktCheck.members.push({ id: user.id, tag: user.username });
+        saveAktivitaet(aktChecks);
+        await reaction.message.edit({ embeds: [buildAktivitaetEmbed(aktCheck)] }).catch(() => {});
+      }
+    }
   } catch (e) { console.error('ReactionAdd Fehler:', e.message); }
 });
 
@@ -1410,16 +1471,33 @@ client.on('messageReactionRemove', async (reaction, user) => {
   try {
     if (reaction.partial)         await reaction.fetch();
     if (reaction.message.partial) await reaction.message.fetch();
+
+    // ── Abstimmung ──
     const polls = loadAbstimmungen();
     const poll  = polls[reaction.message.id];
-    if (!poll) return;
-    const emoji = reaction.emoji.name;
-    if (emoji !== '\uD83D\uDC4D' && emoji !== '\uD83D\uDC4E') return;
-    const voteDir = emoji === '\uD83D\uDC4D' ? 'up' : 'down';
-    if (poll.voters[user.id] === voteDir) {
-      delete poll.voters[user.id];
-      saveAbstimmungen(polls);
-      await reaction.message.edit({ embeds: [buildAbstimmungEmbed(poll)] }).catch(() => {});
+    if (poll) {
+      const emoji   = reaction.emoji.name;
+      const voteDir = emoji === '\uD83D\uDC4D' ? 'up' : 'down';
+      if ((emoji === '\uD83D\uDC4D' || emoji === '\uD83D\uDC4E') && poll.voters[user.id] === voteDir) {
+        delete poll.voters[user.id];
+        saveAbstimmungen(polls);
+        await reaction.message.edit({ embeds: [buildAbstimmungEmbed(poll)] }).catch(() => {});
+      }
+      return;
+    }
+
+    // ── Aktivitätscheck ──
+    const aktChecks = loadAktivitaet();
+    const aktCheck  = aktChecks[reaction.message.id];
+    if (aktCheck) {
+      const emoji = reaction.emoji.name;
+      if (emoji !== '\u2705') return;
+      const before = aktCheck.members.length;
+      aktCheck.members = aktCheck.members.filter(m => m.id !== user.id);
+      if (aktCheck.members.length !== before) {
+        saveAktivitaet(aktChecks);
+        await reaction.message.edit({ embeds: [buildAktivitaetEmbed(aktCheck)] }).catch(() => {});
+      }
     }
   } catch (e) { console.error('ReactionRemove Fehler:', e.message); }
 });
@@ -1939,6 +2017,22 @@ client.on('interactionCreate', async (interaction) => {
         polls[msg.id] = { ...poll, messageId: msg.id };
         saveAbstimmungen(polls);
         return interaction.reply({ content: '\u2705 Abstimmung erstellt: ' + msg.url, ephemeral: true });
+      } catch (e) {
+        return interaction.reply({ content: '\u274C Fehler: ' + e.message, ephemeral: true });
+      }
+    }
+
+    // /aktivitätscheck
+    if (commandName === 'aktivit\u00e4tscheck') {
+      try {
+        const ch   = await client.channels.fetch(AKTIVITAET_CH);
+        const data = { members: [], createdAt: Date.now(), channelId: AKTIVITAET_CH };
+        const msg  = await ch.send({ embeds: [buildAktivitaetEmbed(data)] });
+        await msg.react('\u2705');
+        const all = loadAktivitaet();
+        all[msg.id] = { ...data, messageId: msg.id };
+        saveAktivitaet(all);
+        return interaction.reply({ content: '\u2705 Aktivit\u00e4tscheck gestartet: ' + msg.url, ephemeral: true });
       } catch (e) {
         return interaction.reply({ content: '\u274C Fehler: ' + e.message, ephemeral: true });
       }
