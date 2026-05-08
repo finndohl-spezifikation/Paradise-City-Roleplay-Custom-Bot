@@ -275,12 +275,6 @@ module.exports = function startWebServer(client, DATA_DIR) {
         ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
         <form method="POST" action="/einreise/illegal" id="illegalForm">
 
-          
-          <div style="background:#1c0a0a;border:1px solid #f85149;border-radius:8px;padding:18px;margin:20px 0;text-align:center">
-            <div style="font-size:2em;margin-bottom:8px">⚠️</div>
-            <p style="color:#f85149;font-weight:700;margin-bottom:6px">Illegale Einreise</p>
-            <p style="color:#8b949e;font-size:.85em;line-height:1.6">Du reist ohne offizielle Registrierung ein.<br>Kein Ausweis — keine staatlichen Jobs — keine staatliche Hilfe.<br>Du bist auf dich allein gestellt.</p>
-          </div>
 
           <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
             <input type="checkbox" id="confirm" name="confirm" value="1" required style="width:18px;height:18px;accent-color:#e65100;cursor:pointer;flex-shrink:0">
@@ -288,7 +282,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
           </div>
 
           <button type="submit" class="btn" style="background:#b71c1c">🚨 Jetzt Einreisen</button>
-          ${warning()}
+          
         </form>
       </div>
     `));
