@@ -1750,16 +1750,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(DARK_ORANGE)
           .setTitle('🔑 Dein Einreise-Code')
           .setDescription(
-            '**Code:** ```' + code + '```
-' +
-            '1. Öffne das Einreise-Formular
-' +
-            '2. Trage diesen Code im Feld **"Einreise-Code"** ein
-' +
-            '3. Deine Rollen werden nach dem Absenden automatisch vergeben
-
-' +
-            '⏳ Gültig für **15 Minuten** · nur einmalig verwendbar'
+            '**Code:** \x60\x60\x60' + code + '\x60\x60\x60\n1. \u00d6ffne das Einreise-Formular\n2. Trage diesen Code im Feld **"Einreise-Code"** ein\n3. Deine Rollen werden nach dem Absenden automatisch vergeben\n\n\u23f3 G\u00fcltig f\u00fcr **15 Minuten** \u00b7 nur einmalig verwendbar'
           )
           .setFooter({ text: 'Paradise City Roleplay  •  Einreise-System' })
         ],
