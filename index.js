@@ -395,7 +395,108 @@ client.once('ready', async () => {
       } catch (e) { console.error('Starterpaket-Embed Fehler:', e.message); }
     }
 
-    // ── Einmalig: Regelwerk 2/2 Embed senden ──────────────────────────────────
+    // ── Einmalig: Regelwerk 1/2 Embed senden ──────────────────────────────────
+    if (!setup.regelwerkEmbed1Sent) {
+      const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+      const DIV   = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
+      const regelEmbed1 = new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('📕  Paradise City Roleplay — Serverregelwerk (1/2)')
+        .addFields(
+          {
+            name: '🎮  Roleplay-Grundlagen & Begriffe',
+            value:
+              `Was ist Roleplay (RP)? Du übernimmst eine fiktive Rolle in einer realistischen Spielwelt und handelst als dein Charakter — realistisch und glaubwürdig.\n\n` +
+              `📌 **Wichtige Begriffe**\n` +
+              `> **IC** *(In Character)* — Alles was im Spiel innerhalb deiner Rolle passiert.\n` +
+              `> **OOC** *(Out of Character)* — Alles außerhalb deines Charakters.\n` +
+              `> **Metagaming** — Externe Infos im RP nutzen. ❌ Verboten.\n` +
+              `> **PowerRP** — Zwangshandlungen ohne Reaktionsmöglichkeit. ❌ Verboten.\n` +
+              `> **FearRP** — Angemessenes Angstverhalten bei Gefahr. ✅ Pflicht.\n` +
+              `> **FailRP** — Unrealistisches Verhalten. ❌ Verboten.\n` +
+              `> **RDM** — Töten ohne RP-Grund. ❌ Verboten.\n` +
+              `> **VDM** — Fahrzeug als Waffe nutzen. ❌ Verboten.\n` +
+              `> **Combat Log** — Verlassen einer RP-Situation. ❌ Verboten.\n` +
+              `> **IC/OOC Mixing** — Vermischung von IC und OOC. ❌ Verboten.`,
+            inline: false,
+          },
+          { name: DIV, value: '✈️  **Einreise & Charakter**', inline: false },
+          {
+            name: '\u200b',
+            value:
+              `**§1** Einreisebedingungen: Jeder Spieler stimmt zu, dass seine Discord-ID gespeichert wird, solange er aktiv ist.\n` +
+              `**§1.1** Charaktererstellung — Keine Whitelist erforderlich. Realistische Angaben sind Pflicht. Charakteränderung nur durch RP-Tod.\n` +
+              `**§1.2** Einreisearten: Legal · Illegal · Gruppeneinreise *(ab 5 Personen)*\n` +
+              `**§1.3** Gruppeneinreise: Nachweis im Support erforderlich.\n` +
+              `**§1.4** Zweitcharaktere: Nur mit Anmeldung im Support erlaubt.`,
+            inline: false,
+          },
+          { name: DIV, value: '🤝  **Verhalten auf dem Server**', inline: false },
+          {
+            name: '\u200b',
+            value:
+              `**§2** Grundverhalten: Respekt ist Pflicht. Diskriminierung und Beleidigungen sind verboten.\n` +
+              `**§2.1** Spam & Werbung: Keine Werbung · Keine Serverlinks · Kein Spam.\n` +
+              `**§2.2** Teamkommunikation: Kein privater Kontakt zu Teammitgliedern.\n` +
+              `**§2.3** Support: Richtige Kategorie nutzen · Kein Spam · Geduld zeigen.\n` +
+              `**§2.4** Serverstörung: Griefing und Sabotage sind verboten.`,
+            inline: false,
+          },
+          { name: DIV, value: '🎫  **Support & Systeme**', inline: false },
+          {
+            name: '\u200b',
+            value:
+              `**§3** Supportsystem: Nur über Tickets oder Supportbereiche.\n` +
+              `**§3.1** Ingame-Support: Nur erlaubt wenn vom Serverteam genehmigt — ausschließlich in einem CO.\n` +
+              `**§3.2** Clips: Nur im Support verwenden.\n` +
+              `**§3.3** Teamrechte & Warnsystem: Missbrauch melden · Warns anfechtbar · Einspruch möglich.`,
+            inline: false,
+          },
+          { name: DIV, value: '🔒  **Serversicherheit**', inline: false },
+          {
+            name: '\u200b',
+            value:
+              `**§4** Exploits & Bugs: Das Ausnutzen von Bugs, Glitches oder Exploits ist streng verboten.\n` +
+              `**§4.1** Bot-Fehler: Müssen sofort gemeldet werden — Nutzung verboten.\n` +
+              `**§4.2** Serverangriffe: Führen zum sofortigen Ausschluss.`,
+            inline: false,
+          },
+          { name: DIV, value: '🎙️  **Kommunikation & UI**', inline: false },
+          {
+            name: '\u200b',
+            value:
+              `**§5** Ingame Voice: Nur GTA-Ingame-Voice erlaubt.\n` +
+              `**§5.1** Funk: Erlaubt, solange die Lobby nicht voll ist. Bei voller Lobby auflösen.\n` +
+              `**§5.2** Minimap & Spieleranzeige: Beim Betreten der Lobby deaktivieren.`,
+            inline: false,
+          },
+          { name: DIV, value: '🎲  **Ingame-Regeln**', inline: false },
+          {
+            name: '\u200b',
+            value:
+              `**§6** Realismus: Alles muss realistisch gespielt werden.\n` +
+              `**§6.1** Schusscall: Pflicht — 15 Minuten gültig.\n` +
+              `**§6.2** Bewusstlosigkeit: Maximal 10 Minuten.\n` +
+              `**§6.3** Dispatch-System: Wenn ein Spieler bewusstlos aufgefunden wird — Dispatch absetzen oder Erstversorgung durchführen.\n` +
+              `**§6.4** RP-Tod: Der Charakter verliert alle Items.`,
+            inline: false,
+          },
+        )
+        .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung' })
+        .setTimestamp();
+
+      try {
+        const regelCh1 = await client.channels.fetch('1490882546144383156');
+        if (regelCh1) {
+          await regelCh1.send({ embeds: [regelEmbed1] });
+          setup.regelwerkEmbed1Sent = true;
+          saveSetup(setup);
+          console.log('✅ Regelwerk-Embed 1/2 einmalig gesendet.');
+        }
+      } catch (e) { console.error('Regelwerk-Embed 1/2 Fehler:', e.message); }
+    }
+
+      // ── Einmalig: Regelwerk 2/2 Embed senden ──────────────────────────────────
     if (!setup.regelwerkEmbed2Sent) {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const DIV   = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
