@@ -138,8 +138,6 @@ client.once('ready', async () => {
       .setDescription('Entfernt eine Team Warn eines Teammitglieds')
       .addUserOption(opt =>
         opt.setName('nutzer').setDescription('Das Teammitglied').setRequired(true))
-      .addStringOption(opt =>
-        opt.setName('verwarnung').setDescription('Verwarnung auswählen').setRequired(true).setAutocomplete(true))
       .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
       .toJSON(),
 
@@ -692,20 +690,7 @@ client.on('guildAuditLogEntryCreate', async (entry, guild) => {
 // ─── INTERACTIONS ─────────────────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
 
-  // Autocomplete
-  if (interaction.isAutocomplete()) {
-    if (interaction.commandName === 'teamwarn-remove') {
-      const target    = interaction.options.getUser('nutzer');
-      const warnsData = loadWarns();
-      const warns     = target ? (warnsData[target.id] || []) : [];
-      const choices   = warns.map((w, i) => ({
-        name:  `#${i + 1} — ${w.grund.slice(0, 80)}`,
-        value: w.id,
-      })).slice(0, 25);
-      return interaction.respond(choices);
-    }
-    return;
-  }
+
 
   if (!interaction.isChatInputCommand()) return;
   const { commandName, member, user } = interaction;
@@ -800,31 +785,28 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // /teamwarn-remove
-  if (commandName === 'teamwarn-remove') {
-    const target    = interaction.options.getUser('nutzer');
-    const warnId    = interaction.options.getString('verwarnung');
-    const warnsData = loadWarns();
-    if (!warnsData[target.id] || warnsData[target.id].length === 0)
-      return interaction.reply({ content: `⚠️ Keine Verwarnungen für ${target.tag} gefunden.`, ephemeral: true });
-    const before = warnsData[target.id].length;
-    warnsData[target.id] = warnsData[target.id].filter(w => w.id !== warnId);
-    if (warnsData[target.id].length === before)
-      return interaction.reply({ content: `❌ Verwarnung nicht gefunden.`, ephemeral: true });
-    saveWarns(warnsData);
-    await sendLog(CH.MOD_LOG, new EmbedBuilder()
-      .setColor(Colors.Green).setTitle('🗑️ Team Warn entfernt')
-      .addFields(
-        { name: 'Mitglied',     value: `${target.tag} (${target.id})` },
-        { name: 'Entfernt von', value: user.tag }
-      ).setTimestamp()
-    );
-    await interaction.reply({
-      embeds: [new EmbedBuilder().setColor(Colors.Green)
-        .setDescription(`✅ Team Warn von **${target.tag}** wurde entfernt.`)],
-      ephemeral: true
-    });
-    return;
-  }
+    if (commandName === 'teamwarn-remove') {
+      const target    = interaction.options.getUser('nutzer');
+      const warnsData = loadWarns();
+      if (!warnsData[target.id] || warnsData[target.id].length === 0)
+        return interaction.reply({ content: `⚠️ Keine Verwarnungen für ${target.tag} gefunden.`, ephemeral: true });
+      const removed = warnsData[target.id].pop();
+      saveWarns(warnsData);
+      await sendLog(CH.MOD_LOG, new EmbedBuilder()
+        .setColor(Colors.Green).setTitle('🗑️ Team Warn entfernt')
+        .addFields(
+          { name: 'Mitglied',     value: `${target.tag} (${target.id})` },
+          { name: 'Grund war',    value: removed.grund },
+          { name: 'Entfernt von', value: user.tag }
+        ).setTimestamp()
+      );
+      await interaction.reply({
+        embeds: [new EmbedBuilder().setColor(Colors.Green)
+          .setDescription(`✅ Letzte Team Warn von **${target.tag}** wurde entfernt.\n📋 Grund war: ${removed.grund}`)],
+        ephemeral: true
+      });
+      return;
+    }
 
   // /teamwarn-list
   if (commandName === 'teamwarn-list') {
