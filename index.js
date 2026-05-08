@@ -861,7 +861,7 @@ client.once('ready', async () => {
           permOverwrites.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageMessages, PermissionFlagsBits.AttachFiles] });
         }
         const ticketCh = await guild.channels.create({ name, type: ChannelType.GuildText, parent: cfg.category, permissionOverwrites: permOverwrites });
-        tickets[ticketCh.id] = { id: ticketId, channelId: ticketCh.id, openerId: member.id, openerTag: member.user.tag, type, label: cfg.label, createdAt: new Date().toISOString(), bearbeiter: null, bearbeiterTag: null, assignedUsers: [], closed: false };
+        tickets[ticketCh.id] = { id: ticketId, channelId: ticketCh.id, openerId: member.id, openerTag: member.user.tag, type, label: cfg.label, createdAt: new Date().toISOString(), bearbeiter: null, bearbeiterTag: null, assignedUsers: [], closed: false, rated: false };
         saveTickets(tickets);
         const welcomeEmbed = new EmbedBuilder()
           .setColor(DARK_ORANGE)
@@ -943,12 +943,17 @@ client.once('ready', async () => {
             .setColor(DARK_ORANGE).setTitle('⭐ Ticket Bewertung — Paradise City Roleplay')
             .setDescription(`Dein Ticket **${ticket.label}** wurde geschlossen.\nBitte bewerte den Support!\n\n**Bearbeiter:** ${ticket.bearbeiter ? `<@${ticket.bearbeiter}>` : 'Kein Bearbeiter'}`);
           const rRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`ticket_rate_1_${ticket.id}`).setLabel('⭐').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`ticket_rate_2_${ticket.id}`).setLabel('⭐⭐').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`ticket_rate_3_${ticket.id}`).setLabel('⭐⭐⭐').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`ticket_rate_4_${ticket.id}`).setLabel('⭐⭐⭐⭐').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId(`ticket_rate_5_${ticket.id}`).setLabel('⭐⭐⭐⭐⭐').setStyle(ButtonStyle.Primary),
-          );
+            new StringSelectMenuBuilder()
+              .setCustomId(`ticket_rate_select_${ticket.id}`)
+              .setPlaceholder('⭐ Bewertung auswählen...')
+              .addOptions(
+                new StringSelectMenuOptionBuilder().setLabel('1/5 ⭐ — Sehr schlecht').setValue('1'),
+                new StringSelectMenuOptionBuilder().setLabel('2/5 ⭐⭐ — Schlecht').setValue('2'),
+                new StringSelectMenuOptionBuilder().setLabel('3/5 ⭐⭐⭐ — Okay').setValue('3'),
+                new StringSelectMenuOptionBuilder().setLabel('4/5 ⭐⭐⭐⭐ — Gut').setValue('4'),
+                new StringSelectMenuOptionBuilder().setLabel('5/5 ⭐⭐⭐⭐⭐ — Sehr gut').setValue('5'),
+              )
+          )
           await opener.send({ embeds: [rEmbed], components: [rRow] });
         } catch (e) { console.error('Rating DM Fehler:', e.message); }
 
@@ -982,41 +987,55 @@ client.once('ready', async () => {
         } catch (e) { return interaction.reply({ content: `❌ Fehler: ${e.message}`, ephemeral: true }); }
       }
 
-      // ── Button: Bewertung (in DM) ─────────────────────────────────────────────
-      if (interaction.isButton() && interaction.customId.startsWith('ticket_rate_')) {
-        const parts    = interaction.customId.split('_');
-        const stars    = parseInt(parts[2]);
-        const ticketId = parts.slice(3).join('_');
-        const modal = new ModalBuilder().setCustomId(`ticket_rating_modal_${stars}_${ticketId}`).setTitle(`Bewertung: ${'⭐'.repeat(stars)}`);
-        modal.addComponents(new ActionRowBuilder().addComponents(
-          new TextInputBuilder().setCustomId('rating_comment').setLabel('Kommentar (optional)').setStyle(TextInputStyle.Paragraph).setPlaceholder('Dein Feedback zum Support...').setRequired(false).setMaxLength(500)
-        ));
-        return interaction.showModal(modal);
-      }
+      // ── Select Menu: Bewertung auswählen (in DM) ──────────────────────────────
+        if (interaction.isStringSelectMenu() && interaction.customId.startsWith('ticket_rate_select_')) {
+          const ticketId = interaction.customId.slice('ticket_rate_select_'.length);
+          const stars    = parseInt(interaction.values[0]);
+          const allT     = loadTickets();
+          const rTkt     = Object.values(allT).find(t => t.id === ticketId);
+          if (rTkt?.rated) {
+            return interaction.update({ content: '❌ Du hast dieses Ticket bereits bewertet.', components: [], embeds: [] });
+          }
+          const modal = new ModalBuilder()
+            .setCustomId(`ticket_rating_modal_${stars}_${ticketId}`)
+            .setTitle(`Bewertung: ${stars}/5`);
+          modal.addComponents(new ActionRowBuilder().addComponents(
+            new TextInputBuilder().setCustomId('rating_comment').setLabel('Kommentar (optional)').setStyle(TextInputStyle.Paragraph).setPlaceholder('Dein Feedback zum Support...').setRequired(false).setMaxLength(500)
+          ));
+          return interaction.showModal(modal);
+        }
 
       // ── Modal: Bewertung abgeben ──────────────────────────────────────────────
-      if (interaction.isModalSubmit() && interaction.customId.startsWith('ticket_rating_modal_')) {
-        const parts    = interaction.customId.split('_');
-        const stars    = parseInt(parts[3]);
-        const ticketId = parts.slice(4).join('_');
-        const comment  = interaction.fields.getTextInputValue('rating_comment') || '*Kein Kommentar*';
-        const starsStr = '⭐'.repeat(stars) + '☆'.repeat(5 - stars);
-        try {
-          const ratingCh = await client.channels.fetch(TICKET_RATING_CH);
-          await ratingCh.send({ embeds: [new EmbedBuilder()
-            .setColor(stars >= 4 ? Colors.Green : stars >= 3 ? Colors.Yellow : Colors.Red)
-            .setTitle('⭐ Neue Ticket-Bewertung')
-            .addFields(
-              { name: '🔖 Ticket-ID',    value: `\`${ticketId}\``,              inline: true },
-              { name: '⭐ Bewertung',    value: starsStr,                   inline: true },
-              { name: '👤 Bewertet von', value: `<@${interaction.user.id}>`, inline: true },
-              { name: '💬 Kommentar',    value: comment,                    inline: false },
-            )
-            .setTimestamp()
-          ]});
-        } catch (e) { console.error('Rating Channel Fehler:', e.message); }
-        return interaction.update({ content: `✅ Danke für deine Bewertung: ${starsStr}`, components: [], embeds: [] });
-      }
+        if (interaction.isModalSubmit() && interaction.customId.startsWith('ticket_rating_modal_')) {
+          const parts    = interaction.customId.split('_');
+          const stars    = parseInt(parts[3]);
+          const ticketId = parts.slice(4).join('_');
+          const comment  = interaction.fields.getTextInputValue('rating_comment') || '*Kein Kommentar*';
+          // Nur einmal bewerten
+          const allT  = loadTickets();
+          const rTkt  = Object.values(allT).find(t => t.id === ticketId);
+          if (rTkt?.rated) {
+            return interaction.update({ content: '❌ Du hast dieses Ticket bereits bewertet.', components: [], embeds: [] });
+          }
+          if (rTkt) { rTkt.rated = true; saveTickets(allT); }
+          const starsStr = `${stars}/5`;
+          const starsFull = '⭐'.repeat(stars) + '☆'.repeat(5 - stars);
+          try {
+            const ratingCh = await client.channels.fetch(TICKET_RATING_CH);
+            await ratingCh.send({ embeds: [new EmbedBuilder()
+              .setColor(stars >= 4 ? Colors.Green : stars >= 3 ? Colors.Yellow : Colors.Red)
+              .setTitle('⭐ Neue Ticket-Bewertung')
+              .addFields(
+                { name: '🔖 Ticket-ID',    value: `\`${ticketId}\``,              inline: true },
+                { name: '⭐ Bewertung',    value: `${starsFull}  (${starsStr})`,    inline: true },
+                { name: '👤 Bewertet von', value: `<@${interaction.user.id}>`,      inline: true },
+                { name: '💬 Kommentar',    value: comment,                            inline: false },
+              )
+              .setTimestamp()
+            ]});
+          } catch (e) { console.error('Rating Channel Fehler:', e.message); }
+          return interaction.update({ content: `✅ Danke für deine Bewertung: ${starsFull} (${starsStr})`, components: [], embeds: [] });
+        }
 
     } catch (e) { console.error('Ticket Interaction Fehler:', e.message); }
   });
