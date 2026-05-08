@@ -579,6 +579,144 @@ client.once('ready', async () => {
       } catch (e) { console.error('Regelwerk-Embed 2/2 Fehler:', e.message); }
     }
 
+  // ── Einmalig: Fraktionsregelwerk-Embed senden ─────────────────────────────
+    if (!setup.fraktionsregelwerkEmbedSent) {
+      const DIV = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
+      const fraktionsEmbed = new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('⚔️  Fraktionsregelwerk — Paradise City Roleplay')
+        .addFields(
+          {
+            name: '§1  Geltungsbereich',
+            value: `Dieses Regelwerk gilt für **alle Fraktionen** auf dem Server. Jedes Fraktionsmitglied ist verpflichtet, sich an die folgenden Bestimmungen zu halten.`,
+            inline: false,
+          },
+          { name: DIV, value: '\u200b', inline: false },
+          {
+            name: '§2  Allgemeines Verhalten',
+            value:
+              `**(1)** Grundloses Angreifen von Spielern, Beamten oder anderen Fraktionen ohne RP-Hintergrund ist untersagt.\n` +
+              `**(2)** Jegliche Form von unrealistischem oder regelwidrigem Verhalten ist zu unterlassen.`,
+            inline: false,
+          },
+          {
+            name: '§3  Illegale Routen',
+            value:
+              `**(1)** Fraktionen sind berechtigt, illegale Routen für sich zu beanspruchen.\n` +
+              `**(2)** Die Klärung und Durchsetzung solcher Ansprüche muss ausschließlich **IC** erfolgen.`,
+            inline: false,
+          },
+          {
+            name: '§4  Gambo-Verhalten',
+            value:
+              `**(1)** Auffälliges, nicht RP-basiertes Kampfverhalten („Gambo") ist untersagt.\n` +
+              `**(2)** Verstöße führen zu Fraktionsverwarnungen.\n` +
+              `**(3)** Im Wiederholungsfall kann die Fraktion aufgelöst werden.`,
+            inline: false,
+          },
+          { name: DIV, value: '\u200b', inline: false },
+          {
+            name: '§5  Fraktionsgründung',
+            value:
+              `**(1)** Jede Fraktion muss vor der Gründung eine Bewerbung einreichen.\n` +
+              `**(2)** Über die Annahme entscheidet die Projektleitung.\n` +
+              `**(3)** Es besteht kein Anspruch auf Genehmigung.`,
+            inline: false,
+          },
+          {
+            name: '§6  Namensgebung',
+            value: `Echtnamen sowie Fraktionsnamen von anderen Servern sind erlaubt.`,
+            inline: false,
+          },
+          {
+            name: '§7  Ausstattung',
+            value:
+              `**(1)** Keine Einschränkungen bei Fraktionskleidung, Fahrzeugen oder Immobilien.\n` +
+              `**(2)** Die Nutzung hat dennoch im Rahmen des Roleplays zu erfolgen.`,
+            inline: false,
+          },
+          {
+            name: '§8  Mitgliederanzahl',
+            value:
+              `**(1)** Kein festes Limit für Fraktionsmitglieder.\n` +
+              `**(2)** Ab **15 Mitgliedern** kann eine Aufteilung durch die Projektleitung angeordnet werden.`,
+            inline: false,
+          },
+          { name: DIV, value: '\u200b', inline: false },
+          {
+            name: '§9  Fraktionsgüter',
+            value:
+              `**(1)** Der Server stellt keine Fraktionsgüter zur Verfügung.\n` +
+              `**(2)** Fahrzeuge, Immobilien, Waffen und Gegenstände müssen **IC** erworben werden.\n` +
+              `**(3)** Ausgenommen: Kleidungsgegenstände.`,
+            inline: false,
+          },
+          {
+            name: '§10  Sanktionen',
+            value:
+              `**(1)** Wiederholtes negatives Auffallen kann zu Fraktionsverwarnungen führen.\n` +
+              `**(2)** Im Extremfall: Fraktionssperre oder Auflösung.\n` +
+              `**(3)** Vergehen einzelner Mitglieder werden individuell bestraft.\n` +
+              `**(4)** Fehlverhalten im Namen der Fraktion kann die gesamte Fraktion sanktionieren.`,
+            inline: false,
+          },
+          {
+            name: '§11  Änderungen',
+            value: `Die Projektleitung behält sich das Recht vor, das Regelwerk jederzeit zu verändern. Änderungen treten sofort in Kraft und werden in <#1490882546144383156> angekündigt.`,
+            inline: false,
+          },
+        )
+        .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung' })
+        .setTimestamp();
+
+      try {
+        const fraktCh = await client.channels.fetch('1490882548266696849');
+        if (fraktCh) {
+          await fraktCh.send({ embeds: [fraktionsEmbed] });
+          setup.fraktionsregelwerkEmbedSent = true;
+          saveSetup(setup);
+          console.log('✅ Fraktionsregelwerk-Embed einmalig gesendet.');
+        }
+      } catch (e) { console.error('Fraktionsregelwerk-Embed Fehler:', e.message); }
+    }
+
+    // ── Einmalig: Safe-Zones-Embed senden ────────────────────────────────────
+    if (!setup.safeZonesEmbedSent) {
+      const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+      const safeEmbed = new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('🛡️  Safe Zones — Paradise City Roleplay')
+        .setDescription(
+          `Regierungsgebäude, alle Flächen und Objekte staatlicher Unternehmen sowie die Spieler, die sich dort befinden, dürfen **weder angegriffen noch entführt** werden.\n\n` +
+          LINE
+        )
+        .addFields(
+          {
+            name: '⚠️  Ausnahme — PD-Gebäude',
+            value:
+              `Wenn ein **Überfall geplant** ist oder sich ein **Fraktionsmitglied in Gewahrsam** befindet, darf das betroffene Mitglied befreit werden.`,
+            inline: false,
+          },
+          {
+            name: LINE,
+            value: `> ❌ Verstöße jeglicher Art werden **sanktioniert**.`,
+            inline: false,
+          },
+        )
+        .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung' })
+        .setTimestamp();
+
+      try {
+        const safeCh = await client.channels.fetch('1490882549499564184');
+        if (safeCh) {
+          await safeCh.send({ embeds: [safeEmbed] });
+          setup.safeZonesEmbedSent = true;
+          saveSetup(setup);
+          console.log('✅ Safe-Zones-Embed einmalig gesendet.');
+        }
+      } catch (e) { console.error('Safe-Zones-Embed Fehler:', e.message); }
+    }
+
   });
 
 // ─── INVITE EVENTS ────────────────────────────────────────────────────────────
