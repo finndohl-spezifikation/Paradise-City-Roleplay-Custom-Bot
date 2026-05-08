@@ -235,6 +235,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
             </div>
           </div>
 
+            <div style="margin-bottom:16px">
+              <label style="color:#aaa;font-size:.85em;display:block;margin-bottom:6px">Discord ID <span style="color:#e65100">*</span></label>
+              <input type="text" name="discord_id" placeholder="z.B. 123456789012345678" required style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;font-size:.95em">
+              <small style="color:#666;margin-top:4px;display:block">Rechtsklick auf deinen Namen im Discord → "ID kopieren"</small>
+            </div>
+
             <button type="submit" class="btn">✅ Einreise Bestätigen</button>
           ${warning()}
         </form>
@@ -244,13 +250,17 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/legal ──────────────────────────────────────────────────
   app.post('/einreise/legal', upload.single('foto'), async (req, res) => {
-    const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0 } = req.body;
+    const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0, discord_id } = req.body;
 
     if (!req.file) { req.session.legalError = 'Kein Passbild hochgeladen. Bitte füge ein Bild hinzu.'; return res.redirect('/einreise/legal'); }
     if (!vorname_0 || !nachname_0 || !geburtsdatum_0 || !geburtsort_0 || !nationalitaet_0) {
       req.session.legalError = 'Bitte alle Pflichtfelder ausfüllen.'; return res.redirect('/einreise/legal');
+    if (!discordId || !/^\d{17,20}$/.test(discordId)) {
+      req.session.legalError = 'Bitte gib eine gültige Discord-ID ein.';
+      return res.redirect('/einreise/legal');
     }
-    const discordId = 'einreise_' + Date.now();
+    }
+    const discordId = (discord_id || '').trim();
     // Passbild als Buffer speichern (multer memory)
     try {
       const ext = req.file.mimetype.includes('png') ? 'png' : req.file.mimetype.includes('webp') ? 'webp' : 'jpg';
@@ -296,6 +306,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
 
           <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+          <div style="margin-bottom:16px">
+            <label style="color:#aaa;font-size:.85em;display:block;margin-bottom:6px">Discord ID <span style="color:#e65100">*</span></label>
+            <input type="text" name="discord_id" placeholder="z.B. 123456789012345678" required style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;font-size:.95em">
+            <small style="color:#666;margin-top:4px;display:block">Rechtsklick auf deinen Namen im Discord → "ID kopieren"</small>
+          </div>
+
             <input type="checkbox" id="confirm" name="confirm" value="1" required style="width:18px;height:18px;accent-color:#e65100;cursor:pointer;flex-shrink:0">
             <label for="confirm" style="color:#e0e0e0;font-size:.88em;cursor:pointer">Ich verstehe die Konsequenzen und möchte illegal einreisen.</label>
           </div>
@@ -309,9 +325,24 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/illegal ────────────────────────────────────────────────
   app.post('/einreise/illegal', async (req, res) => {
-    const { confirm } = req.body;
+    const { confirm, discord_id } = req.body;
 
     if (!confirm) { req.session.illegalError = 'Du musst die Konsequenzen bestätigen.'; return res.redirect('/einreise/illegal'); }
+
+    const discordId = (discord_id || '').trim();
+    if (!discordId || !/^\d{17,20}$/.test(discordId)) {
+      req.session.illegalError = 'Bitte gib eine gültige Discord-ID ein.';
+      return res.redirect('/einreise/illegal');
+    }
+    // Rollen vergeben
+    try {
+      const guild  = client.guilds.cache.first();
+      const member = guild ? await guild.members.fetch(discordId).catch(() => null) : null;
+      if (member) {
+        await member.roles.remove(ROLE_REMOVE).catch(() => {});
+        for (const r of [...ROLES_ALL, ...ROLES_ILLEGAL]) await member.roles.add(r).catch(() => {});
+      }
+    } catch (e) { console.error('Rollen Fehler illegal:', e.message); }
 
     res.send(page('Einreise Erfolgreich', `
       ${header('Einreise Bestätigt')}
