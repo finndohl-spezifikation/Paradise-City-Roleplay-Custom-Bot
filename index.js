@@ -12,6 +12,13 @@ const {
   REST,
   Routes,
   Colors,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ChannelType,
+  AttachmentBuilder,
 } = require('discord.js');
 const fs   = require('fs');
 const path = require('path');
@@ -61,7 +68,48 @@ const EXEMPT_ROLE = '1490855646558556282';
 const LINK_EXEMPT_ROLES = ['1490855702225485936', '1490855703370534965'];
 
 // Discord-Invite Regex
-const INVITE_REGEX = /(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9\-]+/gi;
+
+  // ─── Ticket-System ────────────────────────────────────────────────────────────
+  const TICKET_TRANSCRIPT_CH = '1490878139306606743';
+  const TICKET_RATING_CH     = '1491788506404491336';
+  const TICKET_PANEL_CH      = '1490885002030874775';
+  const TICKETS_FILE         = path.join(DATA_DIR, 'tickets.json');
+  if (!fs.existsSync(TICKETS_FILE)) fs.writeFileSync(TICKETS_FILE, '{}', 'utf8');
+  function loadTickets()  { try { return JSON.parse(fs.readFileSync(TICKETS_FILE, 'utf8')); } catch { return {}; } }
+  function saveTickets(d) { fs.writeFileSync(TICKETS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+
+  const TICKET_TYPES = {
+    support:    { label: '🎫 Support / Anliegen', category: '1490882554570608751', roles: ['1490855703370534965','1490855702225485936'], pingRoles: [] },
+    beschwerde: { label: '📋 Beschwerde',          category: '1490882554570608751', roles: ['1490855703370534965','1490855702225485936'], pingRoles: [] },
+    sc_crew:    { label: '👥 SC Crew Anfrage',     category: '1490882554570608751', roles: ['1490855703370534965','1490855702225485936'], pingRoles: ['1490855712627233032'] },
+    highteam:   { label: '⭐ Highteam Ticket',     category: '1491069210389119016', roles: ['1490855702225485936'],                      pingRoles: [] },
+    fraktion:   { label: '⚔️ Fraktions Ticket',   category: '1491069425384685750', roles: ['1490855704293277898'],                      pingRoles: [] },
+    bewerbung:  { label: '📝 Team Bewerbung',      category: '1490882554570608751', roles: ['1490855702225485936'],                      pingRoles: [] },
+  };
+
+  function hasTicketRights(member, type) {
+    if (!member || !TICKET_TYPES[type]) return false;
+    return TICKET_TYPES[type].roles.some(r => member.roles.cache.has(r)) ||
+           member.permissions.has(PermissionFlagsBits.Administrator);
+  }
+
+  async function generateTranscript(channel) {
+    const msgs = [];
+    let lastId;
+    while (true) {
+      const fetched = await channel.messages.fetch({ limit: 100, ...(lastId ? { before: lastId } : {}) });
+      if (!fetched.size) break;
+      msgs.push(...fetched.values());
+      lastId = fetched.last().id;
+      if (fetched.size < 100) break;
+    }
+    msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+    return msgs.map(m =>
+      `[${new Date(m.createdTimestamp).toLocaleString('de-DE')}] ${m.author.tag}: ${m.content || (m.embeds.length ? '[Embed]' : '[Anhang]')}`
+    ).join('\n');
+  }
+
+  const INVITE_REGEX = /(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9\-]+/gi;
 // Normaler Link Regex (http/https)
 const URL_REGEX = /https?:\/\/[^\s]+/gi;
 
@@ -717,9 +765,244 @@ client.once('ready', async () => {
       } catch (e) { console.error('Safe-Zones-Embed Fehler:', e.message); }
     }
 
+
+    // ── Einmalig: Ticket-Panel senden ────────────────────────────────────────
+    const setupT = loadSetup();
+    if (!setupT.ticketPanelSent) {
+      const panelEmbed = new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('🎫  Support — Paradise City Roleplay')
+        .setDescription(
+          `Willkommen beim **Support-System** von Paradise City Roleplay.\n` +
+          `Wähle eine Kategorie aus dem Dropdown-Menü um ein Ticket zu öffnen.\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `🎫 **Support / Anliegen** — Allgemeine Unterstützung\n` +
+          `📋 **Beschwerde** — Beschwerde einreichen\n` +
+          `👥 **SC Crew Anfrage** — Social Club Anfrage\n` +
+          `⭐ **Highteam Ticket** — Direktkontakt Highteam\n` +
+          `⚔️ **Fraktions Ticket** — Fraktions-Anliegen\n` +
+          `📝 **Team Bewerbung** — Bewerbung als Teammitglied\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+        )
+        .setFooter({ text: 'Paradise City Roleplay  •  Support' })
+        .setTimestamp();
+
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId('ticket_select')
+        .setPlaceholder('📂 Ticket-Kategorie auswählen...')
+        .addOptions(
+          new StringSelectMenuOptionBuilder().setLabel('🎫 Support / Anliegen').setValue('support').setDescription('Allgemeine Unterstützung und Anliegen'),
+          new StringSelectMenuOptionBuilder().setLabel('📋 Beschwerde').setValue('beschwerde').setDescription('Eine Beschwerde einreichen'),
+          new StringSelectMenuOptionBuilder().setLabel('👥 SC Crew Anfrage').setValue('sc_crew').setDescription('Social Club Crew Anfrage stellen'),
+          new StringSelectMenuOptionBuilder().setLabel('⭐ Highteam Ticket').setValue('highteam').setDescription('Direktkontakt zum Highteam'),
+          new StringSelectMenuOptionBuilder().setLabel('⚔️ Fraktions Ticket').setValue('fraktion').setDescription('Fraktions-Anfrage oder Anliegen'),
+          new StringSelectMenuOptionBuilder().setLabel('📝 Team Bewerbung').setValue('bewerbung').setDescription('Bewerbung als Teammitglied einreichen'),
+        );
+
+      const panelRow = new ActionRowBuilder().addComponents(selectMenu);
+      try {
+        const panelCh = await client.channels.fetch(TICKET_PANEL_CH);
+        if (panelCh) {
+          await panelCh.send({ embeds: [panelEmbed], components: [panelRow] });
+          setupT.ticketPanelSent = true;
+          saveSetup(setupT);
+          console.log('✅ Ticket-Panel einmalig gesendet.');
+        }
+      } catch (e) { console.error('Ticket-Panel Fehler:', e.message); }
+    }
+
   });
 
-// ─── INVITE EVENTS ────────────────────────────────────────────────────────────
+
+  // ─── TICKET INTERAKTIONEN ─────────────────────────────────────────────────────
+  client.on('interactionCreate', async (interaction) => {
+    try {
+
+      // ── Select Menu: Ticket erstellen ─────────────────────────────────────────
+      if (interaction.isStringSelectMenu() && interaction.customId === 'ticket_select') {
+        const type = interaction.values[0];
+        const cfg  = TICKET_TYPES[type];
+        if (!cfg) return interaction.reply({ content: '❌ Ungültige Kategorie.', ephemeral: true });
+        await interaction.deferReply({ ephemeral: true });
+        const guild  = interaction.guild;
+        const member = interaction.member;
+        const tickets = loadTickets();
+        const existing = Object.values(tickets).find(t => t.openerId === member.id && t.type === type && !t.closed);
+        if (existing && guild.channels.cache.get(existing.channelId)) {
+          return interaction.editReply({ content: `❌ Du hast bereits ein offenes Ticket: <#${existing.channelId}>` });
+        }
+        const ticketId = generateId();
+        const name = `ticket-${type.replace('_','-')}-${member.user.username.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,12)}-${ticketId.slice(-4)}`;
+        const permOverwrites = [
+          { id: guild.roles.everyone, deny: [PermissionFlagsBits.ViewChannel] },
+          { id: member.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
+        ];
+        for (const roleId of cfg.roles) {
+          permOverwrites.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageMessages, PermissionFlagsBits.AttachFiles] });
+        }
+        const ticketCh = await guild.channels.create({ name, type: ChannelType.GuildText, parent: cfg.category, permissionOverwrites: permOverwrites });
+        tickets[ticketCh.id] = { id: ticketId, channelId: ticketCh.id, openerId: member.id, openerTag: member.user.tag, type, label: cfg.label, createdAt: new Date().toISOString(), bearbeiter: null, bearbeiterTag: null, assignedUsers: [], closed: false };
+        saveTickets(tickets);
+        const welcomeEmbed = new EmbedBuilder()
+          .setColor(DARK_ORANGE)
+          .setTitle(cfg.label)
+          .setDescription(`Hallo <@${member.id}>!\n\nBitte schildere dein Anliegen so detailliert wie möglich.\nEin Mitarbeiter wird sich in Kürze melden.`)
+          .addFields(
+            { name: '👤 Geöffnet von', value: `<@${member.id}>`, inline: true },
+            { name: '🕐 Erstellt am',  value: `<t:${ts()}:F>`,  inline: true },
+            { name: '🔖 Ticket-ID',    value: `\`${ticketId}\``,       inline: true },
+          )
+          .setFooter({ text: 'Paradise City Roleplay  •  Support' }).setTimestamp();
+        const closeBtn  = new ButtonBuilder().setCustomId('ticket_close').setLabel('Ticket schließen').setEmoji('🔒').setStyle(ButtonStyle.Danger);
+        const assignBtn = new ButtonBuilder().setCustomId('ticket_assign').setLabel('Nutzer zuweisen').setEmoji('👤').setStyle(ButtonStyle.Secondary);
+        const row = new ActionRowBuilder().addComponents(closeBtn, assignBtn);
+        const pings = [...cfg.roles.map(r => `<@&${r}>`), ...cfg.pingRoles.map(r => `<@&${r}>`)].join(' ');
+        await ticketCh.send({ content: pings, embeds: [welcomeEmbed], components: [row] });
+        return interaction.editReply({ content: `✅ Ticket erstellt: <#${ticketCh.id}>` });
+      }
+
+      // ── Button: Ticket schließen anfordern ────────────────────────────────────
+      if (interaction.isButton() && interaction.customId === 'ticket_close') {
+        const tickets = loadTickets();
+        const ticket  = tickets[interaction.channel?.id];
+        if (!ticket) return interaction.reply({ content: '❌ Kein Ticket gefunden.', ephemeral: true });
+        const canClose = hasTicketRights(interaction.member, ticket.type) || interaction.user.id === ticket.openerId;
+        if (!canClose) return interaction.reply({ content: '❌ Du hast keine Berechtigung dieses Ticket zu schließen.', ephemeral: true });
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('ticket_close_confirm').setLabel('✅ Ja, schließen').setStyle(ButtonStyle.Danger),
+          new ButtonBuilder().setCustomId('ticket_close_cancel').setLabel('❌ Abbrechen').setStyle(ButtonStyle.Secondary),
+        );
+        return interaction.reply({ content: '⚠️ Soll dieses Ticket wirklich geschlossen werden?', components: [row], ephemeral: true });
+      }
+
+      // ── Button: Schließen abbrechen ───────────────────────────────────────────
+      if (interaction.isButton() && interaction.customId === 'ticket_close_cancel') {
+        return interaction.update({ content: '✅ Schließen abgebrochen.', components: [] });
+      }
+
+      // ── Button: Schließen bestätigt ───────────────────────────────────────────
+      if (interaction.isButton() && interaction.customId === 'ticket_close_confirm') {
+        const tickets = loadTickets();
+        const ticket  = tickets[interaction.channel?.id];
+        if (!ticket || ticket.closed) return interaction.reply({ content: '❌ Ticket bereits geschlossen.', ephemeral: true });
+        const canClose = hasTicketRights(interaction.member, ticket.type) || interaction.user.id === ticket.openerId;
+        if (!canClose) return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+        await interaction.deferUpdate();
+        ticket.closed   = true;
+        ticket.closedAt = new Date().toISOString();
+        ticket.closedBy = interaction.user.tag;
+        saveTickets(tickets);
+
+        // Transkript generieren
+        let transcriptText = '';
+        try { transcriptText = await generateTranscript(interaction.channel); } catch {}
+        const header = `TICKET TRANSKRIPT\n=================\nTicket-ID : ${ticket.id}\nTyp       : ${ticket.label}\nVon       : ${ticket.openerTag}\nBearbeiter: ${ticket.bearbeiterTag || 'Kein Bearbeiter'}\nErstellt  : ${new Date(ticket.createdAt).toLocaleString('de-DE')}\nGeschlossen: ${new Date().toLocaleString('de-DE')}\nGeschlossen von: ${ticket.closedBy}\n=================\n\n`;
+        const buf        = Buffer.from(header + transcriptText, 'utf-8');
+        const attachment = new AttachmentBuilder(buf, { name: `ticket-${ticket.id}.txt` });
+
+        try {
+          const transcriptCh = await client.channels.fetch(TICKET_TRANSCRIPT_CH);
+          const tEmbed = new EmbedBuilder()
+            .setColor(DARK_ORANGE).setTitle('📄 Ticket Transkript')
+            .addFields(
+              { name: '🔖 Ticket-ID',    value: `\`${ticket.id}\``,                                         inline: true },
+              { name: '📂 Typ',          value: ticket.label,                                           inline: true },
+              { name: '👤 Geöffnet von', value: `<@${ticket.openerId}>`,                               inline: true },
+              { name: '🛠️ Bearbeiter',   value: ticket.bearbeiter ? `<@${ticket.bearbeiter}>` : 'Kein Bearbeiter', inline: true },
+              { name: '🔒 Geschlossen von', value: `<@${interaction.user.id}>`,                        inline: true },
+              { name: '🕐 Geschlossen am',  value: `<t:${ts()}:F>`,                                   inline: true },
+            )
+            .setFooter({ text: 'Paradise City Roleplay  •  Ticket System' }).setTimestamp();
+          await transcriptCh.send({ embeds: [tEmbed], files: [attachment] });
+        } catch (e) { console.error('Transkript Fehler:', e.message); }
+
+        // Rating-DM
+        try {
+          const opener = await client.users.fetch(ticket.openerId);
+          const rEmbed = new EmbedBuilder()
+            .setColor(DARK_ORANGE).setTitle('⭐ Ticket Bewertung — Paradise City Roleplay')
+            .setDescription(`Dein Ticket **${ticket.label}** wurde geschlossen.\nBitte bewerte den Support!\n\n**Bearbeiter:** ${ticket.bearbeiter ? `<@${ticket.bearbeiter}>` : 'Kein Bearbeiter'}`);
+          const rRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId(`ticket_rate_1_${ticket.id}`).setLabel('⭐').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`ticket_rate_2_${ticket.id}`).setLabel('⭐⭐').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`ticket_rate_3_${ticket.id}`).setLabel('⭐⭐⭐').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`ticket_rate_4_${ticket.id}`).setLabel('⭐⭐⭐⭐').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`ticket_rate_5_${ticket.id}`).setLabel('⭐⭐⭐⭐⭐').setStyle(ButtonStyle.Primary),
+          );
+          await opener.send({ embeds: [rEmbed], components: [rRow] });
+        } catch (e) { console.error('Rating DM Fehler:', e.message); }
+
+        await interaction.channel.send({ embeds: [new EmbedBuilder().setColor(Colors.Red).setDescription('🔒 Ticket wird in 5 Sekunden gelöscht...')] });
+        setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
+      }
+
+      // ── Button: Nutzer zuweisen ───────────────────────────────────────────────
+      if (interaction.isButton() && interaction.customId === 'ticket_assign') {
+        const ticket = loadTickets()[interaction.channel?.id];
+        if (!ticket) return interaction.reply({ content: '❌ Kein Ticket.', ephemeral: true });
+        if (!hasTicketRights(interaction.member, ticket.type)) return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+        const modal = new ModalBuilder().setCustomId('ticket_assign_modal').setTitle('Nutzer zuweisen');
+        modal.addComponents(new ActionRowBuilder().addComponents(
+          new TextInputBuilder().setCustomId('assign_user_id').setLabel('Discord User ID').setStyle(TextInputStyle.Short).setPlaceholder('123456789012345678').setRequired(true)
+        ));
+        return interaction.showModal(modal);
+      }
+
+      // ── Modal: Nutzer zuweisen ────────────────────────────────────────────────
+      if (interaction.isModalSubmit() && interaction.customId === 'ticket_assign_modal') {
+        const userId = interaction.fields.getTextInputValue('assign_user_id').trim().replace(/[<@>]/g, '');
+        if (!/^d{17,20}$/.test(userId)) return interaction.reply({ content: '❌ Ungültige User ID.', ephemeral: true });
+        const tickets = loadTickets();
+        const ticket  = tickets[interaction.channel?.id];
+        if (!ticket) return interaction.reply({ content: '❌ Kein Ticket.', ephemeral: true });
+        try {
+          await interaction.channel.permissionOverwrites.edit(userId, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true });
+          if (!ticket.assignedUsers.includes(userId)) { ticket.assignedUsers.push(userId); saveTickets(tickets); }
+          return interaction.reply({ content: `✅ <@${userId}> wurde dem Ticket zugewiesen und kann es jetzt sehen.` });
+        } catch (e) { return interaction.reply({ content: `❌ Fehler: ${e.message}`, ephemeral: true }); }
+      }
+
+      // ── Button: Bewertung (in DM) ─────────────────────────────────────────────
+      if (interaction.isButton() && interaction.customId.startsWith('ticket_rate_')) {
+        const parts    = interaction.customId.split('_');
+        const stars    = parseInt(parts[2]);
+        const ticketId = parts.slice(3).join('_');
+        const modal = new ModalBuilder().setCustomId(`ticket_rating_modal_${stars}_${ticketId}`).setTitle(`Bewertung: ${'⭐'.repeat(stars)}`);
+        modal.addComponents(new ActionRowBuilder().addComponents(
+          new TextInputBuilder().setCustomId('rating_comment').setLabel('Kommentar (optional)').setStyle(TextInputStyle.Paragraph).setPlaceholder('Dein Feedback zum Support...').setRequired(false).setMaxLength(500)
+        ));
+        return interaction.showModal(modal);
+      }
+
+      // ── Modal: Bewertung abgeben ──────────────────────────────────────────────
+      if (interaction.isModalSubmit() && interaction.customId.startsWith('ticket_rating_modal_')) {
+        const parts    = interaction.customId.split('_');
+        const stars    = parseInt(parts[3]);
+        const ticketId = parts.slice(4).join('_');
+        const comment  = interaction.fields.getTextInputValue('rating_comment') || '*Kein Kommentar*';
+        const starsStr = '⭐'.repeat(stars) + '☆'.repeat(5 - stars);
+        try {
+          const ratingCh = await client.channels.fetch(TICKET_RATING_CH);
+          await ratingCh.send({ embeds: [new EmbedBuilder()
+            .setColor(stars >= 4 ? Colors.Green : stars >= 3 ? Colors.Yellow : Colors.Red)
+            .setTitle('⭐ Neue Ticket-Bewertung')
+            .addFields(
+              { name: '🔖 Ticket-ID',    value: `\`${ticketId}\``,              inline: true },
+              { name: '⭐ Bewertung',    value: starsStr,                   inline: true },
+              { name: '👤 Bewertet von', value: `<@${interaction.user.id}>`, inline: true },
+              { name: '💬 Kommentar',    value: comment,                    inline: false },
+            )
+            .setTimestamp()
+          ]});
+        } catch (e) { console.error('Rating Channel Fehler:', e.message); }
+        return interaction.update({ content: `✅ Danke für deine Bewertung: ${starsStr}`, components: [], embeds: [] });
+      }
+
+    } catch (e) { console.error('Ticket Interaction Fehler:', e.message); }
+  });
+
+  // ─── BEARBEITER TRACKING ──────────────────────────────────────────────────────
+  // ─── INVITE EVENTS ────────────────────────────────────────────────────────────
 client.on('inviteCreate', async (invite) => { await buildInviteCache(invite.guild); });
 client.on('inviteDelete', async (invite) => { await buildInviteCache(invite.guild); });
 client.on('guildCreate',  async (guild)  => { await buildInviteCache(guild); });
@@ -976,6 +1259,20 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
 
 // ─── NACHRICHTEN ─────────────────────────────────────────────────────────────
 client.on('messageCreate', async (message) => {
+    // Bearbeiter-Tracking für Tickets
+    if (!message.author.bot && message.guild) {
+      const tickets = loadTickets();
+      const ticket  = tickets[message.channel.id];
+      if (ticket && !ticket.closed && !ticket.bearbeiter) {
+        const mbr = await message.guild.members.fetch(message.author.id).catch(() => null);
+        if (mbr && hasTicketRights(mbr, ticket.type) && message.author.id !== ticket.openerId) {
+          ticket.bearbeiter    = message.author.id;
+          ticket.bearbeiterTag = message.author.tag;
+          saveTickets(tickets);
+        }
+      }
+    }
+  
   if (message.author.bot || !message.guild) return;
   const member = message.member ||
     await message.guild.members.fetch(message.author.id).catch(() => null);
