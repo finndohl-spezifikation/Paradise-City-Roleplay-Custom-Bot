@@ -51,7 +51,7 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#e65100}
 .select-card .sc-title{font-size:1em;font-weight:700;color:#fff;margin-bottom:4px}
 .select-card .sc-desc{font-size:.8em;color:#8b949e;line-height:1.5}
 .warning-text{color:#f85149;font-size:.72em;text-align:center;margin-top:24px;line-height:1.6;border-top:1px solid #21262d;padding-top:14px}
-  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:flex;align-items:center;justify-content:center;animation:fadeIn .35s ease}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:2000;display:flex;align-items:center;justify-content:center;animation:fadeIn .35s ease;overflow:hidden}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   @keyframes popIn{from{opacity:0;transform:scale(.7) translateY(40px)}to{opacity:1;transform:scale(1) translateY(0)}}
   @keyframes popOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.7) translateY(40px)}}
@@ -61,7 +61,7 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#e65100}
   .modal-rule{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start;font-size:.88em;line-height:1.6;color:#c9d1d9}
   .modal-rule .num{background:#e65100;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8em;flex-shrink:0;margin-top:1px}
   .modal-wish{text-align:center;color:#3fb950;font-size:.88em;margin:18px 0 22px;font-weight:600}
-  .modal-btn-wrap{display:flex;justify-content:center;min-height:48px;position:relative}
+  .modal-btn-wrap{display:flex;justify-content:center;min-height:48px;position:relative;overflow:visible}
   .modal-btn{padding:13px 36px;background:#e65100;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer;transition:background .15s;position:relative}
   .modal-btn:hover{background:#bf360c}
 .toggle-group{display:flex;gap:0;margin-bottom:18px;border:1px solid #30363d;border-radius:8px;overflow:hidden}
@@ -267,13 +267,18 @@ module.exports = function startWebServer(client, DATA_DIR) {
         </div>
         <script>(function(){
           var btn=document.getElementById('introBtn'),box=document.getElementById('introBox'),ov=document.getElementById('introModal');
+          document.body.style.overflow='hidden';
           function flee(e){
-            var w=window.innerWidth-btn.offsetWidth-20,h=window.innerHeight-btn.offsetHeight-20;
-            btn.style.cssText='position:fixed;margin:0;z-index:9999;left:'+Math.max(10,Math.random()*w)+'px;top:'+Math.max(10,Math.random()*h)+'px;padding:13px 36px;background:#e65100;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer;transition:none;';
+            if(e){e.preventDefault();e.stopPropagation();}
+            var vw=document.documentElement.clientWidth, vh=document.documentElement.clientHeight;
+            var bw=btn.offsetWidth||160, bh=btn.offsetHeight||48;
+            var maxX=vw-bw-12, maxY=vh-bh-12;
+            var nx=Math.floor(Math.random()*Math.max(1,maxX)), ny=Math.floor(Math.random()*Math.max(1,maxY));
+            nx=Math.max(8,Math.min(nx,maxX)); ny=Math.max(8,Math.min(ny,maxY));
+            btn.style.cssText='position:fixed;margin:0;z-index:9999;left:'+nx+'px;top:'+ny+'px;padding:13px 36px;background:#e65100;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer;transition:none;';
             btn.textContent='Haha zu Langsam 😂';
             clearTimeout(btn._t);
-            btn._t=setTimeout(function(){btn.textContent='Ich habe verstanden ✅';},600);
-            if(e){e.preventDefault();e.stopPropagation();}
+            btn._t=setTimeout(function(){btn.textContent='Ich habe verstanden ✅';},700);
           }
           btn.addEventListener('mouseover',flee);
           btn.addEventListener('touchstart',flee,{passive:false});
