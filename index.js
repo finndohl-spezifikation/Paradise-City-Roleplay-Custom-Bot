@@ -13,33 +13,39 @@ const {
 const fs   = require('fs');
 const path = require('path');
 
-// ─── Datenspeicherung (Team-Warns) ────────────────────────────────────────────
-const DATA_DIR  = path.join(__dirname, 'data');
-const WARN_FILE = path.join(DATA_DIR, 'teamwarns.json');
+// ─── Datenspeicherung ─────────────────────────────────────────────────────────
+const DATA_DIR      = path.join(__dirname, 'data');
+const WARN_FILE     = path.join(DATA_DIR, 'teamwarns.json');
+const INVITES_FILE  = path.join(DATA_DIR, 'invites.json');
 
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(WARN_FILE)) fs.writeFileSync(WARN_FILE, '{}', 'utf8');
+if (!fs.existsSync(DATA_DIR))     fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!fs.existsSync(WARN_FILE))    fs.writeFileSync(WARN_FILE,    '{}', 'utf8');
+if (!fs.existsSync(INVITES_FILE)) fs.writeFileSync(INVITES_FILE, '{}', 'utf8');
 
-function loadWarns() {
-  try { return JSON.parse(fs.readFileSync(WARN_FILE, 'utf8')); }
-  catch { return {}; }
-}
-function saveWarns(data) {
-  fs.writeFileSync(WARN_FILE, JSON.stringify(data, null, 2), 'utf8');
-}
+function loadWarns()   { try { return JSON.parse(fs.readFileSync(WARN_FILE,    'utf8')); } catch { return {}; } }
+function saveWarns(d)  { fs.writeFileSync(WARN_FILE,    JSON.stringify(d, null, 2), 'utf8'); }
+function loadInvites() { try { return JSON.parse(fs.readFileSync(INVITES_FILE, 'utf8')); } catch { return {}; } }
+function saveInvites(d){ fs.writeFileSync(INVITES_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+
+// In-memory invite cache: guildId -> Collection<code, Invite>
+const inviteCache = new Map();
 
 // ─── Kanal-IDs ───────────────────────────────────────────────────────────────
 const CH = {
-  ACTIVITY:    '1497385121324732567',
-  SERVER_LOG:  '1490878131240829028',
-  MOD_LOG:     '1490878132230819840',
-  RESTART_LOG: '1490878133279264842',
-  MEMBER_LOG:  '1490878134847930368',
-  MSG_LOG:     '1490878135837917234',
-  ROLE_LOG:    '1490878137385619598',
-  TEAM_WARN:   '1490878144146833450',
+  ACTIVITY:     '1497385121324732567',
+  SERVER_LOG:   '1490878131240829028',
+  MOD_LOG:      '1490878132230819840',
+  RESTART_LOG:  '1490878133279264842',
+  MEMBER_LOG:   '1490878134847930368',
+  MSG_LOG:      '1490878135837917234',
+  ROLE_LOG:     '1490878137385619598',
+  TEAM_WARN:    '1490878144146833450',
+  WELCOME:      '1490878151897911557',
+  GOODBYE:      '1490878154733260951',
+  INVITE_LOG:   '1490878153391083683',
 };
 
+const DARK_ORANGE  = 0xE65100;
 const EXEMPT_ROLE  = '1490855646558556282';
 const INVITE_REGEX = /(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9\-]+/gi;
 
@@ -58,6 +64,7 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildModeration,
     GatewayIntentBits.GuildIntegrations,
+    GatewayIntentBits.GuildInvites,
     GatewayIntentBits.GuildMessageReactions,
   ],
   partials: [Partials.Channel, Partials.Message, Partials.GuildMember],
@@ -87,9 +94,22 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+// ─── Invite-Cache befüllen ────────────────────────────────────────────────────
+async function cacheInvites(guild) {
+  try {
+    const invites = await guild.invites.fetch();
+    inviteCache.set(guild.id, new Map(invites.map(i => [i.code, i])));
+  } catch (e) { console.error('Invite-Cache Fehler:', e.message); }
+}
+
 // ─── READY ───────────────────────────────────────────────────────────────────
 client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
+
+  // Invite-Cache für alle Server befüllen
+  for (const guild of client.guilds.cache.values()) {
+    await cacheInvites(guild);
+  }
 
   const commands = [
     new SlashCommandBuilder()
@@ -148,19 +168,111 @@ client.once('ready', async () => {
   );
 });
 
-// ─── MEMBER EVENTS ────────────────────────────────────────────────────────────
+// ─── INVITE EVENTS ────────────────────────────────────────────────────────────
+client.on('inviteCreate', async (invite) => { await cacheInvites(invite.guild); });
+client.on('inviteDelete', async (invite) => { await cacheInvites(invite.guild); });
+
+// ─── MEMBER ADD ───────────────────────────────────────────────────────────────
 client.on('guildMemberAdd', async (member) => {
   if (!member.user.bot) {
-    // Auto-Rolle vergeben
-    try {
-      await member.roles.add('1490855725516460234');
-    } catch (e) { console.error('Auto-Rolle Fehler:', e.message); }
+    // ── Auto-Rolle ──────────────────────────────────────────────────────────
+    try { await member.roles.add('1490855725516460234'); }
+    catch (e) { console.error('Auto-Rolle Fehler:', e.message); }
 
+    // ── Invite erkennen ─────────────────────────────────────────────────────
+    let inviterTag   = 'Unbekannt';
+    let inviterMention = 'Unbekannt';
+    let inviteCode   = '—';
+    let inviterCount = 0;
+
+    try {
+      const oldInvites = inviteCache.get(member.guild.id) || new Map();
+      await cacheInvites(member.guild);
+      const newInvites = inviteCache.get(member.guild.id) || new Map();
+
+      // Finde den benutzten Invite (uses erhöht)
+      let usedInvite = null;
+      for (const [code, invite] of newInvites) {
+        const old = oldInvites.get(code);
+        if (!old || invite.uses > old.uses) { usedInvite = invite; break; }
+      }
+
+      if (usedInvite) {
+        inviteCode      = usedInvite.code;
+        const inviter   = usedInvite.inviter;
+        inviterTag      = inviter ? inviter.tag : 'Unbekannt';
+        inviterMention  = inviter ? `<@${inviter.id}>` : 'Unbekannt';
+
+        // Invite-Daten speichern
+        const invData = loadInvites();
+        if (!invData[member.guild.id]) invData[member.guild.id] = {};
+        if (inviter) {
+          if (!invData[member.guild.id][inviter.id]) {
+            invData[member.guild.id][inviter.id] = { tag: inviter.tag, count: 0, users: {} };
+          }
+          invData[member.guild.id][inviter.id].count += 1;
+          invData[member.guild.id][inviter.id].users[member.id] = {
+            tag:       member.user.tag,
+            joinedAt:  new Date().toISOString(),
+            inviteCode,
+          };
+          inviterCount = invData[member.guild.id][inviter.id].count;
+          saveInvites(invData);
+        }
+      }
+    } catch (e) { console.error('Invite-Tracking Fehler:', e.message); }
+
+    // ── Willkommens-Embed ───────────────────────────────────────────────────
+    try {
+      const welcomeCh = await client.channels.fetch(CH.WELCOME);
+      if (welcomeCh) {
+        await welcomeCh.send({ embeds: [new EmbedBuilder()
+          .setColor(DARK_ORANGE)
+          .setTitle('🎉  Willkommen bei Paradise City Roleplay!')
+          .setDescription(
+            `Hey ${member}, schön dass du da bist!\n` +
+            `Du bist unser **${member.guild.memberCount}. Mitglied** — herzlich willkommen! 🚗`
+          )
+          .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+          .addFields(
+            { name: '👤  Mitglied',       value: `${member.user.tag}`, inline: true },
+            { name: '📅  Beigetreten',    value: `<t:${timestamp()}:R>`, inline: true },
+            { name: '📨  Eingeladen von', value: inviterMention, inline: true },
+          )
+          .setImage('https://i.imgur.com/placeholder.png')
+          .setFooter({ text: 'Paradise City Roleplay  •  Viel Spaß auf unserem Server!' })
+          .setTimestamp()
+        ]});
+      }
+    } catch (e) { console.error('Welcome-Embed Fehler:', e.message); }
+
+    // ── Invite-Log ──────────────────────────────────────────────────────────
+    try {
+      const invLogCh = await client.channels.fetch(CH.INVITE_LOG);
+      if (invLogCh) {
+        await invLogCh.send({ embeds: [new EmbedBuilder()
+          .setColor(DARK_ORANGE)
+          .setTitle('📨  Neues Mitglied — Invite Tracker')
+          .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+          .addFields(
+            { name: '👤  Mitglied',         value: `${member.user.tag} (<@${member.id}>)`, inline: false },
+            { name: '📨  Eingeladen von',    value: `${inviterTag} (${inviterMention})`,    inline: true  },
+            { name: '🔗  Invite-Code',       value: `\`${inviteCode}\``,                    inline: true  },
+            { name: '📅  Beigetreten',       value: `<t:${timestamp()}:F>`,                 inline: false },
+            { name: '🏆  Einladungen gesamt', value: `**${inviterCount}** Einladung(en)`,   inline: true  },
+          )
+          .setTimestamp()
+          .setFooter({ text: 'Paradise City Roleplay  •  Invite Tracker' })
+        ]});
+      }
+    } catch (e) { console.error('Invite-Log Fehler:', e.message); }
+
+    // ── Member-Log ──────────────────────────────────────────────────────────
     await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
       .setColor(Colors.Green).setTitle('✅ Mitglied beigetreten')
       .setDescription(`${member.user.tag} hat den Server betreten.`)
       .addFields(
-        { name: 'ID', value: member.id, inline: true },
+        { name: 'ID',               value: member.id, inline: true },
         { name: 'Account erstellt', value: `<t:${timestamp(member.user.createdAt)}:R>`, inline: true }
       )
       .setThumbnail(member.user.displayAvatarURL()).setTimestamp()
@@ -168,6 +280,7 @@ client.on('guildMemberAdd', async (member) => {
     return;
   }
 
+  // ── Fremder Bot ─────────────────────────────────────────────────────────────
   const entry   = await getAuditEntry(member.guild, AuditLogEvent.BotAdd);
   const inviter = entry?.executor;
   try {
@@ -203,8 +316,81 @@ client.on('guildMemberAdd', async (member) => {
   } catch (e) { console.error('Bot-Bann Fehler:', e.message); }
 });
 
+// ─── MEMBER REMOVE ────────────────────────────────────────────────────────────
 client.on('guildMemberRemove', async (member) => {
   if (member.user.bot) return;
+
+  // ── Invite-Daten nachschlagen & aktualisieren ───────────────────────────────
+  const invData      = loadInvites();
+  const guildInvites = invData[member.guild.id] || {};
+  let   inviterTag   = 'Unbekannt';
+  let   inviterMention = 'Unbekannt';
+  let   joinedAt     = null;
+  let   inviteCode   = '—';
+  let   newCount     = 0;
+
+  for (const [inviterId, inviterData] of Object.entries(guildInvites)) {
+    if (inviterData.users && inviterData.users[member.id]) {
+      const userEntry  = inviterData.users[member.id];
+      inviterTag       = inviterData.tag || 'Unbekannt';
+      inviterMention   = `<@${inviterId}>`;
+      joinedAt         = userEntry.joinedAt;
+      inviteCode       = userEntry.inviteCode || '—';
+
+      // Invite-Zähler verringern & Nutzer entfernen
+      inviterData.count = Math.max(0, (inviterData.count || 1) - 1);
+      newCount          = inviterData.count;
+      delete inviterData.users[member.id];
+      saveInvites(invData);
+      break;
+    }
+  }
+
+  // ── Aufwiedersehens-Embed ───────────────────────────────────────────────────
+  try {
+    const goodbyeCh = await client.channels.fetch(CH.GOODBYE);
+    if (goodbyeCh) {
+      await goodbyeCh.send({ embeds: [new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('👋  Auf Wiedersehen!')
+        .setDescription(
+          `**${member.user.tag}** hat den Server verlassen.\nWir hoffen, wir sehen dich bald wieder! 🚗`
+        )
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .addFields(
+          { name: '👤  Mitglied',       value: member.user.tag,                                 inline: true },
+          { name: '📅  Verlassen',      value: `<t:${timestamp()}:R>`,                          inline: true },
+          { name: '📨  Eingeladen von', value: inviterMention,                                  inline: true },
+          { name: '📅  Beigetreten am', value: joinedAt ? `<t:${timestamp(new Date(joinedAt))}:F>` : 'Unbekannt', inline: false },
+        )
+        .setFooter({ text: 'Paradise City Roleplay  •  Auf Wiedersehen!' })
+        .setTimestamp()
+      ]});
+    }
+  } catch (e) { console.error('Goodbye-Embed Fehler:', e.message); }
+
+  // ── Invite-Log (Verlassen) ──────────────────────────────────────────────────
+  try {
+    const invLogCh = await client.channels.fetch(CH.INVITE_LOG);
+    if (invLogCh) {
+      await invLogCh.send({ embeds: [new EmbedBuilder()
+        .setColor(0xFF5722)
+        .setTitle('📤  Mitglied verlassen — Invite Tracker')
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .addFields(
+          { name: '👤  Mitglied',              value: `${member.user.tag} (<@${member.id}>)`, inline: false },
+          { name: '📨  War eingeladen von',     value: `${inviterTag} (${inviterMention})`,    inline: true  },
+          { name: '🔗  Invite-Code',            value: `\`${inviteCode}\``,                    inline: true  },
+          { name: '📅  Beigetreten am',         value: joinedAt ? `<t:${timestamp(new Date(joinedAt))}:F>` : 'Unbekannt', inline: false },
+          { name: '📉  Einladungen noch aktiv', value: `**${newCount}** Einladung(en)`,        inline: true  },
+        )
+        .setTimestamp()
+        .setFooter({ text: 'Paradise City Roleplay  •  Invite Tracker' })
+      ]});
+    }
+  } catch (e) { console.error('Invite-Log (Leave) Fehler:', e.message); }
+
+  // ── Member-Log ──────────────────────────────────────────────────────────────
   await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
     .setColor(Colors.Orange).setTitle('👋 Mitglied verlassen')
     .setDescription(`${member.user.tag} hat den Server verlassen.`)
@@ -213,6 +399,7 @@ client.on('guildMemberRemove', async (member) => {
   );
 });
 
+// ─── MEMBER UPDATE ────────────────────────────────────────────────────────────
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
   if (oldMember.nickname !== newMember.nickname) {
     await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
@@ -502,17 +689,17 @@ client.on('guildAuditLogEntryCreate', async (entry, guild) => {
   }
 });
 
-// ─── INTERACTIONS (Slash Commands + Autocomplete) ─────────────────────────────
+// ─── INTERACTIONS ─────────────────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
 
-  // ── Autocomplete ────────────────────────────────────────────────────────────
+  // Autocomplete
   if (interaction.isAutocomplete()) {
     if (interaction.commandName === 'teamwarn-remove') {
       const target    = interaction.options.getUser('nutzer');
       const warnsData = loadWarns();
       const warns     = target ? (warnsData[target.id] || []) : [];
       const choices   = warns.map((w, i) => ({
-        name: `#${i + 1} — ${w.grund.slice(0, 80)}`,
+        name:  `#${i + 1} — ${w.grund.slice(0, 80)}`,
         value: w.id,
       })).slice(0, 25);
       return interaction.respond(choices);
@@ -523,7 +710,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
   const { commandName, member, user } = interaction;
 
-  // ── /delete ─────────────────────────────────────────────────────────────────
+  // /delete
   if (commandName === 'delete') {
     if (!member.permissions.has(PermissionFlagsBits.ManageMessages))
       return interaction.reply({ content: '⛔ Du hast keine Berechtigung dafür.', ephemeral: true });
@@ -549,7 +736,7 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
-  // ── /teamwarn ────────────────────────────────────────────────────────────────
+  // /teamwarn
   if (commandName === 'teamwarn') {
     const target     = interaction.options.getUser('nutzer');
     const grund      = interaction.options.getString('grund');
@@ -569,7 +756,6 @@ client.on('interactionCreate', async (interaction) => {
     saveWarns(warnsData);
     const warnCount = warnsData[target.id].length;
 
-    // Verschönertes Embed im Team-Warn-Kanal
     const warnEmbed = new EmbedBuilder()
       .setColor(0xD32F2F)
       .setTitle('🚨  Team Warn')
@@ -579,32 +765,12 @@ client.on('interactionCreate', async (interaction) => {
       )
       .setThumbnail(target.displayAvatarURL({ dynamic: true, size: 256 }))
       .addFields(
-        {
-          name:   '👤  Verwarnt',
-          value:  `<@${target.id}>\n\`${target.tag}\``,
-          inline: true,
-        },
-        {
-          name:   '🛡️  Ausgestellt von',
-          value:  `<@${user.id}>\n\`${user.tag}\``,
-          inline: true,
-        },
-        {
-          name:   '🔢  Verwarnung Nr.',
-          value:  `\`${warnCount}\``,
-          inline: true,
-        },
+        { name: '👤  Verwarnt',           value: `<@${target.id}>\n\`${target.tag}\``, inline: true },
+        { name: '🛡️  Ausgestellt von',   value: `<@${user.id}>\n\`${user.tag}\``,    inline: true },
+        { name: '🔢  Verwarnung Nr.',     value: `\`${warnCount}\``,                  inline: true },
         { name: '\u200b', value: `${'━'.repeat(38)}`, inline: false },
-        {
-          name:   '📋  Grund',
-          value:  `> ${grund}`,
-          inline: false,
-        },
-        {
-          name:   '⚡  Konsequenz bei Wiederholung',
-          value:  `> ${konsequenz}`,
-          inline: false,
-        },
+        { name: '📋  Grund',             value: `> ${grund}`,                         inline: false },
+        { name: '⚡  Konsequenz',        value: `> ${konsequenz}`,                    inline: false },
         { name: '\u200b', value: `${'━'.repeat(38)}`, inline: false },
       )
       .setTimestamp()
@@ -621,75 +787,61 @@ client.on('interactionCreate', async (interaction) => {
         { name: 'Mitglied',   value: `${target.tag} (${target.id})` },
         { name: 'Grund',      value: grund },
         { name: 'Konsequenz', value: konsequenz },
-        { name: 'Von',        value: `${user.tag}` },
+        { name: 'Von',        value: user.tag },
         { name: 'Nummer',     value: `${warnCount}` },
       ).setTimestamp()
     );
-
     await interaction.reply({
-      embeds: [new EmbedBuilder()
-        .setColor(Colors.Green)
-        .setDescription(`✅ Team Warn für **${target.tag}** ausgestellt (Verwarnung Nr. ${warnCount}).`)
-      ],
+      embeds: [new EmbedBuilder().setColor(Colors.Green)
+        .setDescription(`✅ Team Warn für **${target.tag}** ausgestellt (Verwarnung Nr. ${warnCount}).`)],
       ephemeral: true
     });
     return;
   }
 
-  // ── /teamwarn-remove ─────────────────────────────────────────────────────────
+  // /teamwarn-remove
   if (commandName === 'teamwarn-remove') {
     const target    = interaction.options.getUser('nutzer');
     const warnId    = interaction.options.getString('verwarnung');
     const warnsData = loadWarns();
-
     if (!warnsData[target.id] || warnsData[target.id].length === 0)
       return interaction.reply({ content: `⚠️ Keine Verwarnungen für ${target.tag} gefunden.`, ephemeral: true });
-
     const before = warnsData[target.id].length;
     warnsData[target.id] = warnsData[target.id].filter(w => w.id !== warnId);
-
     if (warnsData[target.id].length === before)
       return interaction.reply({ content: `❌ Verwarnung nicht gefunden.`, ephemeral: true });
-
     saveWarns(warnsData);
-
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
       .setColor(Colors.Green).setTitle('🗑️ Team Warn entfernt')
       .addFields(
         { name: 'Mitglied',     value: `${target.tag} (${target.id})` },
-        { name: 'Entfernt von', value: `${user.tag}` }
+        { name: 'Entfernt von', value: user.tag }
       ).setTimestamp()
     );
-
     await interaction.reply({
-      embeds: [new EmbedBuilder()
-        .setColor(Colors.Green)
-        .setDescription(`✅ Team Warn von **${target.tag}** wurde entfernt.`)
-      ],
+      embeds: [new EmbedBuilder().setColor(Colors.Green)
+        .setDescription(`✅ Team Warn von **${target.tag}** wurde entfernt.`)],
       ephemeral: true
     });
     return;
   }
 
-  // ── /teamwarn-list ────────────────────────────────────────────────────────────
+  // /teamwarn-list
   if (commandName === 'teamwarn-list') {
     const target    = interaction.options.getUser('nutzer');
     const warnsData = loadWarns();
     const warns     = warnsData[target.id] || [];
-
     if (warns.length === 0)
       return interaction.reply({
         embeds: [new EmbedBuilder().setColor(Colors.Green)
           .setDescription(`✅ **${target.tag}** hat keine Team Warns.`)],
         ephemeral: true
       });
-
     const warnLines = warns.map((w, i) =>
       `**${i + 1}.** 📋 **Grund:** ${w.grund}\n` +
       `⚡ **Konsequenz:** ${w.konsequenz}\n` +
       `🛡️ **Von:** ${w.moderatorTag} — <t:${Math.floor(new Date(w.timestamp).getTime() / 1000)}:R>`
     ).join('\n\n');
-
     await interaction.reply({
       embeds: [new EmbedBuilder()
         .setColor(Colors.Orange)
