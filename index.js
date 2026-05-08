@@ -1732,26 +1732,17 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
-});
-
-// ─── LOGIN ────────────────────────────────────────────────────────────────────
-client.login(process.env.DISCORD_TOKEN);
-
-// ─── WEB SERVER ───────────────────────────────────────────────────────────────
-require('./web')(client, DATA_DIR);
     // /einreise-code
     if (commandName === 'einreise-code') {
       const existingCodes = loadCodes();
-      // Remove expired codes for this user
       for (const [k, v] of Object.entries(existingCodes)) {
         if (v.userId === user.id && Date.now() > v.expiresAt) delete existingCodes[k];
       }
-      // Remove any existing active code for user
       for (const [k, v] of Object.entries(existingCodes)) {
         if (v.userId === user.id) delete existingCodes[k];
       }
       const code    = makeCode();
-      const expires = Date.now() + 15 * 60 * 1000; // 15 min
+      const expires = Date.now() + 15 * 60 * 1000;
       existingCodes[code] = { userId: user.id, userTag: user.tag, expiresAt: expires };
       saveCodes(existingCodes);
       await interaction.reply({
@@ -1759,11 +1750,16 @@ require('./web')(client, DATA_DIR);
           .setColor(DARK_ORANGE)
           .setTitle('🔑 Dein Einreise-Code')
           .setDescription(
-            `**Code:** ```${code}```\n` +
-            `1. Öffne das Einreise-Formular\n` +
-            `2. Trage diesen Code im Feld **"Einreise-Code"** ein\n` +
-            `3. Deine Rollen werden nach dem Absenden automatisch vergeben\n\n` +
-            `⏳ Gültig für **15 Minuten** · nur einmalig verwendbar`
+            '**Code:** ```' + code + '```
+' +
+            '1. Öffne das Einreise-Formular
+' +
+            '2. Trage diesen Code im Feld **"Einreise-Code"** ein
+' +
+            '3. Deine Rollen werden nach dem Absenden automatisch vergeben
+
+' +
+            '⏳ Gültig für **15 Minuten** · nur einmalig verwendbar'
           )
           .setFooter({ text: 'Paradise City Roleplay  •  Einreise-System' })
         ],
@@ -1776,7 +1772,7 @@ require('./web')(client, DATA_DIR);
     if (commandName === 'ausweis') {
       const AUSWEIS_CH = '1490882590012604538';
       if (interaction.channel.id !== AUSWEIS_CH)
-        return interaction.reply({ content: `❌ Dieser Befehl ist nur in <#${AUSWEIS_CH}> verfügbar.`, ephemeral: true });
+        return interaction.reply({ content: '❌ Dieser Befehl ist nur in <#' + AUSWEIS_CH + '> verfügbar.', ephemeral: true });
       const ausweisData = loadAusweis();
       const eintrag     = ausweisData[user.id];
       if (!eintrag)
@@ -1785,20 +1781,19 @@ require('./web')(client, DATA_DIR);
         .setColor(DARK_ORANGE)
         .setTitle('🪪  Offizieller Ausweis — Paradise City')
         .addFields(
-          { name: '👤 Vorname',       value: eintrag.vorname,       inline: true },
-          { name: '👤 Nachname',      value: eintrag.nachname,      inline: true },
-          { name: '🎂 Geburtsdatum',  value: eintrag.geburtsdatum,  inline: true },
-          { name: '🏙️ Geburtsort',   value: eintrag.geburtsort,    inline: true },
-          { name: '🌍 Nationalität',  value: eintrag.nationalitaet, inline: true },
-          { name: '📅 Ausgestellt am',value: `<t:${Math.floor(new Date(eintrag.createdAt).getTime()/1000)}:D>`, inline: true },
+          { name: '👤 Vorname',        value: eintrag.vorname,       inline: true },
+          { name: '👤 Nachname',       value: eintrag.nachname,      inline: true },
+          { name: '🎂 Geburtsdatum',   value: eintrag.geburtsdatum,  inline: true },
+          { name: '🏙️ Geburtsort',    value: eintrag.geburtsort,    inline: true },
+          { name: '🌍 Nationalität',   value: eintrag.nationalitaet, inline: true },
+          { name: '📅 Ausgestellt am', value: '<t:' + Math.floor(new Date(eintrag.createdAt).getTime()/1000) + ':D>', inline: true },
         )
         .setFooter({ text: 'Paradise City Roleplay  •  Einwohnerbehörde' })
         .setTimestamp();
       const UPLOADS_DIR = path.join(__dirname, 'data', 'uploads');
-      const exts = ['jpg','jpeg','png','webp'];
       let photoFile;
-      for (const ext of exts) {
-        const p = path.join(UPLOADS_DIR, `${user.id}.${ext}`);
+      for (const ext of ['jpg','jpeg','png','webp']) {
+        const p = path.join(UPLOADS_DIR, user.id + '.' + ext);
         if (fs.existsSync(p)) { photoFile = p; break; }
       }
       if (photoFile) {
@@ -1810,5 +1805,12 @@ require('./web')(client, DATA_DIR);
       }
       return;
     }
-
   
+
+});
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+client.login(process.env.DISCORD_TOKEN);
+
+// ─── WEB SERVER ───────────────────────────────────────────────────────────────
+require('./web')(client, DATA_DIR);
