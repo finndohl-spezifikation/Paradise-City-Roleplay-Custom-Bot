@@ -251,23 +251,16 @@ client.on('guildMemberAdd', async (member) => {
     // Willkommens-Embed
     const welcomeEmbed = new EmbedBuilder()
       .setColor(DARK_ORANGE)
-      .setAuthor({ name: 'Paradise City Roleplay — Willkommen!' })
       .setTitle(`🎉  Willkommen, ${member.user.username}!`)
       .setDescription(
-        `Hey <@${member.id}>, schön dass du dabei bist!\n` +
-        `Du bist unser **${memberCount}. Mitglied** auf dem Server. 🚗\n\n` +
-        `Schau dir die Regeln an und viel Spaß bei uns!`
+        `Hey <@${member.id}>, willkommen auf **Paradise City Roleplay**!\n` +
+        `Du bist unser **${memberCount}. Mitglied**. Schau dir die Regeln an und viel Spaß! 🚗`
       )
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
       .addFields(
-        { name: '👤  Nutzer',         value: `<@${member.id}>`,              inline: true },
-        { name: '📅  Beigetreten',    value: `<t:${ts()}:R>`,                inline: true },
-        { name: '📨  Eingeladen von', value: inviterMention,                 inline: true },
-        { name: '🏅  Mitglied Nr.',   value: `**${memberCount}**`,           inline: true },
+        { name: '📨  Eingeladen von', value: inviterMention, inline: true },
         { name: '📆  Account seit',   value: `<t:${ts(member.user.createdAt)}:D>`, inline: true },
-        { name: '\u200b',             value: '\u200b',                       inline: true },
       )
-      .setFooter({ text: 'Paradise City Roleplay  •  Viel Spaß auf dem Server!' })
       .setTimestamp();
 
     try {
@@ -281,14 +274,10 @@ client.on('guildMemberAdd', async (member) => {
         .setColor(DARK_ORANGE)
         .setTitle('👋  Willkommen bei Paradise City Roleplay!')
         .setDescription(
-          `Hey **${member.user.username}**, schön dass du unserem Server beigetreten bist!\n\n` +
-          `**Wichtige Info:**\n` +
-          `Auf unserem Server werden **Slash-Commands** verwendet.\n` +
-          `Tippe einfach \`/\` in den Chat um alle verfügbaren Befehle zu sehen.\n\n` +
-          `Bei Fragen wende dich gerne an unser Team. Viel Spaß! 🚗`
+          `Hey **${member.user.username}**, willkommen!\n\n` +
+          `Nutze \`/\` im Chat um alle Befehle zu sehen.\n` +
+          `Bei Fragen wende dich an unser Team. Viel Spaß! 🚗`
         )
-        .setThumbnail(member.guild.iconURL({ dynamic: true }))
-        .setFooter({ text: 'Paradise City Roleplay' })
         .setTimestamp()
       ]});
     } catch { /* DMs deaktiviert */ }
@@ -393,21 +382,15 @@ client.on('guildMemberRemove', async (member) => {
     const ch = await client.channels.fetch(CH.GOODBYE);
     if (ch) await ch.send({ embeds: [new EmbedBuilder()
       .setColor(DARK_ORANGE)
-      .setAuthor({ name: 'Paradise City Roleplay — Auf Wiedersehen!' })
       .setTitle(`👋  Tschüss, ${member.user.username}!`)
       .setDescription(
-        `**${member.user.tag}** hat den Server verlassen.\nWir hoffen dich bald wieder zu sehen! 🚗`
+        `**${member.user.tag}** hat den Server verlassen. Wir hoffen dich bald wieder zu sehen!`
       )
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
       .addFields(
-        { name: '👤  Nutzer',         value: `${member.user.tag}`,                                    inline: true },
-        { name: '🚪  Verlassen',      value: `<t:${ts()}:R>`,                                         inline: true },
-        { name: '📨  Eingeladen von', value: inviterMention,                                          inline: true },
-        { name: '📅  Beigetreten am', value: joinedAt ? `<t:${ts(joinedAt)}:D>` : 'Unbekannt',       inline: true },
-        { name: '⏱️  War dabei für',  value: joinedAt ? `<t:${ts(joinedAt)}:R>` : 'Unbekannt',       inline: true },
-        { name: '\u200b',             value: '\u200b',                                                inline: true },
+        { name: '📨  Eingeladen von', value: inviterMention, inline: true },
+        { name: '⏱️  War dabei für',  value: joinedAt ? `<t:${ts(joinedAt)}:R>` : 'Unbekannt', inline: true },
       )
-      .setFooter({ text: 'Paradise City Roleplay  •  Auf Wiedersehen!' })
       .setTimestamp()
     ]});
   } catch (e) { console.error('Goodbye Fehler:', e.message); }
