@@ -253,60 +253,103 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
     // ── GET /einreise — Auswahlseite ─────────────────────────────────────────
   app.get('/einreise', (req, res) => {
-    res.send(page('Einreise', `
-
-        <div class="modal-overlay" id="introModal">
-          <div class="modal-box" id="introBox">
-            <div class="modal-title">🏛️ Paradise City Roleplay — Willkommen!</div>
-            <div class="modal-rule"><div class="num">1</div><div>Bitte lies dir vor dem Erstellen deines Charakters das <strong>Regelwerk</strong> durch.</div></div>
-            <div class="modal-rule"><div class="num">2</div><div>Stelle sicher, dass du <strong>DM-Nachrichten aktiviert</strong> hast, damit unser Bot dir Nachrichten senden kann.</div></div>
-            <div class="modal-rule"><div class="num">3</div><div>Solltest du <strong>legal einreisen</strong>, gib bitte nur korrekte Daten zu deinem IC-Charakter an. Eine Änderung ist später nur durch den <strong>Tod deines Charakters</strong> möglich.</div></div>
-            <div class="modal-wish">Wir wünschen dir viel Spaß bei deinem Start auf Paradise City Roleplay! 🎮</div>
-            <div class="modal-btn-wrap"><button class="modal-btn" id="introBtn">Ich habe verstanden ✅</button></div>
-          </div>
-        </div>
-        <script>(function(){
-          var btn=document.getElementById('introBtn'),box=document.getElementById('introBox'),ov=document.getElementById('introModal');
-          document.body.style.overflow='hidden';
-          function flee(e){
-            if(e){e.preventDefault();e.stopPropagation();}
-            var vw=document.documentElement.clientWidth, vh=document.documentElement.clientHeight;
-            var bw=btn.offsetWidth||160, bh=btn.offsetHeight||48;
-            var maxX=vw-bw-12, maxY=vh-bh-12;
-            var nx=Math.floor(Math.random()*Math.max(1,maxX)), ny=Math.floor(Math.random()*Math.max(1,maxY));
-            nx=Math.max(8,Math.min(nx,maxX)); ny=Math.max(8,Math.min(ny,maxY));
-            btn.style.cssText='position:fixed;margin:0;z-index:9999;left:'+nx+'px;top:'+ny+'px;padding:13px 36px;background:#e65100;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer;transition:none;';
-            btn.textContent='Haha zu Langsam 😂';
-            clearTimeout(btn._t);
-            btn._t=setTimeout(function(){btn.textContent='Ich habe verstanden ✅';},700);
-          }
-          btn.addEventListener('mouseover',flee);
-          btn.addEventListener('touchstart',flee,{passive:false});
-          btn.addEventListener('click',flee);
-        })();<\/script>
-      ${header('Einreisebehörde — Bitte wähle deinen Einreiseweg')}
-      <div class="card">
-        <p class="section-title">Einreiseweg wählen</p>
-        <div class="select-grid">
-          <a class="select-card" href="/einreise/legal">
-            <div class="sc-icon">🟢</div>
-            <div class="sc-title">Legale Einreise</div>
-            <div class="sc-desc">Du reist offiziell ein und bist legal im Staat registriert. Du erhältst einen Ausweis und darfst staatliche Jobs ausführen. Illegale Aktivitäten sind verboten.</div>
-          </a>
-          <a class="select-card" href="/einreise/illegal">
-            <div class="sc-icon">🔴</div>
-            <div class="sc-title">Illegale Einreise</div>
-            <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du kannst illegale Aktivitäten ausführen — werde nicht erwischt.</div>
-          </a>
-          <a class="select-card" href="/einreise/gruppe">
-            <div class="sc-icon">🟡</div>
-            <div class="sc-title">Gruppen Einreise</div>
-            <div class="sc-desc">Ab mindestens 6 Personen. Alle müssen denselben Lebensweg wählen und erhalten exklusive Gruppen-Boni.</div>
-          </a>
-        </div>
+      res.send(`<!DOCTYPE html><html lang="de"><head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Einreise — Paradise City Roleplay</title>
+  <style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;min-height:100vh}
+  /* Modal */
+  #introOverlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9000;display:flex;align-items:center;justify-content:center}
+  #introBox{background:#161b22;border:2px solid #e65100;border-radius:16px;padding:32px 26px;max-width:460px;width:92%;animation:popIn .5s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes popIn{from{opacity:0;transform:scale(.6) translateY(60px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes popOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.7) translateY(40px)}}
+  .mo-title{color:#ffd180;font-size:1.05em;font-weight:700;text-align:center;margin-bottom:22px;letter-spacing:.5px}
+  .mo-rule{display:flex;gap:12px;margin-bottom:13px;font-size:.87em;line-height:1.65;color:#c9d1d9;align-items:flex-start}
+  .mo-num{background:#e65100;color:#fff;border-radius:50%;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78em;flex-shrink:0;margin-top:2px}
+  .mo-wish{text-align:center;color:#3fb950;font-size:.86em;margin:18px 0 24px;font-weight:600;line-height:1.5}
+  #introBtn{display:block;margin:0 auto;padding:13px 40px;background:#e65100;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer;position:relative}
+  /* Page */
+  .wrap{max-width:780px;margin:0 auto;padding:0 16px 40px}
+  .authority{text-align:center;background:linear-gradient(135deg,#bf360c,#e65100);padding:26px 20px 22px;border-radius:14px 14px 0 0;margin-top:20px}
+  .authority .seal{font-size:2.4em;margin-bottom:6px}
+  .authority h1{color:#fff;font-size:1.05em;letter-spacing:3px;text-transform:uppercase;font-weight:700}
+  .authority h2{color:#ffd180;font-size:.82em;letter-spacing:1px;margin-top:4px;font-weight:400}
+  .card{background:#161b22;border:1px solid #30363d;border-top:none;border-radius:0 0 14px 14px;padding:28px}
+  .section-title{color:#ffd180;font-size:.78em;letter-spacing:2px;text-transform:uppercase;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+  .section-title::after{content:'';flex:1;height:1px;background:#e65100;opacity:.35}
+  .select-grid{display:grid;gap:14px;margin-top:4px}
+  .select-card{background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:20px;cursor:pointer;transition:all .2s;display:block;text-decoration:none;color:inherit}
+  .select-card:hover{border-color:#e65100;background:#161b22}
+  .select-card .sc-icon{font-size:1.8em;margin-bottom:8px}
+  .select-card .sc-title{font-size:1em;font-weight:700;color:#fff;margin-bottom:4px}
+  .select-card .sc-desc{font-size:.8em;color:#8b949e;line-height:1.5}
+  </style>
+  </head><body>
+  <div id="introOverlay">
+    <div id="introBox">
+      <div class="mo-title">🏛️ Paradise City Roleplay — Willkommen!</div>
+      <div class="mo-rule"><div class="mo-num">1</div><div>Bitte lies dir vor dem Erstellen deines Charakters das <strong>Regelwerk</strong> durch.</div></div>
+      <div class="mo-rule"><div class="mo-num">2</div><div>Stelle sicher, dass du <strong>DM-Nachrichten aktiviert</strong> hast, damit unser Bot dir Nachrichten senden kann.</div></div>
+      <div class="mo-rule"><div class="mo-num">3</div><div>Solltest du <strong>legal einreisen</strong>, gib bitte nur korrekte Daten zu deinem IC-Charakter an. Eine Änderung ist später nur durch den <strong>Tod deines Charakters</strong> möglich.</div></div>
+      <div class="mo-wish">Wir wünschen dir viel Spaß bei deinem Start auf Paradise City Roleplay! 🎮</div>
+      <button id="introBtn">Ich habe verstanden ✅</button>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var btn=document.getElementById('introBtn');
+    var ov=document.getElementById('introOverlay');
+    var box=document.getElementById('introBox');
+    document.body.style.overflow='hidden';
+    function flee(e){
+      if(e){e.preventDefault();e.stopPropagation();}
+      var vw=document.documentElement.clientWidth;
+      var vh=document.documentElement.clientHeight;
+      var bw=btn.offsetWidth||150;
+      var bh=btn.offsetHeight||46;
+      var nx=Math.max(8, Math.floor(Math.random()*(vw-bw-16)));
+      var ny=Math.max(8, Math.floor(Math.random()*(vh-bh-16)));
+      btn.style.position='fixed';
+      btn.style.left=nx+'px';
+      btn.style.top=ny+'px';
+      btn.style.margin='0';
+      btn.style.zIndex='9999';
+    }
+    btn.addEventListener('mouseover', flee);
+    btn.addEventListener('touchstart', flee, {passive:false});
+    btn.addEventListener('click', flee);
+  })();
+  </script>
+  <div class="wrap">
+    <div class="authority">
+      <div class="seal">🏛️</div>
+      <h1>Los Angeles Einwohner Melde Amt</h1>
+      <h2>Einreisebehörde — Bitte wähle deinen Einreiseweg</h2>
+    </div>
+    <div class="card">
+      <p class="section-title">Einreiseweg wählen</p>
+      <div class="select-grid">
+        <a class="select-card" href="/einreise/legal">
+          <div class="sc-icon">🟢</div>
+          <div class="sc-title">Legale Einreise</div>
+          <div class="sc-desc">Du reist offiziell ein und bist legal im Staat registriert. Du erhältst einen Ausweis und darfst staatliche Jobs ausführen. Illegale Aktivitäten sind verboten.</div>
+        </a>
+        <a class="select-card" href="/einreise/illegal">
+          <div class="sc-icon">🔴</div>
+          <div class="sc-title">Illegale Einreise</div>
+          <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du kannst illegale Aktivitäten ausführen — werde nicht erwischt.</div>
+        </a>
+        <a class="select-card" href="/einreise/gruppe">
+          <div class="sc-icon">🟡</div>
+          <div class="sc-title">Gruppen Einreise</div>
+          <div class="sc-desc">Ab mindestens 6 Personen. Alle müssen denselben Lebensweg wählen und erhalten exklusive Gruppen-Boni.</div>
+        </a>
       </div>
-    `));
-  });
+    </div>
+  </div>
+  </body></html>`);
+    });
 
   // ── GET /einreise/legal ───────────────────────────────────────────────────
   app.get('/einreise/legal', (req, res) => {
