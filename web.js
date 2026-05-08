@@ -122,18 +122,18 @@ function charFields(prefix, idx) {
 }
 
 module.exports = function startWebServer(client, DATA_DIR) {
-  const app = express();
+  const app        = express();
+  const CODES_FILE   = path.join(DATA_DIR, 'einreise_codes.json');
+  const AUSWEIS_FILE = path.join(DATA_DIR, 'ausweis.json');
+  function loadCodes()    { try { return JSON.parse(fs.readFileSync(CODES_FILE,   'utf8')); } catch { return {}; } }
+  function saveCodes(d)   { fs.writeFileSync(CODES_FILE,   JSON.stringify(d, null, 2), 'utf8'); }
+  function loadAusweis()  { try { return JSON.parse(fs.readFileSync(AUSWEIS_FILE, 'utf8')); } catch { return {}; } }
+  function saveAusweis(d) { fs.writeFileSync(AUSWEIS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
   const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
   if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-  const storage = multer.diskStorage({
-    destination: UPLOAD_DIR,
-    filename: (req, file, cb) => {
-      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`);
-    }
-  });
   const upload = multer({
-    storage,
+    storage: multer.memoryStorage(),
     limits: { fileSize: 8 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
       if (file.mimetype.startsWith('image/')) cb(null, true);
@@ -235,7 +235,17 @@ module.exports = function startWebServer(client, DATA_DIR) {
             </div>
           </div>
 
-          <button type="submit" class="btn">✅ Einreise Bestätigen</button>
+          <hr class="divider">
+            <p class="section-title">🔑 Discord Einreise-Code</p>
+            <div class="form-row one">
+              <div class="form-group">
+                <label>Einreise-Code <span class="req">*</span></label>
+                <input type="text" name="einreise_code" placeholder="z.B. A3B9CX" maxlength="6" required style="text-transform:uppercase;letter-spacing:4px;font-size:1.2em;font-weight:bold;text-align:center">
+                <small style="color:#888;margin-top:4px;display:block">Tippe <strong>/einreise-code</strong> im Discord-Server um deinen Code zu erhalten.</small>
+              </div>
+            </div>
+
+            <button type="submit" class="btn">✅ Einreise Bestätigen</button>
           ${warning()}
         </form>
       </div>
@@ -244,12 +254,39 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/legal ──────────────────────────────────────────────────
   app.post('/einreise/legal', upload.single('foto'), async (req, res) => {
-    const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0 } = req.body;
+    const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0, einreise_code } = req.body;
 
     if (!req.file) { req.session.legalError = 'Kein Passbild hochgeladen. Bitte füge ein Bild hinzu.'; return res.redirect('/einreise/legal'); }
     if (!vorname_0 || !nachname_0 || !geburtsdatum_0 || !geburtsort_0 || !nationalitaet_0) {
       req.session.legalError = 'Bitte alle Pflichtfelder ausfüllen.'; return res.redirect('/einreise/legal');
     }
+    // Code validieren
+    const code      = (einreise_code || '').trim().toUpperCase();
+    const codes     = loadCodes();
+    const codeEntry = codes[code];
+    if (!codeEntry) { req.session.legalError = 'Ungültiger Einreise-Code. Bitte tippe /einreise-code im Discord.'; return res.redirect('/einreise/legal'); }
+    if (Date.now() > codeEntry.expiresAt) { delete codes[code]; saveCodes(codes); req.session.legalError = 'Dein Code ist abgelaufen. Bitte generiere einen neuen mit /einreise-code.'; return res.redirect('/einreise/legal'); }
+    const discordId = codeEntry.userId;
+    delete codes[code];
+    saveCodes(codes);
+    // Passbild als Buffer speichern (multer memory)
+    try {
+      const ext = req.file.mimetype.includes('png') ? 'png' : req.file.mimetype.includes('webp') ? 'webp' : 'jpg';
+      fs.writeFileSync(path.join(DATA_DIR, 'uploads', discordId + '.' + ext), req.file.buffer);
+    } catch {}
+    // Ausweis speichern
+    const ausweis = loadAusweis();
+    ausweis[discordId] = { vorname: vorname_0, nachname: nachname_0, geburtsdatum: geburtsdatum_0, geburtsort: geburtsort_0, nationalitaet: nationalitaet_0, createdAt: new Date().toISOString() };
+    saveAusweis(ausweis);
+    // Rollen vergeben
+    try {
+      const guild  = client.guilds.cache.first();
+      const member = guild ? await guild.members.fetch(discordId).catch(() => null) : null;
+      if (member) {
+        await member.roles.remove(ROLE_REMOVE).catch(() => {});
+        for (const r of [...ROLES_ALL, ...ROLES_LEGAL]) await member.roles.add(r).catch(() => {});
+      }
+    } catch (e) { console.error('Rollen Fehler:', e.message); }
 
     res.send(page('Einreise Erfolgreich', `
       ${header('Einreise Bestätigt')}
@@ -281,6 +318,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
             <label for="confirm" style="color:#e0e0e0;font-size:.88em;cursor:pointer">Ich verstehe die Konsequenzen und möchte illegal einreisen.</label>
           </div>
 
+          <div style="margin-top:18px">
+            <p class="section-title" style="margin-bottom:6px">🔑 Discord Einreise-Code</p>
+            <input type="text" name="einreise_code" placeholder="z.B. A3B9CX" maxlength="6" required style="text-transform:uppercase;letter-spacing:4px;font-size:1.1em;font-weight:bold;text-align:center;width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px">
+            <small style="color:#888;margin-top:4px;display:block">Tippe <strong>/einreise-code</strong> im Discord um deinen Code zu erhalten.</small>
+          </div>
+
           <button type="submit" class="btn" style="background:#b71c1c">🚨 Jetzt Einreisen</button>
           
         </form>
@@ -290,9 +333,27 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/illegal ────────────────────────────────────────────────
   app.post('/einreise/illegal', async (req, res) => {
-    const { confirm } = req.body;
+    const { confirm, einreise_code } = req.body;
 
     if (!confirm) { req.session.illegalError = 'Du musst die Konsequenzen bestätigen.'; return res.redirect('/einreise/illegal'); }
+    // Code validieren
+    const code      = (einreise_code || '').trim().toUpperCase();
+    const codes     = loadCodes();
+    const codeEntry = codes[code];
+    if (!codeEntry) { req.session.illegalError = 'Ungültiger Einreise-Code. Bitte tippe /einreise-code im Discord.'; return res.redirect('/einreise/illegal'); }
+    if (Date.now() > codeEntry.expiresAt) { delete codes[code]; saveCodes(codes); req.session.illegalError = 'Dein Code ist abgelaufen. Bitte generiere einen neuen mit /einreise-code.'; return res.redirect('/einreise/illegal'); }
+    const discordId = codeEntry.userId;
+    delete codes[code];
+    saveCodes(codes);
+    // Rollen vergeben
+    try {
+      const guild  = client.guilds.cache.first();
+      const member = guild ? await guild.members.fetch(discordId).catch(() => null) : null;
+      if (member) {
+        await member.roles.remove(ROLE_REMOVE).catch(() => {});
+        for (const r of [...ROLES_ALL, ...ROLES_ILLEGAL]) await member.roles.add(r).catch(() => {});
+      }
+    } catch (e) { console.error('Rollen Fehler illegal:', e.message); }
 
     res.send(page('Einreise Erfolgreich', `
       ${header('Einreise Bestätigt')}
