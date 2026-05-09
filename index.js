@@ -1098,18 +1098,6 @@ async function buildInviteCache(guild) {
       .addStringOption(o => o.setName('beschreibung').setDescription('Beschreibung').setRequired(true))
       .addIntegerOption(o => o.setName('betrag').setDescription('Betrag in $').setRequired(true).setMinValue(1))
       .toJSON(),
-    new SlashCommandBuilder()
-      .setName('einreise-startgeld')
-      .setDescription('Startgeld an einen neuen Spieler vergeben (Team)')
-      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
-      .addStringOption(o => o.setName('typ').setDescription('Einreiseart').setRequired(true)
-        .addChoices(
-          { name: 'Legal (5.000 $ Konto)',                      value: 'legal' },
-          { name: 'Illegal (5.000 $ Schwarzgeld)',              value: 'illegal' },
-          { name: 'Gruppeneinreise Legal (10.000 $ Konto)',     value: 'gruppe_legal' },
-          { name: 'Gruppeneinreise Illegal (10.000 $ Schwarz)', value: 'gruppe_illegal' }
-        ))
-      .toJSON(),
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
