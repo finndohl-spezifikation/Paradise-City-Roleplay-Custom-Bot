@@ -14,6 +14,7 @@ const {
   Colors,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  UserSelectMenuBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -4052,33 +4053,36 @@ ${transText}`;
     }
 
     // ─── BANKING: Überweisen Modal ───────────────────────────────────────────
+    // ─── BANKING: Überweisen → User auswählen ───────────────────────────────
     if (interaction.isButton() && interaction.customId === 'bank_ueberweisen') {
-      const modal = new ModalBuilder().setCustomId('bank_modal_ueberweisen').setTitle('📤 Geld überweisen');
-      modal.addComponents(
-        new ActionRowBuilder().addComponents(
-          new TextInputBuilder().setCustomId('bank_target').setLabel('Empfänger User-ID').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('Discord User ID')
-        ),
-        new ActionRowBuilder().addComponents(
-          new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')
-        )
-      );
-      return interaction.showModal(modal);
+      const select = new UserSelectMenuBuilder().setCustomId('bank_sel_ueb').setPlaceholder('Empfänger auswählen').setMinValues(1).setMaxValues(1);
+      return interaction.reply({ content: '📤 **Empfänger für Überweisung auswählen:**', components: [new ActionRowBuilder().addComponents(select)], ephemeral: true });
     }
 
     // ─── BANKING: Schwarzgeld verschicken Modal ──────────────────────────────
+    // ─── BANKING: Schwarzgeld → User auswählen ──────────────────────────────
     if (interaction.isButton() && interaction.customId === 'bank_schwarz_send') {
-      const modal = new ModalBuilder().setCustomId('bank_modal_schwarz').setTitle('🖤 Schwarzgeld verschicken');
-      modal.addComponents(
-        new ActionRowBuilder().addComponents(
-          new TextInputBuilder().setCustomId('bank_target').setLabel('Empfänger User-ID').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('Discord User ID')
-        ),
-        new ActionRowBuilder().addComponents(
-          new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')
-        )
-      );
+      const select = new UserSelectMenuBuilder().setCustomId('bank_sel_schw').setPlaceholder('Empfänger auswählen').setMinValues(1).setMaxValues(1);
+      return interaction.reply({ content: '🖤 **Empfänger für Schwarzgeld auswählen:**', components: [new ActionRowBuilder().addComponents(select)], ephemeral: true });
+    }
+
+    // ─── BANKING: User gewählt → Betrag Modal (Überweisen) ──────────────────
+    if (interaction.isUserSelectMenu() && interaction.customId === 'bank_sel_ueb') {
+      const targetId = interaction.values[0];
+      if (targetId === interaction.user.id) return interaction.reply({ content: '❌ Du kannst nicht an dich selbst überweisen.', ephemeral: true });
+      const modal = new ModalBuilder().setCustomId(`bank_modal_ueb:${targetId}`).setTitle('📤 Betrag überweisen');
+      modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')));
       return interaction.showModal(modal);
     }
 
+    // ─── BANKING: User gewählt → Betrag Modal (Schwarzgeld) ─────────────────
+    if (interaction.isUserSelectMenu() && interaction.customId === 'bank_sel_schw') {
+      const targetId = interaction.values[0];
+      if (targetId === interaction.user.id) return interaction.reply({ content: '❌ Du kannst nicht an dich selbst senden.', ephemeral: true });
+      const modal = new ModalBuilder().setCustomId(`bank_modal_schw:${targetId}`).setTitle('🖤 Schwarzgeld senden');
+      modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')));
+      return interaction.showModal(modal);
+    }
     // ─── RECHNUNGEN OPEN ────────────────────────────────────────────────────
     if (interaction.isButton() && interaction.customId === 'rechnungen_open') {
       const uid = interaction.user.id;
@@ -4240,9 +4244,9 @@ ${transText}`;
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** ausgezahlt. Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} $**`, ephemeral: true });
     }
 
-    if (interaction.isModalSubmit() && interaction.customId === 'bank_modal_ueberweisen') {
+    if (interaction.isModalSubmit() && interaction.customId.startsWith('bank_modal_ueb:')) {
+      const targetId = interaction.customId.split(':')[1];
       const uid    = interaction.user.id;
-      const targetId = interaction.fields.getTextInputValue('bank_target').trim();
       const betrag   = parseInt(interaction.fields.getTextInputValue('bank_betrag').replace(/[^0-9]/g,''));
       if (isNaN(betrag) || betrag <= 0) return interaction.reply({ content: '❌ Ungültiger Betrag.', ephemeral: true });
       if (targetId === uid) return interaction.reply({ content: '❌ Du kannst nicht an dich selbst überweisen.', ephemeral: true });
@@ -4262,16 +4266,14 @@ ${transText}`;
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** an <@${targetId}> überwiesen.`, ephemeral: true });
     }
 
-    if (interaction.isModalSubmit() && interaction.customId === 'bank_modal_schwarz') {
+    if (interaction.isModalSubmit() && interaction.customId.startsWith('bank_modal_schw:')) {
+      const targetId = interaction.customId.split(':')[1];
       const uid      = interaction.user.id;
-      const targetId = interaction.fields.getTextInputValue('bank_target').trim();
       const betrag   = parseInt(interaction.fields.getTextInputValue('bank_betrag').replace(/[^0-9]/g,''));
       if (isNaN(betrag) || betrag <= 0) return interaction.reply({ content: '❌ Ungültiger Betrag.', ephemeral: true });
       if (targetId === uid) return interaction.reply({ content: '❌ Du kannst nicht an dich selbst senden.', ephemeral: true });
-      // Check sender has Schwarz role
       const senderMember = await interaction.guild.members.fetch(uid).catch(() => null);
       if (!senderMember?.roles.cache.has(SCHWARZ_ROLE)) return interaction.reply({ content: '❌ Du hast keine Berechtigung Schwarzgeld zu verschicken.', ephemeral: true });
-      // Check receiver has Schwarz role
       const targetMember = await interaction.guild.members.fetch(targetId).catch(() => null);
       if (!targetMember?.roles.cache.has(SCHWARZ_ROLE)) return interaction.reply({ content: '❌ Der Empfänger hat keine Schwarzgeld-Rolle.', ephemeral: true });
       const k = getKonto(uid);
