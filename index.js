@@ -2200,7 +2200,7 @@ client.on('interactionCreate', async (interaction) => {
         const dauerMs = parseDuration(dauerStr);
         if (!dauerMs || dauerMs < 60000) return interaction.reply({ content: '\u274C Mindestdauer: 1 Minute. Beispiele: 1h, 30m, 1d', ephemeral: true });
         if (dauerMs > 7 * 86400000) return interaction.reply({ content: '\u274C Maximale Dauer: 7 Tage.', ephemeral: true });
-        const GIVEAWAY_CH   = '1490882564561567864';
+        const GIVEAWAY_CH   = '1490882565618536551';
         const GIVEAWAY_ROLE = '1490855722534310003';
         const endetAt = Date.now() + dauerMs;
         try {
