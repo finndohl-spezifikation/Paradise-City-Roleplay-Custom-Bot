@@ -297,8 +297,7 @@ const AKTIVITAET_CH      = '1502382574310392040';
     const embed = new EmbedBuilder()
       .setColor(0xE65100)
       .setTitle('🏦 Lohnbüro')
-      .setDescription('Drücke den Button um deinen stündlichen Lohn abzuholen.
-Du kannst deinen Lohn nur **einmal pro Stunde** abholen und nur wenn du eine gültige Lohnklassen-Rolle hast.');
+      .setDescription('Drücke den Button um deinen stündlichen Lohn abzuholen.\nDu kannst deinen Lohn nur **einmal pro Stunde** abholen und nur wenn du eine gültige Lohnklassen-Rolle hast.');
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('lohn_abholen').setLabel('💵 Lohn abholen').setStyle(ButtonStyle.Success)
     );
@@ -322,8 +321,7 @@ Du kannst deinen Lohn nur **einmal pro Stunde** abholen und nur wenn du eine gü
     const embed = new EmbedBuilder()
       .setColor(0xE65100)
       .setTitle('🏧 Online Banking')
-      .setDescription('Klicke den Button um dein persönliches Online-Banking zu öffnen.
-Dort siehst du deinen Bargeld- und Kontostand, die letzten Transaktionen und kannst Geld einzahlen, auszahlen oder überweisen.');
+      .setDescription('Klicke den Button um dein persönliches Online-Banking zu öffnen.\nDort siehst du deinen Bargeld- und Kontostand, die letzten Transaktionen und kannst Geld einzahlen, auszahlen oder überweisen.');
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('banking_open').setLabel('🏧 Online Banking öffnen').setStyle(ButtonStyle.Primary)
     );
@@ -347,8 +345,7 @@ Dort siehst du deinen Bargeld- und Kontostand, die letzten Transaktionen und kan
     const embed = new EmbedBuilder()
       .setColor(0xE65100)
       .setTitle('🧾 Rechnungen')
-      .setDescription('Klicke den Button um deine offenen Rechnungen einzusehen.
-Du kannst Rechnungen einzeln oder alle auf einmal bezahlen.');
+      .setDescription('Klicke den Button um deine offenen Rechnungen einzusehen.\nDu kannst Rechnungen einzeln oder alle auf einmal bezahlen.');
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('rechnungen_open').setLabel('🧾 Rechnungen anzeigen').setStyle(ButtonStyle.Secondary)
     );
@@ -3928,8 +3925,7 @@ Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} $**`
       const trans = getLastTrans(uid, 5);
       const hasSchwarz = member?.roles.cache.has(SCHWARZ_ROLE) ?? false;
       const transText = trans.length
-        ? trans.map(t => `• ${t.text} — <t:${Math.floor(t.ts/1000)}:R>`).join('
-')
+        ? trans.map(t => `• ${t.text} — <t:${Math.floor(t.ts/1000)}:R>`).join('\n')
         : '_Keine Transaktionen_';
 
       let desc = `💵 **Bargeld:** ${bar.toLocaleString('de-CH')} $
