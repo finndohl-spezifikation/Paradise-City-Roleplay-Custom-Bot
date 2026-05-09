@@ -675,6 +675,8 @@ module.exports = function startWebServer(client, DATA_DIR) {
       const nick = isLegal
         ? (`${req.body[`g_vorname_${gi}`]||''} ${req.body[`g_nachname_${gi}`]||''} | ${req.body[`g_psn_${gi}`]||''}`).trim()
         : (`${req.body[`g_ill_vorname_${gi}`]||''} ${req.body[`g_ill_nachname_${gi}`]||''} | ${req.body[`g_ill_psn_${gi}`]||''}`).trim();
+      const mem = await client.guilds.cache.first()?.members.fetch(uid).catch(() => null);
+      if (mem && nick) await mem.setNickname(nick).catch(() => {});
     }
 
     if (failed.length > 0) {
