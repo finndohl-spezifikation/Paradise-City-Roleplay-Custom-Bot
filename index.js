@@ -350,26 +350,34 @@ async function buildInviteCache(guild) {
 
       function frakLine(name) {
         const f = data[name];
-        const warnStr  = f.warns?.length ? `⚠️ ${f.warns.length} Warn${f.warns.length > 1 ? 's' : ''}` : '';
-        const sperrStr = f.gesperrt ? '🔒 GESPERRT' : '';
-        const tags = [warnStr, sperrStr].filter(Boolean).join('  ');
-        return `> **${name}** ${tags ? `— ${tags}` : ''}`;
+        const warnBadge  = f.warns?.length
+          ? (f.warns.length >= 3 ? `🔴 **${f.warns.length} Warns**` : `🟡 ${f.warns.length} Warn(s)`)
+          : '';
+        const sperrBadge = f.gesperrt ? '🔒 **GESPERRT**' : '';
+        const badges = [warnBadge, sperrBadge].filter(Boolean);
+        const status  = badges.length ? ` — ${badges.join('  ')}` : ` — ✅ Aktiv`;
+        return `╰ **${name}**${status}`;
       }
 
-      const fields = [];
-      if (legal.length) fields.push({ name: '✅  Legale Fraktionen', value: legal.map(frakLine).join('\n'), inline: false });
-      if (illegal.length) fields.push({ name: '⚠️  Illegale Fraktionen', value: illegal.map(frakLine).join('\n'), inline: false });
+      const legalBlock   = legal.length   ? legal.map(frakLine).join('\n')   : '_Keine_';
+      const illegalBlock = illegal.length ? illegal.map(frakLine).join('\n') : '_Keine_';
+      const totalWarns  = names.reduce((s,n) => s + (data[n].warns?.length||0), 0);
+      const totalSperrt = names.filter(n => data[n].gesperrt).length;
 
       const embed = new EmbedBuilder()
         .setColor(DARK_ORANGE)
-        .setTitle('⚔️  Fraktionen — Paradise City Roleplay')
+        .setTitle('🏙️  Fraktionsübersicht — Paradise City Roleplay')
         .setDescription(
-          `Hier findest du alle aktuellen **Fraktionen** auf Paradise City Roleplay.\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `📋 **Fraktionen gesamt:** ${names.length}  ·  ✅ Legal: ${legal.length}  ·  ⚠️ Illegal: ${illegal.length}`
+          `> Alle registrierten Fraktionen auf **Paradise City Roleplay**\n` +
+          `> ─────────────────────────────────────\n` +
+          `> 📂 Gesamt: **${names.length}**  ·  🟢 Legal: **${legal.length}**  ·  🔴 Illegal: **${illegal.length}**\n` +
+          `> ⚠️ Offene Warns: **${totalWarns}**  ·  🔒 Gesperrt: **${totalSperrt}**`
         )
-        .addFields(fields.length ? fields : [{ name: 'Keine Fraktionen', value: '_Noch keine Fraktionen eingetragen._' }])
-        .setFooter({ text: 'Paradise City Roleplay  •  Fraktionen' })
+        .addFields(
+          { name: '🟢  Legale Fraktionen', value: legalBlock, inline: false },
+          { name: '🔴  Illegale Fraktionen', value: illegalBlock, inline: false }
+        )
+        .setFooter({ text: 'Paradise City Roleplay  •  Fraktionsverwaltung  |  Zuletzt aktualisiert' })
         .setTimestamp();
 
       const setup = loadSetup();
@@ -2698,15 +2706,19 @@ client.on('interactionCreate', async (interaction) => {
           await updateFrakEmbed().catch(() => {});
           const logCh = await client.channels.fetch(FRAK_LOG_CH).catch(() => null);
           if (logCh) await logCh.send({ embeds: [new EmbedBuilder()
-            .setColor(0xE65100)
-            .setTitle(`⚠️  Fraktionsverwarnung — ${name}`)
+            .setColor(0xFF0000)
+            .setTitle('🚨  FRAKTIONSVERWARNUNG')
+            .setDescription(
+              `## ${name}\n` +
+              `> **Typ:** ${data[name].typ}  ·  **Warns:** ${data[name].warns.length}\n` +
+              `> ${'🔴'.repeat(Math.min(data[name].warns.length,5))}${'⚫'.repeat(Math.max(0,5-data[name].warns.length))}`
+            )
             .addFields(
-              { name: 'Fraktion', value: `**${name}** (${data[name].typ})`, inline: true },
-              { name: 'Warns gesamt', value: `${data[name].warns.length}`, inline: true },
-              { name: 'Grund', value: grund },
-              { name: 'Vergeben von', value: `<@${user.id}>`, inline: true },
-              { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
-            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp()
+              { name: '📋  Grund', value: `\`\`\`${grund}\`\`\``, inline: false },
+              { name: '👤  Vergeben von', value: `<@${user.id}>`, inline: true },
+              { name: '🕐  Zeitpunkt', value: `<t:${ts()}:F>`, inline: true },
+              { name: '⚠️  Warns gesamt', value: `**${data[name].warns.length}**`, inline: true }
+            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Verwarnungssystem' }).setTimestamp()
           ]});
           return interaction.reply({ content: `✅ **${name}** hat jetzt ${data[name].warns.length} Verwarnung(en).`, ephemeral: true });
         }
