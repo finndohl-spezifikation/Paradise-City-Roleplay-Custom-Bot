@@ -106,6 +106,7 @@ function memberPicker(name, label, defaultId) {
   return `<!DOCTYPE html><html lang="de"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} — Paradise City Roleplay</title>
+  .sc-info{font-size:.78em;color:#e65100;margin-top:8px;font-style:italic}
 <style>${CSS}</style></head><body>
 <div class="wrap">${body}</div>
 <script>
@@ -341,16 +342,18 @@ module.exports = function startWebServer(client, DATA_DIR) {
     <div class="card">
       <p class="section-title">Einreiseweg wählen</p>
       <div class="select-grid">
-        <a class="select-card" href="/einreise/legal">
+        <div class="select-card" style="cursor:default;opacity:.75">
           <div class="sc-icon">🟢</div>
           <div class="sc-title">Legale Einreise</div>
           <div class="sc-desc">Du reist offiziell ein und bist legal im Staat registriert. Du erhältst einen Ausweis und darfst staatliche Jobs ausführen. Illegale Aktivitäten sind verboten.</div>
-        </a>
-        <a class="select-card" href="/einreise/illegal">
+          <div class="sc-info">🔗 Du benötigst einen persönlichen Link vom Team — wende dich an einen Moderator.</div>
+        </div>
+        <div class="select-card" style="cursor:default;opacity:.75">
           <div class="sc-icon">🔴</div>
           <div class="sc-title">Illegale Einreise</div>
           <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du kannst illegale Aktivitäten ausführen — werde nicht erwischt.</div>
-        </a>
+          <div class="sc-info">🔗 Du benötigst einen persönlichen Link vom Team — wende dich an einen Moderator.</div>
+        </div>
         <a class="select-card" href="/einreise/gruppe">
           <div class="sc-icon">🟡</div>
           <div class="sc-title">Gruppen Einreise</div>
