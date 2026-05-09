@@ -263,8 +263,8 @@ function buildScratchPage(token, entry) {
   .card{background:#161b22;border:2px solid #e65100;border-radius:18px;padding:28px 24px;max-width:430px;width:100%}
   .hint{color:#8b949e;font-size:.78em;text-align:center;margin-bottom:14px}
   .grid{display:grid;grid-template-columns:repeat(3,104px);grid-template-rows:repeat(3,104px);gap:8px;margin:0 auto;width:fit-content}
-  .cell{position:relative;width:104px;height:104px;background:#0d1117;border:2px solid #30363d;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .sym{font-size:2.4em;pointer-events:none;user-select:none}
+  .cell{position:relative;width:104px;height:104px;background:#a0a0a0;border:2px solid #30363d;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .sym{font-size:2.4em;pointer-events:none;user-select:none;visibility:hidden}
   .cv{position:absolute;inset:0;width:104px;height:104px;border-radius:8px;cursor:crosshair;touch-action:none}
   .prog-wrap{margin:16px 0 8px}
   .prog-txt{color:#8b949e;font-size:.78em;text-align:center;margin-bottom:6px}
@@ -329,6 +329,8 @@ function buildScratchPage(token, entry) {
     ctx.fillStyle='rgba(255,255,255,.2)';
     for(let s=0;s<6;s++){ctx.beginPath();ctx.arc(Math.random()*(cv.width-14)+7,Math.random()*(cv.height-14)+7,2,0,Math.PI*2);ctx.fill();}
   });
+  // Reveal symbols now that canvas coating is painted
+  document.querySelectorAll('.sym').forEach(s=>s.style.visibility='visible');
 
 
   function symLabel(sym){
@@ -387,10 +389,10 @@ function buildScratchPage(token, entry) {
     }}
     let cnt=0;for(let k=0;k<GCELLS;k++)if(cov[k])cnt++;
     scratched[i]=Math.round(cnt/GCELLS*100);
-    if(scratched[i]>=55)markDone(i);else upd();
+    if(scratched[i]>=75)markDone(i);else upd();
   }
   let dn=false;
-  const R=window.innerWidth<380?30:42;
+  const R=window.innerWidth<380?18:26;
   const canvases=[...document.querySelectorAll('.cv')];
   canvases.forEach((cv,i)=>{
     const go=(e,type)=>{
