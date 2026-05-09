@@ -3936,45 +3936,9 @@ Link: ${link}`, ephemeral: true });
             .setColor(0xE65100)
             .setTitle('🎟️  Rubbellos')
             .setDescription(
-              '**Mögliche Gewinne:**
-' +
-              '❌  Niete
-' +
-              '💵  1.000 $
-' +
-              '💴  2.500 $
-' +
-              '💶  5.000 $
-' +
-              '💷  10.000 $
-' +
-              '💰  25.000 $
-' +
-              '🚬  10× Marlboro Rot
-' +
-              '🚲  Elektro Fahrrad
-' +
-              '⛳  Golfschläger
-' +
-              '🎰  Lottoschein
-' +
-              '🎫  20% Gutschein Autohaus
-' +
-              '🏎️  **SPORTWAGEN** *(Hauptgewinn — Ticket erstellen!)*
-
-' +
-              '──────────────────────────────
-' +
-              '🛒 Kaufe ein Rubbellos im **Kwik-E-Markt** für **1.000 $**.
-' +
-              '▶️ Drücke den Button um dein Rubbellos einzulösen.
-
-' +
-              '🎯 Rubbele alle 9 Felder frei — **3× dasselbe Symbol = Gewinn!**
-' +
-              '🏆 Beim Sportwagen-Hauptgewinn bitte ein **Ticket erstellen!**'
-            )
-            .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' });
+                `**Mögliche Gewinne:**\n❌  Niete\n💵  1.000 $\n💴  2.500 $\n💶  5.000 $\n💷  10.000 $\n💰  25.000 $\n🚬  10× Marlboro Rot\n🚲  Elektro Fahrrad\n⛳  Golfschläger\n🎰  Lottoschein\n🎫  20% Gutschein Autohaus\n🏎️  **SPORTWAGEN** *(Hauptgewinn — Ticket erstellen!)*\n\n──────────────────────────────\n🛒 Kaufe ein Rubbellos im **Kwik-E-Markt** für **1.000 $**.\n▶️ Drücke den Button um dein Rubbellos einzulösen.\n\n🎯 Rubbele alle 9 Felder frei — **3× dasselbe Symbol = Gewinn!**\n🏆 Beim Sportwagen-Hauptgewinn bitte ein **Ticket erstellen!**`
+              )
+              .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' });
           const rubbBtn = new ButtonBuilder()
             .setCustomId('rubbellos_use')
             .setLabel('🎟️ Rubbellos einlösen')
