@@ -3668,8 +3668,6 @@ client.on('interactionCreate', async (interaction) => {
         saveShops(shops); await updateShopEmbed(shopId).catch(() => {});
         return interaction.reply({ content: '✅ **' + name + '** entfernt.', ephemeral: true });
       }
-});
-
   
         // ─── MONEY-ADD ──────────────────────────────────────────────────────────
         if (commandName === 'money-add') {
@@ -3768,6 +3766,8 @@ client.on('interactionCreate', async (interaction) => {
         }
 
   // ─── INVENTAR: Buttons & Modals ──────────────────────────────────────────────
+});
+
   client.on('interactionCreate', async (interaction) => {
     try {
       // ── Pagination: Rucksack ────────────────────────────────────────────────
@@ -4296,51 +4296,3 @@ if (!process.env.DISCORD_TOKEN) {
       });
   })(1);
 }
-    new SlashCommandBuilder()
-      .setName('money-add')
-      .setDescription('Füge einem Spieler Geld hinzu')
-      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
-      .addStringOption(o => o.setName('typ').setDescription('Art des Geldes').setRequired(true)
-        .addChoices(
-          { name: 'Kontogeld', value: 'konto' },
-          { name: 'Bargeld', value: 'bargeld' },
-          { name: 'Schwarzgeld', value: 'schwarz' }
-        ))
-      .addIntegerOption(o => o.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
-      .toJSON(),
-    new SlashCommandBuilder()
-      .setName('money-remove')
-      .setDescription('Entferne einem Spieler Geld')
-      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
-      .addStringOption(o => o.setName('typ').setDescription('Art des Geldes').setRequired(true)
-        .addChoices(
-          { name: 'Kontogeld', value: 'konto' },
-          { name: 'Bargeld', value: 'bargeld' },
-          { name: 'Schwarzgeld', value: 'schwarz' }
-        ))
-      .addIntegerOption(o => o.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
-      .toJSON(),
-    new SlashCommandBuilder()
-      .setName('bargeld')
-      .setDescription('Bargeldstand eines Spielers abrufen (nur im Finanzkanal)')
-      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
-      .toJSON(),
-    new SlashCommandBuilder()
-      .setName('rechnung-create')
-      .setDescription('Erstelle eine Rechnung für einen Spieler')
-      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
-      .addStringOption(o => o.setName('beschreibung').setDescription('Beschreibung der Rechnung').setRequired(true))
-      .addIntegerOption(o => o.setName('betrag').setDescription('Betrag in $').setRequired(true).setMinValue(1))
-      .toJSON(),
-    new SlashCommandBuilder()
-      .setName('einreise-startgeld')
-      .setDescription('Startgeld an einen neuen Spieler vergeben (Team)')
-      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
-      .addStringOption(o => o.setName('typ').setDescription('Einreiseart').setRequired(true)
-        .addChoices(
-          { name: 'Legal (5.000 $ Konto)', value: 'legal' },
-          { name: 'Illegal (5.000 $ Schwarzgeld)', value: 'illegal' },
-          { name: 'Gruppeneinreise Legal (10.000 $ Konto)', value: 'gruppe_legal' },
-          { name: 'Gruppeneinreise Illegal (10.000 $ Schwarzgeld)', value: 'gruppe_illegal' }
-        ))
-      .toJSON(),
