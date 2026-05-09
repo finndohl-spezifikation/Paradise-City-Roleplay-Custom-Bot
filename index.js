@@ -2011,6 +2011,13 @@ client.on('roleDelete', async (role) => {
 });
 
 client.on('roleUpdate', async (oldRole, newRole) => {
+  // Nur loggen wenn echte Rolleneigenschaften geändert wurden (nicht bei Personen-Rollen-Zuweisung)
+  const realChange = oldRole.name !== newRole.name
+    || oldRole.color !== newRole.color
+    || oldRole.hoist !== newRole.hoist
+    || oldRole.mentionable !== newRole.mentionable
+    || oldRole.permissions.bitfield !== newRole.permissions.bitfield;
+  if (!realChange) return;
   const entry    = await getAuditEntry(newRole.guild, AuditLogEvent.RoleUpdate);
   const executor = entry?.executor;
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
