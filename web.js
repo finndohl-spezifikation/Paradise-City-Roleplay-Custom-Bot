@@ -3,6 +3,7 @@ const multer  = require('multer');
 const session = require('express-session');
 const path    = require('path');
 const fs      = require('fs');
+const crypto  = require('crypto');
 
 const ROLE_REMOVE   = '1490855725516460234';
 const ROLES_ALL     = ['1490855719853887569','1490855722534310003','1495982076703539310','1497051373672599622','1490855731950256128','1490855741647618251','1490855728473178282','1490855779694280876'];
@@ -244,6 +245,160 @@ function charFields(prefix, idx, vals) {
     </div>
   </div>`;
 }
+
+function buildScratchPage(token, entry) {
+    const grid  = entry.grid;
+    const cells = grid.map((sym, i) => '<div class="cell" id="c'+i+'" data-i="'+i+'"><span class="sym">'+sym+'</span><canvas class="cv" width="104" height="104"></canvas></div>').join('');
+    const gridJ = JSON.stringify(grid);
+    return `<!DOCTYPE html>
+  <html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Rubbellos — Paradise City Roleplay</title>
+  <style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 48px}
+  .hdr{text-align:center;margin-bottom:28px}
+  .hdr .ico{font-size:3em;margin-bottom:8px}
+  .hdr h1{color:#ffd180;font-size:1.35em;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+  .hdr p{color:#8b949e;font-size:.85em;margin-top:6px}
+  .card{background:#161b22;border:2px solid #e65100;border-radius:18px;padding:28px 24px;max-width:430px;width:100%}
+  .hint{color:#8b949e;font-size:.78em;text-align:center;margin-bottom:14px}
+  .grid{display:grid;grid-template-columns:repeat(3,104px);grid-template-rows:repeat(3,104px);gap:8px;margin:0 auto;width:fit-content}
+  .cell{position:relative;width:104px;height:104px;background:#0d1117;border:2px solid #30363d;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .sym{font-size:2.4em;pointer-events:none;user-select:none}
+  .cv{position:absolute;inset:0;width:104px;height:104px;border-radius:8px;cursor:crosshair;touch-action:none}
+  .prog-wrap{margin:16px 0 8px}
+  .prog-txt{color:#8b949e;font-size:.78em;text-align:center;margin-bottom:6px}
+  .prog-bar{height:5px;background:#21262d;border-radius:3px;overflow:hidden}
+  .prog-fill{height:100%;background:linear-gradient(90deg,#bf360c,#e65100);transition:width .25s;width:0%}
+  .claim-btn{display:none;width:100%;padding:16px;background:#e65100;color:#fff;border:none;border-radius:10px;font-size:1.05em;font-weight:700;letter-spacing:1px;cursor:pointer;margin-top:12px;transition:background .15s}
+  .claim-btn:hover{background:#bf360c}
+  .claim-btn.show{display:block}
+  .claim-btn:disabled{background:#555;cursor:not-allowed}
+  .result{display:none;text-align:center;margin-top:20px;padding-top:18px;border-top:1px solid #21262d}
+  .result.show{display:block}
+  .result .ri{font-size:3em;margin-bottom:10px}
+  .result h2{color:#ffd180;font-size:1.15em;margin-bottom:8px}
+  .result p{font-size:.9em;line-height:1.6;color:#c9d1d9}
+  .win{color:#3fb950;font-weight:700}
+  .lose{color:#8b949e}
+  .spinner{display:inline-block;width:18px;height:18px;border:2px solid #555;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .expire{color:#555;font-size:.7em;text-align:center;margin-top:18px}
+  @media(max-width:380px){.grid{grid-template-columns:repeat(3,90px);grid-template-rows:repeat(3,90px)}.cell,.cv{width:90px;height:90px}}
+  </style></head><body>
+  <div class="hdr"><div class="ico">🎟️</div><h1>Paradise City Rubbellos</h1><p>Rubbele alle 9 Felder frei und sichere deinen Gewinn!</p></div>
+  <div class="card">
+  <p class="hint">🖱️ Maus gedrückt halten &amp; rubbeln &mdash; oder auf dem Handy mit dem Finger</p>
+  <div class="grid">${cells}</div>
+  <div class="prog-wrap"><p class="prog-txt" id="pt">0 % freigerubbelt</p><div class="prog-bar"><div class="prog-fill" id="pf"></div></div></div>
+  <button class="claim-btn" id="cb" onclick="claim()">🏆 Gewinn jetzt sichern!</button>
+  <div class="result" id="res"></div>
+  <p class="expire">⏰ Dieser Link ist 30 Minuten gültig &bull; Du kannst ihn nur einmal verwenden</p>
+  </div>
+  <script>
+  const TOKEN='${token}';
+  const GRID=${gridJ};
+  const scratched=new Array(9).fill(0);
+  let claimed=false;
+
+  // Paint each canvas with scratch coating
+  document.querySelectorAll('.cv').forEach((cv,i)=>{
+    const ctx=cv.getContext('2d');
+    const g=ctx.createLinearGradient(0,0,104,104);
+    g.addColorStop(0,'#9e9e9e');g.addColorStop(.5,'#c8c8c8');g.addColorStop(1,'#757575');
+    ctx.fillStyle=g;
+    if(ctx.roundRect)ctx.roundRect(0,0,104,104,8);else ctx.fillRect(0,0,104,104);
+    ctx.fill();
+    // "RUBBELN" label
+    ctx.fillStyle='rgba(0,0,0,.35)';ctx.font='bold 12px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('RUBBELN',52,52);
+    // star deco
+    ctx.fillStyle='rgba(255,255,255,.18)';
+    for(let s=0;s<6;s++){ctx.beginPath();ctx.arc(Math.random()*90+7,Math.random()*90+7,1.5,0,Math.PI*2);ctx.fill();}
+  });
+
+  function pct(){return Math.round(scratched.reduce((a,b)=>a+b,0)/9);}
+  function upd(){
+    const p=pct();
+    document.getElementById('pf').style.width=p+'%';
+    document.getElementById('pt').textContent=p+'\u0025 freigerubbelt';
+    if(p>=80)document.getElementById('cb').classList.add('show');
+  }
+
+  function scrAt(cv,i,x,y,r){
+    const ctx=cv.getContext('2d');
+    ctx.globalCompositeOperation='destination-out';
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+    const d=ctx.getImageData(0,0,cv.width,cv.height).data;
+    let t=0;for(let p=3;p<d.length;p+=4)if(d[p]===0)t++;
+    scratched[i]=Math.min(100,Math.round(t/(d.length/4)*100));
+    upd();
+  }
+
+  let dn=false;
+  const R=window.innerWidth<380?20:26;
+  const canvases=[...document.querySelectorAll('.cv')];
+  canvases.forEach((cv,i)=>{
+    const go=(e,type)=>{
+      if(type==='start')dn=true;
+      if(!dn)return;
+      if(type==='end'){dn=false;return;}
+      const rect=cv.getBoundingClientRect();
+      const src=e.touches?e.touches[0]:e;
+      scrAt(cv,i,src.clientX-rect.left,src.clientY-rect.top,R);
+    };
+    cv.addEventListener('mousedown',e=>go(e,'start'));
+    cv.addEventListener('mousemove',e=>go(e,'move'));
+    cv.addEventListener('touchstart',e=>{e.preventDefault();go(e,'start');},{passive:false});
+    cv.addEventListener('touchmove',e=>{e.preventDefault();go(e,'move');},{passive:false});
+    cv.addEventListener('touchend',e=>go(e,'end'));
+  });
+  document.addEventListener('mouseup',()=>{dn=false;});
+
+  // allow scratch to cross cell borders
+  document.querySelector('.grid').addEventListener('mousemove',e=>{
+    if(!dn)return;
+    canvases.forEach((cv,i)=>{
+      const r=cv.getBoundingClientRect();
+      const x=e.clientX-r.left,y=e.clientY-r.top;
+      if(x>=0&&x<=cv.width&&y>=0&&y<=cv.height)scrAt(cv,i,x,y,R);
+    });
+  });
+
+  async function claim(){
+    if(claimed)return;
+    claimed=true;
+    const btn=document.getElementById('cb');
+    btn.disabled=true;
+    btn.innerHTML='<span class="spinner"></span>Wird gebucht\u2026';
+    try{
+      const r=await fetch('/api/rubbellos/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN})});
+      const d=await r.json();
+      const res=document.getElementById('res');
+      res.classList.add('show');
+      btn.style.display='none';
+      if(d.ok){
+        const p=d.prize;
+        let ico=p.sym||'🎁',h='',msg='';
+        if(p.type==='cash'){h='🎉 Gewonnen!';msg='<span class="win">💰 '+p.amount.toLocaleString('de-DE')+' \u0024 wurden deinem Bargeld gutgeschrieben!</span>';}
+        else if(p.type==='item'){h='🎉 Gewonnen!';msg='<span class="win">🎁 '+(p.menge||1)+'\u00D7 '+p.item+' wurde deinem Inventar hinzugef\u00FCgt!</span>';}
+        else if(p.type==='ticket'){h='🏆 HAUPTGEWINN!';ico='🏎️';msg='<span class="win">🏎️ SPORTWAGEN! Bitte ein Support-Ticket in Discord erstellen!</span>';}
+        else{h='😢 Leider Niete';msg='<span class="lose">Kein Gewinn diesmal — viel Gl\u00FCck beim n\u00E4chsten Mal!</span>';}
+        res.innerHTML='<div class="ri">'+ico+'</div><h2>'+h+'</h2><p>'+msg+'</p><p style="color:#555;font-size:.75em;margin-top:14px">Du kannst dieses Fenster schlie\u00DFen.</p>';
+      }else{
+        res.innerHTML='<div class="ri">❌</div><h2>Fehler</h2><p>'+(d.error||'Unbekannter Fehler')+'</p>';
+        claimed=false;btn.disabled=false;btn.innerHTML='🏆 Gewinn jetzt sichern!';
+      }
+    }catch(e){
+      document.getElementById('res').innerHTML='<div class="ri">❌</div><h2>Verbindungsfehler</h2><p>Bitte erneut versuchen.</p>';
+      document.getElementById('res').classList.add('show');
+      claimed=false;const btn=document.getElementById('cb');btn.disabled=false;btn.innerHTML='🏆 Gewinn jetzt sichern!';
+    }
+  }
+  </script></body></html>`;
+  }
+
+  const rubbellosTokens = new Map();
 
 module.exports = function startWebServer(client, DATA_DIR) {
   const app        = express();
@@ -1323,7 +1478,61 @@ module.exports = function startWebServer(client, DATA_DIR) {
     `));
   });
 
-  // ── Start ────────────────────────────────────────────────────────────────
+
+    // ─── RUBBELLOS SCRATCH CARD ──────────────────────────────────────────────────
+
+    // Helper: cash + inventory access from web context
+    (function() {
+      const BARGELD_FILE  = path.join(DATA_DIR, 'bargeld.json');
+      const INVENTAR_FILE = path.join(DATA_DIR, 'inventar.json');
+      function _lb() { try { return JSON.parse(fs.readFileSync(BARGELD_FILE,'utf8')); } catch { return {}; } }
+      function _sb(d) { fs.writeFileSync(BARGELD_FILE, JSON.stringify(d,null,2),'utf8'); }
+      function _li() { try { return JSON.parse(fs.readFileSync(INVENTAR_FILE,'utf8')); } catch { return {}; } }
+      function _si(d) { fs.writeFileSync(INVENTAR_FILE, JSON.stringify(d,null,2),'utf8'); }
+      app._rCash   = uid => (_lb()[uid]||0);
+      app._wCash   = (uid,amt) => { const d=_lb(); d[uid]=amt; _sb(d); };
+      app._rInv    = uid => (_li()[uid]||{});
+      app._wInv    = (uid,items) => { const d=_li(); d[uid]=items; _si(d); };
+    })();
+
+    // GET /rubbellos?token=XXX  — serves the scratch card page
+    app.get('/rubbellos', (req, res) => {
+      const entry = rubbellosTokens.get(req.query.token||'');
+      if (!entry || entry.usedAt || entry.expiresAt < Date.now()) {
+        return res.send('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ungültig</title><style>body{background:#0d1117;color:#e0e0e0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px}</style></head><body><div style="font-size:3em">❌</div><h2 style="color:#f85149">Link ungültig oder abgelaufen</h2><p style="color:#8b949e">Bitte löse das Rubbellos erneut über Discord ein.</p></body></html>');
+      }
+      res.send(buildScratchPage(req.query.token, entry));
+    });
+
+    // POST /api/rubbellos/claim  — validates token and credits prize
+    app.post('/api/rubbellos/claim', express.json(), (req, res) => {
+      const token = (req.body||{}).token||'';
+      const entry = rubbellosTokens.get(token);
+      if (!entry || entry.usedAt || entry.expiresAt < Date.now()) {
+        return res.json({ ok: false, error: 'Token ungültig oder bereits verwendet.' });
+      }
+      entry.usedAt = Date.now();
+      const prize = entry.prize;
+      const uid   = entry.uid;
+      try {
+        if (prize.type === 'cash') {
+          app._wCash(uid, app._rCash(uid) + prize.amount);
+        } else if (prize.type === 'item') {
+          const inv = app._rInv(uid);
+          inv[prize.item] = (inv[prize.item]||0) + (prize.menge||1);
+          app._wInv(uid, inv);
+        }
+        // ticket type: no auto-credit, user creates a support ticket
+      } catch(e) {
+        console.error('[Rubbellos claim]', e.message);
+        return res.json({ ok: false, error: 'Serverfehler beim Gutschreiben.' });
+      }
+      res.json({ ok: true, prize });
+    });
+
+    // ── Start ────────────────────────────────────────────────────────────────
   const PORT = process.env.PORT || 8080;
   app.listen(PORT, '0.0.0.0', () => console.log(`🌐 Web-Server läuft auf Port ${PORT}`));
 };
+module.exports.tokens = rubbellosTokens;
+
