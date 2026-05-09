@@ -410,14 +410,6 @@ module.exports = function startWebServer(client, DATA_DIR) {
         return res.redirect('/einreise/legal');
       }
     // Charakter-Rollen-Prüfung
-    try {
-      const _guildL  = client.guilds.cache.first();
-      const _memberL = _guildL ? await _guildL.members.fetch(discordId).catch(() => null) : null;
-      if (_memberL && _memberL.roles.cache.has('1490855725516460234')) {
-        req.session.legalError = '❌ Du hast noch die Charakter-Rolle. Eine Einzel-Einreise ist für dich nicht möglich. Wende dich ans Team.';
-        return res.redirect('/einreise/legal');
-      }
-    } catch {}
       // Passbild als Buffer speichern (multer memory)
     try {
       const ext = req.file.mimetype.includes('png') ? 'png' : req.file.mimetype.includes('webp') ? 'webp' : 'jpg';
@@ -519,14 +511,6 @@ module.exports = function startWebServer(client, DATA_DIR) {
       return res.redirect('/einreise/illegal');
     }
     // Charakter-Rollen-Prüfung: Spieler darf keine Charakter-Rolle mehr haben
-    try {
-      const _guild  = client.guilds.cache.first();
-      const _member = _guild ? await _guild.members.fetch(discordId).catch(() => null) : null;
-      if (_member && _member.roles.cache.has('1490855725516460234')) {
-        req.session.illegalError = '❌ Du hast noch die Charakter-Rolle. Eine Einzel-Einreise ist für dich nicht möglich. Wende dich ans Team.';
-        return res.redirect('/einreise/illegal');
-      }
-    } catch {}
     // Rollen vergeben
     try {
       const guild  = client.guilds.cache.first();
