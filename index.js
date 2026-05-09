@@ -22,7 +22,8 @@ const {
   AttachmentBuilder,
 } = require('discord.js');
 const fs   = require('fs');
-const path = require('path');
+const path   = require('path');
+const crypto = require('crypto');
 
 // ─── Datenspeicherung ─────────────────────────────────────────────────────────
 const DATA_DIR      = path.join(__dirname, 'data');
@@ -4114,44 +4115,34 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── Button: Rubbellos einlösen ──────────────────────────────────────────────
   if (interaction.isButton() && interaction.customId === 'rubbellos_use') {
-    const uid = interaction.user.id;
-    const inv = getUserInv(uid);
-    const rubbelKey = Object.keys(inv).find(k => k.toLowerCase().includes('rubbellos'));
-    if (!rubbelKey || inv[rubbelKey] < 1) {
-      return interaction.reply({ content: '❌ Du hast kein **Rubbellos** im Inventar.\n🛒 Kaufe eines im **Kwik-E-Markt**!', ephemeral: true });
+      const inv = getUserInv(uid);
+      const rubbelKey = Object.keys(inv).find(k => k.toLowerCase().includes('rubbellos'));
+      if (!rubbelKey || inv[rubbelKey] < 1) {
+        return interaction.reply({ content: '\u274C Du hast kein **Rubbellos** im Inventar.\n\uD83D\uDED2 Kaufe eines im **Kwik-E-Markt**!', ephemeral: true });
+      }
+      // Rubbellos aus Inventar entfernen
+      inv[rubbelKey] -= 1;
+      if (inv[rubbelKey] <= 0) delete inv[rubbelKey];
+      setUserInv(uid, inv);
+      // Gewinn + Grid vorbestimmen
+      const rubbelPrize = pickRubbelPrize();
+      const rubbelGrid  = buildRubbelGrid(rubbelPrize);
+      // Einmal-Token generieren (30 min gueltig)
+      const rubbelToken = crypto.randomBytes(16).toString('hex');
+      _webMod.tokens.set(rubbelToken, { uid, prize: rubbelPrize, grid: rubbelGrid, usedAt: null, expiresAt: Date.now() + 30 * 60 * 1000 });
+      const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
+      const scratchUrl = WEBAPP_URL + '/rubbellos?token=' + rubbelToken;
+      const scratchBtn = new ButtonBuilder()
+        .setLabel('\uD83C\uDF9F\uFE0F Jetzt Rubbeln!')
+        .setStyle(ButtonStyle.Link)
+        .setURL(scratchUrl);
+      const scratchRow = new ActionRowBuilder().addComponents(scratchBtn);
+      return interaction.reply({
+        content: '\uD83C\uDF9F\uFE0F Dein Rubbellos ist bereit! Klicke den Button um es im Browser zu rubbeln.\n\u23F0 Der Link ist **30 Minuten** g\u00FCltig.',
+        components: [scratchRow],
+        ephemeral: true
+      });
     }
-    // Rubbellos aus Inventar entfernen
-    inv[rubbelKey] -= 1;
-    if (inv[rubbelKey] <= 0) delete inv[rubbelKey];
-    setUserInv(uid, inv);
-    // Gewinn ermitteln
-    const rubbelPrize = pickRubbelPrize();
-    const rubbelGrid  = buildRubbelGrid(rubbelPrize);
-    const rubbelStr   = formatRubbelGrid(rubbelGrid);
-    // Gewinn auszahlen
-    let prizeMsg = '';
-    if (rubbelPrize.type === 'cash') {
-      setCash(uid, getCash(uid) + rubbelPrize.amount);
-      prizeMsg = `💰 **Gewinn: ${rubbelPrize.amount.toLocaleString('de-DE')} $** wurden deinem Bargeld gutgeschrieben!`;
-    } else if (rubbelPrize.type === 'item') {
-      const invI = getUserInv(uid);
-      invI[rubbelPrize.item] = (invI[rubbelPrize.item] || 0) + rubbelPrize.menge;
-      setUserInv(uid, invI);
-      prizeMsg = `🎁 **Gewinn: ${rubbelPrize.menge}× ${rubbelPrize.item}** wurde deinem Inventar hinzugefügt!`;
-    } else if (rubbelPrize.type === 'ticket') {
-      prizeMsg = '🏎️ **HAUPTGEWINN: SPORTWAGEN!**\nErstelle bitte ein **Ticket** um deinen Gewinn abzuholen!';
-    } else {
-      prizeMsg = '😢 Leider nichts gewonnen. Viel Glück beim nächsten Mal!';
-    }
-    const isWin = rubbelPrize.type !== 'niete';
-    const rubbelEmbed = new EmbedBuilder()
-      .setColor(rubbelPrize.type === 'ticket' ? 0xFFD700 : isWin ? 0xE65100 : 0x555555)
-      .setTitle(rubbelPrize.type === 'ticket' ? '🏆 HAUPTGEWINN!' : isWin ? '🎉 Gewonnen!' : '😢 Niete')
-      .setDescription(`\`\`\`\n${rubbelStr}\n\`\`\`\n${prizeMsg}`)
-      .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' })
-      .setTimestamp();
-    return interaction.reply({ embeds: [rubbelEmbed], ephemeral: true });
-  }
 
   // Team Shop: pagination & take
   if (interaction.isButton() && interaction.customId.startsWith('ts_')) {
@@ -4624,7 +4615,8 @@ process.on('uncaughtException', (err) => {
 });
 
 // ─── WEB SERVER ───────────────────────────────────────────────────────────────
-require('./web')(client, DATA_DIR);
+const _webMod = require('./web');
+_webMod(client, DATA_DIR);
 
 // ─── LOGIN (mit Retry) ───────────────────────────────────────────────────────
 if (!process.env.DISCORD_TOKEN) {
