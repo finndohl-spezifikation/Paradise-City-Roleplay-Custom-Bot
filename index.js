@@ -448,7 +448,6 @@ async function buildInviteCache(guild) {
       .setDescription('Löscht Nachrichten in diesem Kanal (max. 200)')
       .addIntegerOption(opt =>
         opt.setName('anzahl').setDescription('Anzahl (1–200)').setRequired(true).setMinValue(1).setMaxValue(200))
-      .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
       .toJSON(),
 
     new SlashCommandBuilder()
@@ -457,21 +456,18 @@ async function buildInviteCache(guild) {
       .addUserOption(opt => opt.setName('nutzer').setDescription('Das Teammitglied').setRequired(true))
       .addStringOption(opt => opt.setName('grund').setDescription('Grund').setRequired(true))
       .addStringOption(opt => opt.setName('konsequenz').setDescription('Konsequenz').setRequired(true))
-      .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
       .toJSON(),
 
     new SlashCommandBuilder()
       .setName('teamwarn-remove')
       .setDescription('Entfernt die letzte Team Warn eines Teammitglieds')
       .addUserOption(opt => opt.setName('nutzer').setDescription('Das Teammitglied').setRequired(true))
-      .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
       .toJSON(),
 
     new SlashCommandBuilder()
       .setName('teamwarn-list')
       .setDescription('Zeigt alle Team Warns eines Nutzers')
       .addUserOption(opt => opt.setName('nutzer').setDescription('Das Teammitglied').setRequired(true))
-      .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
       .toJSON(),
 
       new SlashCommandBuilder()
@@ -2610,6 +2606,127 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
 
+
+        // /frakadd
+        if (commandName === 'frakadd') {
+          const name = interaction.options.getString('name').trim();
+          const typ  = interaction.options.getString('typ');
+          const data = loadFraktionen();
+          if (data[name]) return interaction.reply({ content: `❌ Fraktion **${name}** existiert bereits.`, ephemeral: true });
+          data[name] = { typ, warns: [], gesperrt: false, sperreGrund: null, addedBy: user.id, addedAt: new Date().toISOString() };
+          saveFraktionen(data);
+          await updateFrakEmbed().catch(() => {});
+          return interaction.reply({ content: `✅ Fraktion **${name}** (${typ}) wurde hinzugefügt.`, ephemeral: true });
+        }
+
+        // /frak-delete
+        if (commandName === 'frak-delete') {
+          const name = interaction.options.getString('name').trim();
+          const data = loadFraktionen();
+          if (!data[name]) return interaction.reply({ content: `❌ Fraktion **${name}** nicht gefunden.`, ephemeral: true });
+          delete data[name];
+          saveFraktionen(data);
+          await updateFrakEmbed().catch(() => {});
+          return interaction.reply({ content: `✅ Fraktion **${name}** wurde gelöscht.`, ephemeral: true });
+        }
+
+        // /frakwarn
+        if (commandName === 'frakwarn') {
+          const name  = interaction.options.getString('fraktion').trim();
+          const grund = interaction.options.getString('grund');
+          const data  = loadFraktionen();
+          if (!data[name]) return interaction.reply({ content: `❌ Fraktion **${name}** nicht gefunden.`, ephemeral: true });
+          data[name].warns.push({ grund, by: user.id, at: new Date().toISOString() });
+          saveFraktionen(data);
+          await updateFrakEmbed().catch(() => {});
+          const logCh = await client.channels.fetch(FRAK_LOG_CH).catch(() => null);
+          if (logCh) await logCh.send({ embeds: [new EmbedBuilder()
+            .setColor(0xE65100)
+            .setTitle(`⚠️  Fraktionsverwarnung — ${name}`)
+            .addFields(
+              { name: 'Fraktion', value: `**${name}** (${data[name].typ})`, inline: true },
+              { name: 'Warns gesamt', value: `${data[name].warns.length}`, inline: true },
+              { name: 'Grund', value: grund },
+              { name: 'Vergeben von', value: `<@${user.id}>`, inline: true },
+              { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
+            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp()
+          ]});
+          return interaction.reply({ content: `✅ **${name}** hat jetzt ${data[name].warns.length} Verwarnung(en).`, ephemeral: true });
+        }
+
+        // /frakwarn-remove
+        if (commandName === 'frakwarn-remove') {
+          const name = interaction.options.getString('fraktion').trim();
+          const data = loadFraktionen();
+          if (!data[name]) return interaction.reply({ content: `❌ Fraktion **${name}** nicht gefunden.`, ephemeral: true });
+          if (!data[name].warns.length) return interaction.reply({ content: `❌ **${name}** hat keine Verwarnungen.`, ephemeral: true });
+          const removed = data[name].warns.pop();
+          saveFraktionen(data);
+          await updateFrakEmbed().catch(() => {});
+          const logCh = await client.channels.fetch(FRAK_LOG_CH).catch(() => null);
+          if (logCh) await logCh.send({ embeds: [new EmbedBuilder()
+            .setColor(Colors.Green)
+            .setTitle(`✅  Fraktionsverwarnung entfernt — ${name}`)
+            .addFields(
+              { name: 'Fraktion', value: `**${name}** (${data[name].typ})`, inline: true },
+              { name: 'Warns verbleibend', value: `${data[name].warns.length}`, inline: true },
+              { name: 'Entfernte Warn', value: removed.grund },
+              { name: 'Entfernt von', value: `<@${user.id}>`, inline: true },
+              { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
+            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp()
+          ]});
+          return interaction.reply({ content: `✅ Letzte Verwarnung von **${name}** entfernt. Noch ${data[name].warns.length} übrig.`, ephemeral: true });
+        }
+
+        // /fraksperre
+        if (commandName === 'fraksperre') {
+          const name  = interaction.options.getString('fraktion').trim();
+          const grund = interaction.options.getString('grund');
+          const data  = loadFraktionen();
+          if (!data[name]) return interaction.reply({ content: `❌ Fraktion **${name}** nicht gefunden.`, ephemeral: true });
+          if (data[name].gesperrt) return interaction.reply({ content: `❌ **${name}** ist bereits gesperrt.`, ephemeral: true });
+          data[name].gesperrt = true; data[name].sperreGrund = grund;
+          data[name].gesperrtBy = user.id; data[name].gesperrtAt = new Date().toISOString();
+          saveFraktionen(data);
+          await updateFrakEmbed().catch(() => {});
+          const logCh = await client.channels.fetch(FRAK_LOG_CH).catch(() => null);
+          if (logCh) await logCh.send({ embeds: [new EmbedBuilder()
+            .setColor(Colors.Red)
+            .setTitle(`🔒  Fraktion gesperrt — ${name}`)
+            .addFields(
+              { name: 'Fraktion', value: `**${name}** (${data[name].typ})`, inline: true },
+              { name: 'Grund', value: grund },
+              { name: 'Gesperrt von', value: `<@${user.id}>`, inline: true },
+              { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
+            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp()
+          ]});
+          return interaction.reply({ content: `🔒 Fraktion **${name}** wurde gesperrt.`, ephemeral: true });
+        }
+
+        // /fraksperre-remove
+        if (commandName === 'fraksperre-remove') {
+          const name = interaction.options.getString('fraktion').trim();
+          const data = loadFraktionen();
+          if (!data[name]) return interaction.reply({ content: `❌ Fraktion **${name}** nicht gefunden.`, ephemeral: true });
+          if (!data[name].gesperrt) return interaction.reply({ content: `❌ **${name}** ist nicht gesperrt.`, ephemeral: true });
+          data[name].gesperrt = false; data[name].sperreGrund = null;
+          data[name].gesperrtBy = null; data[name].gesperrtAt = null;
+          saveFraktionen(data);
+          await updateFrakEmbed().catch(() => {});
+          const logCh = await client.channels.fetch(FRAK_LOG_CH).catch(() => null);
+          if (logCh) await logCh.send({ embeds: [new EmbedBuilder()
+            .setColor(Colors.Green)
+            .setTitle(`🔓  Fraktionssperre aufgehoben — ${name}`)
+            .addFields(
+              { name: 'Fraktion', value: `**${name}** (${data[name].typ})`, inline: true },
+              { name: 'Aufgehoben von', value: `<@${user.id}>`, inline: true },
+              { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
+            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp()
+          ]});
+          return interaction.reply({ content: `🔓 Sperre von **${name}** wurde aufgehoben.`, ephemeral: true });
+        }
+
+  
 });
 
 // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
