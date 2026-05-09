@@ -3223,7 +3223,17 @@ client.on('interactionCreate', async (interaction) => {
           files.forEach(f => fs.unlinkSync(path.join(uploadsDir, f)));
         }
       } catch {}
-      return interaction.reply({ content: `✅ Ausweis von **${target.tag}** wurde gelöscht.`, ephemeral: true });
+      // Rollen zurücksetzen: ROLE_REMOVE hinzufügen, Einreise-Rollen entfernen
+        try {
+          const _guild = interaction.guild || client.guilds.cache.first();
+          const _mem   = _guild ? await _guild.members.fetch(target.id).catch(() => null) : null;
+          if (_mem) {
+            await _mem.roles.add('1490855725516460234').catch(() => {});
+            for (const r of ['1490855719853887569','1490855722534310003','1495982076703539310','1497051373672599622','1490855731950256128','1490855741647618251','1490855728473178282','1490855779694280876','1490855729635135489','1490855750329696446','1490855788829216940','1490855796932739093','1498392324277796965','1490855730767597738','1498393200426221679']) await _mem.roles.remove(r).catch(() => {});
+            await _mem.setNickname(null).catch(() => {});
+          }
+        } catch {}
+        return interaction.reply({ content: `✅ Ausweis von **${target.tag}** wurde gelöscht und Rollen zurückgesetzt.`, ephemeral: true });
     }
   
 
@@ -3934,11 +3944,15 @@ Link: ${link}`, ephemeral: true });
         // Passbild löschen
         for (const ext of ['jpg','png','webp']) { try { fs.unlinkSync(path.join(DATA_DIR,'uploads',uid+'.'+ext)); } catch {} }
 
-        // Server-Nickname zurücksetzen
-        try {
-          const member = await interaction.guild.members.fetch(uid).catch(() => null);
-          if (member) await member.setNickname(null).catch(() => {});
-        } catch {}
+        // Server-Nickname + Rollen zurücksetzen
+          try {
+            const member = await interaction.guild.members.fetch(uid).catch(() => null);
+            if (member) {
+              await member.setNickname(null).catch(() => {});
+              await member.roles.add('1490855725516460234').catch(() => {});
+              for (const r of ['1490855719853887569','1490855722534310003','1495982076703539310','1497051373672599622','1490855731950256128','1490855741647618251','1490855728473178282','1490855779694280876','1490855729635135489','1490855750329696446','1490855788829216940','1490855796932739093','1498392324277796965','1490855730767597738','1498393200426221679']) await member.roles.remove(r).catch(() => {});
+            }
+          } catch {}
 
         await interaction.reply({
           embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🔄 Charakter zurückgesetzt')
