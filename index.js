@@ -114,6 +114,42 @@ function buildAktivitaetEmbed(data) {
     .setFooter({ text: 'Paradise City Roleplay  •  Aktivitätscheck  •  Reagiere mit ✅' })
     .setTimestamp(data.createdAt ? new Date(data.createdAt) : new Date());
 }
+
+function parseDuration(str) {
+  const s = str.trim().toLowerCase();
+  let ms = 0;
+  const d = s.match(/(\d+)d/); if (d) ms += parseInt(d[1]) * 86400000;
+  const h = s.match(/(\d+)h/); if (h) ms += parseInt(h[1]) * 3600000;
+  const m = s.match(/(\d+)m/); if (m) ms += parseInt(m[1]) * 60000;
+  return ms;
+}
+function formatDuration(ms) {
+  const d = Math.floor(ms / 86400000); ms %= 86400000;
+  const h = Math.floor(ms / 3600000);  ms %= 3600000;
+  const m = Math.floor(ms / 60000);
+  return [d && d+'d', h && h+'h', m && m+'m'].filter(Boolean).join(' ') || '< 1m';
+}
+function buildGiveawayEmbed(preis, endetAt, teilnehmer) {
+  const endetTs = Math.floor(endetAt / 1000);
+  return new EmbedBuilder()
+    .setColor(0xFFD700)
+    .setTitle('\uD83C\uDF89  \u2501\u2501\u2501  G I V E A W A Y  \u2501\u2501\u2501  \uD83C\uDF89')
+    .setDescription(
+      '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n' +
+      '**Reagiere mit \uD83C\uDF89 um teilzunehmen!**\n' +
+      '*(Nur Mitglieder mit der B\u00FCrger-Rolle werden ausgelost)*\n' +
+      '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501'
+    )
+    .addFields(
+      { name: '\uD83C\uDFC6  PREIS',      value: '```' + preis + '```', inline: false },
+      { name: '\u23F3  ENDET',       value: '<t:' + endetTs + ':R> \u2022 <t:' + endetTs + ':f>', inline: false },
+      { name: '\uD83C\uDF9F\uFE0F  TEILNEHMER', value: '**' + teilnehmer + '** Personen nehmen teil', inline: false },
+    )
+    .setFooter({ text: 'Paradise City Roleplay  \u2022  Giveaway  \u2022  Reagiere mit \uD83C\uDF89' })
+    .setTimestamp();
+}
+const activeGiveaways = new Map();
+
 function makeCode()     { return Math.random().toString(36).toUpperCase().slice(2, 8); }
 
 function loadWarns()    { try { return JSON.parse(fs.readFileSync(WARN_FILE,    'utf8')); } catch { return {}; } }
@@ -356,6 +392,13 @@ client.once('ready', async () => {
       .setName('ausweise')
       .setDescription('Zeigt den offiziellen Ausweis einer Person an')
       .addUserOption(opt => opt.setName('person').setDescription('Mitglied dessen Ausweis angezeigt werden soll').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('giveaway')
+      .setDescription('Startet ein Giveaway im Event-Kanal')
+      .addStringOption(opt => opt.setName('preis').setDescription('Was wird verlost?').setRequired(true))
+      .addStringOption(opt => opt.setName('dauer').setDescription('Dauer z.B. 1h, 30m, 1d').setRequired(true))
       .toJSON(),
 
     new SlashCommandBuilder()
@@ -2149,6 +2192,69 @@ client.on('interactionCreate', async (interaction) => {
           await ch.send({ content: `<@&${EVENT_ROLE}>`, embeds: [embed] });
           return interaction.reply({ content: '✅ Event wurde im Event-Kanal gepostet!', ephemeral: true });
         }
+
+      // /giveaway
+      if (commandName === 'giveaway') {
+        const preis = interaction.options.getString('preis');
+        const dauerStr = interaction.options.getString('dauer');
+        const dauerMs = parseDuration(dauerStr);
+        if (!dauerMs || dauerMs < 60000) return interaction.reply({ content: '\u274C Mindestdauer: 1 Minute. Beispiele: 1h, 30m, 1d', ephemeral: true });
+        if (dauerMs > 7 * 86400000) return interaction.reply({ content: '\u274C Maximale Dauer: 7 Tage.', ephemeral: true });
+        const GIVEAWAY_CH   = '1490882564561567864';
+        const GIVEAWAY_ROLE = '1490855722534310003';
+        const endetAt = Date.now() + dauerMs;
+        try {
+          const ch = await client.channels.fetch(GIVEAWAY_CH).catch(() => null);
+          if (!ch) return interaction.reply({ content: '\u274C Giveaway-Kanal nicht gefunden.', ephemeral: true });
+          const pingMsg = await ch.send({ content: '<@&' + GIVEAWAY_ROLE + '>' });
+          const gwMsg   = await ch.send({ embeds: [buildGiveawayEmbed(preis, endetAt, 0)] });
+          await gwMsg.react('\uD83C\uDF89');
+          activeGiveaways.set(gwMsg.id, { endetAt, preis, channelId: GIVEAWAY_CH, roleId: GIVEAWAY_ROLE });
+          await interaction.reply({ content: '\u2705 Giveaway gestartet: ' + gwMsg.url, ephemeral: true });
+          setTimeout(async () => {
+            try {
+              const gwMsgFresh = await ch.messages.fetch(gwMsg.id).catch(() => null);
+              if (!gwMsgFresh) return;
+              const reaction = gwMsgFresh.reactions.cache.get('\uD83C\uDF89');
+              const reactUsers = reaction ? await reaction.users.fetch() : new Map();
+              const guild = ch.guild;
+              const eligible = [];
+              for (const [uid, u] of reactUsers) {
+                if (u.bot) continue;
+                const mem = await guild.members.fetch(uid).catch(() => null);
+                if (mem && mem.roles.cache.has(GIVEAWAY_ROLE)) eligible.push(mem);
+              }
+              activeGiveaways.delete(gwMsg.id);
+              if (eligible.length === 0) {
+                const noWinEmbed = new EmbedBuilder()
+                  .setColor(0xFF4444)
+                  .setTitle('\uD83C\uDF89  GIVEAWAY BEENDET')
+                  .setDescription('Leider hat niemand mit der ben\u00F6tigten Rolle teilgenommen.\n**Preis:** ' + preis)
+                  .setTimestamp();
+                await gwMsgFresh.edit({ embeds: [noWinEmbed] });
+                await ch.send({ content: '\u274C Kein g\u00FCltiger Teilnehmer gefunden. Giveaway endet ohne Gewinner.' });
+                return;
+              }
+              const winner = eligible[Math.floor(Math.random() * eligible.length)];
+              const winEmbed = new EmbedBuilder()
+                .setColor(0xFFD700)
+                .setTitle('\uD83C\uDF89  GIVEAWAY BEENDET  \uD83C\uDF89')
+                .setDescription(
+                  '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n' +
+                  '\uD83C\uDFC6 **Gewinner:** <@' + winner.id + '>\n' +
+                  '\uD83C\uDF81 **Preis:** ' + preis + '\n' +
+                  '\uD83C\uDF9F\uFE0F **Teilnehmer:** ' + eligible.length + '\n' +
+                  '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501'
+                )
+                .setFooter({ text: 'Paradise City Roleplay  \u2022  Giveaway abgeschlossen' })
+                .setTimestamp();
+              await gwMsgFresh.edit({ embeds: [winEmbed] });
+              await ch.send({ content: '\uD83C\uDF89 Herzlichen Gl\u00FCckwunsch <@' + winner.id + '>! Du hast **' + preis + '** gewonnen!' });
+            } catch (e2) { console.error('Giveaway-Ende Fehler:', e2.message); }
+          }, dauerMs);
+        } catch (e) { return interaction.reply({ content: '\u274C Fehler: ' + e.message, ephemeral: true }); }
+        return;
+      }
 
 });
 
