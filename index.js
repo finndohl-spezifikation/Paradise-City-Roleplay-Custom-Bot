@@ -120,6 +120,56 @@ const AKTIVITAET_CH      = '1502382574310392040';
     function clearCart(uid, shopId) { shopCarts.set(uid + shopId, []); }
     function cartTotal(cart) { return cart.reduce((s, i) => s + i.preis * i.menge, 0); }
 
+  // ─── KONTO / BANKING HELPERS ─────────────────────────────────────────────────
+  const KONTO_FILE       = './data/konto.json';
+  const TRANS_FILE       = './data/transaktionen.json';
+  const LOHNLOG_FILE     = './data/lohnlog.json';
+  const RECHNUNGEN_FILE  = './data/rechnungen.json';
+
+  function loadKonto() {
+    try { return JSON.parse(fs.readFileSync(KONTO_FILE, 'utf8')); } catch { return {}; }
+  }
+  function saveKonto(d) { fs.writeFileSync(KONTO_FILE, JSON.stringify(d, null, 2)); }
+  function getKonto(uid) { const d = loadKonto(); return d[uid] ?? { konto: 0, schwarz: 0 }; }
+  function setKonto(uid, obj) { const d = loadKonto(); d[uid] = obj; saveKonto(d); }
+
+  function loadTrans() {
+    try { return JSON.parse(fs.readFileSync(TRANS_FILE, 'utf8')); } catch { return {}; }
+  }
+  function saveTrans(d) { fs.writeFileSync(TRANS_FILE, JSON.stringify(d, null, 2)); }
+  function addTrans(uid, entry) {
+    const d = loadTrans();
+    if (!d[uid]) d[uid] = [];
+    d[uid].unshift(entry);
+    if (d[uid].length > 50) d[uid] = d[uid].slice(0, 50);
+    saveTrans(d);
+  }
+  function getLastTrans(uid, n = 5) {
+    const d = loadTrans();
+    return (d[uid] ?? []).slice(0, n);
+  }
+
+  function loadLohnlog() {
+    try { return JSON.parse(fs.readFileSync(LOHNLOG_FILE, 'utf8')); } catch { return {}; }
+  }
+  function saveLohnlog(d) { fs.writeFileSync(LOHNLOG_FILE, JSON.stringify(d, null, 2)); }
+
+  function loadRechnungen() {
+    try { return JSON.parse(fs.readFileSync(RECHNUNGEN_FILE, 'utf8')); } catch { return {}; }
+  }
+  function saveRechnungen(d) { fs.writeFileSync(RECHNUNGEN_FILE, JSON.stringify(d, null, 2)); }
+
+  // ─── LOHNKLASSEN CONFIG ───────────────────────────────────────────────────────
+  const LOHNKLASSEN = [
+    { roleId: '1490855796932739093', label: 'Arbeitslosengeld',    betrag: 1000 },
+    { roleId: '1490855789844234310', label: 'Niedrige Lohnklasse', betrag: 3000 },
+    { roleId: '1490855790913785886', label: 'Mittlere Lohnklasse', betrag: 3600 },
+    { roleId: '1490855791953973421', label: 'Hohe Lohnklasse',     betrag: 4500 },
+  ];
+  const SCHWARZ_ROLE = '1490855730767597738';
+  const LOHN_INTERVAL_MS = 60 * 60 * 1000; // 1 Stunde
+  
+
     function buildShopPageEmbed(shopId, page, items) {
       const m = SHOP_META[shopId];
       const totalPages = Math.max(1, Math.ceil(items.length / 10));
@@ -212,7 +262,132 @@ const AKTIVITAET_CH      = '1502382574310392040';
       return { embed, components };
     }
 
-    async function updateShopEmbed(shopId) {
+    // ─── LOHNLISTE EMBED ────────────────────────────────────────────────────────
+  async function updateLohnlisteEmbed(client) {
+    const setup = loadSetup();
+    const ch = await client.channels.fetch('1490890346668888194').catch(() => null);
+    if (!ch) return;
+    const embed = new EmbedBuilder()
+      .setColor(0xE65100)
+      .setTitle('💵 Lohnliste')
+      .setDescription(
+        '<@&1490855796932739093>
+**1'000 $ Stündlich**
+Diese Lohnklasse ist für alle arbeitslosen Spieler/in die keinen Privaten oder Staatlichen Beruf ausüben.
+
+' +
+        '<@&1490855789844234310>
+**3'000 $ Stündlich**
+Diese Lohnklasse ist für alle Normal Angestellten von Staatlichen Unternehmen.
+
+' +
+        '<@&1490855790913785886>
+**3'600 $ Stündlich**
+Diese Lohnklasse ist für alle Angestellten mit einem Befehlsposten in Staatlichen Unternehmen.
+
+' +
+        '<@&1490855791953973421>
+**4'500 $ Stündlich**
+Diese Lohnklasse ist für alle die einen Posten in einer Leitungsebene haben in Staatlichen Unternehmen.
+
+' +
+        '━━━━━━━━━━━━━━━━━━
+**ℹ️ Lohn Info**
+Spieler/in die einen Privaten Beruf ausüben müssen vom Unternehmenschef Privat bezahlt werden. Der Anspruch auf Staatlichen Lohn oder Arbeitslosengeld fällt hier weg.'
+      );
+    if (setup.lohnlisteMsgId) {
+      try {
+        const msg = await ch.messages.fetch(setup.lohnlisteMsgId);
+        await msg.edit({ embeds: [embed], components: [] });
+        return;
+      } catch {}
+    }
+    const msg = await ch.send({ embeds: [embed] });
+    setup.lohnlisteMsgId = msg.id;
+    saveSetup(setup);
+  }
+
+  // ─── LOHNBÜRO EMBED ─────────────────────────────────────────────────────────
+  async function updateLohnbueroEmbed(client) {
+    const setup = loadSetup();
+    const ch = await client.channels.fetch('1490890348254200049').catch(() => null);
+    if (!ch) return;
+    const embed = new EmbedBuilder()
+      .setColor(0xE65100)
+      .setTitle('🏦 Lohnbüro')
+      .setDescription('Drücke den Button um deinen stündlichen Lohn abzuholen.
+Du kannst deinen Lohn nur **einmal pro Stunde** abholen und nur wenn du eine gültige Lohnklassen-Rolle hast.');
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('lohn_abholen').setLabel('💵 Lohn abholen').setStyle(ButtonStyle.Success)
+    );
+    if (setup.lohnbueroMsgId) {
+      try {
+        const msg = await ch.messages.fetch(setup.lohnbueroMsgId);
+        await msg.edit({ embeds: [embed], components: [row] });
+        return;
+      } catch {}
+    }
+    const msg = await ch.send({ embeds: [embed], components: [row] });
+    setup.lohnbueroMsgId = msg.id;
+    saveSetup(setup);
+  }
+
+  // ─── ONLINE BANKING EMBED ────────────────────────────────────────────────────
+  async function updateBankingEmbed(client) {
+    const setup = loadSetup();
+    const ch = await client.channels.fetch('1490890349382734044').catch(() => null);
+    if (!ch) return;
+    const embed = new EmbedBuilder()
+      .setColor(0xE65100)
+      .setTitle('🏧 Online Banking')
+      .setDescription('Klicke den Button um dein persönliches Online-Banking zu öffnen.
+Dort siehst du deinen Bargeld- und Kontostand, die letzten Transaktionen und kannst Geld einzahlen, auszahlen oder überweisen.');
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('banking_open').setLabel('🏧 Online Banking öffnen').setStyle(ButtonStyle.Primary)
+    );
+    if (setup.bankingMsgId) {
+      try {
+        const msg = await ch.messages.fetch(setup.bankingMsgId);
+        await msg.edit({ embeds: [embed], components: [row] });
+        return;
+      } catch {}
+    }
+    const msg = await ch.send({ embeds: [embed], components: [row] });
+    setup.bankingMsgId = msg.id;
+    saveSetup(setup);
+  }
+
+  // ─── RECHNUNGEN EMBED ───────────────────────────────────────────────────────
+  async function updateRechnungenEmbed(client) {
+    const setup = loadSetup();
+    const ch = await client.channels.fetch('1492314171373649983').catch(() => null);
+    if (!ch) return;
+    const embed = new EmbedBuilder()
+      .setColor(0xE65100)
+      .setTitle('🧾 Rechnungen')
+      .setDescription('Klicke den Button um deine offenen Rechnungen einzusehen.
+Du kannst Rechnungen einzeln oder alle auf einmal bezahlen.');
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('rechnungen_open').setLabel('🧾 Rechnungen anzeigen').setStyle(ButtonStyle.Secondary)
+    );
+    if (setup.rechnungenMsgId) {
+      try {
+        const msg = await ch.messages.fetch(setup.rechnungenMsgId);
+        await msg.edit({ embeds: [embed], components: [row] });
+        return;
+      } catch {}
+    }
+    const msg = await ch.send({ embeds: [embed], components: [row] });
+    setup.rechnungenMsgId = msg.id;
+    saveSetup(setup);
+  }
+
+    await updateLohnlisteEmbed(client);
+    await updateLohnbueroEmbed(client);
+    await updateBankingEmbed(client);
+    await updateRechnungenEmbed(client);
+  
+  async function updateShopEmbed(shopId) {
       const m = SHOP_META[shopId];
       if (!m) return;
       const shops = loadShops();
@@ -3539,6 +3714,103 @@ client.on('interactionCreate', async (interaction) => {
       }
 });
 
+  
+        // ─── MONEY-ADD ──────────────────────────────────────────────────────────
+        if (commandName === 'money-add') {
+          const target = interaction.options.getUser('spieler');
+          const typ    = interaction.options.getString('typ');
+          const betrag = interaction.options.getInteger('betrag');
+          if (typ === 'bargeld') {
+            const cur = getCash(target.id);
+            setCash(target.id, cur + betrag);
+            addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Bargeld (Admin)`, betrag });
+          } else {
+            const k = getKonto(target.id);
+            if (typ === 'konto') k.konto += betrag;
+            else k.schwarz += betrag;
+            setKonto(target.id, k);
+            addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ ${typ === 'konto' ? 'Kontogeld' : 'Schwarzgeld'} (Admin)`, betrag });
+          }
+          const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : 'Schwarzgeld';
+          return interaction.reply({ content: `✅ <@${target.id}> hat **${betrag.toLocaleString('de-CH')} $ ${typLabel}** erhalten.`, ephemeral: true });
+        }
+
+        // ─── MONEY-REMOVE ───────────────────────────────────────────────────────
+        if (commandName === 'money-remove') {
+          const target = interaction.options.getUser('spieler');
+          const typ    = interaction.options.getString('typ');
+          const betrag = interaction.options.getInteger('betrag');
+          if (typ === 'bargeld') {
+            const cur = getCash(target.id);
+            const neu = Math.max(0, cur - betrag);
+            setCash(target.id, neu);
+            addTrans(target.id, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ Bargeld (Admin)`, betrag: -betrag });
+          } else {
+            const k = getKonto(target.id);
+            if (typ === 'konto') k.konto = Math.max(0, k.konto - betrag);
+            else k.schwarz = Math.max(0, k.schwarz - betrag);
+            setKonto(target.id, k);
+            addTrans(target.id, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ ${typ === 'konto' ? 'Kontogeld' : 'Schwarzgeld'} (Admin)`, betrag: -betrag });
+          }
+          const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : 'Schwarzgeld';
+          return interaction.reply({ content: `✅ <@${target.id}> wurden **${betrag.toLocaleString('de-CH')} $ ${typLabel}** abgezogen.`, ephemeral: true });
+        }
+
+        // ─── BARGELD (nur Finanzkanal) ───────────────────────────────────────────
+        if (commandName === 'bargeld') {
+          const FINANCE_CH = '1490882589014364250';
+          if (interaction.channelId !== FINANCE_CH) {
+            return interaction.reply({ content: `❌ Dieser Command ist nur in <#${FINANCE_CH}> erlaubt.`, ephemeral: true });
+          }
+          const target = interaction.options.getUser('spieler');
+          const cash   = getCash(target.id);
+          return interaction.reply({ content: `💵 **${target.username}** hat **${cash.toLocaleString('de-CH')} $** Bargeld.`, ephemeral: true });
+        }
+
+        // ─── RECHNUNG-CREATE ────────────────────────────────────────────────────
+        if (commandName === 'rechnung-create') {
+          const target      = interaction.options.getUser('spieler');
+          const beschreibung = interaction.options.getString('beschreibung');
+          const betrag      = interaction.options.getInteger('betrag');
+          const rechnungen  = loadRechnungen();
+          if (!rechnungen[target.id]) rechnungen[target.id] = [];
+          const id = Date.now().toString();
+          rechnungen[target.id].push({ id, beschreibung, betrag, erstellt: Date.now(), von: interaction.user.id });
+          saveRechnungen(rechnungen);
+          return interaction.reply({ content: `✅ Rechnung über **${betrag.toLocaleString('de-CH')} $** für <@${target.id}> erstellt.`, ephemeral: true });
+        }
+
+  
+        // ─── EINREISE STARTGELD ──────────────────────────────────────────────────
+        if (commandName === 'einreise-startgeld') {
+          const target = interaction.options.getUser('spieler');
+          const typ    = interaction.options.getString('typ');
+          const startgeldLog = loadKonto();
+          // Check if already received startgeld (one-time)
+          const existing = startgeldLog[target.id];
+          if (existing?._startgeld) {
+            return interaction.reply({ content: `❌ <@${target.id}> hat bereits einmalig Startgeld erhalten.`, ephemeral: true });
+          }
+          let betrag = 0, art = '', isSchwarz = false;
+          if (typ === 'legal')         { betrag = 5000;  art = 'Legal (Konto)';            isSchwarz = false; }
+          if (typ === 'illegal')       { betrag = 5000;  art = 'Illegal (Schwarzgeld)';    isSchwarz = true; }
+          if (typ === 'gruppe_legal')  { betrag = 10000; art = 'Gruppeneinreise (Konto)';  isSchwarz = false; }
+          if (typ === 'gruppe_illegal'){ betrag = 10000; art = 'Gruppeneinreise (Schwarzgeld)'; isSchwarz = true; }
+
+          const k = getKonto(target.id);
+          if (isSchwarz) k.schwarz += betrag;
+          else k.konto += betrag;
+          k._startgeld = true;
+          setKonto(target.id, k);
+          addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Startgeld (${art})`, betrag });
+          return interaction.reply({
+            embeds: [new EmbedBuilder().setColor(0x43A047).setTitle('💵 Startgeld vergeben')
+              .setDescription(`<@${target.id}> hat **${betrag.toLocaleString('de-CH')} $** als ${isSchwarz ? 'Schwarzgeld' : 'Kontogeld'} erhalten.
+**Einreiseart:** ${art}`)
+            ], ephemeral: true
+          });
+        }
+
   // ─── INVENTAR: Buttons & Modals ──────────────────────────────────────────────
   client.on('interactionCreate', async (interaction) => {
     try {
@@ -3670,7 +3942,222 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.update({ content: '✅ **' + name + '** wurde deinem Rucksack hinzugefügt! 🎁', components: [] });
   }
 
-  // Regular shop: open session
+
+    // ─── LOHN ABHOLEN ────────────────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'lohn_abholen') {
+      const uid = interaction.user.id;
+      const member = await interaction.guild.members.fetch(uid).catch(() => null);
+      if (!member) return interaction.reply({ content: '❌ Konnte dein Mitglied nicht laden.', ephemeral: true });
+
+      const lohnklasse = LOHNKLASSEN.find(lk => member.roles.cache.has(lk.roleId));
+      if (!lohnklasse) return interaction.reply({ content: '❌ Du hast keine gültige Lohnklassen-Rolle.', ephemeral: true });
+
+      const lohnlog = loadLohnlog();
+      const now = Date.now();
+      const last = lohnlog[uid] ?? 0;
+      if (now - last < LOHN_INTERVAL_MS) {
+        const remaining = Math.ceil((LOHN_INTERVAL_MS - (now - last)) / 60000);
+        return interaction.reply({ content: `⏳ Du musst noch **${remaining} Minute(n)** warten.`, ephemeral: true });
+      }
+
+      const k = getKonto(uid);
+      k.konto += lohnklasse.betrag;
+      setKonto(uid, k);
+      lohnlog[uid] = now;
+      saveLohnlog(lohnlog);
+      addTrans(uid, { ts: now, text: `+${lohnklasse.betrag.toLocaleString('de-CH')} $ Lohn (${lohnklasse.label})`, betrag: lohnklasse.betrag });
+
+      return interaction.reply({
+        embeds: [new EmbedBuilder().setColor(0x43A047).setTitle('💵 Lohn abgeholt').setDescription(
+          `Du hast **${lohnklasse.betrag.toLocaleString('de-CH')} $** als **${lohnklasse.label}** erhalten.
+
+Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} $**`
+        )], ephemeral: true
+      });
+    }
+
+    // ─── ONLINE BANKING OPEN ────────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'banking_open') {
+      const uid = interaction.user.id;
+      const member = await interaction.guild.members.fetch(uid).catch(() => null);
+      const k = getKonto(uid);
+      const bar = getCash(uid);
+      const trans = getLastTrans(uid, 5);
+      const hasSchwarz = member?.roles.cache.has(SCHWARZ_ROLE) ?? false;
+      const transText = trans.length
+        ? trans.map(t => `• ${t.text} — <t:${Math.floor(t.ts/1000)}:R>`).join('
+')
+        : '_Keine Transaktionen_';
+
+      let desc = `💵 **Bargeld:** ${bar.toLocaleString('de-CH')} $
+`;
+      desc += `🏦 **Kontostand:** ${k.konto.toLocaleString('de-CH')} $
+`;
+      if (hasSchwarz) desc += `🖤 **Schwarzgeld-Wallet:** ${k.schwarz.toLocaleString('de-CH')} $
+`;
+      desc += `
+📋 **Letzte Transaktionen:**
+${transText}`;
+
+      const rows = [];
+      const row1 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('bank_einzahlen').setLabel('💰 Einzahlen').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('bank_auszahlen').setLabel('💸 Auszahlen').setStyle(ButtonStyle.Danger),
+        new ButtonBuilder().setCustomId('bank_ueberweisen').setLabel('📤 Überweisen').setStyle(ButtonStyle.Primary)
+      );
+      rows.push(row1);
+      if (hasSchwarz) {
+        const row2 = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('bank_schwarz_send').setLabel('🖤 Schwarzgeld verschicken').setStyle(ButtonStyle.Secondary)
+        );
+        rows.push(row2);
+      }
+
+      return interaction.reply({
+        embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🏧 Dein Online Banking').setDescription(desc)],
+        components: rows,
+        ephemeral: true
+      });
+    }
+
+    // ─── BANKING: Einzahlen Modal ────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'bank_einzahlen') {
+      const modal = new ModalBuilder().setCustomId('bank_modal_einzahlen').setTitle('💰 Bargeld einzahlen');
+      modal.addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 1000')
+      ));
+      return interaction.showModal(modal);
+    }
+
+    // ─── BANKING: Auszahlen Modal ────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'bank_auszahlen') {
+      const modal = new ModalBuilder().setCustomId('bank_modal_auszahlen').setTitle('💸 Kontogeld auszahlen');
+      modal.addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 1000')
+      ));
+      return interaction.showModal(modal);
+    }
+
+    // ─── BANKING: Überweisen Modal ───────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'bank_ueberweisen') {
+      const modal = new ModalBuilder().setCustomId('bank_modal_ueberweisen').setTitle('📤 Geld überweisen');
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder().setCustomId('bank_target').setLabel('Empfänger User-ID').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('Discord User ID')
+        ),
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')
+        )
+      );
+      return interaction.showModal(modal);
+    }
+
+    // ─── BANKING: Schwarzgeld verschicken Modal ──────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'bank_schwarz_send') {
+      const modal = new ModalBuilder().setCustomId('bank_modal_schwarz').setTitle('🖤 Schwarzgeld verschicken');
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder().setCustomId('bank_target').setLabel('Empfänger User-ID').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('Discord User ID')
+        ),
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')
+        )
+      );
+      return interaction.showModal(modal);
+    }
+
+    // ─── RECHNUNGEN OPEN ────────────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'rechnungen_open') {
+      const uid = interaction.user.id;
+      const alle = loadRechnungen();
+      const meine = alle[uid] ?? [];
+      if (!meine.length) return interaction.reply({ content: '✅ Du hast keine offenen Rechnungen.', ephemeral: true });
+
+      const embed = new EmbedBuilder().setColor(0xE65100).setTitle('🧾 Deine Rechnungen');
+      let desc = '';
+      meine.forEach((r, i) => {
+        desc += `**${i+1}. ${r.beschreibung}** — ${r.betrag.toLocaleString('de-CH')} $
+`;
+      });
+      embed.setDescription(desc);
+
+      const rows = [];
+      // Individual pay buttons (max 5 per row, max 2 rows = 10 buttons; use select if more)
+      if (meine.length <= 5) {
+        const row = new ActionRowBuilder();
+        meine.forEach((r, i) => {
+          row.addComponents(new ButtonBuilder().setCustomId(`rechnung_pay:${r.id}`).setLabel(`${i+1}. bezahlen (${r.betrag.toLocaleString('de-CH')} $)`).setStyle(ButtonStyle.Primary));
+        });
+        rows.push(row);
+      } else {
+        // Use select menu for many invoices
+        const sel = new StringSelectMenuBuilder().setCustomId('rechnung_pay_select').setPlaceholder('Rechnung auswählen')
+          .addOptions(meine.map((r, i) => ({ label: `${i+1}. ${r.beschreibung}`, description: `${r.betrag.toLocaleString('de-CH')} $`, value: r.id })));
+        rows.push(new ActionRowBuilder().addComponents(sel));
+      }
+      // Pay all button
+      const rowAll = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('rechnung_pay_all').setLabel('✅ Alle bezahlen').setStyle(ButtonStyle.Success)
+      );
+      rows.push(rowAll);
+
+      return interaction.reply({ embeds: [embed], components: rows, ephemeral: true });
+    }
+
+    // ─── RECHNUNG EINZELN BEZAHLEN ──────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId.startsWith('rechnung_pay:')) {
+      const uid = interaction.user.id;
+      const rId = interaction.customId.split(':')[1];
+      const alle = loadRechnungen();
+      const meine = alle[uid] ?? [];
+      const rechnung = meine.find(r => r.id === rId);
+      if (!rechnung) return interaction.reply({ content: '❌ Rechnung nicht gefunden.', ephemeral: true });
+      const k = getKonto(uid);
+      if (k.konto < rechnung.betrag) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} $**, benötigt: **${rechnung.betrag.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      k.konto -= rechnung.betrag;
+      setKonto(uid, k);
+      alle[uid] = meine.filter(r => r.id !== rId);
+      saveRechnungen(alle);
+      addTrans(uid, { ts: Date.now(), text: `-${rechnung.betrag.toLocaleString('de-CH')} $ Rechnung: ${rechnung.beschreibung}`, betrag: -rechnung.betrag });
+      return interaction.reply({ content: `✅ Rechnung **${rechnung.beschreibung}** über **${rechnung.betrag.toLocaleString('de-CH')} $** bezahlt.`, ephemeral: true });
+    }
+
+    // ─── ALLE RECHNUNGEN BEZAHLEN ───────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'rechnung_pay_all') {
+      const uid = interaction.user.id;
+      const alle = loadRechnungen();
+      const meine = alle[uid] ?? [];
+      if (!meine.length) return interaction.reply({ content: '✅ Keine offenen Rechnungen.', ephemeral: true });
+      const total = meine.reduce((s, r) => s + r.betrag, 0);
+      const k = getKonto(uid);
+      if (k.konto < total) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} $**, benötigt: **${total.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      k.konto -= total;
+      setKonto(uid, k);
+      alle[uid] = [];
+      saveRechnungen(alle);
+      addTrans(uid, { ts: Date.now(), text: `-${total.toLocaleString('de-CH')} $ Alle Rechnungen beglichen`, betrag: -total });
+      return interaction.reply({ content: `✅ Alle **${meine.length}** Rechnungen über insgesamt **${total.toLocaleString('de-CH')} $** bezahlt.`, ephemeral: true });
+    }
+
+    // ─── RECHNUNG SELECT MENU ───────────────────────────────────────────────
+    if (interaction.isStringSelectMenu() && interaction.customId === 'rechnung_pay_select') {
+      const uid = interaction.user.id;
+      const rId = interaction.values[0];
+      const alle = loadRechnungen();
+      const meine = alle[uid] ?? [];
+      const rechnung = meine.find(r => r.id === rId);
+      if (!rechnung) return interaction.reply({ content: '❌ Rechnung nicht gefunden.', ephemeral: true });
+      const k = getKonto(uid);
+      if (k.konto < rechnung.betrag) return interaction.reply({ content: `❌ Nicht genug Kontogeld.`, ephemeral: true });
+      k.konto -= rechnung.betrag;
+      setKonto(uid, k);
+      alle[uid] = meine.filter(r => r.id !== rId);
+      saveRechnungen(alle);
+      addTrans(uid, { ts: Date.now(), text: `-${rechnung.betrag.toLocaleString('de-CH')} $ Rechnung: ${rechnung.beschreibung}`, betrag: -rechnung.betrag });
+      return interaction.reply({ content: `✅ Rechnung **${rechnung.beschreibung}** über **${rechnung.betrag.toLocaleString('de-CH')} $** bezahlt.`, ephemeral: true });
+    }
+
+    // Regular shop: open session
   if (interaction.isButton() && interaction.customId.startsWith('sp_shop:')) {
     const shopId = interaction.customId.split(':')[1];
     clearCart(uid, shopId);
@@ -3704,7 +4191,77 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.showModal(modal);
   }
 
-  // Regular shop: modal -> add to cart
+  // ─── BANKING MODALS ────────────────────────────────────────────────────────
+    if (interaction.isModalSubmit() && interaction.customId === 'bank_modal_einzahlen') {
+      const uid = interaction.user.id;
+      const betrag = parseInt(interaction.fields.getTextInputValue('bank_betrag').replace(/[^0-9]/g,''));
+      if (isNaN(betrag) || betrag <= 0) return interaction.reply({ content: '❌ Ungültiger Betrag.', ephemeral: true });
+      const bar = getCash(uid);
+      if (bar < betrag) return interaction.reply({ content: `❌ Nicht genug Bargeld. Du hast **${bar.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      setCash(uid, bar - betrag);
+      const k = getKonto(uid);
+      k.konto += betrag;
+      setKonto(uid, k);
+      addTrans(uid, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Einzahlung`, betrag });
+      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** erfolgreich eingezahlt. Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} $**`, ephemeral: true });
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'bank_modal_auszahlen') {
+      const uid = interaction.user.id;
+      const betrag = parseInt(interaction.fields.getTextInputValue('bank_betrag').replace(/[^0-9]/g,''));
+      if (isNaN(betrag) || betrag <= 0) return interaction.reply({ content: '❌ Ungültiger Betrag.', ephemeral: true });
+      const k = getKonto(uid);
+      if (k.konto < betrag) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      k.konto -= betrag;
+      setKonto(uid, k);
+      setCash(uid, getCash(uid) + betrag);
+      addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ Auszahlung`, betrag: -betrag });
+      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** ausgezahlt. Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} $**`, ephemeral: true });
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'bank_modal_ueberweisen') {
+      const uid    = interaction.user.id;
+      const targetId = interaction.fields.getTextInputValue('bank_target').trim();
+      const betrag   = parseInt(interaction.fields.getTextInputValue('bank_betrag').replace(/[^0-9]/g,''));
+      if (isNaN(betrag) || betrag <= 0) return interaction.reply({ content: '❌ Ungültiger Betrag.', ephemeral: true });
+      if (targetId === uid) return interaction.reply({ content: '❌ Du kannst nicht an dich selbst überweisen.', ephemeral: true });
+      const k = getKonto(uid);
+      if (k.konto < betrag) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      k.konto -= betrag;
+      setKonto(uid, k);
+      const kt = getKonto(targetId);
+      kt.konto += betrag;
+      setKonto(targetId, kt);
+      addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ Überweisung an <@${targetId}>`, betrag: -betrag });
+      addTrans(targetId, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Überweisung von <@${uid}>`, betrag });
+      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** an <@${targetId}> überwiesen.`, ephemeral: true });
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'bank_modal_schwarz') {
+      const uid      = interaction.user.id;
+      const targetId = interaction.fields.getTextInputValue('bank_target').trim();
+      const betrag   = parseInt(interaction.fields.getTextInputValue('bank_betrag').replace(/[^0-9]/g,''));
+      if (isNaN(betrag) || betrag <= 0) return interaction.reply({ content: '❌ Ungültiger Betrag.', ephemeral: true });
+      if (targetId === uid) return interaction.reply({ content: '❌ Du kannst nicht an dich selbst senden.', ephemeral: true });
+      // Check sender has Schwarz role
+      const senderMember = await interaction.guild.members.fetch(uid).catch(() => null);
+      if (!senderMember?.roles.cache.has(SCHWARZ_ROLE)) return interaction.reply({ content: '❌ Du hast keine Berechtigung Schwarzgeld zu verschicken.', ephemeral: true });
+      // Check receiver has Schwarz role
+      const targetMember = await interaction.guild.members.fetch(targetId).catch(() => null);
+      if (!targetMember?.roles.cache.has(SCHWARZ_ROLE)) return interaction.reply({ content: '❌ Der Empfänger hat keine Schwarzgeld-Rolle.', ephemeral: true });
+      const k = getKonto(uid);
+      if (k.schwarz < betrag) return interaction.reply({ content: `❌ Nicht genug Schwarzgeld. Du hast **${k.schwarz.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      k.schwarz -= betrag;
+      setKonto(uid, k);
+      const kt = getKonto(targetId);
+      kt.schwarz += betrag;
+      setKonto(targetId, kt);
+      addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ Schwarzgeld an <@${targetId}>`, betrag: -betrag });
+      addTrans(targetId, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Schwarzgeld von <@${uid}>`, betrag });
+      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** Schwarzgeld an <@${targetId}> verschickt.`, ephemeral: true });
+    }
+
+    // Regular shop: modal -> add to cart
   if (interaction.isModalSubmit() && interaction.customId.startsWith('sp_qty:')) {
     const parts    = interaction.customId.split(':');
     const page     = parseInt(parts[1]) || 0; const shopId = parts[2]; const itemName = parts.slice(3).join(':');
@@ -3797,3 +4354,51 @@ if (!process.env.DISCORD_TOKEN) {
       });
   })(1);
 }
+    new SlashCommandBuilder()
+      .setName('money-add')
+      .setDescription('Füge einem Spieler Geld hinzu')
+      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
+      .addStringOption(o => o.setName('typ').setDescription('Art des Geldes').setRequired(true)
+        .addChoices(
+          { name: 'Kontogeld', value: 'konto' },
+          { name: 'Bargeld', value: 'bargeld' },
+          { name: 'Schwarzgeld', value: 'schwarz' }
+        ))
+      .addIntegerOption(o => o.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('money-remove')
+      .setDescription('Entferne einem Spieler Geld')
+      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
+      .addStringOption(o => o.setName('typ').setDescription('Art des Geldes').setRequired(true)
+        .addChoices(
+          { name: 'Kontogeld', value: 'konto' },
+          { name: 'Bargeld', value: 'bargeld' },
+          { name: 'Schwarzgeld', value: 'schwarz' }
+        ))
+      .addIntegerOption(o => o.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('bargeld')
+      .setDescription('Bargeldstand eines Spielers abrufen (nur im Finanzkanal)')
+      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('rechnung-create')
+      .setDescription('Erstelle eine Rechnung für einen Spieler')
+      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
+      .addStringOption(o => o.setName('beschreibung').setDescription('Beschreibung der Rechnung').setRequired(true))
+      .addIntegerOption(o => o.setName('betrag').setDescription('Betrag in $').setRequired(true).setMinValue(1))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('einreise-startgeld')
+      .setDescription('Startgeld an einen neuen Spieler vergeben (Team)')
+      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
+      .addStringOption(o => o.setName('typ').setDescription('Einreiseart').setRequired(true)
+        .addChoices(
+          { name: 'Legal (5.000 $ Konto)', value: 'legal' },
+          { name: 'Illegal (5.000 $ Schwarzgeld)', value: 'illegal' },
+          { name: 'Gruppeneinreise Legal (10.000 $ Konto)', value: 'gruppe_legal' },
+          { name: 'Gruppeneinreise Illegal (10.000 $ Schwarzgeld)', value: 'gruppe_illegal' }
+        ))
+      .toJSON(),
