@@ -90,6 +90,11 @@ const AKTIVITAET_CH      = '1502382574310392040';
   if (!fs.existsSync(FRAK_FILE)) fs.writeFileSync(FRAK_FILE, '{}', 'utf8');
   function loadFraktionen() { try { return JSON.parse(fs.readFileSync(FRAK_FILE, 'utf8')); } catch { return {}; } }
   function saveFraktionen(d) { fs.writeFileSync(FRAK_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+  const VORSCHLAG_FILE = path.join(__dirname, 'data', 'vorschlaege.json');
+    const VORSCHLAG_CH   = '1490882579765661837';
+    function loadVorschlaege() { try { return JSON.parse(fs.readFileSync(VORSCHLAG_FILE, 'utf8')); } catch { return []; } }
+    function saveVorschlaege(d) { fs.writeFileSync(VORSCHLAG_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+  
   const TEAM_ROLE_IDS      = [
     '1490855647259136053','1490855648978669599','1498395437206601828','1498395500137807932',
     '1490855654347505706','1490855657543303239','1490855655408664577','1490855656352251987',
@@ -593,6 +598,27 @@ async function buildInviteCache(guild) {
       .setDescription('Hebt die Sperre einer Fraktion auf')
       .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true).setAutocomplete(true))
       .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('vorschlag')
+        .setDescription('Sendet einen Vorschlag in den Vorschläge-Kanal')
+        .addStringOption(opt => opt.setName('text').setDescription('Dein Vorschlag').setRequired(true))
+        .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('vorschlag-yes')
+        .setDescription('Nimmt einen Vorschlag an')
+        .addStringOption(opt => opt.setName('id').setDescription('Vorschlag auswählen').setRequired(true).setAutocomplete(true))
+        .addStringOption(opt => opt.setName('grund').setDescription('Begründung (optional)').setRequired(false))
+        .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('vorschlag-no')
+        .setDescription('Lehnt einen Vorschlag ab')
+        .addStringOption(opt => opt.setName('id').setDescription('Vorschlag auswählen').setRequired(true).setAutocomplete(true))
+        .addStringOption(opt => opt.setName('grund').setDescription('Begründung (optional)').setRequired(false))
+        .toJSON(),
+  
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -2190,7 +2216,17 @@ client.on('interactionCreate', async (interaction) => {
           .map(n => ({ name: `${n} [${data[n].typ}]`, value: n }));
         return interaction.respond(choices);
       }
-      return interaction.respond([]);
+      if (cmd === 'vorschlag-yes' || cmd === 'vorschlag-no') {
+          const focused = interaction.options.getFocused().toLowerCase();
+          const vorschlaege = loadVorschlaege();
+          const choices = vorschlaege
+            .filter(v => v.status === 'offen')
+            .filter(v => v.text.toLowerCase().includes(focused) || String(v.id).includes(focused))
+            .slice(0, 25)
+            .map(v => ({ name: `#${v.id} — ${v.text.slice(0, 80)}`, value: String(v.id) }));
+          return interaction.respond(choices);
+        }
+        return interaction.respond([]);
     }
 
     if (!interaction.isChatInputCommand()) return;
@@ -2798,7 +2834,95 @@ client.on('interactionCreate', async (interaction) => {
   
 });
 
-// ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
+
+        // /vorschlag
+        if (commandName === 'vorschlag') {
+          const text = interaction.options.getString('text');
+          const vorschlaege = loadVorschlaege();
+          const newId = vorschlaege.length ? Math.max(...vorschlaege.map(v => v.id)) + 1 : 1;
+          const ch = await client.channels.fetch(VORSCHLAG_CH).catch(() => null);
+          if (!ch) return interaction.reply({ content: '❌ Vorschläge-Kanal nicht gefunden.', ephemeral: true });
+          const embed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setTitle(`💡  Vorschlag #${newId}`)
+            .setDescription(`\`\`\`${text}\`\`\``)
+            .addFields(
+              { name: '👤  Eingereicht von', value: `<@${user.id}>`, inline: true },
+              { name: '📅  Datum', value: `<t:${ts()}:D>`, inline: true },
+              { name: '📊  Status', value: '🟡 **Offen**', inline: true }
+            )
+            .setFooter({ text: `Paradise City Roleplay  •  Vorschlag #${newId}` })
+            .setTimestamp();
+          const msg = await ch.send({ embeds: [embed] });
+          await msg.react('✅');
+          await msg.react('❌');
+          const entry = { id: newId, text, status: 'offen', by: user.id, at: new Date().toISOString(), msgId: msg.id };
+          vorschlaege.push(entry);
+          saveVorschlaege(vorschlaege);
+          return interaction.reply({ content: `✅ Dein Vorschlag wurde als **#${newId}** eingereicht!`, ephemeral: true });
+        }
+
+        // /vorschlag-yes
+        if (commandName === 'vorschlag-yes') {
+          const id = parseInt(interaction.options.getString('id'));
+          const grund = interaction.options.getString('grund') || '_Keine Begründung angegeben._';
+          const vorschlaege = loadVorschlaege();
+          const entry = vorschlaege.find(v => v.id === id);
+          if (!entry) return interaction.reply({ content: `❌ Vorschlag #${id} nicht gefunden.`, ephemeral: true });
+          if (entry.status !== 'offen') return interaction.reply({ content: `❌ Vorschlag #${id} ist bereits **${entry.status}**.`, ephemeral: true });
+          entry.status = 'angenommen'; entry.decidedBy = user.id; entry.decidedAt = new Date().toISOString(); entry.grund = grund;
+          saveVorschlaege(vorschlaege);
+          const ch = await client.channels.fetch(VORSCHLAG_CH).catch(() => null);
+          if (ch && entry.msgId) {
+            const msg = await ch.messages.fetch(entry.msgId).catch(() => null);
+            if (msg) await msg.edit({ embeds: [new EmbedBuilder()
+              .setColor(0x57F287)
+              .setTitle(`✅  Vorschlag #${id} — Angenommen`)
+              .setDescription(`\`\`\`${entry.text}\`\`\``)
+              .addFields(
+                { name: '👤  Eingereicht von', value: `<@${entry.by}>`, inline: true },
+                { name: '📊  Status', value: '✅ **Angenommen**', inline: true },
+                { name: '✅  Entschieden von', value: `<@${user.id}>`, inline: true },
+                { name: '💬  Begründung', value: grund, inline: false }
+              )
+              .setFooter({ text: `Paradise City Roleplay  •  Vorschlag #${id}` })
+              .setTimestamp()
+            ]});
+          }
+          return interaction.reply({ content: `✅ Vorschlag **#${id}** wurde angenommen.`, ephemeral: true });
+        }
+
+        // /vorschlag-no
+        if (commandName === 'vorschlag-no') {
+          const id = parseInt(interaction.options.getString('id'));
+          const grund = interaction.options.getString('grund') || '_Keine Begründung angegeben._';
+          const vorschlaege = loadVorschlaege();
+          const entry = vorschlaege.find(v => v.id === id);
+          if (!entry) return interaction.reply({ content: `❌ Vorschlag #${id} nicht gefunden.`, ephemeral: true });
+          if (entry.status !== 'offen') return interaction.reply({ content: `❌ Vorschlag #${id} ist bereits **${entry.status}**.`, ephemeral: true });
+          entry.status = 'abgelehnt'; entry.decidedBy = user.id; entry.decidedAt = new Date().toISOString(); entry.grund = grund;
+          saveVorschlaege(vorschlaege);
+          const ch = await client.channels.fetch(VORSCHLAG_CH).catch(() => null);
+          if (ch && entry.msgId) {
+            const msg = await ch.messages.fetch(entry.msgId).catch(() => null);
+            if (msg) await msg.edit({ embeds: [new EmbedBuilder()
+              .setColor(0xED4245)
+              .setTitle(`❌  Vorschlag #${id} — Abgelehnt`)
+              .setDescription(`\`\`\`${entry.text}\`\`\``)
+              .addFields(
+                { name: '👤  Eingereicht von', value: `<@${entry.by}>`, inline: true },
+                { name: '📊  Status', value: '❌ **Abgelehnt**', inline: true },
+                { name: '✅  Entschieden von', value: `<@${user.id}>`, inline: true },
+                { name: '💬  Begründung', value: grund, inline: false }
+              )
+              .setFooter({ text: `Paradise City Roleplay  •  Vorschlag #${id}` })
+              .setTimestamp()
+            ]});
+          }
+          return interaction.reply({ content: `✅ Vorschlag **#${id}** wurde abgelehnt.`, ephemeral: true });
+        }
+
+  // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
   console.error('[UNHANDLED REJECTION]', reason);
 });
