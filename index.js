@@ -94,6 +94,12 @@ const AKTIVITAET_CH      = '1502382574310392040';
     const VORSCHLAG_CH   = '1490882579765661837';
     function loadVorschlaege() { try { return JSON.parse(fs.readFileSync(VORSCHLAG_FILE, 'utf8')); } catch { return []; } }
     function saveVorschlaege(d) { fs.writeFileSync(VORSCHLAG_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+  const COUNTER_FILE = path.join(__dirname, 'data', 'counter.json');
+    const COUNTER_CH   = '1490882580487340044';
+    const COUNTER_GOAL = 1000;
+    function loadCounter() { try { return JSON.parse(fs.readFileSync(COUNTER_FILE, 'utf8')); } catch { return { count: 0, lastUserId: null }; } }
+    function saveCounter(d) { fs.writeFileSync(COUNTER_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+  
   
   const TEAM_ROLE_IDS      = [
     '1490855647259136053','1490855648978669599','1498395437206601828','1498395500137807932',
@@ -1893,6 +1899,57 @@ client.on('messageCreate', async (message) => {
   
   if (message.author.bot || !message.guild) return;
 
+      // ── Zähl-Counter ─────────────────────────────────────────────────────────
+      if (message.channel.id === COUNTER_CH) {
+        const num = parseInt(message.content.trim(), 10);
+        const ctr = loadCounter();
+        const expected = ctr.count + 1;
+
+        // Not a number → delete silently
+        if (isNaN(num) || message.content.trim() !== String(num)) {
+          await message.delete().catch(() => {});
+          return;
+        }
+
+        // Same user twice in a row
+        if (message.author.id === ctr.lastUserId) {
+          await message.react('❌').catch(() => {});
+          await message.reply({ content: `❌ <@${message.author.id}> Du kannst nicht zweimal hintereinander zählen! Neustart bei **1**.` }).catch(() => {});
+          saveCounter({ count: 0, lastUserId: null });
+          return;
+        }
+
+        // Wrong number
+        if (num !== expected) {
+          await message.react('❌').catch(() => {});
+          await message.reply({ content: `❌ <@${message.author.id}> Falsch! Es kam **${expected}**, nicht ${num}. Neustart bei **1**.` }).catch(() => {});
+          saveCounter({ count: 0, lastUserId: null });
+          return;
+        }
+
+        // Correct!
+        ctr.count = num;
+        ctr.lastUserId = message.author.id;
+        saveCounter(ctr);
+
+        if (num === COUNTER_GOAL) {
+          await message.react('🎉').catch(() => {});
+          await message.channel.send(
+            `🎉🎊 **${COUNTER_GOAL} erreicht!** Unglaublich — wir haben es geschafft! Neustart bei **1**.`
+          ).catch(() => {});
+          saveCounter({ count: 0, lastUserId: null });
+        } else {
+          const milestones = [100,200,250,300,400,500,600,700,750,800,900,950,999];
+          if (milestones.includes(num)) {
+            await message.react('🔥').catch(() => {});
+          } else {
+            await message.react('✅').catch(() => {});
+          }
+        }
+        return;
+      }
+
+  
     // ── 67 → 69 (via Webhook, wirkt wie echte Nachricht) ────────────────────
     if (message.content.includes('67')) {
       const newContent = message.content.replace(/67/g, '69');
