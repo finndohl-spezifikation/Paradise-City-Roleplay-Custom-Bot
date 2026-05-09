@@ -3020,7 +3020,7 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.reply({
           content: `🆔 **Ausweis von ${target.username}:**
 🔗 [${eintrag.vorname} ${eintrag.nachname} — Ausweis öffnen](${linkAW})`,
-          ephemeral: false
+          ephemeral: true
         });
       }
 
@@ -3403,7 +3403,7 @@ client.on('interactionCreate', async (interaction) => {
           const totalPages = Math.max(1, Math.ceil(Object.keys(inv).length / ITEMS_PER_PAGE));
           const embed = buildInvEmbed(target, 0, inv);
           const rows = [invPageButtons(0, totalPages, target.id, 'inv')];
-          return interaction.reply({ embeds: [embed], components: rows, ephemeral: false });
+          return interaction.reply({ embeds: [embed], components: rows, ephemeral: true });
         }
 
         // /lager
@@ -3414,7 +3414,7 @@ client.on('interactionCreate', async (interaction) => {
           const totalPages = Math.max(1, Math.ceil(Object.keys(lager).length / ITEMS_PER_PAGE));
           const embed = buildLagerEmbed(target, 0, lager);
           const rows = [invPageButtons(0, totalPages, target.id, 'lager'), lagerActionButtons(0, target.id)];
-          return interaction.reply({ embeds: [embed], components: rows, ephemeral: false });
+          return interaction.reply({ embeds: [embed], components: rows, ephemeral: true });
         }
 
         // /übergeben
@@ -3432,7 +3432,7 @@ client.on('interactionCreate', async (interaction) => {
           const targetInv = getUserInv(target.id);
           targetInv[itemName] = (targetInv[itemName] || 0) + menge;
           setUserInv(target.id, targetInv);
-          return interaction.reply({ embeds: [new EmbedBuilder()
+          return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
             .setColor(0x57F287).setTitle('📦  Übergabe erfolgreich')
             .setDescription(`<@${user.id}> hat **${menge}x ${itemName}** an <@${target.id}> übergeben.`)
             .setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
@@ -3449,7 +3449,7 @@ client.on('interactionCreate', async (interaction) => {
           inv[itemName] -= menge;
           if (inv[itemName] <= 0) delete inv[itemName];
           setUserInv(user.id, inv);
-          return interaction.reply({ embeds: [new EmbedBuilder()
+          return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
             .setColor(0xE65100).setTitle('✅  Item verwendet')
             .setDescription(`Du hast **${menge}x ${itemName}** verwendet.`)
             .setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
@@ -3466,7 +3466,7 @@ client.on('interactionCreate', async (interaction) => {
           setUserInv(target.id, inv);
           const items = loadItems();
           if (!items.includes(itemName)) { items.push(itemName); saveItems(items); }
-          return interaction.reply({ embeds: [new EmbedBuilder()
+          return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
             .setColor(0x57F287).setTitle('📦  Item vergeben')
             .addFields(
               { name: 'Spieler', value: `<@${target.id}>`, inline: true },
@@ -3486,7 +3486,7 @@ client.on('interactionCreate', async (interaction) => {
           inv[itemName] -= menge;
           if (inv[itemName] <= 0) delete inv[itemName];
           setUserInv(target.id, inv);
-          return interaction.reply({ embeds: [new EmbedBuilder()
+          return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
             .setColor(0xED4245).setTitle('❌  Item entfernt')
             .addFields(
               { name: 'Spieler', value: `<@${target.id}>`, inline: true },
@@ -3522,7 +3522,7 @@ client.on('interactionCreate', async (interaction) => {
           new ButtonBuilder().setCustomId('ts_next:0').setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1),
           new ButtonBuilder().setCustomId('ts_take:0').setLabel('🎁 Item beziehen').setStyle(ButtonStyle.Success)
         );
-        return interaction.reply({ embeds: [buildTeamShopEmbed(items, 0)], components: [row] });
+        return interaction.reply({ embeds: [buildTeamShopEmbed(items, 0)], components: [row], ephemeral: true });
       }
       if (commandName === 'shop-add') {
         const shopId = interaction.options.getString('shop');
@@ -3558,7 +3558,7 @@ client.on('interactionCreate', async (interaction) => {
         const target = interaction.options.getUser('spieler');
         const betrag = interaction.options.getInteger('betrag');
         setCash(target.id, getCash(target.id) + betrag);
-        return interaction.reply({ embeds:[new EmbedBuilder().setColor(0x57F287).setTitle('💵  Bargeld vergeben')
+        return interaction.reply({ ephemeral: true, embeds:[new EmbedBuilder().setColor(0x57F287).setTitle('💵  Bargeld vergeben')
           .addFields({name:'Spieler',value:'<@'+target.id+'>',inline:true},{name:'Betrag',value:'+'+betrag.toLocaleString('de-DE')+' Euro',inline:true},{name:'Neuer Stand',value:getCash(target.id).toLocaleString('de-DE')+' Euro',inline:true})
           .setTimestamp().setFooter({text:'Paradise City Roleplay  •  Bargeld'})], ephemeral:true });
       }
@@ -3567,14 +3567,14 @@ client.on('interactionCreate', async (interaction) => {
         const betrag = interaction.options.getInteger('betrag');
         if (getCash(target.id) < betrag) return interaction.reply({ content:'❌ <@'+target.id+'> hat nur '+getCash(target.id).toLocaleString('de-DE')+' Euro.', ephemeral:true });
         setCash(target.id, getCash(target.id) - betrag);
-        return interaction.reply({ embeds:[new EmbedBuilder().setColor(0xED4245).setTitle('💸  Bargeld entfernt')
+        return interaction.reply({ ephemeral: true, embeds:[new EmbedBuilder().setColor(0xED4245).setTitle('💸  Bargeld entfernt')
           .addFields({name:'Spieler',value:'<@'+target.id+'>',inline:true},{name:'Betrag',value:'-'+betrag.toLocaleString('de-DE')+' Euro',inline:true},{name:'Neuer Stand',value:getCash(target.id).toLocaleString('de-DE')+' Euro',inline:true})
           .setTimestamp().setFooter({text:'Paradise City Roleplay  •  Bargeld'})], ephemeral:true });
       }
       if (commandName === 'bargeld') {
         const target = interaction.options.getUser('spieler') || user;
         const cash   = getCash(target.id);
-        return interaction.reply({ embeds:[new EmbedBuilder().setColor(0xF4A400).setTitle('💵  Bargeldstand')
+        return interaction.reply({ ephemeral: true, embeds:[new EmbedBuilder().setColor(0xF4A400).setTitle('💵  Bargeldstand')
           .setDescription('<@'+target.id+'> hat aktuell **'+cash.toLocaleString('de-DE')+' Euro** Bargeld.')
           .setTimestamp().setFooter({text:'Paradise City Roleplay  •  Bargeld'})], ephemeral:true });
       }
