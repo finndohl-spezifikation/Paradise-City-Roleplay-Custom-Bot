@@ -367,37 +367,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
   // ── GET /einreise/legal ───────────────────────────────────────────────────
   // ── GET /einreise/legal (backward compat — redirect to error) ──────────────
   app.get('/einreise/legal', (req, res) => {
-      const error     = req.session.legalError || ''; delete req.session.legalError;
-      const legalForm = req.session.legalForm  || {}; delete req.session.legalForm;
-      res.send(page('Legale Einreise', `
-        ${header('Legale Einreise — Ausweis Erstellung')}
-        <div class="card">
-          ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
-          <form method="POST" action="/einreise/legal" enctype="multipart/form-data" id="legalForm">
-            <p class="section-title">👤 Discord ID</p>
-            <div class="form-row one"><div class="form-group">
-              <label>Deine Discord ID <span class="req">*</span></label>
-              <input type="text" name="discord_id" required placeholder="z.B. 123456789012345678" pattern="\d{17,20}" title="17–20-stellige Discord ID" value="${escHtml(legalForm.discord_id||'')}">
-              <small class="discord-note">Deine Discord User-ID (Rechtsklick → ID kopieren)</small>
-            </div></div>
-            <hr class="divider">
-            <p class="section-title">📋 IC Charakter Daten</p>
-            ${charFields('', 0, legalForm)}
-            <hr class="divider">
-            <p class="section-title">📷 Passbild</p>
-            <div class="form-row one"><div class="form-group">
-              <label>Passbild Hinzufügen <span class="req">*</span></label>
-              <div class="file-box">
-                <input type="file" name="foto" accept="image/*" required id="fotoInput">
-                <div class="file-label"><span>📷</span>Passbild Hinzufügen<br><small style="color:#555">JPG / PNG — max. 8 MB</small></div>
-                <div class="file-name"></div>
-              </div>
-            </div></div>
-            <button type="submit" class="btn">✅ Einreise Bestätigen</button>
-            ${warning()}
-          </form>
-        </div>
-      `));
+      res.send(page('Legale Einreise', `${header('Legale Einreise')}<div class="card"><div class="success-wrap"><div class="icon">📬</div><h2 style="color:#ffd180">Link prüfen</h2><p>Du hast beim Beitritt eine persönliche DM mit deinem Einreise-Link erhalten.<br>Öffne diese DM und klicke auf den Link um fortzufahren.</p><p style="margin-top:14px;color:#555;font-size:.8em">Kein Link erhalten? Wende dich ans Team.</p></div></div>`));
     });
 
     app.post('/einreise/legal', upload.single('foto'), async (req, res) => {
@@ -448,11 +418,40 @@ module.exports = function startWebServer(client, DATA_DIR) {
       });
     });
 
-  // ── GET /einreise/legal/:token ───────────────────────────────────────────────
+
+    // ── GET /einreise/start/:token — Auswahl Legal/Illegal ──────────────────────
+    app.get('/einreise/start/:token', (req, res) => {
+      const toks  = loadEinreiseTokens();
+      const entry = toks[req.params.token];
+      if (!entry || entry.expiresAt < Date.now()) {
+        return res.send(page('Ungültiger Link', `${header('Ungültiger Link')}<div class="card"><div class="error-box">⚠️ Dieser Link ist ungültig oder abgelaufen. Wende dich ans Team.</div></div>`));
+      }
+      const tok = req.params.token;
+      res.send(page('Einreise — Auswahl', `
+        ${header('Einreise — Bitte wählen')}
+        <div class="card">
+          <p class="section-title">Einreiseweg wählen</p>
+          <div class="select-grid">
+            <a class="select-card" href="/einreise/legal/${tok}">
+              <div class="sc-icon">🟢</div>
+              <div class="sc-title">Legale Einreise</div>
+              <div class="sc-desc">Du reist offiziell ein. Du erhältst einen Ausweis, darfst staatliche Jobs ausführen und startest mit 5.000 $ auf dem Konto.</div>
+            </a>
+            <a class="select-card" href="/einreise/illegal/${tok}">
+              <div class="sc-icon">🔴</div>
+              <div class="sc-title">Illegale Einreise</div>
+              <div class="sc-desc">Du reist ohne Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du startest mit 5.000 $ Schwarzgeld — bleib unter dem Radar.</div>
+            </a>
+          </div>
+        </div>
+      `));
+    });
+
+    // ── GET /einreise/legal/:token ───────────────────────────────────────────────
   app.get('/einreise/legal/:token', (req, res) => {
     const toks = loadEinreiseTokens();
     const entry = toks[req.params.token];
-    if (!entry || entry.art !== 'legal' || entry.expiresAt < Date.now()) {
+    if (!entry || !['legal','einreise'].includes(entry.art) || entry.expiresAt < Date.now()) {
       return res.send(page('Ungültiger Link', `${header('Ungültiger Link')}<div class="card"><div class="error-box">⚠️ Dieser Link ist ungültig oder abgelaufen. Bitte wende dich ans Team.</div></div>`));
     }
     const error = req.session['legalError_'+entry.userId] || ''; delete req.session['legalError_'+entry.userId];
@@ -550,53 +549,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
   // ── GET /einreise/illegal ─────────────────────────────────────────────────
   // ── GET /einreise/illegal (backward compat) ───────────────────────────────
   app.get('/einreise/illegal', (req, res) => {
-      const error   = req.session.illError || ''; delete req.session.illError;
-      const illForm = req.session.illForm  || {}; delete req.session.illForm;
-      res.send(page('Illegale Einreise', `
-        ${header('Illegale Einreise')}
-        <div class="card">
-          ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
-          <form method="POST" action="/einreise/illegal" id="illegalForm">
-            <p class="section-title">👤 Discord ID</p>
-            <div class="form-row one"><div class="form-group">
-              <label>Deine Discord ID <span class="req">*</span></label>
-              <input type="text" name="discord_id" required placeholder="z.B. 123456789012345678" pattern="\d{17,20}" title="17–20-stellige Discord ID" value="${escHtml(illForm.discord_id||'')}">
-              <small class="discord-note">Deine Discord User-ID (Rechtsklick → ID kopieren)</small>
-            </div></div>
-            <hr class="divider">
-            <p class="section-title">🎭 Charakter Name</p>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Vorname <span class="req">*</span></label>
-                <input type="text" name="vorname" value="${escHtml(illForm.vorname||'')}" placeholder="Vorname" required>
-              </div>
-              <div class="form-group">
-                <label>Nachname <span class="req">*</span></label>
-                <input type="text" name="nachname" value="${escHtml(illForm.nachname||'')}" placeholder="Nachname" required>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>PSN Name <span class="req">*</span></label>
-                <input type="text" name="psn" value="${escHtml(illForm.psn||'')}" placeholder="dein_psn_name" required>
-              </div>
-              <div class="form-group">
-                <label>Geschlecht <span class="req">*</span></label>
-                <select name="geschlecht" required>
-                  <option value="" disabled selected>Bitte wählen</option>
-                  <option value="Männlich" ${illForm.geschlecht==='Männlich'?'selected':''}>Männlich</option>
-                  <option value="Weiblich" ${illForm.geschlecht==='Weiblich'?'selected':''}>Weiblich</option>
-                </select>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
-              <input type="checkbox" id="confirm" name="confirm" value="1" required style="width:18px;height:18px;accent-color:#e65100;cursor:pointer;flex-shrink:0">
-              <label for="confirm" style="color:#e0e0e0;font-size:.88em;cursor:pointer">Ich verstehe die Konsequenzen und möchte illegal einreisen.</label>
-            </div>
-            <button type="submit" class="btn" style="background:#b71c1c">🚨 Jetzt Einreisen</button>
-          </form>
-        </div>
-      `));
+      res.send(page('Illegale Einreise', `${header('Illegale Einreise')}<div class="card"><div class="success-wrap"><div class="icon">📬</div><h2 style="color:#ffd180">Link prüfen</h2><p>Du hast beim Beitritt eine persönliche DM mit deinem Einreise-Link erhalten.<br>Öffne diese DM und klicke auf den Link um fortzufahren.</p><p style="margin-top:14px;color:#555;font-size:.8em">Kein Link erhalten? Wende dich ans Team.</p></div></div>`));
     });
 
     app.post('/einreise/illegal', async (req, res) => {
@@ -650,7 +603,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
   app.get('/einreise/illegal/:token', (req, res) => {
     const toks = loadEinreiseTokens();
     const entry = toks[req.params.token];
-    if (!entry || entry.art !== 'illegal' || entry.expiresAt < Date.now()) {
+    if (!entry || !['illegal','einreise'].includes(entry.art) || entry.expiresAt < Date.now()) {
       return res.send(page('Ungültiger Link', `${header('Ungültiger Link')}<div class="card"><div class="error-box">⚠️ Dieser Link ist ungültig oder abgelaufen. Bitte wende dich ans Team.</div></div>`));
     }
     const uid = entry.userId;
