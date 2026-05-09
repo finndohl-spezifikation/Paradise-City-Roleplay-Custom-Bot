@@ -419,7 +419,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
       if (member) {
         await member.roles.remove(ROLE_REMOVE).catch(() => {});
         for (const r of [...ROLES_ALL, ...ROLES_LEGAL]) await member.roles.add(r).catch(() => {});
-        await member.setNickname(`${vorname_0} ${nachname_0} | ${psn_0 || ''}`).catch(() => {});
+        await member.setNickname(`${vorname_0} ${nachname_0} | ${psn_0 || ''}`).catch(e => console.error('[Nickname] legal einzel:', e.message));
       }
     } catch (e) { console.error('Rollen Fehler legal:', e.message); }
 
@@ -504,7 +504,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
       if (member) {
         await member.roles.remove(ROLE_REMOVE).catch(() => {});
         for (const r of [...ROLES_ALL, ...ROLES_ILLEGAL]) await member.roles.add(r).catch(() => {});
-        await member.setNickname(`${illVor} ${illNach} | ${illPsn}`).catch(() => {});
+        await member.setNickname(`${illVor} ${illNach} | ${illPsn}`).catch(e => console.error('[Nickname] illegal einzel:', e.message));
       }
     } catch (e) { console.error('Rollen Fehler illegal:', e.message); }
 
@@ -676,7 +676,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
         ? (`${req.body[`g_vorname_${gi}`]||''} ${req.body[`g_nachname_${gi}`]||''} | ${req.body[`g_psn_${gi}`]||''}`).trim()
         : (`${req.body[`g_ill_vorname_${gi}`]||''} ${req.body[`g_ill_nachname_${gi}`]||''} | ${req.body[`g_ill_psn_${gi}`]||''}`).trim();
       const mem = await client.guilds.cache.first()?.members.fetch(uid).catch(() => null);
-      if (mem && nick) await mem.setNickname(nick).catch(() => {});
+      if (mem && nick) await mem.setNickname(nick).catch(e => console.error('[Nickname] gruppe uid=' + uid + ':', e.message));
     }
 
     if (failed.length > 0) {
@@ -858,7 +858,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
     try {
       const guild9 = client.guilds.cache.first();
       const mem9   = guild9 ? await guild9.members.fetch(entry.userId).catch(() => null) : null;
-      if (mem9) await mem9.setNickname(`${vorname} ${nachname} | ${aw_psn || ''}`).catch(() => {});
+      if (mem9) await mem9.setNickname(`${vorname} ${nachname} | ${aw_psn || ''}`).catch(e => console.error('[Nickname] ausweis:', e.message));
     } catch {}
     // Token verbrauchen
     delete tokens[req.params.token];
