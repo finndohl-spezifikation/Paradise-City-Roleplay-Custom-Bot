@@ -390,24 +390,25 @@ Du kannst Rechnungen einzeln oder alle auf einmal bezahlen.');
   async function updateShopEmbed(shopId) {
       const m = SHOP_META[shopId];
       if (!m) return;
-      const shops = loadShops();
-      const items = shops[shopId] || [];
       const chId  = SHOP_CHANNELS[shopId];
       const setup = loadSetup();
+      const msgId = setup['shopMsgId_' + shopId];
       const ch = await client.channels.fetch(chId).catch(() => null);
       if (!ch) return;
-      const embed = buildShopPageEmbed(shopId, 0, items);
-      const totalPages = Math.max(1, Math.ceil(items.length / 10));
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('sp_prev:0:' + shopId).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(true),
-        new ButtonBuilder().setCustomId('sp_next:0:' + shopId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1),
-        new ButtonBuilder().setCustomId('sp_shop:' + shopId).setLabel('🛒  Einkaufen').setStyle(ButtonStyle.Success)
-      );
-      const msgId = setup['shopMsgId_' + shopId];
+      // If already sent and message still exists → do nothing (send only once)
       if (msgId) {
         const msg = await ch.messages.fetch(msgId).catch(() => null);
-        if (msg) { await msg.edit({ embeds: [embed], components: [row] }); return; }
+        if (msg) return;
       }
+      // First time: send the embed
+      const embed = new EmbedBuilder()
+        .setColor(m.color)
+        .setTitle(m.emoji + '  ' + m.name)
+        .setDescription('Klicke auf **Einkaufen** um den Shop zu öffnen und alle verfügbaren Items zu sehen.')
+        .setFooter({ text: 'Paradise City Roleplay  •  ' + m.name });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('sp_shop:' + shopId).setLabel('🛒  Einkaufen').setStyle(ButtonStyle.Success)
+      );
       const sent = await ch.send({ embeds: [embed], components: [row] });
       setup['shopMsgId_' + shopId] = sent.id;
       saveSetup(setup);
@@ -1057,17 +1058,6 @@ async function buildInviteCache(guild) {
         .setDescription('Zeigt dein Lager an')
         .addUserOption(opt => opt.setName('spieler').setDescription('Lager eines anderen Spielers').setRequired(false))
         .toJSON(),
-  
-      new SlashCommandBuilder()
-      .setName('teamshop-add')
-      .setDescription('Fuegt ein Item zum Team-Shop hinzu')
-      .addStringOption(opt => opt.setName('item').setDescription('Item-Name').setRequired(true))
-      .toJSON(),
-    new SlashCommandBuilder()
-      .setName('teamshop-delete')
-      .setDescription('Loescht ein Item aus dem Team-Shop')
-      .addStringOption(opt => opt.setName('item').setDescription('Item waehlen').setRequired(true).setAutocomplete(true))
-      .toJSON(),
     new SlashCommandBuilder().setName('teamshop').setDescription('Oeffnet den Team-Shop').toJSON(),
     new SlashCommandBuilder()
       .setName('shop-add')
@@ -3657,28 +3647,12 @@ client.on('interactionCreate', async (interaction) => {
   
 
       // ── SHOP SLASH HANDLERS ──────────────────────────────────────────────
-      if (commandName === 'teamshop-add') {
-        const name = interaction.options.getString('item').trim();
-        const shops = loadShops(); if (!shops.team) shops.team = [];
-        if (shops.team.find(i => i.name === name)) return interaction.reply({ content: '❌ **' + name + '** bereits im Team-Shop.', ephemeral: true });
-        shops.team.push({ name }); saveShops(shops);
-        return interaction.reply({ content: '✅ **' + name + '** zum Team-Shop hinzugefügt.', ephemeral: true });
-      }
-      if (commandName === 'teamshop-delete') {
-        const name = interaction.options.getString('item');
-        const shops = loadShops(); const lenB = (shops.team||[]).length;
-        shops.team = (shops.team||[]).filter(i => i.name !== name);
-        if (shops.team.length === lenB) return interaction.reply({ content: '❌ **' + name + '** nicht gefunden.', ephemeral: true });
-        saveShops(shops);
-        return interaction.reply({ content: '✅ **' + name + '** aus dem Team-Shop entfernt.', ephemeral: true });
-      }
       if (commandName === 'teamshop') {
         const shops = loadShops(); const items = shops.team || [];
         const totalPages = Math.max(1, Math.ceil(items.length / 10));
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId('ts_prev:0').setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(true),
           new ButtonBuilder().setCustomId('ts_next:0').setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1),
-          new ButtonBuilder().setCustomId('ts_take:0').setLabel('🎁 Item beziehen').setStyle(ButtonStyle.Success)
         );
         return interaction.reply({ embeds: [buildTeamShopEmbed(items, 0)], components: [row], ephemeral: true });
       }
@@ -3919,29 +3893,16 @@ client.on('interactionCreate', async (interaction) => {
     const shops = loadShops(); const items = shops.team || [];
     const totalPages = Math.max(1, Math.ceil(items.length / 10));
     let page = parseInt(parts[1]) || 0;
-    if (action === 'ts_take') {
-      if (!items.length) return interaction.reply({ content: '❌ Der Team-Shop ist leer.', ephemeral: true });
-      const allOpts = items.slice(0,25).map(i => ({ label: i.name, value: i.name }));
-      return interaction.reply({ content: '**🎁 Welches Item möchtest du?**', components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('ts_select:' + page).setPlaceholder('Welches Item beziehen?').addOptions(allOpts))], ephemeral: true });
-    }
     if (action === 'ts_prev') page = Math.max(0, page - 1);
     else if (action === 'ts_next') page = Math.min(totalPages - 1, page + 1);
     const navRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('ts_prev:' + page).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
       new ButtonBuilder().setCustomId('ts_next:' + page).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1),
-      new ButtonBuilder().setCustomId('ts_take:' + page).setLabel('🎁 Item beziehen').setStyle(ButtonStyle.Success)
     );
     return interaction.update({ embeds: [buildTeamShopEmbed(items, page)], components: [navRow] });
   }
 
   // Team Shop: item select -> give
-  if (interaction.isStringSelectMenu() && interaction.customId.startsWith('ts_select:')) {
-    const name = interaction.values[0];
-    const inv  = loadInv(); if (!inv[uid]) inv[uid] = {};
-    inv[uid][name] = (inv[uid][name] || 0) + 1; saveInv(inv);
-    return interaction.update({ content: '✅ **' + name + '** wurde deinem Rucksack hinzugefügt! 🎁', components: [] });
-  }
-
 
     // ─── LOHN ABHOLEN ────────────────────────────────────────────────────────
     if (interaction.isButton() && interaction.customId === 'lohn_abholen') {
