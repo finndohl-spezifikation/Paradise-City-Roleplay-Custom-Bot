@@ -1793,24 +1793,21 @@ async function buildInviteCache(guild) {
             .setDescription(
               `**Mögliche Gewinne:**
 ❌  Niete
-💵  1.000 $
-💴  2.500 $
-💶  5.000 $
-💷  10.000 $
-💰  25.000 $
+💵  1'000 $
+💴  2'500 $
+💶  5'000 $
+💰  25'000 $
 🚬  10× Marlboro Rot
 🚲  Elektro Fahrrad
-⛳  Golfschläger
-🎰  Lottoschein
-🎟️  20% Gutschein Autohaus
-🏎️  **SPORTWAGEN** *(Hauptgewinn — Ticket erstellen!)*
+🏌️‍♂️  Golfschläger
+🎟️  Lottoschein
+🎫  20% Rabatt beim Autohaus
 
 ──────────────────────────────
 🛒 Kaufe ein Rubbellos im **Kwik-E-Markt** für **1.000 $**.
 ▶️ Drücke den Button um dein Rubbellos einzulösen.
 
-🎯 Rubbele alle 9 Felder frei — **3× dasselbe Symbol = Gewinn!**
-🏆 Beim Sportwagen-Hauptgewinn bitte ein **Ticket erstellen!**`
+🎯 Rubbele alle 9 Felder frei — **3× dasselbe Symbol = Gewinn!**`
             )
             .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' });
           const rubbBtn = new ButtonBuilder()
@@ -4073,14 +4070,12 @@ Link: ${link}`, ephemeral: true });
       { sym: '💵', label: '1.000 $',            type: 'cash',   amount: 1000,  weight: 20   },
       { sym: '💴', label: '2.500 $',            type: 'cash',   amount: 2500,  weight: 13   },
       { sym: '💶', label: '5.000 $',            type: 'cash',   amount: 5000,  weight: 10   },
-      { sym: '💷', label: '10.000 $',           type: 'cash',   amount: 10000, weight: 7    },
       { sym: '💰', label: '25.000 $',           type: 'cash',   amount: 25000, weight: 5    },
       { sym: '🚬', label: '10× Marlboro Rot',  type: 'item',   item: 'Marlboro Rot',           menge: 10, weight: 4   },
       { sym: '🚲', label: 'Elektro Fahrrad',    type: 'item',   item: 'Elektro Fahrrad',        menge: 1,  weight: 2   },
-      { sym: '⛳', label: 'Golfschläger',          type: 'item',   item: 'Golfschläger',        menge: 1,  weight: 1.5 },
-      { sym: '🎰', label: 'Lottoschein',        type: 'item',   item: 'Lottoschein',            menge: 1,  weight: 1   },
-      { sym: '🎟️', label: '20% Gutschein Autohaus', type: 'item', item: '20% Gutschein Autohaus', menge: 1, weight: 1 },
-      { sym: '🏎️', label: '🏆 SPORTWAGEN', type: 'ticket', weight: 0.5 },
+      { sym: '🏌️‍♂️', label: 'Golfschläger',          type: 'item',   item: 'Golfschläger',        menge: 1,  weight: 1.5 },
+      { sym: '🎟️', label: 'Lottoschein',        type: 'item',   item: 'Lottoschein',            menge: 1,  weight: 1   },
+      { sym: '🎫', label: '20% Rabatt beim Autohaus', type: 'item', item: '20% Rabatt beim Autohaus', menge: 1, weight: 1 },
     ];
     function pickRubbelPrize() {
       const total = RUBBELLOS_PRIZES.reduce((s, p) => s + p.weight, 0);
