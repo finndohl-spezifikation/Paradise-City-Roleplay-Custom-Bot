@@ -284,12 +284,19 @@ function buildScratchPage(token, entry) {
   .spinner{display:inline-block;width:18px;height:18px;border:2px solid #555;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
   @keyframes spin{to{transform:rotate(360deg)}}
   .expire{color:#555;font-size:.7em;text-align:center;margin-top:18px}
+  .live-count{min-height:36px;margin:14px 0 4px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center}
+  .chip{display:inline-flex;align-items:center;gap:5px;background:#21262d;border:1px solid #30363d;border-radius:20px;padding:5px 12px;font-size:.93em;transition:all .25s}
+  .chip b{color:#c9d1d9}
+  .chip em{font-style:normal;color:#8b949e}
+  .win-chip{border-color:#3fb950;background:#0d2311;box-shadow:0 0 8px rgba(63,185,80,.35)}
+  .win-chip em{color:#3fb950;font-weight:700}
   @media(max-width:380px){.grid{grid-template-columns:repeat(3,90px);grid-template-rows:repeat(3,90px)}.cell,.cv{width:90px;height:90px}}
   </style></head><body>
   <div class="hdr"><div class="ico">🎟️</div><h1>Paradise City Rubbellos</h1><p>Rubbele alle 9 Felder frei und sichere deinen Gewinn!</p></div>
   <div class="card">
   <p class="hint">🖱️ Maus gedrückt halten &amp; rubbeln &mdash; oder auf dem Handy mit dem Finger</p>
   <div class="grid">${cells}</div>
+  <div class="live-count" id="lc"></div>
   <div class="prog-wrap"><p class="prog-txt" id="pt">0 % freigerubbelt</p><div class="prog-bar"><div class="prog-fill" id="pf"></div></div></div>
   <button class="claim-btn" id="cb" onclick="claim()">🏆 Gewinn jetzt sichern!</button>
   <div class="result" id="res"></div>
@@ -298,6 +305,7 @@ function buildScratchPage(token, entry) {
   <script>
   const TOKEN='${token}';
   const GRID=${gridJ};
+  const PRIZE=${JSON.stringify(entry.prize)};
   const scratched=new Array(9).fill(0);
   let claimed=false;
 
@@ -317,12 +325,33 @@ function buildScratchPage(token, entry) {
     for(let s=0;s<6;s++){ctx.beginPath();ctx.arc(Math.random()*90+7,Math.random()*90+7,1.5,0,Math.PI*2);ctx.fill();}
   });
 
+  function symLabel(sym){
+    if(sym!==PRIZE.sym)return '';
+    if(PRIZE.type==='cash')return PRIZE.amount.toLocaleString('de-DE')+' \u0024';
+    if(PRIZE.type==='item')return (PRIZE.menge||1)+'\u00D7 '+PRIZE.item;
+    if(PRIZE.type==='ticket')return '\uD83C\uDFCE\uFE0F SPORTWAGEN';
+    return '';
+  }
+  function updateCounter(){
+    const lc=document.getElementById('lc');
+    const counts={};
+    GRID.forEach((sym,i)=>{if(scratched[i]>=40)counts[sym]=(counts[sym]||0)+1;});
+    const keys=Object.keys(counts);
+    if(!keys.length){lc.innerHTML='';return;}
+    lc.innerHTML=keys.map(sym=>{
+      const cnt=counts[sym];
+      const lbl=symLabel(sym);
+      const isWin=sym===PRIZE.sym&&PRIZE.type!=='nichts'&&cnt>=3;
+      return '<span class="chip'+(isWin?' win-chip':'')+'">'+sym+' <b>\u00D7'+cnt+'</b>'+(lbl?' <em>'+lbl+'</em>':'')+'</span>';
+    }).join('');
+  }
   function pct(){return Math.round(scratched.reduce((a,b)=>a+b,0)/9);}
   function upd(){
     const p=pct();
     document.getElementById('pf').style.width=p+'%';
     document.getElementById('pt').textContent=p+'\u0025 freigerubbelt';
     if(p>=80)document.getElementById('cb').classList.add('show');
+    updateCounter();
   }
 
   function scrAt(cv,i,x,y,r){
