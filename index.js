@@ -4112,6 +4112,46 @@ Link: ${link}`, ephemeral: true });
 client.on('interactionCreate', async (interaction) => {
   const uid = interaction.user?.id;
 
+  // ── Button: Rubbellos einlösen ──────────────────────────────────────────────
+  if (interaction.isButton() && interaction.customId === 'rubbellos_use') {
+    const uid = interaction.user.id;
+    const inv = getUserInv(uid);
+    if (!inv['Rubbellos'] || inv['Rubbellos'] < 1) {
+      return interaction.reply({ content: '❌ Du hast kein **Rubbellos** im Inventar.\n🛒 Kaufe eines im **Kwik-E-Markt**!', ephemeral: true });
+    }
+    // Rubbellos aus Inventar entfernen
+    inv['Rubbellos'] -= 1;
+    if (inv['Rubbellos'] <= 0) delete inv['Rubbellos'];
+    setUserInv(uid, inv);
+    // Gewinn ermitteln
+    const rubbelPrize = pickRubbelPrize();
+    const rubbelGrid  = buildRubbelGrid(rubbelPrize);
+    const rubbelStr   = formatRubbelGrid(rubbelGrid);
+    // Gewinn auszahlen
+    let prizeMsg = '';
+    if (rubbelPrize.type === 'cash') {
+      setCash(uid, getCash(uid) + rubbelPrize.amount);
+      prizeMsg = `💰 **Gewinn: ${rubbelPrize.amount.toLocaleString('de-DE')} $** wurden deinem Bargeld gutgeschrieben!`;
+    } else if (rubbelPrize.type === 'item') {
+      const invI = getUserInv(uid);
+      invI[rubbelPrize.item] = (invI[rubbelPrize.item] || 0) + rubbelPrize.menge;
+      setUserInv(uid, invI);
+      prizeMsg = `🎁 **Gewinn: ${rubbelPrize.menge}× ${rubbelPrize.item}** wurde deinem Inventar hinzugefügt!`;
+    } else if (rubbelPrize.type === 'ticket') {
+      prizeMsg = '🏎️ **HAUPTGEWINN: SPORTWAGEN!**\nErstelle bitte ein **Ticket** um deinen Gewinn abzuholen!';
+    } else {
+      prizeMsg = '😢 Leider nichts gewonnen. Viel Glück beim nächsten Mal!';
+    }
+    const isWin = rubbelPrize.type !== 'niete';
+    const rubbelEmbed = new EmbedBuilder()
+      .setColor(rubbelPrize.type === 'ticket' ? 0xFFD700 : isWin ? 0xE65100 : 0x555555)
+      .setTitle(rubbelPrize.type === 'ticket' ? '🏆 HAUPTGEWINN!' : isWin ? '🎉 Gewonnen!' : '😢 Niete')
+      .setDescription(`\`\`\`\n${rubbelStr}\n\`\`\`\n${prizeMsg}`)
+      .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' })
+      .setTimestamp();
+    return interaction.reply({ embeds: [rubbelEmbed], ephemeral: true });
+  }
+
   // Team Shop: pagination & take
   if (interaction.isButton() && interaction.customId.startsWith('ts_')) {
     const parts = interaction.customId.split(':');
@@ -4568,45 +4608,7 @@ ${transText}`;
         { name: '💵  Verbleibendes Bargeld', value: getCash(uid).toLocaleString('de-DE') + ' Euro', inline: true }
       ).setFooter({ text: 'Paradise City Roleplay  •  ' + m.name }).setTimestamp();
     
-    // ── Button: Rubbellos einlösen ──────────────────────────────────────────────
-    if (interaction.isButton() && interaction.customId === 'rubbellos_use') {
-      const uid = interaction.user.id;
-      const inv = getUserInv(uid);
-      if (!inv['Rubbellos'] || inv['Rubbellos'] < 1) {
-        return interaction.reply({ content: '❌ Du hast kein **Rubbellos** im Inventar.\n🛒 Kaufe eines im **Kwik-E-Markt**!', ephemeral: true });
-      }
-      // Rubbellos aus Inventar entfernen
-      inv['Rubbellos'] -= 1;
-      if (inv['Rubbellos'] <= 0) delete inv['Rubbellos'];
-      setUserInv(uid, inv);
-      // Gewinn ermitteln
-      const rubbelPrize = pickRubbelPrize();
-      const rubbelGrid  = buildRubbelGrid(rubbelPrize);
-      const rubbelStr   = formatRubbelGrid(rubbelGrid);
-      // Gewinn auszahlen
-      let prizeMsg = '';
-      if (rubbelPrize.type === 'cash') {
-        setCash(uid, getCash(uid) + rubbelPrize.amount);
-        prizeMsg = `💰 **Gewinn: ${rubbelPrize.amount.toLocaleString('de-DE')} $** wurden deinem Bargeld gutgeschrieben!`;
-      } else if (rubbelPrize.type === 'item') {
-        const invI = getUserInv(uid);
-        invI[rubbelPrize.item] = (invI[rubbelPrize.item] || 0) + rubbelPrize.menge;
-        setUserInv(uid, invI);
-        prizeMsg = `🎁 **Gewinn: ${rubbelPrize.menge}× ${rubbelPrize.item}** wurde deinem Inventar hinzugefügt!`;
-      } else if (rubbelPrize.type === 'ticket') {
-        prizeMsg = '🏎️ **HAUPTGEWINN: SPORTWAGEN!**\nErstelle bitte ein **Ticket** um deinen Gewinn abzuholen!';
-      } else {
-        prizeMsg = '😢 Leider nichts gewonnen. Viel Glück beim nächsten Mal!';
-      }
-      const isWin = rubbelPrize.type !== 'niete';
-      const rubbelEmbed = new EmbedBuilder()
-        .setColor(rubbelPrize.type === 'ticket' ? 0xFFD700 : isWin ? 0xE65100 : 0x555555)
-        .setTitle(rubbelPrize.type === 'ticket' ? '🏆 HAUPTGEWINN!' : isWin ? '🎉 Gewonnen!' : '😢 Niete')
-        .setDescription(`\`\`\`\n${rubbelStr}\n\`\`\`\n${prizeMsg}`)
-        .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' })
-        .setTimestamp();
-      return interaction.reply({ embeds: [rubbelEmbed], ephemeral: true });
-    }
+
 
   return interaction.update({ content: null, embeds: [receipt], components: [] });
   }
