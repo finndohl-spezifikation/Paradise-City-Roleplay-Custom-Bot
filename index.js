@@ -557,33 +557,33 @@ async function buildInviteCache(guild) {
     new SlashCommandBuilder()
       .setName('frak-delete')
       .setDescription('Löscht eine Fraktion')
-      .addStringOption(opt => opt.setName('name').setDescription('Name der Fraktion').setRequired(true))
+      .addStringOption(opt => opt.setName('name').setDescription('Name der Fraktion').setRequired(true).setAutocomplete(true))
       .toJSON(),
 
     new SlashCommandBuilder()
       .setName('frakwarn')
       .setDescription('Erteilt einer Fraktion eine Verwarnung')
-      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true))
+      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true).setAutocomplete(true))
       .addStringOption(opt => opt.setName('grund').setDescription('Grund der Verwarnung').setRequired(true))
       .toJSON(),
 
     new SlashCommandBuilder()
       .setName('frakwarn-remove')
       .setDescription('Entfernt die letzte Verwarnung einer Fraktion')
-      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true))
+      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true).setAutocomplete(true))
       .toJSON(),
 
     new SlashCommandBuilder()
       .setName('fraksperre')
       .setDescription('Sperrt eine Fraktion')
-      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true))
+      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true).setAutocomplete(true))
       .addStringOption(opt => opt.setName('grund').setDescription('Grund der Sperre').setRequired(true))
       .toJSON(),
 
     new SlashCommandBuilder()
       .setName('fraksperre-remove')
       .setDescription('Hebt die Sperre einer Fraktion auf')
-      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true))
+      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true).setAutocomplete(true))
       .toJSON(),
   ];
 
@@ -2168,7 +2168,24 @@ client.on('guildAuditLogEntryCreate', async (entry, guild) => {
 
 // ─── INTERACTIONS ─────────────────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+
+    // ── Autocomplete: Fraktionsnamen ──────────────────────────────────────────
+    if (interaction.isAutocomplete()) {
+      const cmd = interaction.commandName;
+      const frakCmds = ['frak-delete','frakwarn','frakwarn-remove','fraksperre','fraksperre-remove'];
+      if (frakCmds.includes(cmd)) {
+        const focused = interaction.options.getFocused().toLowerCase();
+        const data = loadFraktionen();
+        const choices = Object.keys(data)
+          .filter(n => n.toLowerCase().includes(focused))
+          .slice(0, 25)
+          .map(n => ({ name: `${n} [${data[n].typ}]`, value: n }));
+        return interaction.respond(choices);
+      }
+      return interaction.respond([]);
+    }
+
+    if (!interaction.isChatInputCommand()) return;
   const { commandName, member, user } = interaction;
 
   // /delete
