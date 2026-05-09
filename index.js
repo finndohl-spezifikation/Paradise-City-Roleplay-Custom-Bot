@@ -1802,13 +1802,15 @@ async function buildInviteCache(guild) {
             { name: '👤 Geöffnet von', value: `<@${member.id}>`, inline: true },
             { name: '🕐 Erstellt am',  value: `<t:${ts()}:F>`,  inline: true },
             { name: '🔖 Ticket-ID',    value: `\`${ticketId}\``,       inline: true },
+            { name: '🛠️ Bearbeiter', value: 'Noch kein Bearbeiter', inline: true },
           )
           .setFooter({ text: 'Paradise City Roleplay  •  Support' }).setTimestamp();
         const closeBtn  = new ButtonBuilder().setCustomId('ticket_close').setLabel('Ticket schließen').setEmoji('🔒').setStyle(ButtonStyle.Danger);
         const assignBtn = new ButtonBuilder().setCustomId('ticket_assign').setLabel('Nutzer zuweisen').setEmoji('👤').setStyle(ButtonStyle.Secondary);
         const row = new ActionRowBuilder().addComponents(closeBtn, assignBtn);
         const pings = [...cfg.roles.map(r => `<@&${r}>`), ...cfg.pingRoles.map(r => `<@&${r}>`)].join(' ');
-        await ticketCh.send({ content: pings, embeds: [welcomeEmbed], components: [row] });
+        const welcomeMsg = await ticketCh.send({ content: pings, embeds: [welcomeEmbed], components: [row] });
+        tickets[ticketCh.id].welcomeMsgId = welcomeMsg.id; saveTickets(tickets);
         return interaction.editReply({ content: `✅ Ticket erstellt: <#${ticketCh.id}>` });
       }
 
@@ -2382,6 +2384,23 @@ client.on('messageCreate', async (message) => {
           ticket.bearbeiter    = message.author.id;
           ticket.bearbeiterTag = message.author.tag;
           saveTickets(tickets);
+          // Bearbeiter im Welcome-Embed aktualisieren
+          if (ticket.welcomeMsgId) {
+            try {
+              const wMsg = await message.channel.messages.fetch(ticket.welcomeMsgId);
+              if (wMsg && wMsg.embeds.length > 0) {
+                const oldEmbed = wMsg.embeds[0];
+                const newEmbed = EmbedBuilder.from(oldEmbed);
+                const fields = oldEmbed.fields.map(f =>
+                  f.name === '🛠️ Bearbeiter'
+                    ? { name: '🛠️ Bearbeiter', value: `<@${message.author.id}>`, inline: true }
+                    : f
+                );
+                newEmbed.setFields(fields);
+                await wMsg.edit({ embeds: [newEmbed] });
+              }
+            } catch (e) { console.error('Embed-Update Fehler:', e.message); }
+          }
         }
       }
     }
