@@ -88,7 +88,7 @@ function header(subtitle) {
 }
 
 function warning() {
-  return `<p class="warning-text">⚠️ Bitte gebe hier korrekte Daten zu deinem Charakter an.<br>Änderungen sind nur durch den RP Tod möglich.</p>`;
+  return `<p class="warning-text">⚠️ Bitte gebe bei der Erstellung deines Charakters nur korrekte Daten an.<br>Änderungen können nicht vorgenommen werden.</p>`;
 }
 
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -296,7 +296,6 @@ module.exports = function startWebServer(client, DATA_DIR) {
     if (!/^\d{17,20}$/.test(userId)) return { ok: false, reason: 'Ungültige Discord ID (nur Zahlen, 17-20 Stellen).' };
     const member = await getMember(userId);
     if (!member) return { ok: false, reason: `Discord ID \`${userId}\` ist nicht auf diesem Server.` };
-    if (!member.roles.cache.has(ROLE_REMOVE)) return { ok: false, reason: `Discord ID \`${userId}\` hat noch nicht die Rolle für Neubürger. Trete dem Server bei und warte auf die Rolle.` };
     return { ok: true, member };
   }
 
