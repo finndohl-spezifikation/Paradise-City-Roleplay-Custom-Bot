@@ -673,7 +673,6 @@ module.exports = function startWebServer(client, DATA_DIR) {
       const ok  = await applyRoles(uid, isLegal);
       if (!ok) { failed.push(uid); continue; }
       const nick = isLegal
-      const nick = isLegal
         ? (`${req.body[`g_vorname_${gi}`]||''} ${req.body[`g_nachname_${gi}`]||''} | ${req.body[`g_psn_${gi}`]||''}`).trim()
         : (`${req.body[`g_ill_vorname_${gi}`]||''} ${req.body[`g_ill_nachname_${gi}`]||''} | ${req.body[`g_ill_psn_${gi}`]||''}`).trim();
     }
