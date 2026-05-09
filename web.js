@@ -108,7 +108,8 @@ function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&
   return `<!DOCTYPE html><html lang="de"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} — Paradise City Roleplay</title>
-<style>${CSS}</style></head><body>
+<style>${CSS}.btn-sm{display:inline-block;padding:3px 10px;background:#e65100;color:#fff;border:none;border-radius:6px;font-size:.78em;cursor:pointer;text-decoration:none;vertical-align:middle;margin-left:4px;line-height:1.6}
+  </style></head><body>
 <div class="wrap">${body}</div>
 <script>
 document.querySelectorAll('.file-box input[type=file]').forEach(inp => {
@@ -378,7 +379,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
             <div class="form-row one"><div class="form-group">
               <label>Discord ID <span class="req">*</span></label>
               <input type="text" name="discord_id" value="${escHtml(legalForm.discord_id||'')}" placeholder="z.B. 123456789012345678" required pattern="[0-9]{15,20}" title="Nur Zahlen, 15–20 Stellen">
-              <small style="color:#aaa">Die Discord ID findest du in deiner Willkommens-DM vom Bot.</small>
+              <small style="color:#aaa">Du findest deine Discord ID nicht? </small><a href="/einreise/discord-id-help" target="_blank" class="btn-sm">📨 Per DM schicken lassen</a>
             </div></div>
             <hr class="divider">
             <p class="section-title">📋 IC Charakter Daten</p>
@@ -448,6 +449,60 @@ module.exports = function startWebServer(client, DATA_DIR) {
       });
     });
 
+
+  
+    // ── GET /einreise/discord-id-help — Discord ID per DM anfragen ───────────
+    app.get('/einreise/discord-id-help', (req, res) => {
+      const error = req.session.didHelpErr || ''; delete req.session.didHelpErr;
+      const done  = req.session.didHelpOk  || false; delete req.session.didHelpOk;
+      res.send(page('Discord ID per DM', `
+        ${header('Discord ID per DM erhalten')}
+        <div class="card">
+          ${done ? `<div class="success-wrap"><div class="icon">📬</div><h2 style="color:#ffd180">DM gesendet!</h2><p>Schau in deine Discord-DMs — wir haben dir deine ID geschickt.</p></div>` : `
+            ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
+            <form method="POST" action="/einreise/discord-id-help">
+              <p class="section-title">Discord Benutzername eingeben</p>
+              <div class="form-row one"><div class="form-group">
+                <label>Dein Discord Benutzername <span class="req">*</span></label>
+                <input type="text" name="username" placeholder="z.B. meinname oder meinname#1234" required autofocus>
+                <small style="color:#aaa">Nur den Nutzernamen eingeben — kein @</small>
+              </div></div>
+              <button type="submit" class="btn" style="margin-top:14px">📨 ID per DM senden</button>
+            </form>
+          `}
+        </div>
+      `));
+    });
+
+    // ── POST /einreise/discord-id-help ───────────────────────────────────────
+    app.post('/einreise/discord-id-help', async (req, res) => {
+      const username = (req.body.username || '').trim().toLowerCase().replace(/^@/, '');
+      if (!username) { req.session.didHelpErr = 'Bitte gib deinen Discord Nutzernamen ein.'; return res.redirect('/einreise/discord-id-help'); }
+      try {
+        const guild = client.guilds.cache.first();
+        if (!guild) throw new Error('Server nicht gefunden');
+        await guild.members.fetch();
+        const member = guild.members.cache.find(m =>
+          m.user.username.toLowerCase() === username ||
+          m.user.tag.toLowerCase() === username ||
+          m.displayName.toLowerCase() === username
+        );
+        if (!member) { req.session.didHelpErr = `Kein Mitglied mit dem Namen "${escHtml(username)}" gefunden. Prüfe die Schreibweise.`; return res.redirect('/einreise/discord-id-help'); }
+        await member.send({ embeds: [{
+          color: 0xE65100,
+          title: '🆔  Deine Discord ID',
+          description: `Hier ist deine Discord ID für die Einreise-Seite:\n\n\`${member.id}\`\n\nKopiere sie und trage sie im Formular ein.`,
+          footer: { text: 'Paradise City Roleplay  •  Einreise' },
+          timestamp: new Date().toISOString(),
+        }]});
+        req.session.didHelpOk = true;
+        res.redirect('/einreise/discord-id-help');
+      } catch (e) {
+        const msg = e.message?.includes('Cannot send') ? 'Deine Discord-DMs sind deaktiviert. Aktiviere DMs von Servermitgliedern und versuche es erneut.' : 'Fehler beim Senden der DM. Wende dich ans Team.';
+        req.session.didHelpErr = msg;
+        res.redirect('/einreise/discord-id-help');
+      }
+    });
 
     // ── GET /einreise/anfordern/:userId — Token generieren & DM senden ────────
     app.get('/einreise/anfordern/:userId', async (req, res) => {
@@ -624,7 +679,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
             <div class="form-row one"><div class="form-group">
               <label>Discord ID <span class="req">*</span></label>
               <input type="text" name="discord_id" value="${escHtml(illForm.discord_id||'')}" placeholder="z.B. 123456789012345678" required pattern="[0-9]{15,20}" title="Nur Zahlen, 15–20 Stellen">
-              <small style="color:#aaa">Die Discord ID findest du in deiner Willkommens-DM vom Bot.</small>
+              <small style="color:#aaa">Du findest deine Discord ID nicht? </small><a href="/einreise/discord-id-help" target="_blank" class="btn-sm">📨 Per DM schicken lassen</a>
             </div></div>
             <hr class="divider">
             <p class="section-title">🎭 Charakter Name</p>
