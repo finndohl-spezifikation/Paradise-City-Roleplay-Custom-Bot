@@ -374,8 +374,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
         <div class="card">
           ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
           <form method="POST" action="/einreise/legal" enctype="multipart/form-data" id="legalForm">
-            <p class="section-title">👤 Discord Mitglied</p>
-            <div class="form-row one">${memberPicker('discord_id', 'Spieler auswählen')}</div>
+            <p class="section-title">👤 Discord ID</p>
+            <div class="form-row one"><div class="form-group">
+              <label>Deine Discord ID <span class="req">*</span></label>
+              <input type="text" name="discord_id" required placeholder="z.B. 123456789012345678" pattern="\d{17,20}" title="17–20-stellige Discord ID" value="${escHtml(legalForm.discord_id||'')}">
+              <small class="discord-note">Deine Discord User-ID (Rechtsklick → ID kopieren)</small>
+            </div></div>
             <hr class="divider">
             <p class="section-title">📋 IC Charakter Daten</p>
             ${charFields('', 0, legalForm)}
@@ -553,8 +557,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
         <div class="card">
           ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
           <form method="POST" action="/einreise/illegal" id="illegalForm">
-            <p class="section-title">👤 Discord Mitglied</p>
-            <div class="form-row one">${memberPicker('discord_id', 'Spieler auswählen')}</div>
+            <p class="section-title">👤 Discord ID</p>
+            <div class="form-row one"><div class="form-group">
+              <label>Deine Discord ID <span class="req">*</span></label>
+              <input type="text" name="discord_id" required placeholder="z.B. 123456789012345678" pattern="\d{17,20}" title="17–20-stellige Discord ID" value="${escHtml(illForm.discord_id||'')}">
+              <small class="discord-note">Deine Discord User-ID (Rechtsklick → ID kopieren)</small>
+            </div></div>
             <hr class="divider">
             <p class="section-title">🎭 Charakter Name</p>
             <div class="form-row">
