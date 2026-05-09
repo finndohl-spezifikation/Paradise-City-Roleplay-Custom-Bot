@@ -359,6 +359,13 @@ client.once('ready', async () => {
       .toJSON(),
 
     new SlashCommandBuilder()
+        .setName('event')
+        .setDescription('Sendet ein Event-Embed in den Event-Kanal')
+        .addStringOption(opt => opt.setName('was').setDescription('Was ist das Event?').setRequired(true))
+        .addStringOption(opt => opt.setName('wann').setDescription('Wann findet das Event statt?').setRequired(true))
+        .addStringOption(opt => opt.setName('preis').setDescription('Preis / Belohnung').setRequired(true))
+        .toJSON(),
+      new SlashCommandBuilder()
       .setName('aktivit\u00e4tscheck')
       .setDescription('Startet einen Aktivit\u00e4tscheck im zugeh\u00f6rigen Kanal')
       .toJSON(),
@@ -2119,6 +2126,29 @@ client.on('interactionCreate', async (interaction) => {
           ephemeral: false
         });
       }
+
+        // /event
+        if (commandName === 'event') {
+          const was   = interaction.options.getString('was');
+          const wann  = interaction.options.getString('wann');
+          const preis = interaction.options.getString('preis');
+          const EVENT_CH   = '1490882564561567864';
+          const EVENT_ROLE = '1490855737130221598';
+          const ch = await client.channels.fetch(EVENT_CH).catch(() => null);
+          if (!ch) return interaction.reply({ content: '❌ Event-Kanal nicht gefunden.', ephemeral: true });
+          const embed = new EmbedBuilder()
+            .setColor(DARK_ORANGE)
+            .setTitle('🎉  Event Ankündigung')
+            .addFields(
+              { name: '📌 Was',   value: was,   inline: false },
+              { name: '📅 Wann',  value: wann,  inline: true  },
+              { name: '🏆 Preis', value: preis, inline: true  },
+            )
+            .setFooter({ text: 'Paradise City Roleplay  •  Events' })
+            .setTimestamp();
+          await ch.send({ content: `<@&${EVENT_ROLE}>`, embeds: [embed] });
+          return interaction.reply({ content: '✅ Event wurde im Event-Kanal gepostet!', ephemeral: true });
+        }
 
 });
 
