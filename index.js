@@ -3186,10 +3186,6 @@ client.on('interactionCreate', async (interaction) => {
             await ch.send({ embeds: [embed] });
             return;
           }
-
-  
-
-}); 
         // /rucksack
         if (commandName === 'rucksack') {
           if (interaction.channelId !== INV_CH) return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${INV_CH}>.`, ephemeral: true });
@@ -3292,6 +3288,9 @@ client.on('interactionCreate', async (interaction) => {
         }
 
   
+
+});
+
   // ─── INVENTAR: Buttons & Modals ──────────────────────────────────────────────
   client.on('interactionCreate', async (interaction) => {
     try {
