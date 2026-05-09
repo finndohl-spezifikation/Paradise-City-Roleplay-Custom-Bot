@@ -545,6 +545,46 @@ async function buildInviteCache(guild) {
       .setDescription('Startet einen Aktivit\u00e4tscheck im zugeh\u00f6rigen Kanal')
       .toJSON(),
 
+
+    new SlashCommandBuilder()
+      .setName('frakadd')
+      .setDescription('Fügt eine neue Fraktion hinzu')
+      .addStringOption(opt => opt.setName('name').setDescription('Name der Fraktion').setRequired(true))
+      .addStringOption(opt => opt.setName('typ').setDescription('Legal oder Illegal').setRequired(true)
+        .addChoices({ name: 'Legal', value: 'Legal' }, { name: 'Illegal', value: 'Illegal' }))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('frak-delete')
+      .setDescription('Löscht eine Fraktion')
+      .addStringOption(opt => opt.setName('name').setDescription('Name der Fraktion').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('frakwarn')
+      .setDescription('Erteilt einer Fraktion eine Verwarnung')
+      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true))
+      .addStringOption(opt => opt.setName('grund').setDescription('Grund der Verwarnung').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('frakwarn-remove')
+      .setDescription('Entfernt die letzte Verwarnung einer Fraktion')
+      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('fraksperre')
+      .setDescription('Sperrt eine Fraktion')
+      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true))
+      .addStringOption(opt => opt.setName('grund').setDescription('Grund der Sperre').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('fraksperre-remove')
+      .setDescription('Hebt die Sperre einer Fraktion auf')
+      .addStringOption(opt => opt.setName('fraktion').setDescription('Name der Fraktion').setRequired(true))
+      .toJSON(),
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
