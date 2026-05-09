@@ -624,6 +624,13 @@ async function buildInviteCache(guild) {
         .addStringOption(opt => opt.setName('id').setDescription('Vorschlag auswählen').setRequired(true).setAutocomplete(true))
         .addStringOption(opt => opt.setName('grund').setDescription('Begründung (optional)').setRequired(false))
         .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('lobby-abstimmung')
+        .setDescription('Startet eine Lobby-Abstimmung im Lobby-Kanal')
+        .addStringOption(opt => opt.setName('wann').setDescription('Wann öffnet die Lobby? (z.B. 20:00 Uhr)').setRequired(true))
+        .addStringOption(opt => opt.setName('rp-start').setDescription('Wann startet der RP? (z.B. 20:30 Uhr)').setRequired(true))
+        .toJSON(),
   
   ];
 
@@ -2977,6 +2984,62 @@ client.on('interactionCreate', async (interaction) => {
             ]});
           }
           return interaction.reply({ content: `✅ Vorschlag **#${id}** wurde abgelehnt.`, ephemeral: true });
+        }
+
+  
+        // /lobby-abstimmung
+        if (commandName === 'lobby-abstimmung') {
+          const wann    = interaction.options.getString('wann');
+          const rpStart = interaction.options.getString('rp-start');
+          const LOBBY_CH   = '1490882583909765190';
+          const LOBBY_ROLE = '1490855734517174376';
+
+          const ch = await client.channels.fetch(LOBBY_CH).catch(() => null);
+          if (!ch) return interaction.reply({ content: '❌ Lobby-Kanal nicht gefunden.', ephemeral: true });
+
+          const embed = new EmbedBuilder()
+            .setColor(0xE65100)
+            .setAuthor({ name: 'Paradise City Roleplay  •  Lobby-Abstimmung', iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
+            .setTitle('🚦  Lobby-Abstimmung')
+            .setDescription(
+              `> Die nächste Lobby öffnet bald — stimme jetzt ab!
+` +
+              `> ────────────────────────────────────
+` +
+              `> 🕐  **Lobby öffnet:**  ${wann}
+` +
+              `> 🎬  **RP Start:**       ${rpStart}`
+            )
+            .addFields(
+              {
+                name: '✅  Ich bin dabei',
+                value: 'Ich komme sobald die Lobby offen ist',
+                inline: true
+              },
+              {
+                name: '🕒  Ich komme später',
+                value: 'Ich stoße etwas später dazu',
+                inline: true
+              },
+              {
+                name: '❌  Ich komme nicht',
+                value: 'Ich bin heute nicht dabei',
+                inline: true
+              }
+            )
+            .setImage('https://i.imgur.com/wSTFkRM.png')
+            .setFooter({ text: `Abstimmung gestartet von ${user.tag}  •  Paradise City Roleplay` })
+            .setTimestamp();
+
+          await interaction.reply({ content: '✅ Lobby-Abstimmung wurde gesendet!', ephemeral: true });
+          const msg = await ch.send({
+            content: `<@&${LOBBY_ROLE}>`,
+            embeds: [embed]
+          });
+          await msg.react('✅');
+          await msg.react('🕒');
+          await msg.react('❌');
+          return;
         }
 
   // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
