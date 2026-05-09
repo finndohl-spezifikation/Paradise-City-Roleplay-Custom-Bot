@@ -84,6 +84,12 @@ function loadAusweisData()  { try { return JSON.parse(fs.readFileSync(path.join(
 // ─── Aktivitätscheck-System ─────────────────────────────────────────────────
 const AKTIVITAET_CH      = '1502382574310392040';
   const TEAM_OVERVIEW_CH   = '1490882570899030136';
+  const FRAK_OVERVIEW_CH   = '1492701250528084059';
+  const FRAK_LOG_CH        = '1492701273571725433';
+  const FRAK_FILE          = path.join(DATA_DIR, 'fraktionen.json');
+  if (!fs.existsSync(FRAK_FILE)) fs.writeFileSync(FRAK_FILE, '{}', 'utf8');
+  function loadFraktionen() { try { return JSON.parse(fs.readFileSync(FRAK_FILE, 'utf8')); } catch { return {}; } }
+  function saveFraktionen(d) { fs.writeFileSync(FRAK_FILE, JSON.stringify(d, null, 2), 'utf8'); }
   const TEAM_ROLE_IDS      = [
     '1490855647259136053','1490855648978669599','1498395437206601828','1498395500137807932',
     '1490855654347505706','1490855657543303239','1490855655408664577','1490855656352251987',
@@ -334,7 +340,52 @@ async function buildInviteCache(guild) {
 }
 
 // ─── READY ───────────────────────────────────────────────────────────────────
-// ─── TEAM ÜBERSICHT ──────────────────────────────────────────────────────────
+// ─── FRAKTIONEN ÜBERSICHT ────────────────────────────────────────────────────
+  async function updateFrakEmbed() {
+    try {
+      const data = loadFraktionen();
+      const names = Object.keys(data);
+      const legal    = names.filter(n => data[n].typ === 'Legal');
+      const illegal  = names.filter(n => data[n].typ === 'Illegal');
+
+      function frakLine(name) {
+        const f = data[name];
+        const warnStr  = f.warns?.length ? `⚠️ ${f.warns.length} Warn${f.warns.length > 1 ? 's' : ''}` : '';
+        const sperrStr = f.gesperrt ? '🔒 GESPERRT' : '';
+        const tags = [warnStr, sperrStr].filter(Boolean).join('  ');
+        return `> **${name}** ${tags ? `— ${tags}` : ''}`;
+      }
+
+      const fields = [];
+      if (legal.length) fields.push({ name: '✅  Legale Fraktionen', value: legal.map(frakLine).join('\n'), inline: false });
+      if (illegal.length) fields.push({ name: '⚠️  Illegale Fraktionen', value: illegal.map(frakLine).join('\n'), inline: false });
+
+      const embed = new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('⚔️  Fraktionen — Paradise City Roleplay')
+        .setDescription(
+          `Hier findest du alle aktuellen **Fraktionen** auf Paradise City Roleplay.\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `📋 **Fraktionen gesamt:** ${names.length}  ·  ✅ Legal: ${legal.length}  ·  ⚠️ Illegal: ${illegal.length}`
+        )
+        .addFields(fields.length ? fields : [{ name: 'Keine Fraktionen', value: '_Noch keine Fraktionen eingetragen._' }])
+        .setFooter({ text: 'Paradise City Roleplay  •  Fraktionen' })
+        .setTimestamp();
+
+      const setup = loadSetup();
+      const ch = await client.channels.fetch(FRAK_OVERVIEW_CH).catch(() => null);
+      if (!ch) return;
+      if (setup.frakOverviewMsgId) {
+        const msg = await ch.messages.fetch(setup.frakOverviewMsgId).catch(() => null);
+        if (msg) { await msg.edit({ embeds: [embed] }); return; }
+      }
+      const sent = await ch.send({ embeds: [embed] });
+      setup.frakOverviewMsgId = sent.id;
+      saveSetup(setup);
+    } catch (e) { console.error('[Frak-Embed] Fehler:', e.message); }
+  }
+
+  // ─── TEAM ÜBERSICHT ──────────────────────────────────────────────────────────
   async function updateTeamEmbed(guild) {
     try {
       await guild.members.fetch();
@@ -1151,6 +1202,8 @@ async function buildInviteCache(guild) {
       // Team-Übersicht initial laden
       const guild0 = client.guilds.cache.first();
       if (guild0) await updateTeamEmbed(guild0).catch(() => {});
+      // Fraktionen-Übersicht initial laden
+      await updateFrakEmbed().catch(() => {});
     });
 
 
