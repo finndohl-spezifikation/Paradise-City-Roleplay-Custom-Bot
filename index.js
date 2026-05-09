@@ -1781,6 +1781,53 @@ async function buildInviteCache(guild) {
       if (guild0) await updateTeamEmbed(guild0).catch(() => {});
       // Fraktionen-Übersicht initial laden
       await updateFrakEmbed().catch(() => {});
+
+      // ── Einmalig: Rubbellos-Embed senden ────────────────────────────────────────
+      {
+        const setupR = loadSetup();
+        if (!setupR.rubbellosEmbedSent) {
+          const rubbelEmbed = new EmbedBuilder()
+            .setColor(0xE65100)
+            .setTitle('🎟️  Rubbellos')
+            .setDescription(
+              `**Mögliche Gewinne:**
+❌  Niete
+💵  1.000 $
+💴  2.500 $
+💶  5.000 $
+💷  10.000 $
+💰  25.000 $
+🚬  10× Marlboro Rot
+🚲  Elektro Fahrrad
+⛳  Golfschläger
+🎰  Lottoschein
+🎟️  20% Gutschein Autohaus
+🏎️  **SPORTWAGEN** *(Hauptgewinn — Ticket erstellen!)*
+
+──────────────────────────────
+🛒 Kaufe ein Rubbellos im **Kwik-E-Markt** für **1.000 $**.
+▶️ Drücke den Button um dein Rubbellos einzulösen.
+
+🎯 Rubbele alle 9 Felder frei — **3× dasselbe Symbol = Gewinn!**
+🏆 Beim Sportwagen-Hauptgewinn bitte ein **Ticket erstellen!**`
+            )
+            .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' });
+          const rubbBtn = new ButtonBuilder()
+            .setCustomId('rubbellos_use')
+            .setLabel('🎟️ Rubbellos einlösen')
+            .setStyle(ButtonStyle.Primary);
+          const rubbRow = new ActionRowBuilder().addComponents(rubbBtn);
+          try {
+            const rubbCh = await client.channels.fetch('1490889784753782784');
+            if (rubbCh) {
+              await rubbCh.send({ embeds: [rubbelEmbed], components: [rubbRow] });
+              setupR.rubbellosEmbedSent = true;
+              saveSetup(setupR);
+              console.log('✅ Rubbellos-Embed einmalig gesendet.');
+            }
+          } catch (e) { console.error('Rubbellos-Embed Fehler:', e.message); }
+        }
+      }
     });
 
 
