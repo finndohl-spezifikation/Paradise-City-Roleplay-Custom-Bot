@@ -867,6 +867,8 @@ async function buildInviteCache(guild) {
       .setName('ausweis-create')
       .setDescription('Erstellt einen Ausweis-Erstellungslink und sendet ihn per DM')
       .addUserOption(opt => opt.setName('mitglied').setDescription('Für welches Mitglied den Ausweis erstellen').setRequired(true))
+      .addStringOption(o => o.setName('einreiseart').setDescription('Legal oder Illegal').setRequired(true)
+        .addChoices({ name: 'Legal', value: 'legal' }, { name: 'Illegal', value: 'illegal' }))
       .toJSON(),
 
     new SlashCommandBuilder()
@@ -3151,11 +3153,46 @@ client.on('interactionCreate', async (interaction) => {
 
     // /ausweis-create
     if (commandName === 'ausweis-create') {
-      const target  = interaction.options.getUser('mitglied');
+      const target = interaction.options.getUser('mitglied');
+      const art    = interaction.options.getString('einreiseart');
       const ausweise = loadAusweisData();
       if (ausweise[target.id]) {
-        return interaction.reply({ content: `❌ **${target.tag}** hat bereits einen Ausweis. Erst mit `/ausweis-delete` löschen.`, ephemeral: true });
+        return interaction.reply({ content: `❌ **${target.tag}** hat bereits einen Ausweis. Erst mit \`/ausweis-delete\` löschen.`, ephemeral: true });
       }
+      if (art === 'illegal') {
+        // Illegal: Modal direkt anzeigen
+        const modal = new ModalBuilder().setCustomId(`ausweis_create_ill:${target.id}`).setTitle('🚫 Illegale Einreise — Charakter');
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('ill_vorname').setLabel('RP Vorname').setStyle(TextInputStyle.Short).setRequired(true)),
+          new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('ill_nachname').setLabel('RP Nachname').setStyle(TextInputStyle.Short).setRequired(true)),
+          new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('ill_psn').setLabel('PSN Name').setStyle(TextInputStyle.Short).setRequired(true)),
+          new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('ill_geschlecht').setLabel('Geschlecht (Männlich / Weiblich)').setStyle(TextInputStyle.Short).setRequired(true)),
+        );
+        return interaction.showModal(modal);
+      }
+      // Legal: DM mit Ausweis-Link
+      const tokens = loadAusweisTokens();
+      const pending = Object.values(tokens).find(t => t.userId === target.id && t.expiresAt > Date.now());
+      if (pending) {
+        return interaction.reply({ content: `❌ Für **${target.tag}** läuft bereits ein Erstellungslink. Token: \`${pending.token}\``, ephemeral: true });
+      }
+      const tok    = genToken();
+      const domain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
+      const link   = `https://${domain}/ausweis/create/${tok}`;
+      tokens[tok]  = { token: tok, userId: target.id, userTag: target.tag, createdBy: interaction.user.id, expiresAt: Date.now() + 24 * 60 * 60 * 1000 };
+      saveAusweisTokens(tokens);
+      try {
+        await target.send({
+          embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('🆔  Ausweis erstellen — Paradise City Roleplay')
+            .setDescription('Du wurdest aufgefordert, deinen Charakter-Ausweis auszufüllen.')
+            .addFields({ name: '🔗  Link', value: `[Hier klicken um Ausweis auszufüllen](${link})`, inline: false }, { name: '⏱️  Gültig bis', value: `<t:${Math.floor((Date.now()+86400000)/1000)}:F>`, inline: false })
+            .setFooter({ text: 'Paradise City Roleplay  •  Ausweis-Erstellung' }).setTimestamp()]
+        });
+        return interaction.reply({ content: `✅ DM an **${target.tag}** gesendet mit dem Ausweis-Erstellungslink.`, ephemeral: true });
+      } catch {
+        return interaction.reply({ content: `❌ Konnte keine DM an **${target.tag}** senden. DMs möglicherweise deaktiviert.`, ephemeral: true });
+      }
+    }
       // Prüfe ob bereits ein Token aussteht
       const tokens = loadAusweisTokens();
       const pending = Object.values(tokens).find(t => t.userId === target.id && t.expiresAt > Date.now());
@@ -4336,6 +4373,42 @@ ${transText}`;
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** an <@${targetId}> überwiesen.`, ephemeral: true });
     }
+  // ── AUSWEIS CREATE (ILLEGAL) Modal ────────────────────────────────────────
+  if (interaction.isModalSubmit() && interaction.customId.startsWith('ausweis_create_ill:')) {
+    const targetId   = interaction.customId.split(':')[1];
+    const illVor     = interaction.fields.getTextInputValue('ill_vorname').trim();
+    const illNach    = interaction.fields.getTextInputValue('ill_nachname').trim();
+    const illPsn     = interaction.fields.getTextInputValue('ill_psn').trim();
+    const illGeschl  = interaction.fields.getTextInputValue('ill_geschlecht').trim();
+    if (!illVor || !illNach || !illPsn || !illGeschl) {
+      return interaction.reply({ content: '❌ Bitte alle Felder ausfüllen.', ephemeral: true });
+    }
+    // Ausweis speichern
+    const ausweise = loadAusweis();
+    ausweise[targetId] = { vorname: illVor, nachname: illNach, psn: illPsn, geschlecht: illGeschl, typ: 'illegal', createdAt: new Date().toISOString(), createdBy: interaction.user.id };
+    saveAusweis(ausweise);
+    // Rollen vergeben
+    try {
+      const _guild  = interaction.guild;
+      const _member = _guild ? await _guild.members.fetch(targetId).catch(() => null) : null;
+      if (_member) {
+        await _member.roles.remove('1490855725516460234').catch(() => {});
+        for (const r of [...['1490855719853887569','1490855722534310003','1495982076703539310','1497051373672599622','1490855731950256128','1490855741647618251','1490855728473178282','1490855779694280876'], ...['1490855730767597738','1498393200426221679']]) await _member.roles.add(r).catch(() => {});
+        await _member.setNickname(`${illVor} ${illNach} | ${illPsn}`).catch(() => {});
+      }
+    } catch {}
+    // Startgeld (5000 Schwarzgeld, einmalig)
+    try {
+      const _k = getKonto(targetId);
+      if (!_k._startgeld) { _k.schwarz += 5000; _k._startgeld = true; setKonto(targetId, _k); addTrans(targetId, { ts: Date.now(), text: '+5.000 $ Startgeld (Illegale Einreise)', betrag: 5000 }); }
+    } catch {}
+    return interaction.reply({
+      embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🚫 Illegale Einreise registriert')
+        .addFields({ name: 'Spieler', value: `<@${targetId}>`, inline: true }, { name: 'Name', value: `${illVor} ${illNach}`, inline: true }, { name: 'PSN', value: illPsn, inline: true }, { name: 'Geschlecht', value: illGeschl, inline: true })
+        .setFooter({ text: `Erstellt von ${interaction.user.tag}` }).setTimestamp()],
+      ephemeral: true
+    });
+  }
 
     if (interaction.isModalSubmit() && interaction.customId.startsWith('bank_modal_schw:')) {
       const targetId = interaction.customId.split(':')[1];
