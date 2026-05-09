@@ -308,8 +308,8 @@ function buildScratchPage(token, entry) {
   const TOKEN='${token}';
   const GRID=${gridJ};
   const PRIZE=${JSON.stringify(entry.prize)};
-  const SYM_MAP={'\u274C':'Niete','\uD83D\uDCB5':'1.000 \u0024','\uD83D\uDCB4':'2.500 \u0024','\uD83D\uDCB6':'5.000 \u0024','\uD83D\uDCB7':'10.000 \u0024','\uD83D\uDCB0':'25.000 \u0024','\uD83D\uDEAC':'10\u00D7 Marlboro Rot','\uD83D\uDEB2':'Elektro Fahrrad','\u26F3':'Golfschl\u00E4ger','\uD83C\uDFB0':'Lottoschein','\uD83C\uDF9F\uFE0F':'20% Gutschein Autohaus','\uD83C\uDFCE\uFE0F':'SPORTWAGEN'};
-  const CASH_SYMS=new Set(['\uD83D\uDCB5','\uD83D\uDCB4','\uD83D\uDCB6','\uD83D\uDCB7','\uD83D\uDCB0']);
+  const SYM_MAP={'\u274C':'Niete','\uD83D\uDCB5':"1'000 \u0024",'\uD83D\uDCB4':"2'500 \u0024",'\uD83D\uDCB6':"5'000 \u0024",'\uD83D\uDCB0':"25'000 \u0024",'\uD83D\uDEAC':'10\u00D7 Marlboro Rot','\uD83D\uDEB2':'Elektro Fahrrad','\uD83C\uDFC3\u200D\u2642\uFE0F':'Golfschl\u00E4ger','\uD83C\uDF9F\uFE0F':'Lottoschein','\uD83C\uDFAB':'20% Rabatt beim Autohaus'}
+  const CASH_SYMS=new Set(['\uD83D\uDCB5','\uD83D\uDCB4','\uD83D\uDCB6','\uD83D\uDCB0']);
   const scratched=new Array(9).fill(0);
   const GSIZE=14;
   const GCELLS=GSIZE*GSIZE;
@@ -329,8 +329,6 @@ function buildScratchPage(token, entry) {
     ctx.fillStyle='rgba(255,255,255,.2)';
     for(let s=0;s<6;s++){ctx.beginPath();ctx.arc(Math.random()*(cv.width-14)+7,Math.random()*(cv.height-14)+7,2,0,Math.PI*2);ctx.fill();}
   });
-  // Reveal symbols now that canvas coating is painted
-  document.querySelectorAll('.sym').forEach(s=>s.style.visibility='visible');
 
 
   function symLabel(sym){
@@ -371,6 +369,7 @@ function buildScratchPage(token, entry) {
     const sym=GRID[i];const lbl=SYM_MAP[sym]||sym;
     const spanEl=cell.querySelector('.sym');
     if(CASH_SYMS.has(sym)){spanEl.textContent=lbl;spanEl.classList.add('txt');}
+    spanEl.style.visibility='visible';
     upd();
   }
   function scrAt(cv,i,x,y,r){
@@ -439,7 +438,7 @@ function buildScratchPage(token, entry) {
       if(d.ok){
         const p=d.prize;
         let ico=p.sym||'🎁',h='',msg='';
-        if(p.type==='cash'){h='🎉 Gewonnen!';msg='<span class="win">💰 '+p.amount.toLocaleString('de-DE')+' \u0024 wurden deinem Bargeld gutgeschrieben!</span>';}
+        if(p.type==='cash'){h='🎉 Gewonnen!';msg='<span class="win">'+p.amount.toLocaleString('de-CH').replace(/\./g,"'")+" \u0024 wurden deinem Bargeld gutgeschrieben!</span>';}
         else if(p.type==='item'){h='🎉 Gewonnen!';msg='<span class="win">🎁 '+(p.menge||1)+'\u00D7 '+p.item+' wurde deinem Inventar hinzugef\u00FCgt!</span>';}
         else if(p.type==='ticket'){h='🏆 HAUPTGEWINN!';ico='🏎️';msg='<span class="win">🏎️ SPORTWAGEN! Bitte ein Support-Ticket in Discord erstellen!</span>';}
         else{h='😢 Leider Niete';msg='<span class="lose">Kein Gewinn diesmal — viel Gl\u00FCck beim n\u00E4chsten Mal!</span>';}
