@@ -2099,7 +2099,6 @@ client.on('guildMemberAdd', async (member) => {
       .addFields(
         { name: '📨  Eingeladen von', value: inviterMention, inline: true },
         { name: '📆  Account seit',   value: `<t:${ts(member.user.createdAt)}:D>`, inline: true },
-        { name: '🎭  Charakter erstellen', value: `[👉 Einreise-Link anfordern](https://${(process.env.REPLIT_DOMAINS||process.env.RAILWAY_PUBLIC_DOMAIN||'localhost:8080').split(',')[0]}/einreise/anfordern/${member.id})`, inline: false },
       )
       .setTimestamp();
 
@@ -2107,6 +2106,23 @@ client.on('guildMemberAdd', async (member) => {
       const ch = await client.channels.fetch(CH.WELCOME);
       if (ch) await ch.send({ embeds: [welcomeEmbed] });
     } catch (e) { console.error('Welcome Fehler:', e.message); }
+
+      // Willkommens-DM mit Discord-ID
+      try {
+        await member.send({ embeds: [new EmbedBuilder()
+          .setColor(DARK_ORANGE)
+          .setTitle('👋  Willkommen bei Paradise City Roleplay!')
+          .setDescription(
+            `Hey **${member.user.username}**, willkommen auf **Paradise City Roleplay**! 🚗\n\n` +
+            `Um deinen Charakter zu erstellen, geh auf die Einreise-Seite:\n` +
+            `https://${(process.env.REPLIT_DOMAINS||process.env.RAILWAY_PUBLIC_DOMAIN||'localhost:8080').split(',')[0]}/einreise\n\n` +
+            `Gib dort deine Discord ID ein — sie steht direkt hier unten. 👇`
+          )
+          .addFields({ name: '🆔  Deine Discord ID', value: `\`${member.id}\``, inline: false })
+          .setFooter({ text: 'Kopiere die ID und trage sie im Formular ein.' })
+          .setTimestamp()
+        ]});
+      } catch { /* DMs deaktiviert */ }
 
 
 
