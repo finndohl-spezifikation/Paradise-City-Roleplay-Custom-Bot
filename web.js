@@ -290,6 +290,8 @@ function buildScratchPage(token, entry) {
   .chip em{font-style:normal;color:#8b949e}
   .win-chip{border-color:#3fb950;background:#0d2311;box-shadow:0 0 8px rgba(63,185,80,.35)}
   .win-chip em{color:#3fb950;font-weight:700}
+  .cell.done{border-color:#3fb950!important;box-shadow:inset 0 0 14px rgba(63,185,80,.18),0 0 8px rgba(63,185,80,.25)}
+  .sym.txt{font-size:.85em;font-weight:700;text-align:center;line-height:1.2;padding:0 4px;word-break:break-word;color:#e6e6e6}
   @media(max-width:380px){.grid{grid-template-columns:repeat(3,90px);grid-template-rows:repeat(3,90px)}.cell,.cv{width:90px;height:90px}}
   </style></head><body>
   <div class="hdr"><div class="ico">🎟️</div><h1>Paradise City Rubbellos</h1><p>Rubbele alle 9 Felder frei und sichere deinen Gewinn!</p></div>
@@ -306,6 +308,8 @@ function buildScratchPage(token, entry) {
   const TOKEN='${token}';
   const GRID=${gridJ};
   const PRIZE=${JSON.stringify(entry.prize)};
+  const SYM_MAP={'\u274C':'Niete','\uD83D\uDCB5':'1.000 \u0024','\uD83D\uDCB4':'2.500 \u0024','\uD83D\uDCB6':'5.000 \u0024','\uD83D\uDCB7':'10.000 \u0024','\uD83D\uDCB0':'25.000 \u0024','\uD83D\uDEAC':'10\u00D7 Marlboro Rot','\uD83D\uDEB2':'Elektro Fahrrad','\u26F3':'Golfschl\u00E4ger','\uD83C\uDFB0':'Lottoschein','\uD83C\uDF9F\uFE0F':'20% Gutschein Autohaus','\uD83C\uDFCE\uFE0F':'SPORTWAGEN'};
+  const CASH_SYMS=new Set(['\uD83D\uDCB5','\uD83D\uDCB4','\uD83D\uDCB6','\uD83D\uDCB7','\uD83D\uDCB0']);
   const scratched=new Array(9).fill(0);
   let claimed=false;
 
@@ -354,18 +358,33 @@ function buildScratchPage(token, entry) {
     updateCounter();
   }
 
+  function markDone(i){
+    if(scratched[i]===100)return;
+    scratched[i]=100;
+    const cv2=canvases[i];
+    const ctx2=cv2.getContext('2d');
+    ctx2.clearRect(0,0,cv2.width,cv2.height);
+    const cell=document.getElementById('c'+i);
+    cell.classList.add('done');
+    const sym=GRID[i];
+    const lbl=SYM_MAP[sym]||sym;
+    const spanEl=cell.querySelector('.sym');
+    if(CASH_SYMS.has(sym)){spanEl.textContent=lbl;spanEl.classList.add('txt');}
+    upd();
+  }
   function scrAt(cv,i,x,y,r){
+    if(scratched[i]===100)return;
     const ctx=cv.getContext('2d');
     ctx.globalCompositeOperation='destination-out';
     ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
     const d=ctx.getImageData(0,0,cv.width,cv.height).data;
     let t=0;for(let p=3;p<d.length;p+=4)if(d[p]===0)t++;
     scratched[i]=Math.min(100,Math.round(t/(d.length/4)*100));
-    upd();
+    if(scratched[i]>=55)markDone(i);else upd();
   }
 
   let dn=false;
-  const R=window.innerWidth<380?20:26;
+  const R=window.innerWidth<380?30:42;
   const canvases=[...document.querySelectorAll('.cv')];
   canvases.forEach((cv,i)=>{
     const go=(e,type)=>{
