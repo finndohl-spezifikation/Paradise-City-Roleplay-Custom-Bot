@@ -368,16 +368,19 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       const m = SHOP_META[shopId];
       if (!m) return;
       const chId  = SHOP_CHANNELS[shopId];
-      const setup = loadSetup();
-      const msgId = setup['shopMsgId_' + shopId];
       const ch = await client.channels.fetch(chId).catch(() => null);
       if (!ch) return;
-      // If already sent and message still exists → do nothing (send only once)
-      if (msgId) {
-        const msg = await ch.messages.fetch(msgId).catch(() => null);
-        if (msg) return;
+      // Scan last 50 messages: if bot already sent shop embed here → skip
+      const recent = await ch.messages.fetch({ limit: 50 }).catch(() => null);
+      if (recent) {
+        const exists = recent.find(msg =>
+          msg.author.id === client.user.id &&
+          msg.components.length > 0 &&
+          msg.components[0]?.components?.[0]?.customId === 'sp_shop:' + shopId
+        );
+        if (exists) return;
       }
-      // First time: send the embed
+      // Not found → send embed once
       const embed = new EmbedBuilder()
         .setColor(m.color)
         .setTitle(m.emoji + '  ' + m.name)
@@ -386,9 +389,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('sp_shop:' + shopId).setLabel('🛒  Einkaufen').setStyle(ButtonStyle.Success)
       );
-      const sent = await ch.send({ embeds: [embed], components: [row] });
-      setup['shopMsgId_' + shopId] = sent.id;
-      saveSetup(setup);
+      await ch.send({ embeds: [embed], components: [row] });
     }
   
 
@@ -1081,6 +1082,9 @@ async function buildInviteCache(guild) {
   await updateLohnbueroEmbed(client);
   await updateBankingEmbed(client);
   await updateRechnungenEmbed(client);
+  for (const shopId of Object.keys(SHOP_CHANNELS)) {
+    await updateShopEmbed(shopId).catch(e => console.error('Shop embed init:', shopId, e.message));
+  }
   // ── Einmalig: Einreise-Embed mit Button senden ─────────────────────────────
   const setup = loadSetup();
   if (!setup.einreiseEmbedV4Sent) {
@@ -1972,10 +1976,7 @@ async function buildInviteCache(guild) {
           }
         } catch {}
       }
-      // Initialize shop embeds in their channels
-  for (const shopId of Object.keys(SHOP_CHANNELS)) {
-    updateShopEmbed(shopId).catch(e => console.error('Shop embed init:', shopId, e.message));
-  }
+
 
 });
 
