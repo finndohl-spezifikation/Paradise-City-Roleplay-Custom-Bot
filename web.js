@@ -106,7 +106,6 @@ function memberPicker(name, label, defaultId) {
   return `<!DOCTYPE html><html lang="de"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} — Paradise City Roleplay</title>
-  .sc-info{font-size:.78em;color:#e65100;margin-top:8px;font-style:italic}
 <style>${CSS}</style></head><body>
 <div class="wrap">${body}</div>
 <script>
@@ -342,18 +341,16 @@ module.exports = function startWebServer(client, DATA_DIR) {
     <div class="card">
       <p class="section-title">Einreiseweg wählen</p>
       <div class="select-grid">
-        <div class="select-card" style="cursor:default;opacity:.75">
-          <div class="sc-icon">🟢</div>
-          <div class="sc-title">Legale Einreise</div>
-          <div class="sc-desc">Du reist offiziell ein und bist legal im Staat registriert. Du erhältst einen Ausweis und darfst staatliche Jobs ausführen. Illegale Aktivitäten sind verboten.</div>
-          <div class="sc-info">🔗 Du benötigst einen persönlichen Link vom Team — wende dich an einen Moderator.</div>
-        </div>
-        <div class="select-card" style="cursor:default;opacity:.75">
-          <div class="sc-icon">🔴</div>
-          <div class="sc-title">Illegale Einreise</div>
-          <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du kannst illegale Aktivitäten ausführen — werde nicht erwischt.</div>
-          <div class="sc-info">🔗 Du benötigst einen persönlichen Link vom Team — wende dich an einen Moderator.</div>
-        </div>
+        <a class="select-card" href="/einreise/legal">
+            <div class="sc-icon">🟢</div>
+            <div class="sc-title">Legale Einreise</div>
+            <div class="sc-desc">Du reist offiziell ein und bist legal im Staat registriert. Du erhältst einen Ausweis und darfst staatliche Jobs ausführen. Illegale Aktivitäten sind verboten.</div>
+          </a>
+        <a class="select-card" href="/einreise/illegal">
+            <div class="sc-icon">🔴</div>
+            <div class="sc-title">Illegale Einreise</div>
+            <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du kannst illegale Aktivitäten ausführen — werde nicht erwischt.</div>
+          </a>
         <a class="select-card" href="/einreise/gruppe">
           <div class="sc-icon">🟡</div>
           <div class="sc-title">Gruppen Einreise</div>
@@ -368,8 +365,82 @@ module.exports = function startWebServer(client, DATA_DIR) {
   // ── GET /einreise/legal ───────────────────────────────────────────────────
   // ── GET /einreise/legal (backward compat — redirect to error) ──────────────
   app.get('/einreise/legal', (req, res) => {
-    res.send(page('Kein Link', `${header('Einreise — Kein gültiger Link')}<div class="card"><div class="error-box">⚠️ Bitte verwende den persönlichen Einreise-Link den du per DM vom Bot erhalten hast.</div></div>`));
-  });
+      const error     = req.session.legalError || ''; delete req.session.legalError;
+      const legalForm = req.session.legalForm  || {}; delete req.session.legalForm;
+      res.send(page('Legale Einreise', `
+        ${header('Legale Einreise — Ausweis Erstellung')}
+        <div class="card">
+          ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
+          <form method="POST" action="/einreise/legal" enctype="multipart/form-data" id="legalForm">
+            <p class="section-title">👤 Discord Mitglied</p>
+            <div class="form-row one">${memberPicker('discord_id', 'Spieler auswählen')}</div>
+            <hr class="divider">
+            <p class="section-title">📋 IC Charakter Daten</p>
+            ${charFields('', 0, legalForm)}
+            <hr class="divider">
+            <p class="section-title">📷 Passbild</p>
+            <div class="form-row one"><div class="form-group">
+              <label>Passbild Hinzufügen <span class="req">*</span></label>
+              <div class="file-box">
+                <input type="file" name="foto" accept="image/*" required id="fotoInput">
+                <div class="file-label"><span>📷</span>Passbild Hinzufügen<br><small style="color:#555">JPG / PNG — max. 8 MB</small></div>
+                <div class="file-name"></div>
+              </div>
+            </div></div>
+            <button type="submit" class="btn">✅ Einreise Bestätigen</button>
+            ${warning()}
+          </form>
+        </div>
+      `));
+    });
+
+    app.post('/einreise/legal', upload.single('foto'), async (req, res) => {
+      const discordId = (req.body.discord_id || '').trim();
+      function errBack(msg) { req.session.legalError = msg; req.session.legalForm = Object.assign({}, req.body); return res.redirect('/einreise/legal'); }
+      if (!discordId) return errBack('Bitte wähle einen Discord Spieler aus.');
+      const v = await validateApplicant(discordId);
+      if (!v.ok) return errBack(v.reason);
+      const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0 } = req.body;
+      const geschlecht_0 = (req.body.geschlecht_0 || '').trim();
+      const psn_0 = (req.body.psn_0 || '').trim();
+      if (!req.file) return errBack('Kein Passbild hochgeladen.');
+      if (!vorname_0 || !nachname_0 || !geburtsdatum_0 || !geburtsort_0 || !nationalitaet_0 || !psn_0) return errBack('Bitte alle Pflichtfelder ausfüllen.');
+      if (!geschlecht_0 || !['Männlich','Weiblich'].includes(geschlecht_0)) return errBack('Bitte wähle ein Geschlecht aus.');
+      const _existA = loadAusweis();
+      if (_existA[discordId]) return errBack('Dieser Spieler hat bereits einen Ausweis.');
+      try { const ext = req.file.mimetype.includes('png')?'png':req.file.mimetype.includes('webp')?'webp':'jpg'; fs.writeFileSync(path.join(DATA_DIR,'uploads',discordId+'.'+ext), req.file.buffer); } catch {}
+      const ausweis = loadAusweis();
+      ausweis[discordId] = { vorname: vorname_0, nachname: nachname_0, geburtsdatum: geburtsdatum_0, geburtsort: geburtsort_0, nationalitaet: nationalitaet_0, psn: psn_0, geschlecht: geschlecht_0, createdAt: new Date().toISOString() };
+      saveAusweis(ausweis);
+      try {
+        const _kf=path.join(DATA_DIR,'konto.json'); const _tf=path.join(DATA_DIR,'transaktionen.json');
+        let _k={}; try{_k=JSON.parse(fs.readFileSync(_kf,'utf8'));}catch{}
+        if(!_k[discordId]) _k[discordId]={konto:0,schwarz:0};
+        if(!_k[discordId]._startgeld){_k[discordId].konto+=5000;_k[discordId]._startgeld=true;fs.writeFileSync(_kf,JSON.stringify(_k,null,2));
+          let _t={}; try{_t=JSON.parse(fs.readFileSync(_tf,'utf8'));}catch{} if(!_t[discordId])_t[discordId]=[];
+          _t[discordId].unshift({ts:Date.now(),text:'+5.000 $ Startgeld (Legale Einreise)',betrag:5000}); fs.writeFileSync(_tf,JSON.stringify(_t,null,2));}
+      } catch {}
+      res.send(page('Einreise Erfolgreich', `
+        ${header('Einreise Bestätigt')}
+        <div class="card"><div class="success-wrap">
+          <div class="icon">✅</div>
+          <h2>Legale Einreise Bestätigt!</h2>
+          <p>Charakter <strong>${vorname_0} ${nachname_0}</strong> wurde eingetragen. 5.000 $ Startgeld wurden gutgeschrieben.</p>
+          <p style="margin-top:14px;color:#555;font-size:.8em">Du kannst dieses Fenster schließen.</p>
+        </div></div>
+      `));
+      setImmediate(async () => {
+        try {
+          const guild  = client.guilds.cache.first();
+          const member = guild ? await guild.members.fetch(discordId).catch(()=>null) : null;
+          if (member) {
+            await member.roles.remove(ROLE_REMOVE).catch(()=>{});
+            for (const r of [...ROLES_ALL, ...ROLES_LEGAL]) await member.roles.add(r).catch(()=>{});
+            await member.setNickname(`${vorname_0} ${nachname_0} | ${psn_0}`).catch(()=>{});
+          }
+        } catch {}
+      });
+    });
 
   // ── GET /einreise/legal/:token ───────────────────────────────────────────────
   app.get('/einreise/legal/:token', (req, res) => {
@@ -473,8 +544,97 @@ module.exports = function startWebServer(client, DATA_DIR) {
   // ── GET /einreise/illegal ─────────────────────────────────────────────────
   // ── GET /einreise/illegal (backward compat) ───────────────────────────────
   app.get('/einreise/illegal', (req, res) => {
-    res.send(page('Kein Link', `${header('Einreise — Kein gültiger Link')}<div class="card"><div class="error-box">⚠️ Bitte verwende den persönlichen Einreise-Link den du per DM vom Bot erhalten hast.</div></div>`));
-  });
+      const error   = req.session.illError || ''; delete req.session.illError;
+      const illForm = req.session.illForm  || {}; delete req.session.illForm;
+      res.send(page('Illegale Einreise', `
+        ${header('Illegale Einreise')}
+        <div class="card">
+          ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
+          <form method="POST" action="/einreise/illegal" id="illegalForm">
+            <p class="section-title">👤 Discord Mitglied</p>
+            <div class="form-row one">${memberPicker('discord_id', 'Spieler auswählen')}</div>
+            <hr class="divider">
+            <p class="section-title">🎭 Charakter Name</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Vorname <span class="req">*</span></label>
+                <input type="text" name="vorname" value="${escHtml(illForm.vorname||'')}" placeholder="Vorname" required>
+              </div>
+              <div class="form-group">
+                <label>Nachname <span class="req">*</span></label>
+                <input type="text" name="nachname" value="${escHtml(illForm.nachname||'')}" placeholder="Nachname" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>PSN Name <span class="req">*</span></label>
+                <input type="text" name="psn" value="${escHtml(illForm.psn||'')}" placeholder="dein_psn_name" required>
+              </div>
+              <div class="form-group">
+                <label>Geschlecht <span class="req">*</span></label>
+                <select name="geschlecht" required>
+                  <option value="" disabled selected>Bitte wählen</option>
+                  <option value="Männlich" ${illForm.geschlecht==='Männlich'?'selected':''}>Männlich</option>
+                  <option value="Weiblich" ${illForm.geschlecht==='Weiblich'?'selected':''}>Weiblich</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+              <input type="checkbox" id="confirm" name="confirm" value="1" required style="width:18px;height:18px;accent-color:#e65100;cursor:pointer;flex-shrink:0">
+              <label for="confirm" style="color:#e0e0e0;font-size:.88em;cursor:pointer">Ich verstehe die Konsequenzen und möchte illegal einreisen.</label>
+            </div>
+            <button type="submit" class="btn" style="background:#b71c1c">🚨 Jetzt Einreisen</button>
+          </form>
+        </div>
+      `));
+    });
+
+    app.post('/einreise/illegal', async (req, res) => {
+      const discordId = (req.body.discord_id || '').trim();
+      function errBack(msg) { req.session.illError = msg; req.session.illForm = Object.assign({}, req.body); return res.redirect('/einreise/illegal'); }
+      if (!discordId) return errBack('Bitte wähle einen Discord Spieler aus.');
+      const v = await validateApplicant(discordId);
+      if (!v.ok) return errBack(v.reason);
+      const { confirm, vorname: ill_vor, nachname: ill_nach, psn: ill_psn, geschlecht: ill_geschlecht } = req.body;
+      if (!confirm) return errBack('Du musst die Konsequenzen bestätigen.');
+      const illVor = (ill_vor||'').trim(), illNach = (ill_nach||'').trim(), illPsn = (ill_psn||'').trim(), illGeschlecht = (ill_geschlecht||'').trim();
+      if (!illVor || !illNach) return errBack('Bitte gib deinen Charakter Vor- und Nachnamen an.');
+      if (!illPsn) return errBack('Bitte gib deinen PSN Namen an.');
+      if (!illGeschlecht || !['Männlich','Weiblich'].includes(illGeschlecht)) return errBack('Bitte wähle ein Geschlecht aus.');
+      const _existA = loadAusweis();
+      if (_existA[discordId]) return errBack('Dieser Spieler hat bereits einen Ausweis.');
+      const illAusweis = loadAusweis();
+      illAusweis[discordId] = { vorname: illVor, nachname: illNach, psn: illPsn, geschlecht: illGeschlecht, typ: 'illegal', createdAt: new Date().toISOString() };
+      saveAusweis(illAusweis);
+      try {
+        const _kf=path.join(DATA_DIR,'konto.json'); const _tf=path.join(DATA_DIR,'transaktionen.json');
+        let _k={}; try{_k=JSON.parse(fs.readFileSync(_kf,'utf8'));}catch{}
+        if(!_k[discordId]) _k[discordId]={konto:0,schwarz:0};
+        if(!_k[discordId]._startgeld){_k[discordId].schwarz+=5000;_k[discordId]._startgeld=true;fs.writeFileSync(_kf,JSON.stringify(_k,null,2));
+          let _t={}; try{_t=JSON.parse(fs.readFileSync(_tf,'utf8'));}catch{} if(!_t[discordId])_t[discordId]=[];
+          _t[discordId].unshift({ts:Date.now(),text:'+5.000 $ Startgeld (Illegale Einreise)',betrag:5000}); fs.writeFileSync(_tf,JSON.stringify(_t,null,2));}
+      } catch {}
+      res.send(page('Einreise Erfolgreich', `
+        ${header('Einreise Bestätigt')}
+        <div class="card"><div class="success-wrap">
+          <div class="icon">⚠️</div>
+          <h2 style="color:#f85149">Illegale Einreise Bestätigt</h2>
+          <p>Du bist nun illegal in Paradise City. Bleib unter dem Radar — und pass auf dich auf.<br>5.000 $ Schwarzgeld wurden gutgeschrieben.</p>
+          <p style="margin-top:14px;color:#555;font-size:.8em">Du kannst dieses Fenster schließen.</p>
+        </div></div>
+      `));
+      setImmediate(async () => {
+        try {
+          const guild  = client.guilds.cache.first();
+          const member = guild ? await guild.members.fetch(discordId).catch(()=>null) : null;
+          if (member) {
+            await member.roles.remove(ROLE_REMOVE).catch(()=>{});
+            for (const r of [...ROLES_ALL, ...ROLES_ILLEGAL]) await member.roles.add(r).catch(()=>{});
+            await member.setNickname(`${illVor} ${illNach} | ${illPsn}`).catch(()=>{});
+          }
+        } catch {}
+      });
+    });
 
   // ── GET /einreise/illegal/:token ─────────────────────────────────────────────
   app.get('/einreise/illegal/:token', (req, res) => {
@@ -745,7 +905,18 @@ module.exports = function startWebServer(client, DATA_DIR) {
       const uid = ids[gi];
       const ok  = await applyRoles(uid, isLegal);
       if (!ok) { failed.push(uid); continue; }
-      const nick = isLegal
+        try {
+          const _kf2=path.join(DATA_DIR,'konto.json'); const _tf2=path.join(DATA_DIR,'transaktionen.json');
+          let _k2={}; try{_k2=JSON.parse(fs.readFileSync(_kf2,'utf8'));}catch{}
+          if(!_k2[uid]) _k2[uid]={konto:0,schwarz:0};
+          if(!_k2[uid]._startgeld){
+            if(isLegal){_k2[uid].konto+=5000;}else{_k2[uid].schwarz+=5000;}
+            _k2[uid]._startgeld=true; fs.writeFileSync(_kf2,JSON.stringify(_k2,null,2));
+            let _t2={}; try{_t2=JSON.parse(fs.readFileSync(_tf2,'utf8'));}catch{} if(!_t2[uid])_t2[uid]=[];
+            _t2[uid].unshift({ts:Date.now(),text:'+5.000 $ Startgeld (Gruppen-Einreise '+(isLegal?'Legal':'Illegal')+')',betrag:5000}); fs.writeFileSync(_tf2,JSON.stringify(_t2,null,2));
+          }
+        } catch {}
+        const nick = isLegal
         ? (`${req.body[`g_vorname_${gi}`]||''} ${req.body[`g_nachname_${gi}`]||''} | ${req.body[`g_psn_${gi}`]||''}`).trim()
         : (`${req.body[`g_ill_vorname_${gi}`]||''} ${req.body[`g_ill_nachname_${gi}`]||''} | ${req.body[`g_ill_psn_${gi}`]||''}`).trim();
       const mem = await client.guilds.cache.first()?.members.fetch(uid).catch(() => null);
