@@ -375,11 +375,11 @@ module.exports = function startWebServer(client, DATA_DIR) {
         <div class="card">
           ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
           <form method="POST" action="/einreise/legal" enctype="multipart/form-data" id="legalForm">
-            <p class="section-title">🆔 Discord ID</p>
+            <p class="section-title">💬 Discord Nutzername</p>
             <div class="form-row one"><div class="form-group">
-              <label>Discord ID <span class="req">*</span></label>
-              <input type="text" name="discord_id" value="${escHtml(legalForm.discord_id||'')}" placeholder="z.B. 123456789012345678" required pattern="[0-9]{15,20}" title="Nur Zahlen, 15–20 Stellen">
-              <small style="color:#aaa">Du findest deine Discord ID nicht? </small><a href="/einreise/discord-id-help" target="_blank" class="btn-sm">📨 Per DM schicken lassen</a>
+              <label>Discord Nutzername <span class="req">*</span></label>
+              <input type="text" name="discord_username" value="${escHtml(legalForm.discord_username||'')}" placeholder="z.B. maxmustermann" required autocomplete="off">
+              <small style="color:#e8a000;margin-top:6px;display:block">⚠️ Bitte gib deinen Nutzernamen korrekt an und achte auf Groß- und Kleinschreibung.</small>
             </div></div>
             <hr class="divider">
             <p class="section-title">📋 IC Charakter Daten</p>
@@ -402,11 +402,15 @@ module.exports = function startWebServer(client, DATA_DIR) {
     });
 
     app.post('/einreise/legal', upload.single('foto'), async (req, res) => {
-      const discordId = (req.body.discord_id || '').trim();
-      function errBack(msg) { req.session.legalError = msg; req.session.legalForm = Object.assign({}, req.body); return res.redirect('/einreise/legal'); }
-      if (!discordId) return errBack('Bitte wähle einen Discord Spieler aus.');
-      const v = await validateApplicant(discordId);
-      if (!v.ok) return errBack(v.reason);
+        const discordUsername = (req.body.discord_username || '').trim();
+        function errBack(msg) { req.session.legalError = msg; req.session.legalForm = Object.assign({}, req.body); return res.redirect('/einreise/legal'); }
+        if (!discordUsername) return errBack('Bitte gib deinen Discord Nutzernamen ein.');
+        await (client.guilds.cache.first()?.members.fetch().catch(()=>{}));
+        const _lMember = client.guilds.cache.first()?.members.cache.find(m => m.user.username === discordUsername || m.user.tag === discordUsername || m.displayName === discordUsername);
+        if (!_lMember) return errBack(`Kein Mitglied mit dem Namen "${escHtml(discordUsername)}" gefunden. Bitte achte auf Groß- und Kleinschreibung.`);
+        const discordId = _lMember.id;
+        const v = await validateApplicant(discordId);
+        if (!v.ok) return errBack(v.reason);
       const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0 } = req.body;
       const geschlecht_0 = (req.body.geschlecht_0 || '').trim();
       const psn_0 = (req.body.psn_0 || '').trim();
@@ -675,11 +679,11 @@ module.exports = function startWebServer(client, DATA_DIR) {
         <div class="card">
           ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
           <form method="POST" action="/einreise/illegal" id="illegalForm">
-            <p class="section-title">🆔 Discord ID</p>
+            <p class="section-title">💬 Discord Nutzername</p>
             <div class="form-row one"><div class="form-group">
-              <label>Discord ID <span class="req">*</span></label>
-              <input type="text" name="discord_id" value="${escHtml(illForm.discord_id||'')}" placeholder="z.B. 123456789012345678" required pattern="[0-9]{15,20}" title="Nur Zahlen, 15–20 Stellen">
-              <small style="color:#aaa">Du findest deine Discord ID nicht? </small><a href="/einreise/discord-id-help" target="_blank" class="btn-sm">📨 Per DM schicken lassen</a>
+              <label>Discord Nutzername <span class="req">*</span></label>
+              <input type="text" name="discord_username" value="${escHtml(illForm.discord_username||'')}" placeholder="z.B. maxmustermann" required autocomplete="off">
+              <small style="color:#e8a000;margin-top:6px;display:block">⚠️ Bitte gib deinen Nutzernamen korrekt an und achte auf Groß- und Kleinschreibung.</small>
             </div></div>
             <hr class="divider">
             <p class="section-title">🎭 Charakter Name</p>
@@ -718,11 +722,15 @@ module.exports = function startWebServer(client, DATA_DIR) {
     });
 
     app.post('/einreise/illegal', async (req, res) => {
-      const discordId = (req.body.discord_id || '').trim();
-      function errBack(msg) { req.session.illError = msg; req.session.illForm = Object.assign({}, req.body); return res.redirect('/einreise/illegal'); }
-      if (!discordId) return errBack('Bitte wähle einen Discord Spieler aus.');
-      const v = await validateApplicant(discordId);
-      if (!v.ok) return errBack(v.reason);
+        const discordUsername = (req.body.discord_username || '').trim();
+        function errBack(msg) { req.session.illError = msg; req.session.illForm = Object.assign({}, req.body); return res.redirect('/einreise/illegal'); }
+        if (!discordUsername) return errBack('Bitte gib deinen Discord Nutzernamen ein.');
+        await (client.guilds.cache.first()?.members.fetch().catch(()=>{}));
+        const _iMember = client.guilds.cache.first()?.members.cache.find(m => m.user.username === discordUsername || m.user.tag === discordUsername || m.displayName === discordUsername);
+        if (!_iMember) return errBack(`Kein Mitglied mit dem Namen "${escHtml(discordUsername)}" gefunden. Bitte achte auf Groß- und Kleinschreibung.`);
+        const discordId = _iMember.id;
+        const v = await validateApplicant(discordId);
+        if (!v.ok) return errBack(v.reason);
       const { confirm, vorname: ill_vor, nachname: ill_nach, psn: ill_psn, geschlecht: ill_geschlecht } = req.body;
       if (!confirm) return errBack('Du musst die Konsequenzen bestätigen.');
       const illVor = (ill_vor||'').trim(), illNach = (ill_nach||'').trim(), illPsn = (ill_psn||'').trim(), illGeschlecht = (ill_geschlecht||'').trim();
