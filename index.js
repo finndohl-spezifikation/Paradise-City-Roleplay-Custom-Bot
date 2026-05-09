@@ -89,7 +89,7 @@ const AKTIVITAET_CH      = '1502382574310392040';
     '1490855654347505706','1490855657543303239','1490855655408664577','1490855656352251987',
     '1496136847338770693','1490855659506372743','1490855661137956879','1490855664854106225',
     '1490855699282516100','1490855680708579389','1490855688208126095','1490855689424212110',
-    '1490855690183381087','1492698578071146536','1492698644277969048','1490855692477923520',
+    '1490855690183381087','1492678578071146536','1492678644277969048','1490855692477923520',
     '1490855693786550404','1490855695363342358','1490855695912931329',
   ];
 const AKTIVITAET_FILE    = path.join(DATA_DIR, 'aktivitaetscheck.json');
@@ -365,7 +365,6 @@ async function buildInviteCache(guild) {
         .setTitle('👥  Team Übersicht — Paradise City Roleplay')
         .setDescription(
           `Hier siehst du alle aktuellen **Teammitglieder** von Paradise City Roleplay.\n` +
-          `Das Embed wird automatisch aktualisiert wenn sich Rollen ändern.\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `👤 **Gesamte Teammitglieder:** ${totalTeam}`
         )
