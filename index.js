@@ -360,12 +360,6 @@ const AKTIVITAET_CH      = '1502382574310392040';
     setup.rechnungenMsgId = msg.id;
     saveSetup(setup);
   }
-
-    await updateLohnlisteEmbed(client);
-    await updateLohnbueroEmbed(client);
-    await updateBankingEmbed(client);
-    await updateRechnungenEmbed(client);
-  
   async function updateShopEmbed(shopId) {
       const m = SHOP_META[shopId];
       if (!m) return;
@@ -1078,6 +1072,11 @@ async function buildInviteCache(guild) {
     .setTimestamp()
   );
 
+
+  await updateLohnlisteEmbed(client);
+  await updateLohnbueroEmbed(client);
+  await updateBankingEmbed(client);
+  await updateRechnungenEmbed(client);
   // ── Einmalig: Einreise-Embed mit Button senden ─────────────────────────────
   const setup = loadSetup();
   if (!setup.einreiseEmbedV4Sent) {
