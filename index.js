@@ -4107,6 +4107,7 @@ Link: ${link}`, ephemeral: true });
     function formatRubbelGrid(g) {
       const NL = String.fromCharCode(10);
       return g.slice(0,3).join('  ') + NL + g.slice(3,6).join('  ') + NL + g.slice(6,9).join('  ');
+    }
     } catch (e) { console.error('[Inventar Interaction]', e.message); }
   });
 
