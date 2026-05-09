@@ -3820,17 +3820,16 @@ client.on('interactionCreate', async (interaction) => {
           k._startgeld = true;
           setKonto(target.id, k);
           addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Startgeld (${art})`, betrag });
-          return interaction.reply({
-            embeds: [new EmbedBuilder().setColor(0x43A047).setTitle('💵 Startgeld vergeben')
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Einreise-Startgeld')
             .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Art', value:art, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true },{ name:'Vergeben von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+          return interaction.reply({
+            embeds: [new EmbedBuilder().setColor(0x43A047).setTitle('💵 Startgeld vergeben')
               .setDescription(`<@${target.id}> hat **${betrag.toLocaleString('de-CH')} $** als ${isSchwarz ? 'Schwarzgeld' : 'Kontogeld'} erhalten.
 **Einreiseart:** ${art}`)
             ], ephemeral: true
           });
-        }
 
   // ─── INVENTAR: Buttons & Modals ──────────────────────────────────────────────
 });
