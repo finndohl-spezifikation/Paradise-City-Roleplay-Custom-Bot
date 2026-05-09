@@ -2895,9 +2895,6 @@ client.on('interactionCreate', async (interaction) => {
           return interaction.reply({ content: `🔓 Sperre von **${name}** wurde aufgehoben.`, ephemeral: true });
         }
 
-  
-});
-
 
         // /vorschlag
         if (commandName === 'vorschlag') {
@@ -3041,6 +3038,9 @@ client.on('interactionCreate', async (interaction) => {
           await msg.react('❌');
           return;
         }
+
+
+});
 
   // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
