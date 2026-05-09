@@ -3706,8 +3706,8 @@ client.on('interactionCreate', async (interaction) => {
   // Team Shop: item select -> give
   if (interaction.isStringSelectMenu() && interaction.customId.startsWith('ts_select:')) {
     const name = interaction.values[0];
-    const inv  = loadInventar(); if (!inv[uid]) inv[uid] = {};
-    inv[uid][name] = (inv[uid][name] || 0) + 1; saveInventar(inv);
+    const inv  = loadInv(); if (!inv[uid]) inv[uid] = {};
+    inv[uid][name] = (inv[uid][name] || 0) + 1; saveInv(inv);
     return interaction.update({ content: '✅ **' + name + '** wurde deinem Rucksack hinzugefügt! 🎁', components: [] });
   }
 
@@ -3796,9 +3796,9 @@ client.on('interactionCreate', async (interaction) => {
     const total = cartTotal(cart); const cash = getCash(uid);
     if (cash < total) return interaction.reply({ content: '❌ Nicht genug Bargeld! Du hast ' + cash.toLocaleString('de-DE') + ' Euro, benötigst ' + total.toLocaleString('de-DE') + ' Euro.', ephemeral: true });
     setCash(uid, cash - total);
-    const inv = loadInventar(); if (!inv[uid]) inv[uid] = {};
+    const inv = loadInv(); if (!inv[uid]) inv[uid] = {};
     for (const ci of cart) { inv[uid][ci.name] = (inv[uid][ci.name] || 0) + ci.menge; }
-    saveInventar(inv);
+    saveInv(inv);
     const itemList = cart.map(c => '▸ **' + c.name + '** x' + c.menge).join('\n');
     clearCart(uid, shopId);
     const m = SHOP_META[shopId];
