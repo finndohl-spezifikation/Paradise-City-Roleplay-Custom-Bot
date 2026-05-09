@@ -100,6 +100,145 @@ const AKTIVITAET_CH      = '1502382574310392040';
     function loadCounter() { try { return JSON.parse(fs.readFileSync(COUNTER_FILE, 'utf8')); } catch { return { count: 0, lastUserId: null }; } }
     function saveCounter(d) { fs.writeFileSync(COUNTER_FILE, JSON.stringify(d, null, 2), 'utf8'); }
 
+    const SHOPS_FILE   = path.join(__dirname, 'data', 'shops.json');
+    const BARGELD_FILE = path.join(__dirname, 'data', 'bargeld.json');
+    const SHOP_CHANNELS = { kwik: '1490890311755628584', baumarkt: '1492976742497783818', angler: '1497804333541097532', schwarz: '1492977067665526804' };
+    const SHOP_META = {
+      kwik:     { name: 'Kwik-E-Markt',  emoji: '\u{1F3EA}', color: 0xF4A400, desc: 'Dein freundlicher Nachbarschaftsmarkt' },
+      baumarkt: { name: 'Baumarkt',      emoji: '\u{1F528}', color: 0xA0522D, desc: 'Alles fuer Bau und Handwerk' },
+      angler:   { name: 'Angler Shop',   emoji: '\u{1F3A3}', color: 0x006994, desc: 'Ausruestung fuer Angler' },
+      schwarz:  { name: 'Schwarzmarkt',  emoji: '\u{1F311}', color: 0x1a1a2e, desc: 'Hier findest du das Besondere' },
+    };
+    const shopCarts = new Map();
+    function loadShops()    { try { return JSON.parse(fs.readFileSync(SHOPS_FILE, 'utf8')); } catch { return { kwik:[], baumarkt:[], angler:[], schwarz:[], team:[] }; } }
+    function saveShops(d)   { fs.writeFileSync(SHOPS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+    function loadBargeld()  { try { return JSON.parse(fs.readFileSync(BARGELD_FILE, 'utf8')); } catch { return {}; } }
+    function saveBargeld(d) { fs.writeFileSync(BARGELD_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+    function getCash(uid)   { return loadBargeld()[uid] || 0; }
+    function setCash(uid, amount) { const d = loadBargeld(); d[uid] = Math.max(0, amount); saveBargeld(d); }
+    function getCart(uid, shopId) { const key = uid + shopId; if (!shopCarts.has(key)) shopCarts.set(key, []); return shopCarts.get(key); }
+    function clearCart(uid, shopId) { shopCarts.set(uid + shopId, []); }
+    function cartTotal(cart) { return cart.reduce((s, i) => s + i.preis * i.menge, 0); }
+
+    function buildShopPageEmbed(shopId, page, items) {
+      const m = SHOP_META[shopId];
+      const totalPages = Math.max(1, Math.ceil(items.length / 10));
+      const pageItems = items.slice(page * 10, (page + 1) * 10);
+      const TICK = String.fromCharCode(96);
+      const rows = pageItems.length
+        ? pageItems.map((it, i) => TICK + String(page*10+i+1).padStart(2,'0') + TICK + '  **' + it.name + '** — 💵 ' + it.preis.toLocaleString('de-DE') + ' Euro').join('\n')
+        : '_Keine Items_';
+      return new EmbedBuilder()
+        .setColor(m.color)
+        .setAuthor({ name: 'Paradise City Roleplay  •  ' + m.name })
+        .setTitle(m.emoji + '  ' + m.name)
+        .setDescription('*' + m.desc + '*\n\n' + rows)
+        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  ' + items.length + ' Items  •  Paradise City Roleplay' });
+    }
+
+    function buildCartEmbed(shopId, cart, cash) {
+      const m = SHOP_META[shopId];
+      const total = cartTotal(cart);
+      const cartRows = cart.length
+        ? cart.map(i => '▸ **' + i.name + '** x' + i.menge + ' — 💵 ' + (i.preis*i.menge).toLocaleString('de-DE') + ' Euro').join('\n')
+        : '_Warenkorb ist leer_';
+      const enough = cash >= total && cart.length > 0;
+      return new EmbedBuilder()
+        .setColor(m.color)
+        .setTitle('🛒  Warenkorb — ' + m.name)
+        .setDescription(cartRows)
+        .addFields(
+          { name: '💰  Zwischensumme', value: '**' + total.toLocaleString('de-DE') + ' Euro**', inline: true },
+          { name: '💵  Dein Bargeld',  value: '**' + cash.toLocaleString('de-DE') + ' Euro**', inline: true },
+          { name: enough ? '✅  Genug' : cart.length === 0 ? '🛒  Leer' : '❌  Nicht genug',
+            value: enough ? 'Du kannst kaufen!' : cart.length === 0 ? 'Fuege Items hinzu' : 'Fehlen: ' + (total-cash).toLocaleString('de-DE') + ' Euro', inline: true }
+        )
+        .setFooter({ text: 'Paradise City Roleplay  •  Warenkorb' });
+    }
+
+    function buildTeamShopEmbed(items, page) {
+      const totalPages = Math.max(1, Math.ceil(items.length / 10));
+      const pageItems = items.slice(page * 10, (page + 1) * 10);
+      const TICK = String.fromCharCode(96);
+      const rows = pageItems.length
+        ? pageItems.map((it, i) => TICK + String(page*10+i+1).padStart(2,'0') + TICK + '  **' + it.name + '** — 🎁 Kostenlos').join('\n')
+        : '_Keine Items_';
+      return new EmbedBuilder()
+        .setColor(0xE65100)
+        .setAuthor({ name: 'Paradise City Roleplay  •  Team Shop' })
+        .setTitle('🎖️  Team Shop')
+        .setDescription('*Exklusiv fuer das Team — kostenlos beziehen*\n\n' + rows)
+        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  ' + items.length + ' Items  •  Paradise City Roleplay' });
+    }
+
+    function buildShopSession(shopId, items, page, cart, cash) {
+      const m = SHOP_META[shopId];
+      const totalPages = Math.max(1, Math.ceil(items.length / 10));
+      const pageItems  = items.slice(page * 10, (page + 1) * 10);
+      const TICK = String.fromCharCode(96);
+      const rows = pageItems.length
+        ? pageItems.map((it, i) => TICK + String(page*10+i+1).padStart(2,'0') + TICK + '  **' + it.name + '** — 💵 ' + it.preis.toLocaleString('de-DE') + ' Euro').join('\n')
+        : '_Keine Items_';
+      const total = cartTotal(cart);
+      const cartInfo = cart.length
+        ? '🛒 **Warenkorb:** ' + cart.map(c => c.name + ' x' + c.menge).join(', ') + '\n💰 **Gesamt:** ' + total.toLocaleString('de-DE') + ' Euro  •  💵 **Bargeld:** ' + cash.toLocaleString('de-DE') + ' Euro'
+        : '🛒 Warenkorb leer  •  💵 **Bargeld:** ' + cash.toLocaleString('de-DE') + ' Euro';
+      const embed = new EmbedBuilder()
+        .setColor(m.color)
+        .setAuthor({ name: 'Paradise City Roleplay  •  ' + m.name })
+        .setTitle(m.emoji + '  ' + m.name)
+        .setDescription('*' + m.desc + '*\n\n' + rows + '\n\n' + cartInfo)
+        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  Paradise City Roleplay' });
+      const pagePrev = new ButtonBuilder().setCustomId('sp_prev:' + page + ':' + shopId).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(page === 0);
+      const pageNext = new ButtonBuilder().setCustomId('sp_next:' + page + ':' + shopId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1);
+      const buyBtn   = new ButtonBuilder().setCustomId('sp_buy:' + page + ':' + shopId).setLabel('💰 Kaufen').setStyle(ButtonStyle.Success).setDisabled(!cart.length);
+      const clearBtn = new ButtonBuilder().setCustomId('sp_clear:' + page + ':' + shopId).setLabel('🗑️ Leeren').setStyle(ButtonStyle.Danger).setDisabled(!cart.length);
+      const navRow   = new ActionRowBuilder().addComponents(pagePrev, pageNext, buyBtn, clearBtn);
+      const selOpts  = pageItems.map(it => ({ label: it.name, description: it.preis.toLocaleString('de-DE') + ' Euro', value: it.name }));
+      const selectRow = new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder().setCustomId('sp_sel:' + page + ':' + shopId)
+          .setPlaceholder('Item in den Warenkorb legen...')
+          .addOptions(selOpts)
+      );
+      const components = [navRow, selectRow];
+      if (cart.length) {
+        const rmOpts = cart.map(c => ({ label: c.name + ' x' + c.menge, description: (c.preis * c.menge).toLocaleString('de-DE') + ' Euro', value: c.name }));
+        components.push(new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder().setCustomId('sp_rm:' + page + ':' + shopId)
+            .setPlaceholder('❌ Item aus Warenkorb entfernen...')
+            .addOptions(rmOpts)
+        ));
+      }
+      return { embed, components };
+    }
+
+    async function updateShopEmbed(shopId) {
+      const m = SHOP_META[shopId];
+      if (!m) return;
+      const shops = loadShops();
+      const items = shops[shopId] || [];
+      const chId  = SHOP_CHANNELS[shopId];
+      const setup = loadSetup();
+      const ch = await client.channels.fetch(chId).catch(() => null);
+      if (!ch) return;
+      const embed = buildShopPageEmbed(shopId, 0, items);
+      const totalPages = Math.max(1, Math.ceil(items.length / 10));
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('sp_prev:0:' + shopId).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId('sp_next:0:' + shopId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1),
+        new ButtonBuilder().setCustomId('sp_shop:' + shopId).setLabel('🛒  Einkaufen').setStyle(ButtonStyle.Success)
+      );
+      const msgId = setup['shopMsgId_' + shopId];
+      if (msgId) {
+        const msg = await ch.messages.fetch(msgId).catch(() => null);
+        if (msg) { await msg.edit({ embeds: [embed], components: [row] }); return; }
+      }
+      const sent = await ch.send({ embeds: [embed], components: [row] });
+      setup['shopMsgId_' + shopId] = sent.id;
+      saveSetup(setup);
+    }
+  
+
     const INV_FILE    = path.join(__dirname, 'data', 'inventar.json');
     const LAGER_FILE  = path.join(__dirname, 'data', 'lager.json');
     const ITEMS_FILE  = path.join(__dirname, 'data', 'shop_items.json');
@@ -744,6 +883,57 @@ async function buildInviteCache(guild) {
         .addUserOption(opt => opt.setName('spieler').setDescription('Lager eines anderen Spielers').setRequired(false))
         .toJSON(),
   
+      new SlashCommandBuilder()
+      .setName('teamshop-add')
+      .setDescription('Fuegt ein Item zum Team-Shop hinzu')
+      .addStringOption(opt => opt.setName('item').setDescription('Item-Name').setRequired(true))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('teamshop-delete')
+      .setDescription('Loescht ein Item aus dem Team-Shop')
+      .addStringOption(opt => opt.setName('item').setDescription('Item waehlen').setRequired(true).setAutocomplete(true))
+      .toJSON(),
+    new SlashCommandBuilder().setName('teamshop').setDescription('Oeffnet den Team-Shop').toJSON(),
+    new SlashCommandBuilder()
+      .setName('shop-add')
+      .setDescription('Fuegt ein Item zu einem Shop hinzu')
+      .addStringOption(opt => opt.setName('shop').setDescription('Shop waehlen').setRequired(true)
+        .addChoices({name:'Kwik-E-Markt',value:'kwik'},{name:'Baumarkt',value:'baumarkt'},{name:'Angler Shop',value:'angler'},{name:'Schwarzmarkt',value:'schwarz'}))
+      .addStringOption(opt => opt.setName('name').setDescription('Item-Name').setRequired(true))
+      .addIntegerOption(opt => opt.setName('preis').setDescription('Preis').setRequired(true).setMinValue(1))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('shop-edit')
+      .setDescription('Bearbeitet ein Item in einem Shop')
+      .addStringOption(opt => opt.setName('shop').setDescription('Shop waehlen').setRequired(true)
+        .addChoices({name:'Kwik-E-Markt',value:'kwik'},{name:'Baumarkt',value:'baumarkt'},{name:'Angler Shop',value:'angler'},{name:'Schwarzmarkt',value:'schwarz'}))
+      .addStringOption(opt => opt.setName('item').setDescription('Item waehlen').setRequired(true).setAutocomplete(true))
+      .addIntegerOption(opt => opt.setName('preis').setDescription('Neuer Preis').setRequired(true).setMinValue(1))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('shop-delete')
+      .setDescription('Loescht ein Item aus einem Shop')
+      .addStringOption(opt => opt.setName('shop').setDescription('Shop waehlen').setRequired(true)
+        .addChoices({name:'Kwik-E-Markt',value:'kwik'},{name:'Baumarkt',value:'baumarkt'},{name:'Angler Shop',value:'angler'},{name:'Schwarzmarkt',value:'schwarz'}))
+      .addStringOption(opt => opt.setName('item').setDescription('Item waehlen').setRequired(true).setAutocomplete(true))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('geld-geben')
+      .setDescription('Gibt einem Spieler Bargeld')
+      .addUserOption(opt => opt.setName('spieler').setDescription('Spieler').setRequired(true))
+      .addIntegerOption(opt => opt.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('geld-nehmen')
+      .setDescription('Nimmt einem Spieler Bargeld weg')
+      .addUserOption(opt => opt.setName('spieler').setDescription('Spieler').setRequired(true))
+      .addIntegerOption(opt => opt.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('bargeld')
+      .setDescription('Zeigt den Bargeldstand an')
+      .addUserOption(opt => opt.setName('spieler').setDescription('Spieler (optional)').setRequired(false))
+      .toJSON(),
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -1652,7 +1842,12 @@ async function buildInviteCache(guild) {
           }
         } catch {}
       }
-    });
+      // Initialize shop embeds in their channels
+  for (const shopId of Object.keys(SHOP_CHANNELS)) {
+    updateShopEmbed(shopId).catch(e => console.error('Shop embed init:', shopId, e.message));
+  }
+
+});
 
   // ─── BEARBEITER TRACKING ──────────────────────────────────────────────────────
   // ─── INVITE EVENTS ────────────────────────────────────────────────────────────
@@ -2418,6 +2613,20 @@ client.on('interactionCreate', async (interaction) => {
             .filter(n => n.toLowerCase().includes(focused))
             .slice(0, 25)
             .map(n => ({ name: n, value: n }));
+          return interaction.respond(choices);
+        }
+        if (cmd === 'teamshop-delete') {
+          const focused = interaction.options.getFocused().toLowerCase();
+          const shops = loadShops();
+          const choices = (shops.team||[]).filter(i => i.name.toLowerCase().includes(focused)).slice(0,25).map(i => ({name:i.name,value:i.name}));
+          return interaction.respond(choices);
+        }
+        if (cmd === 'shop-edit' || cmd === 'shop-delete') {
+          const shopId  = interaction.options.getString('shop');
+          const focused = interaction.options.getFocused().toLowerCase();
+          if (!shopId) return interaction.respond([]);
+          const shops   = loadShops();
+          const choices = (shops[shopId]||[]).filter(i => i.name.toLowerCase().includes(focused)).slice(0,25).map(i => ({name:i.name + ' — ' + i.preis,value:i.name}));
           return interaction.respond(choices);
         }
         return interaction.respond([]);
@@ -3289,6 +3498,86 @@ client.on('interactionCreate', async (interaction) => {
 
   
 
+      // ── SHOP SLASH HANDLERS ──────────────────────────────────────────────
+      if (commandName === 'teamshop-add') {
+        const name = interaction.options.getString('item').trim();
+        const shops = loadShops(); if (!shops.team) shops.team = [];
+        if (shops.team.find(i => i.name === name)) return interaction.reply({ content: '❌ **' + name + '** bereits im Team-Shop.', ephemeral: true });
+        shops.team.push({ name }); saveShops(shops);
+        return interaction.reply({ content: '✅ **' + name + '** zum Team-Shop hinzugefügt.', ephemeral: true });
+      }
+      if (commandName === 'teamshop-delete') {
+        const name = interaction.options.getString('item');
+        const shops = loadShops(); const lenB = (shops.team||[]).length;
+        shops.team = (shops.team||[]).filter(i => i.name !== name);
+        if (shops.team.length === lenB) return interaction.reply({ content: '❌ **' + name + '** nicht gefunden.', ephemeral: true });
+        saveShops(shops);
+        return interaction.reply({ content: '✅ **' + name + '** aus dem Team-Shop entfernt.', ephemeral: true });
+      }
+      if (commandName === 'teamshop') {
+        const shops = loadShops(); const items = shops.team || [];
+        const totalPages = Math.max(1, Math.ceil(items.length / 10));
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('ts_prev:0').setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(true),
+          new ButtonBuilder().setCustomId('ts_next:0').setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1),
+          new ButtonBuilder().setCustomId('ts_take:0').setLabel('🎁 Item beziehen').setStyle(ButtonStyle.Success)
+        );
+        return interaction.reply({ embeds: [buildTeamShopEmbed(items, 0)], components: [row] });
+      }
+      if (commandName === 'shop-add') {
+        const shopId = interaction.options.getString('shop');
+        const name   = interaction.options.getString('name').trim();
+        const preis  = interaction.options.getInteger('preis');
+        const shops  = loadShops(); if (!shops[shopId]) shops[shopId] = [];
+        if (shops[shopId].find(i => i.name === name)) return interaction.reply({ content: '❌ **' + name + '** bereits im Shop.', ephemeral: true });
+        shops[shopId].push({ name, preis }); saveShops(shops);
+        await updateShopEmbed(shopId).catch(() => {});
+        return interaction.reply({ content: '✅ **' + name + '** (' + preis.toLocaleString('de-DE') + ' Euro) zu **' + (SHOP_META[shopId]?.name||shopId) + '** hinzugefügt.', ephemeral: true });
+      }
+      if (commandName === 'shop-edit') {
+        const shopId = interaction.options.getString('shop');
+        const name   = interaction.options.getString('item');
+        const preis  = interaction.options.getInteger('preis');
+        const shops  = loadShops();
+        const item   = (shops[shopId]||[]).find(i => i.name === name);
+        if (!item) return interaction.reply({ content: '❌ **' + name + '** nicht gefunden.', ephemeral: true });
+        item.preis = preis; saveShops(shops);
+        await updateShopEmbed(shopId).catch(() => {});
+        return interaction.reply({ content: '✅ **' + name + '** kostet jetzt ' + preis.toLocaleString('de-DE') + ' Euro.', ephemeral: true });
+      }
+      if (commandName === 'shop-delete') {
+        const shopId = interaction.options.getString('shop');
+        const name   = interaction.options.getString('item');
+        const shops  = loadShops(); const lenB2 = (shops[shopId]||[]).length;
+        shops[shopId] = (shops[shopId]||[]).filter(i => i.name !== name);
+        if ((shops[shopId]||[]).length === lenB2) return interaction.reply({ content: '❌ **' + name + '** nicht gefunden.', ephemeral: true });
+        saveShops(shops); await updateShopEmbed(shopId).catch(() => {});
+        return interaction.reply({ content: '✅ **' + name + '** entfernt.', ephemeral: true });
+      }
+      if (commandName === 'geld-geben') {
+        const target = interaction.options.getUser('spieler');
+        const betrag = interaction.options.getInteger('betrag');
+        setCash(target.id, getCash(target.id) + betrag);
+        return interaction.reply({ embeds:[new EmbedBuilder().setColor(0x57F287).setTitle('💵  Bargeld vergeben')
+          .addFields({name:'Spieler',value:'<@'+target.id+'>',inline:true},{name:'Betrag',value:'+'+betrag.toLocaleString('de-DE')+' Euro',inline:true},{name:'Neuer Stand',value:getCash(target.id).toLocaleString('de-DE')+' Euro',inline:true})
+          .setTimestamp().setFooter({text:'Paradise City Roleplay  •  Bargeld'})], ephemeral:true });
+      }
+      if (commandName === 'geld-nehmen') {
+        const target = interaction.options.getUser('spieler');
+        const betrag = interaction.options.getInteger('betrag');
+        if (getCash(target.id) < betrag) return interaction.reply({ content:'❌ <@'+target.id+'> hat nur '+getCash(target.id).toLocaleString('de-DE')+' Euro.', ephemeral:true });
+        setCash(target.id, getCash(target.id) - betrag);
+        return interaction.reply({ embeds:[new EmbedBuilder().setColor(0xED4245).setTitle('💸  Bargeld entfernt')
+          .addFields({name:'Spieler',value:'<@'+target.id+'>',inline:true},{name:'Betrag',value:'-'+betrag.toLocaleString('de-DE')+' Euro',inline:true},{name:'Neuer Stand',value:getCash(target.id).toLocaleString('de-DE')+' Euro',inline:true})
+          .setTimestamp().setFooter({text:'Paradise City Roleplay  •  Bargeld'})], ephemeral:true });
+      }
+      if (commandName === 'bargeld') {
+        const target = interaction.options.getUser('spieler') || user;
+        const cash   = getCash(target.id);
+        return interaction.reply({ embeds:[new EmbedBuilder().setColor(0xF4A400).setTitle('💵  Bargeldstand')
+          .setDescription('<@'+target.id+'> hat aktuell **'+cash.toLocaleString('de-DE')+' Euro** Bargeld.')
+          .setTimestamp().setFooter({text:'Paradise City Roleplay  •  Bargeld'})], ephemeral:true });
+      }
 });
 
   // ─── INVENTAR: Buttons & Modals ──────────────────────────────────────────────
@@ -3388,7 +3677,142 @@ client.on('interactionCreate', async (interaction) => {
     } catch (e) { console.error('[Inventar Interaction]', e.message); }
   });
 
-  // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
+  // ─── SHOP: Buttons, Selects & Modals ──────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  const uid = interaction.user?.id;
+
+  // Team Shop: pagination & take
+  if (interaction.isButton() && interaction.customId.startsWith('ts_')) {
+    const parts = interaction.customId.split(':');
+    const action = parts[0];
+    const shops = loadShops(); const items = shops.team || [];
+    const totalPages = Math.max(1, Math.ceil(items.length / 10));
+    let page = parseInt(parts[1]) || 0;
+    if (action === 'ts_take') {
+      if (!items.length) return interaction.reply({ content: '❌ Der Team-Shop ist leer.', ephemeral: true });
+      const allOpts = items.slice(0,25).map(i => ({ label: i.name, value: i.name }));
+      return interaction.reply({ content: '**🎁 Welches Item möchtest du?**', components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('ts_select:' + page).setPlaceholder('Welches Item beziehen?').addOptions(allOpts))], ephemeral: true });
+    }
+    if (action === 'ts_prev') page = Math.max(0, page - 1);
+    else if (action === 'ts_next') page = Math.min(totalPages - 1, page + 1);
+    const navRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('ts_prev:' + page).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+      new ButtonBuilder().setCustomId('ts_next:' + page).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1),
+      new ButtonBuilder().setCustomId('ts_take:' + page).setLabel('🎁 Item beziehen').setStyle(ButtonStyle.Success)
+    );
+    return interaction.update({ embeds: [buildTeamShopEmbed(items, page)], components: [navRow] });
+  }
+
+  // Team Shop: item select -> give
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith('ts_select:')) {
+    const name = interaction.values[0];
+    const inv  = loadInventar(); if (!inv[uid]) inv[uid] = {};
+    inv[uid][name] = (inv[uid][name] || 0) + 1; saveInventar(inv);
+    return interaction.update({ content: '✅ **' + name + '** wurde deinem Rucksack hinzugefügt! 🎁', components: [] });
+  }
+
+  // Regular shop: open session
+  if (interaction.isButton() && interaction.customId.startsWith('sp_shop:')) {
+    const shopId = interaction.customId.split(':')[1];
+    clearCart(uid, shopId);
+    const shops = loadShops(); const items = shops[shopId] || [];
+    if (!items.length) return interaction.reply({ content: '❌ Dieser Shop hat noch keine Items.', ephemeral: true });
+    const { embed, components } = buildShopSession(shopId, items, 0, getCart(uid, shopId), getCash(uid));
+    return interaction.reply({ embeds: [embed], components, ephemeral: true });
+  }
+
+  // Regular shop: pagination
+  if (interaction.isButton() && (interaction.customId.startsWith('sp_prev:') || interaction.customId.startsWith('sp_next:'))) {
+    const parts  = interaction.customId.split(':');
+    const action = parts[0]; const shopId = parts[2];
+    const shops  = loadShops(); const items = shops[shopId] || [];
+    const totalP = Math.max(1, Math.ceil(items.length / 10));
+    let page = parseInt(parts[1]) || 0;
+    if (action === 'sp_prev') page = Math.max(0, page - 1);
+    else page = Math.min(totalP - 1, page + 1);
+    const { embed, components } = buildShopSession(shopId, items, page, getCart(uid, shopId), getCash(uid));
+    return interaction.update({ embeds: [embed], components });
+  }
+
+  // Regular shop: item select -> qty modal
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith('sp_sel:')) {
+    const parts    = interaction.customId.split(':');
+    const page     = parts[1]; const shopId = parts[2];
+    const itemName = interaction.values[0];
+    const modal = new ModalBuilder().setCustomId('sp_qty:' + page + ':' + shopId + ':' + itemName).setTitle('Menge eingeben');
+    const qtyIn = new TextInputBuilder().setCustomId('qty').setLabel('Wie viele von "' + itemName + '"?').setStyle(TextInputStyle.Short).setPlaceholder('z.B. 3').setRequired(true).setMinLength(1).setMaxLength(4);
+    modal.addComponents(new ActionRowBuilder().addComponents(qtyIn));
+    return interaction.showModal(modal);
+  }
+
+  // Regular shop: modal -> add to cart
+  if (interaction.isModalSubmit() && interaction.customId.startsWith('sp_qty:')) {
+    const parts    = interaction.customId.split(':');
+    const page     = parseInt(parts[1]) || 0; const shopId = parts[2]; const itemName = parts.slice(3).join(':');
+    const menge    = parseInt(interaction.fields.getTextInputValue('qty').trim());
+    if (isNaN(menge) || menge < 1) return interaction.reply({ content: '❌ Ungültige Menge.', ephemeral: true });
+    const shops = loadShops(); const items = shops[shopId] || [];
+    const item  = items.find(i => i.name === itemName);
+    if (!item) return interaction.reply({ content: '❌ Item nicht gefunden.', ephemeral: true });
+    const cart  = getCart(uid, shopId);
+    const exist = cart.find(c => c.name === itemName);
+    if (exist) exist.menge += menge; else cart.push({ name: itemName, preis: item.preis, menge });
+    const cash = getCash(uid);
+    const { embed: shopEmbed, components } = buildShopSession(shopId, items, page, cart, cash);
+    const cartEmbed = buildCartEmbed(shopId, cart, cash);
+    return interaction.reply({ content: '🛒 **' + itemName + '** x' + menge + ' zum Warenkorb!', embeds: [shopEmbed, cartEmbed], components, ephemeral: true });
+  }
+
+  // Regular shop: remove from cart
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith('sp_rm:')) {
+    const parts    = interaction.customId.split(':');
+    const page     = parseInt(parts[1]) || 0; const shopId = parts[2]; const itemName = interaction.values[0];
+    const cart     = getCart(uid, shopId);
+    const rmIdx    = cart.findIndex(c => c.name === itemName);
+    if (rmIdx !== -1) cart.splice(rmIdx, 1);
+    const shops = loadShops(); const items = shops[shopId] || [];
+    const cash  = getCash(uid);
+    const { embed: shopEmbed, components } = buildShopSession(shopId, items, page, cart, cash);
+    const cartEmbed = buildCartEmbed(shopId, cart, cash);
+    return interaction.update({ content: '🗑️ **' + itemName + '** entfernt.', embeds: [shopEmbed, cartEmbed], components });
+  }
+
+  // Regular shop: clear cart
+  if (interaction.isButton() && interaction.customId.startsWith('sp_clear:')) {
+    const parts  = interaction.customId.split(':');
+    const page   = parseInt(parts[1]) || 0; const shopId = parts[2];
+    clearCart(uid, shopId);
+    const shops = loadShops(); const items = shops[shopId] || [];
+    const { embed, components } = buildShopSession(shopId, items, page, [], getCash(uid));
+    return interaction.update({ content: '🗑️ Warenkorb geleert.', embeds: [embed], components });
+  }
+
+  // Regular shop: buy
+  if (interaction.isButton() && interaction.customId.startsWith('sp_buy:')) {
+    const parts  = interaction.customId.split(':');
+    const shopId = parts[2];
+    const cart   = getCart(uid, shopId);
+    if (!cart.length) return interaction.reply({ content: '❌ Warenkorb ist leer.', ephemeral: true });
+    const total = cartTotal(cart); const cash = getCash(uid);
+    if (cash < total) return interaction.reply({ content: '❌ Nicht genug Bargeld! Du hast ' + cash.toLocaleString('de-DE') + ' Euro, benötigst ' + total.toLocaleString('de-DE') + ' Euro.', ephemeral: true });
+    setCash(uid, cash - total);
+    const inv = loadInventar(); if (!inv[uid]) inv[uid] = {};
+    for (const ci of cart) { inv[uid][ci.name] = (inv[uid][ci.name] || 0) + ci.menge; }
+    saveInventar(inv);
+    const itemList = cart.map(c => '▸ **' + c.name + '** x' + c.menge).join('\n');
+    clearCart(uid, shopId);
+    const m = SHOP_META[shopId];
+    const receipt = new EmbedBuilder().setColor(0x57F287).setTitle('🧾  Einkauf erfolgreich!')
+      .setDescription(itemList)
+      .addFields(
+        { name: '💸  Gezahlt', value: total.toLocaleString('de-DE') + ' Euro', inline: true },
+        { name: '💵  Verbleibendes Bargeld', value: getCash(uid).toLocaleString('de-DE') + ' Euro', inline: true }
+      ).setFooter({ text: 'Paradise City Roleplay  •  ' + m.name }).setTimestamp();
+    return interaction.update({ content: null, embeds: [receipt], components: [] });
+  }
+});
+
+// ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
   console.error('[UNHANDLED REJECTION]', reason);
 });
