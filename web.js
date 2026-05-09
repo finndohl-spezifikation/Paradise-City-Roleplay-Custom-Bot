@@ -329,6 +329,8 @@ function buildScratchPage(token, entry) {
     ctx.fillStyle='rgba(255,255,255,.2)';
     for(let s=0;s<6;s++){ctx.beginPath();ctx.arc(Math.random()*(cv.width-14)+7,Math.random()*(cv.height-14)+7,2,0,Math.PI*2);ctx.fill();}
   });
+  // Reveal symbols now that canvas coating is painted
+  document.querySelectorAll('.sym').forEach(s=>s.style.visibility='visible');
 
 
   function symLabel(sym){
