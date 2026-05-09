@@ -1707,11 +1707,20 @@ client.on('messageCreate', async (message) => {
   
   if (message.author.bot || !message.guild) return;
 
-    // ── 67 → 69 ──────────────────────────────────────────────────────────────
+    // ── 67 → 69 (via Webhook, wirkt wie echte Nachricht) ────────────────────
     if (message.content.includes('67')) {
       const newContent = message.content.replace(/67/g, '69');
-      await message.delete().catch(() => {});
-      await message.channel.send(`**${message.author.displayName}:** ${newContent}`).catch(() => {});
+      try {
+        const hooks = await message.channel.fetchWebhooks();
+        let hook = hooks.find(h => h.owner?.id === client.user.id && h.name === 'PCR-Edit');
+        if (!hook) hook = await message.channel.createWebhook({ name: 'PCR-Edit', avatar: client.user.displayAvatarURL() });
+        await message.delete().catch(() => {});
+        await hook.send({
+          content: newContent,
+          username: message.member?.displayName || message.author.username,
+          avatarURL: message.author.displayAvatarURL({ dynamic: true }),
+        });
+      } catch (e) { console.error('[67→69] Webhook Fehler:', e.message); }
       return;
     }
   const member = message.member ||
