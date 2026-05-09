@@ -3200,35 +3200,6 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.reply({ content: `❌ Konnte keine DM an **${target.tag}** senden. DMs möglicherweise deaktiviert.`, ephemeral: true });
       }
     }
-      // Prüfe ob bereits ein Token aussteht
-      const tokens = loadAusweisTokens();
-      const pending = Object.values(tokens).find(t => t.userId === target.id && t.expiresAt > Date.now());
-      if (pending) {
-        return interaction.reply({ content: `❌ Für **${target.tag}** läuft bereits ein Erstellungslink. Token: \`${pending.token}\``, ephemeral: true });
-      }
-      const tok     = genToken();
-      const domain  = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
-      const link    = `https://${domain}/ausweis/create/${tok}`;
-      tokens[tok]   = { token: tok, userId: target.id, userTag: target.tag, createdBy: interaction.user.id, expiresAt: Date.now() + 24 * 60 * 60 * 1000 };
-      saveAusweisTokens(tokens);
-      try {
-        await target.send({
-          embeds: [new EmbedBuilder()
-            .setColor(DARK_ORANGE)
-            .setTitle('🆔  Ausweis erstellen — Paradise City Roleplay')
-            .setDescription('Du wurdest aufgefordert, deinen Charakter-Ausweis auszufüllen.')
-            .addFields(
-              { name: '🔗  Link', value: `[Hier klicken um Ausweis auszufüllen](${link})`, inline: false },
-              { name: '⏱️  Gültig bis', value: `<t:${Math.floor((Date.now() + 86400000) / 1000)}:F>`, inline: false },
-            )
-            .setFooter({ text: 'Paradise City Roleplay  •  Ausweis-Erstellung' })
-            .setTimestamp()]
-        });
-        return interaction.reply({ content: `✅ DM an **${target.tag}** gesendet mit dem Ausweis-Erstellungslink.`, ephemeral: true });
-      } catch (e) {
-        return interaction.reply({ content: `❌ Konnte keine DM an **${target.tag}** senden. DMs möglicherweise deaktiviert.`, ephemeral: true });
-      }
-    }
 
     // /ausweis-delete
     if (commandName === 'ausweis-delete') {
