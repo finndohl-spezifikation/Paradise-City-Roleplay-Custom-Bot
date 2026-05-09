@@ -403,7 +403,13 @@ module.exports = function startWebServer(client, DATA_DIR) {
       req.session.legalError = 'Bitte gib eine gültige Discord-ID ein.';
       return res.redirect('/einreise/legal');
     }
-    // Passbild als Buffer speichern (multer memory)
+    // Duplikat-Prüfung: Ausweis bereits vorhanden?
+      const _existAusweis = loadAusweis();
+      if (_existAusweis[discordId]) {
+        req.session.legalError = 'Diese Discord-ID hat bereits einen Ausweis. Eine neue Einreise ist nur über /ausweis-create durch das Team möglich.';
+        return res.redirect('/einreise/legal');
+      }
+      // Passbild als Buffer speichern (multer memory)
     try {
       const ext = req.file.mimetype.includes('png') ? 'png' : req.file.mimetype.includes('webp') ? 'webp' : 'jpg';
       fs.writeFileSync(path.join(DATA_DIR, 'uploads', discordId + '.' + ext), req.file.buffer);
@@ -497,6 +503,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
     if (!illVor || !illNach) { req.session.illegalError = 'Bitte gib deinen Charakter Vor- und Nachnamen an.'; return res.redirect('/einreise/illegal'); }
     const illPsn  = (ill_psn  || '').trim();
     if (!illPsn) { req.session.illegalError = 'Bitte gib deinen PSN Namen an.'; return res.redirect('/einreise/illegal'); }
+    // Duplikat-Prüfung
+    const _existAusweisIll = loadAusweis();
+    if (_existAusweisIll[discordId]) {
+      req.session.illegalError = 'Diese Discord-ID hat bereits einen Ausweis. Neue Einreise nur über /ausweis-create durch das Team.';
+      return res.redirect('/einreise/illegal');
+    }
     // Rollen vergeben
     try {
       const guild  = client.guilds.cache.first();
@@ -644,6 +656,8 @@ module.exports = function startWebServer(client, DATA_DIR) {
       if (!uid) { errors.push(`Person ${i + 1}: Discord ID fehlt.`); continue; }
       if (ids.includes(uid)) { errors.push(`Person ${i + 1}: Discord ID ${uid} doppelt.`); continue; }
       ids.push(uid);
+      const _existG = loadAusweis();
+      if (_existG[uid]) { errors.push(`Person ${i + 1}: Discord ID ${uid} hat bereits einen Ausweis. Neue Einreise nur über /ausweis-create.`); continue; }
       const v = await validateApplicant(uid);
       if (!v.ok) { errors.push(`Person ${i + 1}: ${v.reason}`); }
     }
