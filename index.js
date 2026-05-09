@@ -1539,6 +1539,14 @@ client.on('messageReactionAdd', async (reaction, user) => {
         await reaction.message.edit({ embeds: [buildAktivitaetEmbed(aktCheck)] }).catch(() => {});
       }
     }
+
+    // ── Giveaway Teilnehmer-Zähler ──
+    const gw = activeGiveaways.get(reaction.message.id);
+    if (gw && reaction.emoji.name === '\uD83C\uDF89') {
+      const r = reaction.message.reactions.cache.get('\uD83C\uDF89');
+      const count = r ? Math.max(0, (r.count || 1) - 1) : 0; // minus Bot
+      await reaction.message.edit({ embeds: [buildGiveawayEmbed(gw.preis, gw.endetAt, count)] }).catch(() => {});
+    }
   } catch (e) { console.error('ReactionAdd Fehler:', e.message); }
 });
 
