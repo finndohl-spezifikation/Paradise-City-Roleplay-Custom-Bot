@@ -1837,7 +1837,7 @@ async function buildInviteCache(guild) {
           if (tp?.length >= 3) { const [tId,tType,tOpener]=tp; const cfg2=TICKET_TYPES[tType]||{}; ticket={ id:tId, channelId:interaction.channel.id, openerId:tOpener, type:tType, label:cfg2.label||tType, createdAt:new Date().toISOString(), bearbeiter:null, bearbeiterTag:null, assignedUsers:[], closed:false }; }
         }
         if (!ticket) return interaction.reply({ content: '❌ Kein Ticket gefunden.', ephemeral: true });
-        const canClose = hasTicketRights(interaction.member, ticket.type) || interaction.user.id === ticket.openerId;
+        const canClose = hasTicketRights(interaction.member, ticket.type);
         if (!canClose) return interaction.reply({ content: '❌ Du hast keine Berechtigung dieses Ticket zu schließen.', ephemeral: true });
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId('ticket_close_confirm').setLabel('✅ Ja, schließen').setStyle(ButtonStyle.Danger),
@@ -1860,7 +1860,7 @@ async function buildInviteCache(guild) {
           if (tp?.length >= 3) { const [tId,tType,tOpener]=tp; const cfg2=TICKET_TYPES[tType]||{}; ticket={ id:tId, channelId:interaction.channel.id, openerId:tOpener, type:tType, label:cfg2.label||tType, createdAt:new Date().toISOString(), bearbeiter:null, bearbeiterTag:null, assignedUsers:[], closed:false }; }
         }
         if (!ticket || ticket.closed) return interaction.reply({ content: '❌ Ticket bereits geschlossen.', ephemeral: true });
-        const canClose = hasTicketRights(interaction.member, ticket.type) || interaction.user.id === ticket.openerId;
+        const canClose = hasTicketRights(interaction.member, ticket.type);
         if (!canClose) return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
         await interaction.deferUpdate();
         ticket.closed   = true;
