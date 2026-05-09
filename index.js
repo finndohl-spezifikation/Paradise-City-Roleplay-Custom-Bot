@@ -2099,6 +2099,7 @@ client.on('guildMemberAdd', async (member) => {
       .addFields(
         { name: '📨  Eingeladen von', value: inviterMention, inline: true },
         { name: '📆  Account seit',   value: `<t:${ts(member.user.createdAt)}:D>`, inline: true },
+        { name: '🎭  Charakter erstellen', value: `[👉 Einreise-Link anfordern](https://${(process.env.REPLIT_DOMAINS||process.env.RAILWAY_PUBLIC_DOMAIN||'localhost:8080').split(',')[0]}/einreise/anfordern/${member.id})`, inline: false },
       )
       .setTimestamp();
 
@@ -2107,28 +2108,7 @@ client.on('guildMemberAdd', async (member) => {
       if (ch) await ch.send({ embeds: [welcomeEmbed] });
     } catch (e) { console.error('Welcome Fehler:', e.message); }
 
-    // Einreise-Token generieren & Join-DM
-      try {
-        const _einrFile = path.join(DATA_DIR, 'einreise_tokens.json');
-        let _einrToks = {}; try { _einrToks = JSON.parse(fs.readFileSync(_einrFile, 'utf8')); } catch {}
-        const _einrTok = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-        const _einrDomain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
-        const _einrLink = `https://${_einrDomain}/einreise/start/${_einrTok}`;
-        _einrToks[_einrTok] = { token: _einrTok, userId: member.id, userTag: member.user.tag, art: 'einreise', expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
-        fs.writeFileSync(_einrFile, JSON.stringify(_einrToks, null, 2));
-        await member.send({ embeds: [new EmbedBuilder()
-          .setColor(DARK_ORANGE)
-          .setTitle('👋  Willkommen bei Paradise City Roleplay!')
-          .setDescription(
-            `Hey **${member.user.username}**, willkommen auf **Paradise City Roleplay**!\n\n` +
-            `Klicke auf den Link unten um deinen Charakter zu erstellen.\n` +
-            `Der Link ist **7 Tage** gültig und nur für dich persönlich. 🎭`
-          )
-          .addFields({ name: '🎭  Charakter erstellen', value: `[👉 Hier klicken um einzureisen](${_einrLink})`, inline: false })
-          .setFooter({ text: 'Paradise City Roleplay  •  Einreise' })
-          .setTimestamp()
-        ]});
-      } catch { /* DMs deaktiviert */ }
+
 
     // Invite-Log
     try {
