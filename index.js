@@ -1706,6 +1706,14 @@ client.on('messageCreate', async (message) => {
     }
   
   if (message.author.bot || !message.guild) return;
+
+    // ── 67 → 69 ──────────────────────────────────────────────────────────────
+    if (message.content.includes('67')) {
+      const newContent = message.content.replace(/67/g, '69');
+      await message.delete().catch(() => {});
+      await message.channel.send(`**${message.author.displayName}:** ${newContent}`).catch(() => {});
+      return;
+    }
   const member = message.member ||
     await message.guild.members.fetch(message.author.id).catch(() => null);
 
