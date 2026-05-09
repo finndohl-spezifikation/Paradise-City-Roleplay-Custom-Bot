@@ -3830,6 +3830,7 @@ client.on('interactionCreate', async (interaction) => {
 **Einreiseart:** ${art}`)
             ], ephemeral: true
           });
+        }
 
   // ─── INVENTAR: Buttons & Modals ──────────────────────────────────────────────
 });
