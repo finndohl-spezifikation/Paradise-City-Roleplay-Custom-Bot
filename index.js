@@ -1106,6 +1106,13 @@ async function buildInviteCache(guild) {
       .setDescription('Setzt einen Spieler vollständig zurück (Konto, Inventar, Ausweis, Nickname)')
       .addUserOption(o => o.setName('spieler').setDescription('Spieler auswählen').setRequired(true))
       .toJSON(),
+    new SlashCommandBuilder()
+      .setName('einreise-link')
+      .setDescription('Sendet einem Spieler einen persönlichen Einreise-Link per DM')
+      .addUserOption(o => o.setName('spieler').setDescription('Spieler auswählen').setRequired(true))
+      .addStringOption(o => o.setName('art').setDescription('Einreiseart').setRequired(true)
+        .addChoices({ name: 'Legal', value: 'legal' }, { name: 'Illegal', value: 'illegal' }))
+      .toJSON(),
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -3900,6 +3907,34 @@ client.on('interactionCreate', async (interaction) => {
         }
 
       // ─── CHARAKTER RESET ──────────────────────────────────────────────────────
+      // ─── EINREISE-LINK ────────────────────────────────────────────────────────
+      if (commandName === 'einreise-link') {
+        const target = interaction.options.getUser('spieler');
+        const art    = interaction.options.getString('art');
+        // Generate token via web.js helper (call through shared token file)
+        const EINREISE_TOKEN_FILE = require('path').join(DATA_DIR, 'einreise_tokens.json');
+        let toks = {}; try { toks = JSON.parse(require('fs').readFileSync(EINREISE_TOKEN_FILE,'utf8')); } catch {}
+        // Remove expired tokens for this user
+        toks = Object.fromEntries(Object.entries(toks).filter(([,v]) => v.expiresAt > Date.now() && v.userId !== target.id));
+        const tok = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+        toks[tok] = { userId: target.id, art, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
+        require('fs').writeFileSync(EINREISE_TOKEN_FILE, JSON.stringify(toks, null, 2));
+        const domain = (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.REPLIT_DOMAINS || 'localhost:8080').split(',')[0].trim();
+        const link   = `https://${domain}/einreise/${art}/${tok}`;
+        try {
+          await target.send({ embeds: [new EmbedBuilder().setColor(art === 'legal' ? 0x43A047 : 0xb71c1c)
+            .setTitle(art === 'legal' ? '🏛️ Legale Einreise — Paradise City' : '🚫 Illegale Einreise — Paradise City')
+            .setDescription('Klicke auf den Link um deine Einreise auszufüllen. Der Link ist **7 Tage** gültig.')
+            .addFields({ name: '🔗 Persönlicher Link', value: `[Hier klicken](${link})`, inline: false },
+                       { name: '⏱️ Gültig bis', value: `<t:${Math.floor((Date.now()+7*24*60*60*1000)/1000)}:F>`, inline: false })
+            .setFooter({ text: 'Paradise City Roleplay • Einreise' }).setTimestamp()] });
+          return interaction.reply({ content: `✅ Einreise-Link (${art}) per DM an **${target.tag}** gesendet.`, ephemeral: true });
+        } catch {
+          return interaction.reply({ content: `❌ Konnte keine DM an **${target.tag}** senden. DMs möglicherweise deaktiviert.
+Link: ${link}`, ephemeral: true });
+        }
+      }
+
       if (commandName === 'charakter-reset') {
         const target = interaction.options.getUser('spieler');
         const uid    = target.id;
