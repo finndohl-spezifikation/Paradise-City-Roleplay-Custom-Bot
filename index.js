@@ -627,10 +627,19 @@ async function buildInviteCache(guild) {
 
       new SlashCommandBuilder()
         .setName('lobby-abstimmung')
-        .setDescription('Startet eine Lobby-Abstimmung im Lobby-Kanal')
-        .addStringOption(opt => opt.setName('wann').setDescription('Wann öffnet die Lobby? (z.B. 20:00 Uhr)').setRequired(true))
+        .setDescription('Startet eine Lobby-Abstimmung')
         .addStringOption(opt => opt.setName('rp-start').setDescription('Wann startet der RP? (z.B. 20:30 Uhr)').setRequired(true))
         .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('lobby-open')
+      .setDescription('Öffnet die Lobby')
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('lobby-close')
+      .setDescription('Schließt die Lobby')
+      .toJSON(),
   
   ];
 
@@ -2985,64 +2994,81 @@ client.on('interactionCreate', async (interaction) => {
 
   
         // /lobby-abstimmung
-        if (commandName === 'lobby-abstimmung') {
-          const wann    = interaction.options.getString('wann');
-          const rpStart = interaction.options.getString('rp-start');
-          const LOBBY_CH   = '1490882583909765190';
-          const LOBBY_ROLE = '1490855734517174376';
+          if (commandName === 'lobby-abstimmung') {
+            const rpStart = interaction.options.getString('rp-start');
+            const LOBBY_CH   = '1490882583909765190';
+            const LOBBY_ROLE = '1490855734517174376';
+            const ch = await client.channels.fetch(LOBBY_CH).catch(() => null);
+            if (!ch) return interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
+            const today = new Date();
+            const dateStr = `${today.getDate().toString().padStart(2,'0')}.${(today.getMonth()+1).toString().padStart(2,'0')}.${today.getFullYear()}`;
+            const embed = new EmbedBuilder()
+              .setColor(0xE65100)
+              .setAuthor({ name: 'Paradise City Roleplay', iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
+              .setTitle('🗳️  Lobby-Abstimmung')
+              .setDescription('## Wirst du heute dabei sein?\nStimme ab und lass es uns wissen!')
+              .addFields(
+                { name: '📅  Datum', value: `**${dateStr}**`, inline: true },
+                { name: '🎬  RP Start', value: `**${rpStart}**`, inline: true },
+                { name: '\u200b', value: '\u200b', inline: true },
+                { name: '✅  Ich bin dabei', value: 'Sobald die Lobby offen ist', inline: true },
+                { name: '🕒  Ich komme später', value: 'Ich stoße etwas später dazu', inline: true },
+                { name: '❌  Ich komme nicht', value: 'Heute leider nicht dabei', inline: true }
+              )
+              .setFooter({ text: `Gestartet von ${user.tag}  •  Paradise City Roleplay` })
+              .setTimestamp();
+            await interaction.reply({ content: '✅ Abstimmung gesendet!', ephemeral: true });
+            const msg = await ch.send({ content: `<@&${LOBBY_ROLE}>`, embeds: [embed] });
+            await msg.react('✅'); await msg.react('🕒'); await msg.react('❌');
+            return;
+          }
 
-          const ch = await client.channels.fetch(LOBBY_CH).catch(() => null);
-          if (!ch) return interaction.reply({ content: '❌ Lobby-Kanal nicht gefunden.', ephemeral: true });
+          // /lobby-open
+          if (commandName === 'lobby-open') {
+            const LOBBY_STATUS_CH = '1490882585046290542';
+            const LOBBY_ROLE      = '1490855734517174376';
+            const ch = await client.channels.fetch(LOBBY_STATUS_CH).catch(() => null);
+            if (!ch) return interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
+            const embed = new EmbedBuilder()
+              .setColor(0x57F287)
+              .setAuthor({ name: 'Paradise City Roleplay', iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
+              .setTitle('🟢  Lobby ist jetzt OFFEN!')
+              .setDescription('Die Lobby wurde geöffnet — komm jetzt rein!')
+              .addFields(
+                { name: '👑  Lobby Host', value: `<@${user.id}>`, inline: true },
+                { name: '🕐  Geöffnet um', value: `<t:${ts()}:t>`, inline: true }
+              )
+              .setFooter({ text: 'Paradise City Roleplay  •  Lobby-Status' })
+              .setTimestamp();
+            await interaction.reply({ content: '✅ Lobby als **offen** markiert!', ephemeral: true });
+            await ch.send({ content: `<@&${LOBBY_ROLE}>`, embeds: [embed] });
+            return;
+          }
 
-          const embed = new EmbedBuilder()
-            .setColor(0xE65100)
-            .setAuthor({ name: 'Paradise City Roleplay  •  Lobby-Abstimmung', iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
-            .setTitle('🚦  Lobby-Abstimmung')
-            .setDescription(
-              `> Die nächste Lobby öffnet bald — stimme jetzt ab!
-` +
-              `> ────────────────────────────────────
-` +
-              `> 🕐  **Lobby öffnet:**  ${wann}
-` +
-              `> 🎬  **RP Start:**       ${rpStart}`
-            )
-            .addFields(
-              {
-                name: '✅  Ich bin dabei',
-                value: 'Ich komme sobald die Lobby offen ist',
-                inline: true
-              },
-              {
-                name: '🕒  Ich komme später',
-                value: 'Ich stoße etwas später dazu',
-                inline: true
-              },
-              {
-                name: '❌  Ich komme nicht',
-                value: 'Ich bin heute nicht dabei',
-                inline: true
-              }
-            )
-            .setImage('https://i.imgur.com/wSTFkRM.png')
-            .setFooter({ text: `Abstimmung gestartet von ${user.tag}  •  Paradise City Roleplay` })
-            .setTimestamp();
+          // /lobby-close
+          if (commandName === 'lobby-close') {
+            const LOBBY_STATUS_CH = '1490882585046290542';
+            const ch = await client.channels.fetch(LOBBY_STATUS_CH).catch(() => null);
+            if (!ch) return interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
+            const embed = new EmbedBuilder()
+              .setColor(0xED4245)
+              .setAuthor({ name: 'Paradise City Roleplay', iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
+              .setTitle('🔴  Lobby ist jetzt GESCHLOSSEN')
+              .setDescription('Die Lobby wurde geschlossen. Bis zum nächsten Mal!')
+              .addFields(
+                { name: '👤  Geschlossen von', value: `<@${user.id}>`, inline: true },
+                { name: '🕐  Geschlossen um', value: `<t:${ts()}:t>`, inline: true }
+              )
+              .setFooter({ text: 'Paradise City Roleplay  •  Lobby-Status' })
+              .setTimestamp();
+            await interaction.reply({ content: '✅ Lobby als **geschlossen** markiert!', ephemeral: true });
+            await ch.send({ embeds: [embed] });
+            return;
+          }
 
-          await interaction.reply({ content: '✅ Lobby-Abstimmung wurde gesendet!', ephemeral: true });
-          const msg = await ch.send({
-            content: `<@&${LOBBY_ROLE}>`,
-            embeds: [embed]
-          });
-          await msg.react('✅');
-          await msg.react('🕒');
-          await msg.react('❌');
-          return;
-        }
+  
 
-
-});
-
-  // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
+}); // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
   console.error('[UNHANDLED REJECTION]', reason);
 });
