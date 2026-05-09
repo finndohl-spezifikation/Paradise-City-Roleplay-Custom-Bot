@@ -1,5 +1,9 @@
 const {
-  Client,
+
+  if (!fs.existsSync(KONTO_FILE))      fs.writeFileSync(KONTO_FILE,     '{}', 'utf8');
+  if (!fs.existsSync(TRANS_FILE))      fs.writeFileSync(TRANS_FILE,     '{}', 'utf8');
+  if (!fs.existsSync(LOHNLOG_FILE))    fs.writeFileSync(LOHNLOG_FILE,   '{}', 'utf8');
+  if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf8');  Client,
   GatewayIntentBits,
   Partials,
   EmbedBuilder,
@@ -121,10 +125,10 @@ const AKTIVITAET_CH      = '1502382574310392040';
     function cartTotal(cart) { return cart.reduce((s, i) => s + i.preis * i.menge, 0); }
 
   // ─── KONTO / BANKING HELPERS ─────────────────────────────────────────────────
-  const KONTO_FILE       = './data/konto.json';
-  const TRANS_FILE       = './data/transaktionen.json';
-  const LOHNLOG_FILE     = './data/lohnlog.json';
-  const RECHNUNGEN_FILE  = './data/rechnungen.json';
+  const KONTO_FILE       = path.join(__dirname, 'data', 'konto.json');
+  const TRANS_FILE       = path.join(__dirname, 'data', 'transaktionen.json');
+  const LOHNLOG_FILE     = path.join(__dirname, 'data', 'lohnlog.json');
+  const RECHNUNGEN_FILE  = path.join(__dirname, 'data', 'rechnungen.json');
 
   function loadKonto() {
     try { return JSON.parse(fs.readFileSync(KONTO_FILE, 'utf8')); } catch { return {}; }
