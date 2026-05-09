@@ -271,29 +271,11 @@ const AKTIVITAET_CH      = '1502382574310392040';
       .setColor(0xE65100)
       .setTitle('💵 Lohnliste')
       .setDescription(
-        '<@&1490855796932739093>
-**1'000 $ Stündlich**
-Diese Lohnklasse ist für alle arbeitslosen Spieler/in die keinen Privaten oder Staatlichen Beruf ausüben.
-
-' +
-        '<@&1490855789844234310>
-**3'000 $ Stündlich**
-Diese Lohnklasse ist für alle Normal Angestellten von Staatlichen Unternehmen.
-
-' +
-        '<@&1490855790913785886>
-**3'600 $ Stündlich**
-Diese Lohnklasse ist für alle Angestellten mit einem Befehlsposten in Staatlichen Unternehmen.
-
-' +
-        '<@&1490855791953973421>
-**4'500 $ Stündlich**
-Diese Lohnklasse ist für alle die einen Posten in einer Leitungsebene haben in Staatlichen Unternehmen.
-
-' +
-        '━━━━━━━━━━━━━━━━━━
-**ℹ️ Lohn Info**
-Spieler/in die einen Privaten Beruf ausüben müssen vom Unternehmenschef Privat bezahlt werden. Der Anspruch auf Staatlichen Lohn oder Arbeitslosengeld fällt hier weg.'
+        '<@&1490855796932739093>\n**1\'000 $ Stündlich**\nDiese Lohnklasse ist für alle arbeitslosen Spieler/in die keinen Privaten oder Staatlichen Beruf ausüben.\n\n' +
+        '<@&1490855789844234310>\n**3\'000 $ Stündlich**\nDiese Lohnklasse ist für alle Normal Angestellten von Staatlichen Unternehmen.\n\n' +
+        '<@&1490855790913785886>\n**3\'600 $ Stündlich**\nDiese Lohnklasse ist für alle Angestellten mit einem Befehlsposten in Staatlichen Unternehmen.\n\n' +
+        '<@&1490855791953973421>\n**4\'500 $ Stündlich**\nDiese Lohnklasse ist für alle die einen Posten in einer Leitungsebene haben in Staatlichen Unternehmen.\n\n' +
+        '━━━━━━━━━━━━━━━━━━\nℹ️ **Lohn Info**\nSpieler/in die einen Privaten Beruf ausüben müssen vom Unternehmenschef Privat bezahlt werden. Der Anspruch auf Staatlichen Lohn oder Arbeitslosengeld fällt hier weg.'
       );
     if (setup.lohnlisteMsgId) {
       try {
