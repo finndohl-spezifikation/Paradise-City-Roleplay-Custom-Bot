@@ -302,38 +302,11 @@ module.exports = function startWebServer(client, DATA_DIR) {
     var ov=document.getElementById('introOverlay');
     var box=document.getElementById('introBox');
     document.body.style.overflow='hidden';
-    var jumps=0;
-    function flee(e){
-      if(e){e.preventDefault();e.stopPropagation();}
-      if(jumps>=6){settle();return;}
-      jumps++;
-      var vw=document.documentElement.clientWidth;
-      var vh=document.documentElement.clientHeight;
-      var bw=btn.offsetWidth||150;
-      var bh=btn.offsetHeight||46;
-      var nx=Math.max(8,Math.floor(Math.random()*(vw-bw-16)));
-      var ny=Math.max(8,Math.floor(Math.random()*(vh-bh-16)));
-      btn.style.position='fixed';
-      btn.style.left=nx+'px';
-      btn.style.top=ny+'px';
-      btn.style.margin='0';
-      btn.style.zIndex='9999';
-    }
-    function settle(){
-      btn.removeEventListener('mouseover',flee);
-      btn.removeEventListener('touchstart',flee);
-      btn.removeEventListener('click',flee);
-      btn.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;z-index:9999;padding:13px 40px;background:#3fb950;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer;';
-      btn.textContent='Ich habe verstanden ✅';
-      btn.addEventListener('click',done);
-    }
     function done(){
-      box.style.animation='popOut .35s ease forwards';
-      setTimeout(function(){ov.style.display='none';document.body.style.overflow='';},340);
-    }
-    btn.addEventListener('mouseover',flee);
-    btn.addEventListener('touchstart',flee,{passive:false});
-    btn.addEventListener('click',flee);
+        box.style.animation='popOut .35s ease forwards';
+        setTimeout(function(){ov.style.display='none';document.body.style.overflow='';},340);
+      }
+      btn.addEventListener('click',done);
   })();
   </script>
   <div class="wrap">
