@@ -4116,12 +4116,13 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton() && interaction.customId === 'rubbellos_use') {
     const uid = interaction.user.id;
     const inv = getUserInv(uid);
-    if (!inv['Rubbellos'] || inv['Rubbellos'] < 1) {
+    const rubbelKey = Object.keys(inv).find(k => k.toLowerCase().includes('rubbellos'));
+    if (!rubbelKey || inv[rubbelKey] < 1) {
       return interaction.reply({ content: '❌ Du hast kein **Rubbellos** im Inventar.\n🛒 Kaufe eines im **Kwik-E-Markt**!', ephemeral: true });
     }
     // Rubbellos aus Inventar entfernen
-    inv['Rubbellos'] -= 1;
-    if (inv['Rubbellos'] <= 0) delete inv['Rubbellos'];
+    inv[rubbelKey] -= 1;
+    if (inv[rubbelKey] <= 0) delete inv[rubbelKey];
     setUserInv(uid, inv);
     // Gewinn ermitteln
     const rubbelPrize = pickRubbelPrize();
