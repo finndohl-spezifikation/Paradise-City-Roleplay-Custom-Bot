@@ -343,7 +343,10 @@ async function buildInviteCache(guild) {
         const role = guild.roles.cache.get(roleId);
         if (!role) continue;
         const members = role.members.map(m => m.toString());
-        if (members.length === 0) continue;
+        if (members.length === 0) {
+          fields.push({ name: `${role.name} [0]`, value: '_Nicht besetzt_', inline: true });
+          continue;
+        }
         const chunks = [];
         for (let i = 0; i < members.length; i += 10) chunks.push(members.slice(i, i + 10));
         chunks.forEach((chunk, ci) => {
