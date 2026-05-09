@@ -137,7 +137,22 @@ function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&
     search.addEventListener('input', function() { populate(search.value); });
   });
 })();
-</script>
+
+  // Geburtsdatum auto-format: nur Zahlen, Punkte automatisch
+  document.querySelectorAll('[data-date]').forEach(function(el) {
+    el.addEventListener('input', function(e) {
+      var v = el.value.replace(/[^0-9]/g, '');
+      if (v.length > 4) v = v.slice(0,2) + '.' + v.slice(2,4) + '.' + v.slice(4,8);
+      else if (v.length > 2) v = v.slice(0,2) + '.' + v.slice(2);
+      el.value = v;
+    });
+    el.addEventListener('keydown', function(e) {
+      if (e.key === 'Backspace' && (el.value.endsWith('.')) ) {
+        e.preventDefault(); el.value = el.value.slice(0, -2);
+      }
+    });
+  });
+  </script>
 </body></html>`;
 }
 
@@ -156,7 +171,7 @@ function charFields(prefix, idx, vals) {
   <div class="form-row">
     <div class="form-group">
       <label for="${prefix}geburtsdatum_${idx}">Geburtsdatum <span class="req">*</span></label>
-      <input type="text" id="${prefix}geburtsdatum_${idx}" name="${prefix}geburtsdatum_${idx}" placeholder="TT.MM.JJJJ" required>
+      <input type="text" id="${prefix}geburtsdatum_${idx}" name="${prefix}geburtsdatum_${idx}" placeholder="TT.MM.JJJJ" required data-date="1" inputmode="numeric" maxlength="10" autocomplete="off">
     </div>
     <div class="form-group">
       <label for="${prefix}geburtsort_${idx}">Geburtsort <span class="req">*</span></label>
