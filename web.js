@@ -419,6 +419,40 @@ module.exports = function startWebServer(client, DATA_DIR) {
     });
 
 
+    // ── GET /einreise/anfordern/:userId — Token generieren & DM senden ────────
+    app.get('/einreise/anfordern/:userId', async (req, res) => {
+      const userId = req.params.userId;
+      // Cooldown: nicht mehrfach innerhalb von 15 Min anfordern
+      const toks  = loadEinreiseTokens();
+      const now   = Date.now();
+      const existing = Object.values(toks).find(e => e.userId === userId && e.art === 'einreise' && e.expiresAt > now);
+      if (existing) {
+        const minLeft = Math.ceil((existing.expiresAt - now) / 60000);
+        return res.send(page('Link bereits aktiv', `${header('Link bereits aktiv')}<div class="card"><div class="success-wrap"><div class="icon">⏳</div><h2 style="color:#ffd180">Schau in deine DMs!</h2><p>Du hast bereits einen aktiven Einreise-Link. Schau in deine Discord-DMs.</p><p style="margin-top:10px;color:#aaa;font-size:.82em">Noch gültig: ca. ${minLeft} Minute${minLeft === 1 ? '' : 'n'}</p></div></div>`));
+      }
+      // Token generieren (15 Min)
+      const tok  = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+      const domain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
+      const link = `https://${domain}/einreise/start/${tok}`;
+      toks[tok] = { token: tok, userId, art: 'einreise', expiresAt: now + 15 * 60 * 1000 };
+      saveEinreiseTokens(toks);
+      // DM via Discord senden
+      try {
+        const dmUser = await client.users.fetch(userId);
+        await dmUser.send({ embeds: [{
+          color: 0xE65100,
+          title: '🎭  Dein persönlicher Einreise-Link',
+          description: `Klicke auf den Link unten um deinen Charakter zu erstellen.\n\nDieser Link ist **15 Minuten** gültig und nur für dich persönlich.`,
+          fields: [{ name: '👉  Einreise starten', value: `[${link}](${link})`, inline: false }],
+          footer: { text: 'Paradise City Roleplay  •  Einreise' },
+          timestamp: new Date().toISOString(),
+        }]});
+        res.send(page('DM gesendet', `${header('DM gesendet')}<div class="card"><div class="success-wrap"><div class="icon">📬</div><h2 style="color:#ffd180">Schau in deine DMs!</h2><p>Wir haben dir einen persönlichen Einreise-Link per Discord-DM geschickt.<br>Öffne deine DMs und klicke auf den Link. Er ist <strong>15 Minuten</strong> gültig.</p></div></div>`));
+      } catch {
+        res.send(page('DM fehlgeschlagen', `${header('DM fehlgeschlagen')}<div class="card"><div class="error-box">⚠️ Deine Discord-DMs sind deaktiviert. Bitte aktiviere DMs von Servermitgliedern und versuche es erneut.<br><br><a href="/einreise/anfordern/${userId}" class="btn" style="display:inline-block;margin-top:10px">🔄 Erneut versuchen</a></div></div>`));
+      }
+    });
+
     // ── GET /einreise/start/:token — Auswahl Legal/Illegal ──────────────────────
     app.get('/einreise/start/:token', (req, res) => {
       const toks  = loadEinreiseTokens();
