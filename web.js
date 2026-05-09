@@ -109,6 +109,22 @@ function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} — Paradise City Roleplay</title>
 <style>${CSS}.btn-sm{display:inline-block;padding:3px 10px;background:#e65100;color:#fff;border:none;border-radius:6px;font-size:.78em;cursor:pointer;text-decoration:none;vertical-align:middle;margin-left:4px;line-height:1.6}
+  
+    /* ── Team-Banner ── */
+    #team-banner{position:fixed;top:0;left:0;right:0;z-index:3000;background:#1a1a1a;border-bottom:3px solid #e65100;transform:translateY(-110%);transition:transform .45s cubic-bezier(.22,1,.36,1);box-shadow:0 4px 24px rgba(0,0,0,.6)}
+    #team-banner.show{transform:translateY(0)}
+    #team-banner .tb-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;gap:12px}
+    #team-banner .tb-label{background:#e65100;color:#fff;font-size:.72em;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.06em;flex-shrink:0}
+    #team-banner .tb-text{color:#ffd180;font-size:.9em;font-weight:600;flex:1}
+    #team-banner .tb-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+    #team-banner .tb-more{background:#e65100;color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:.8em;cursor:pointer;font-weight:600}
+    #team-banner .tb-close{background:none;border:none;color:#888;font-size:1.2em;cursor:pointer;line-height:1;padding:2px 6px}
+    #team-banner .tb-close:hover{color:#fff}
+    #team-banner .tb-detail{display:none;padding:0 20px 16px;color:#ccc;font-size:.85em;line-height:1.7;border-top:1px solid #2a2a2a;margin-top:4px}
+    #team-banner .tb-detail.open{display:block}
+    #team-banner .tb-detail ul{margin:8px 0 10px 18px;padding:0}
+    #team-banner .tb-detail ul li{margin-bottom:4px}
+    #team-banner .tb-detail .tb-apply{display:inline-block;margin-top:4px;background:#e65100;color:#fff;padding:6px 16px;border-radius:8px;font-size:.84em;font-weight:600;text-decoration:none}
   </style></head><body>
 <div class="wrap">${body}</div>
 <script>
@@ -153,7 +169,34 @@ function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&
     });
   });
   </script>
-</body></html>`;
+
+    <div id="team-banner">
+      <div class="tb-bar">
+        <span class="tb-label">INFO</span>
+        <span class="tb-text">Teammitglieder Gesucht</span>
+        <div class="tb-actions">
+          <button class="tb-more" onclick="document.querySelector('.tb-detail').classList.toggle('open');this.textContent=document.querySelector('.tb-detail').classList.contains('open')?'Schließen':'Mehr erfahren'">Mehr erfahren</button>
+          <button class="tb-close" onclick="document.getElementById('team-banner').classList.remove('show')" title="Schließen">✕</button>
+        </div>
+      </div>
+      <div class="tb-detail">
+        <p>Du möchtest gerne ein Teil des Teams von Paradise City werden? Dann lies dir kurz die Voraussetzungen durch und bewirb dich danach in einem Ticket.</p>
+        <ul>
+          <li>Du bist mindestens <strong>16 Jahre</strong> alt</li>
+          <li>Du bist interessiert an <strong>Teamarbeit</strong> und der Entwicklung des Servers</li>
+          <li>Du kannst in hitzigen Situationen trotzdem <strong>ruhig bleiben</strong></li>
+          <li>Du bist <strong>zuverlässig</strong></li>
+        </ul>
+        <p>Wenn das alles zu dir passt, bewirb dich noch heute und werde ein Teil des Teams von <strong>Paradise City</strong>!</p>
+      </div>
+    </div>
+    <script>
+      (function(){
+        // Banner nach 800ms einblenden (nach eventuellem ersten Popup)
+        setTimeout(function(){ document.getElementById('team-banner').classList.add('show'); }, 800);
+      })();
+    </script>
+  </body></html>`;
 }
 
 function charFields(prefix, idx, vals) {
@@ -1009,7 +1052,9 @@ module.exports = function startWebServer(client, DATA_DIR) {
             if (el && n) { el.textContent = '📎 ' + n; el.style.display = 'block'; }
           });
         });
-      </script>
+              // Standard: Legale Einreise vorausgewählt
+          setMode('legal');
+        </script>
     `));
   });
 
