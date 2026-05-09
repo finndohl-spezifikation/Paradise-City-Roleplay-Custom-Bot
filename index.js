@@ -99,6 +99,66 @@ const AKTIVITAET_CH      = '1502382574310392040';
     const COUNTER_GOAL = 1000;
     function loadCounter() { try { return JSON.parse(fs.readFileSync(COUNTER_FILE, 'utf8')); } catch { return { count: 0, lastUserId: null }; } }
     function saveCounter(d) { fs.writeFileSync(COUNTER_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+
+    const INV_FILE    = path.join(__dirname, 'data', 'inventar.json');
+    const LAGER_FILE  = path.join(__dirname, 'data', 'lager.json');
+    const ITEMS_FILE  = path.join(__dirname, 'data', 'shop_items.json');
+    const INV_CH      = '1490882591023173682';
+    const UEBERGABE_CH = '1490882592445304972';
+    const USE_CH      = '1490882589014364250';
+    const ITEMS_PER_PAGE = 10;
+    function loadInv()    { try { return JSON.parse(fs.readFileSync(INV_FILE,   'utf8')); } catch { return {}; } }
+    function saveInv(d)   { fs.writeFileSync(INV_FILE,   JSON.stringify(d, null, 2), 'utf8'); }
+    function loadLager()  { try { return JSON.parse(fs.readFileSync(LAGER_FILE, 'utf8')); } catch { return {}; } }
+    function saveLager(d) { fs.writeFileSync(LAGER_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+    function loadItems()  { try { return JSON.parse(fs.readFileSync(ITEMS_FILE, 'utf8')); } catch { return []; } }
+    function saveItems(d) { fs.writeFileSync(ITEMS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+    function getUserInv(userId)   { const d = loadInv();   return d[userId]   || {}; }
+    function getUserLager(userId) { const d = loadLager(); return d[userId]   || {}; }
+    function setUserInv(userId, items)   { const d = loadInv();   d[userId] = items;   saveInv(d); }
+    function setUserLager(userId, items) { const d = loadLager(); d[userId] = items;   saveLager(d); }
+    function buildInvEmbed(targetUser, page, store) {
+      const items = Object.entries(store);
+      const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
+      const pageItems  = items.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
+      const rows = pageItems.length
+        ? pageItems.map(([n,q],i) => `\`${(page*ITEMS_PER_PAGE+i+1).toString().padStart(2,'0')}\`  **${n}** — ${q}x`).join('\n')
+        : '_Keine Items vorhanden_';
+      return new EmbedBuilder()
+        .setColor(0xE65100)
+        .setTitle(`🎒  Rucksack von ${targetUser.username}`)
+        .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+        .setDescription(rows)
+        .setFooter({ text: `Seite ${page+1}/${totalPages}  •  ${items.length} Items gesamt  •  Paradise City Roleplay` });
+    }
+    function buildLagerEmbed(targetUser, page, store) {
+      const items = Object.entries(store);
+      const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
+      const pageItems  = items.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
+      const rows = pageItems.length
+        ? pageItems.map(([n,q],i) => `\`${(page*ITEMS_PER_PAGE+i+1).toString().padStart(2,'0')}\`  **${n}** — ${q}x`).join('\n')
+        : '_Lager ist leer_';
+      return new EmbedBuilder()
+        .setColor(0x5865F2)
+        .setTitle(`🏪  Lager von ${targetUser.username}`)
+        .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+        .setDescription(rows)
+        .setFooter({ text: `Seite ${page+1}/${totalPages}  •  ${items.length} Items gesamt  •  Paradise City Roleplay` });
+    }
+    function invPageButtons(page, totalPages, targetId, type) {
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`${type}_prev:${page}:${targetId}`).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+        new ButtonBuilder().setCustomId(`${type}_next:${page}:${targetId}`).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1)
+      );
+      return row;
+    }
+    function lagerActionButtons(page, targetId) {
+      return new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`lager_einlagern:${page}:${targetId}`).setLabel('📦 Items einlagern').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId(`lager_rucksack:${page}:${targetId}`).setLabel('🎒 In Rucksack legen').setStyle(ButtonStyle.Success)
+      );
+    }
+  
   
   
   const TEAM_ROLE_IDS      = [
@@ -640,6 +700,49 @@ async function buildInviteCache(guild) {
       .setName('lobby-close')
       .setDescription('Schließt die Lobby')
       .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('rucksack')
+        .setDescription('Zeigt dein Inventar an')
+        .addUserOption(opt => opt.setName('spieler').setDescription('Inventar eines anderen Spielers').setRequired(false))
+        .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('übergeben')
+        .setDescription('Übergibt Items an einen anderen Spieler')
+        .addStringOption(opt => opt.setName('item').setDescription('Item aus deinem Inventar').setRequired(true).setAutocomplete(true))
+        .addIntegerOption(opt => opt.setName('menge').setDescription('Menge').setRequired(true).setMinValue(1))
+        .addUserOption(opt => opt.setName('an-wen').setDescription('Empfänger').setRequired(true))
+        .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('use')
+        .setDescription('Verbraucht ein Item aus deinem Inventar')
+        .addStringOption(opt => opt.setName('item').setDescription('Item aus deinem Inventar').setRequired(true).setAutocomplete(true))
+        .addIntegerOption(opt => opt.setName('menge').setDescription('Menge').setRequired(true).setMinValue(1))
+        .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('item-give')
+        .setDescription('Gibt einem Spieler Items')
+        .addUserOption(opt => opt.setName('spieler').setDescription('Spieler').setRequired(true))
+        .addStringOption(opt => opt.setName('item').setDescription('Item-Name').setRequired(true).setAutocomplete(true))
+        .addIntegerOption(opt => opt.setName('menge').setDescription('Menge').setRequired(true).setMinValue(1))
+        .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('item-remove')
+        .setDescription('Nimmt einem Spieler Items weg')
+        .addUserOption(opt => opt.setName('spieler').setDescription('Spieler').setRequired(true))
+        .addStringOption(opt => opt.setName('item').setDescription('Item-Name').setRequired(true).setAutocomplete(true))
+        .addIntegerOption(opt => opt.setName('menge').setDescription('Menge').setRequired(true).setMinValue(1))
+        .toJSON(),
+
+      new SlashCommandBuilder()
+        .setName('lager')
+        .setDescription('Zeigt dein Lager an')
+        .addUserOption(opt => opt.setName('spieler').setDescription('Lager eines anderen Spielers').setRequired(false))
+        .toJSON(),
   
   ];
 
@@ -2299,6 +2402,24 @@ client.on('interactionCreate', async (interaction) => {
             .map(v => ({ name: `#${v.id} — ${v.text.slice(0, 80)}`, value: String(v.id) }));
           return interaction.respond(choices);
         }
+        if (cmd === 'übergeben' || cmd === 'use') {
+          const focused = interaction.options.getFocused().toLowerCase();
+          const inv = getUserInv(interaction.user.id);
+          const choices = Object.entries(inv)
+            .filter(([n]) => n.toLowerCase().includes(focused))
+            .slice(0, 25)
+            .map(([n, q]) => ({ name: `${n}  (${q}x)`, value: n }));
+          return interaction.respond(choices);
+        }
+        if (cmd === 'item-give' || cmd === 'item-remove') {
+          const focused = interaction.options.getFocused().toLowerCase();
+          const items = loadItems();
+          const choices = items
+            .filter(n => n.toLowerCase().includes(focused))
+            .slice(0, 25)
+            .map(n => ({ name: n, value: n }));
+          return interaction.respond(choices);
+        }
         return interaction.respond([]);
     }
 
@@ -3068,7 +3189,207 @@ client.on('interactionCreate', async (interaction) => {
 
   
 
-}); // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
+}); 
+        // /rucksack
+        if (commandName === 'rucksack') {
+          if (interaction.channelId !== INV_CH) return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${INV_CH}>.`, ephemeral: true });
+          const target = interaction.options.getUser('spieler') || user;
+          const inv = getUserInv(target.id);
+          const totalPages = Math.max(1, Math.ceil(Object.keys(inv).length / ITEMS_PER_PAGE));
+          const embed = buildInvEmbed(target, 0, inv);
+          const rows = [invPageButtons(0, totalPages, target.id, 'inv')];
+          return interaction.reply({ embeds: [embed], components: rows, ephemeral: false });
+        }
+
+        // /lager
+        if (commandName === 'lager') {
+          if (interaction.channelId !== INV_CH) return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${INV_CH}>.`, ephemeral: true });
+          const target = interaction.options.getUser('spieler') || user;
+          const lager = getUserLager(target.id);
+          const totalPages = Math.max(1, Math.ceil(Object.keys(lager).length / ITEMS_PER_PAGE));
+          const embed = buildLagerEmbed(target, 0, lager);
+          const rows = [invPageButtons(0, totalPages, target.id, 'lager'), lagerActionButtons(0, target.id)];
+          return interaction.reply({ embeds: [embed], components: rows, ephemeral: false });
+        }
+
+        // /übergeben
+        if (commandName === 'übergeben') {
+          if (interaction.channelId !== UEBERGABE_CH) return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${UEBERGABE_CH}>.`, ephemeral: true });
+          const itemName = interaction.options.getString('item');
+          const menge    = interaction.options.getInteger('menge');
+          const target   = interaction.options.getUser('an-wen');
+          if (target.id === user.id) return interaction.reply({ content: '❌ Du kannst dir nicht selbst Items übergeben.', ephemeral: true });
+          const inv = getUserInv(user.id);
+          if (!inv[itemName] || inv[itemName] < menge) return interaction.reply({ content: `❌ Du hast nicht genug **${itemName}** (hast: ${inv[itemName] ?? 0}x).`, ephemeral: true });
+          inv[itemName] -= menge;
+          if (inv[itemName] <= 0) delete inv[itemName];
+          setUserInv(user.id, inv);
+          const targetInv = getUserInv(target.id);
+          targetInv[itemName] = (targetInv[itemName] || 0) + menge;
+          setUserInv(target.id, targetInv);
+          return interaction.reply({ embeds: [new EmbedBuilder()
+            .setColor(0x57F287).setTitle('📦  Übergabe erfolgreich')
+            .setDescription(`<@${user.id}> hat **${menge}x ${itemName}** an <@${target.id}> übergeben.`)
+            .setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+          ]});
+        }
+
+        // /use
+        if (commandName === 'use') {
+          if (interaction.channelId !== USE_CH) return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${USE_CH}>.`, ephemeral: true });
+          const itemName = interaction.options.getString('item');
+          const menge    = interaction.options.getInteger('menge');
+          const inv = getUserInv(user.id);
+          if (!inv[itemName] || inv[itemName] < menge) return interaction.reply({ content: `❌ Du hast nicht genug **${itemName}** (hast: ${inv[itemName] ?? 0}x).`, ephemeral: true });
+          inv[itemName] -= menge;
+          if (inv[itemName] <= 0) delete inv[itemName];
+          setUserInv(user.id, inv);
+          return interaction.reply({ embeds: [new EmbedBuilder()
+            .setColor(0xE65100).setTitle('✅  Item verwendet')
+            .setDescription(`Du hast **${menge}x ${itemName}** verwendet.`)
+            .setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+          ]});
+        }
+
+        // /item-give
+        if (commandName === 'item-give') {
+          const target   = interaction.options.getUser('spieler');
+          const itemName = interaction.options.getString('item');
+          const menge    = interaction.options.getInteger('menge');
+          const inv = getUserInv(target.id);
+          inv[itemName] = (inv[itemName] || 0) + menge;
+          setUserInv(target.id, inv);
+          const items = loadItems();
+          if (!items.includes(itemName)) { items.push(itemName); saveItems(items); }
+          return interaction.reply({ embeds: [new EmbedBuilder()
+            .setColor(0x57F287).setTitle('📦  Item vergeben')
+            .addFields(
+              { name: 'Spieler', value: `<@${target.id}>`, inline: true },
+              { name: 'Item', value: `**${itemName}**`, inline: true },
+              { name: 'Menge', value: `**${menge}x**`, inline: true }
+            ).setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+          ], ephemeral: true });
+        }
+
+        // /item-remove
+        if (commandName === 'item-remove') {
+          const target   = interaction.options.getUser('spieler');
+          const itemName = interaction.options.getString('item');
+          const menge    = interaction.options.getInteger('menge');
+          const inv = getUserInv(target.id);
+          if (!inv[itemName] || inv[itemName] < menge) return interaction.reply({ content: `❌ <@${target.id}> hat nicht genug **${itemName}** (hat: ${inv[itemName] ?? 0}x).`, ephemeral: true });
+          inv[itemName] -= menge;
+          if (inv[itemName] <= 0) delete inv[itemName];
+          setUserInv(target.id, inv);
+          return interaction.reply({ embeds: [new EmbedBuilder()
+            .setColor(0xED4245).setTitle('❌  Item entfernt')
+            .addFields(
+              { name: 'Spieler', value: `<@${target.id}>`, inline: true },
+              { name: 'Item', value: `**${itemName}**`, inline: true },
+              { name: 'Menge', value: `**${menge}x**`, inline: true }
+            ).setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+          ], ephemeral: true });
+        }
+
+  
+  // ─── INVENTAR: Buttons & Modals ──────────────────────────────────────────────
+  client.on('interactionCreate', async (interaction) => {
+    try {
+      // ── Pagination: Rucksack ────────────────────────────────────────────────
+      if (interaction.isButton() && (interaction.customId.startsWith('inv_prev:') || interaction.customId.startsWith('inv_next:'))) {
+        const [action, pageStr, targetId] = interaction.customId.split(':');
+        let page = parseInt(pageStr);
+        if (action === 'inv_prev') page--; else page++;
+        const target = await interaction.client.users.fetch(targetId).catch(() => null);
+        if (!target) return interaction.reply({ content: '❌ Spieler nicht gefunden.', ephemeral: true });
+        const inv = getUserInv(targetId);
+        const totalPages = Math.max(1, Math.ceil(Object.keys(inv).length / ITEMS_PER_PAGE));
+        page = Math.max(0, Math.min(page, totalPages - 1));
+        return interaction.update({ embeds: [buildInvEmbed(target, page, inv)], components: [invPageButtons(page, totalPages, targetId, 'inv')] });
+      }
+
+      // ── Pagination: Lager ───────────────────────────────────────────────────
+      if (interaction.isButton() && (interaction.customId.startsWith('lager_prev:') || interaction.customId.startsWith('lager_next:'))) {
+        const [action, pageStr, targetId] = interaction.customId.split(':');
+        let page = parseInt(pageStr);
+        if (action === 'lager_prev') page--; else page++;
+        const target = await interaction.client.users.fetch(targetId).catch(() => null);
+        if (!target) return interaction.reply({ content: '❌ Spieler nicht gefunden.', ephemeral: true });
+        const lager = getUserLager(targetId);
+        const totalPages = Math.max(1, Math.ceil(Object.keys(lager).length / ITEMS_PER_PAGE));
+        page = Math.max(0, Math.min(page, totalPages - 1));
+        return interaction.update({ embeds: [buildLagerEmbed(target, page, lager)], components: [invPageButtons(page, totalPages, targetId, 'lager'), lagerActionButtons(page, targetId)] });
+      }
+
+      // ── Button: Items einlagern (Inventar → Lager) ──────────────────────────
+      if (interaction.isButton() && interaction.customId.startsWith('lager_einlagern:')) {
+        const [, pageStr, targetId] = interaction.customId.split(':');
+        if (interaction.user.id !== targetId) return interaction.reply({ content: '❌ Das ist nicht dein Lager.', ephemeral: true });
+        const modal = new ModalBuilder()
+          .setCustomId(`modal_einlagern:${pageStr}:${targetId}`)
+          .setTitle('📦 Items einlagern')
+          .addComponents(
+            new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('item_name').setLabel('Item-Name').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. Gold')),
+            new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('item_menge').setLabel('Menge').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 5'))
+          );
+        return interaction.showModal(modal);
+      }
+
+      // ── Button: In Rucksack legen (Lager → Inventar) ───────────────────────
+      if (interaction.isButton() && interaction.customId.startsWith('lager_rucksack:')) {
+        const [, pageStr, targetId] = interaction.customId.split(':');
+        if (interaction.user.id !== targetId) return interaction.reply({ content: '❌ Das ist nicht dein Lager.', ephemeral: true });
+        const modal = new ModalBuilder()
+          .setCustomId(`modal_rucksack:${pageStr}:${targetId}`)
+          .setTitle('🎒 In Rucksack legen')
+          .addComponents(
+            new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('item_name').setLabel('Item-Name').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. Gold')),
+            new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('item_menge').setLabel('Menge').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 5'))
+          );
+        return interaction.showModal(modal);
+      }
+
+      // ── Modal: einlagern submit ─────────────────────────────────────────────
+      if (interaction.isModalSubmit() && interaction.customId.startsWith('modal_einlagern:')) {
+        const [, pageStr, targetId] = interaction.customId.split(':');
+        const itemName = interaction.fields.getTextInputValue('item_name').trim();
+        const menge    = parseInt(interaction.fields.getTextInputValue('item_menge').trim());
+        if (isNaN(menge) || menge < 1) return interaction.reply({ content: '❌ Ungültige Menge.', ephemeral: true });
+        const inv = getUserInv(targetId);
+        if (!inv[itemName] || inv[itemName] < menge) return interaction.reply({ content: `❌ Nicht genug **${itemName}** im Rucksack (hast: ${inv[itemName] ?? 0}x).`, ephemeral: true });
+        inv[itemName] -= menge; if (inv[itemName] <= 0) delete inv[itemName];
+        setUserInv(targetId, inv);
+        const lager = getUserLager(targetId);
+        lager[itemName] = (lager[itemName] || 0) + menge;
+        setUserLager(targetId, lager);
+        const page = parseInt(pageStr);
+        const totalPages = Math.max(1, Math.ceil(Object.keys(lager).length / ITEMS_PER_PAGE));
+        const target = await interaction.client.users.fetch(targetId).catch(() => null);
+        return interaction.reply({ content: `✅ **${menge}x ${itemName}** ins Lager eingelagert.`, embeds: [buildLagerEmbed(target, page, lager)], components: [invPageButtons(page, totalPages, targetId, 'lager'), lagerActionButtons(page, targetId)], ephemeral: true });
+      }
+
+      // ── Modal: rucksack submit ──────────────────────────────────────────────
+      if (interaction.isModalSubmit() && interaction.customId.startsWith('modal_rucksack:')) {
+        const [, pageStr, targetId] = interaction.customId.split(':');
+        const itemName = interaction.fields.getTextInputValue('item_name').trim();
+        const menge    = parseInt(interaction.fields.getTextInputValue('item_menge').trim());
+        if (isNaN(menge) || menge < 1) return interaction.reply({ content: '❌ Ungültige Menge.', ephemeral: true });
+        const lager = getUserLager(targetId);
+        if (!lager[itemName] || lager[itemName] < menge) return interaction.reply({ content: `❌ Nicht genug **${itemName}** im Lager (hast: ${lager[itemName] ?? 0}x).`, ephemeral: true });
+        lager[itemName] -= menge; if (lager[itemName] <= 0) delete lager[itemName];
+        setUserLager(targetId, lager);
+        const inv = getUserInv(targetId);
+        inv[itemName] = (inv[itemName] || 0) + menge;
+        setUserInv(targetId, inv);
+        const page = parseInt(pageStr);
+        const totalPages = Math.max(1, Math.ceil(Object.keys(lager).length / ITEMS_PER_PAGE));
+        const target = await interaction.client.users.fetch(targetId).catch(() => null);
+        return interaction.reply({ content: `✅ **${menge}x ${itemName}** in den Rucksack gelegt.`, embeds: [buildLagerEmbed(target, page, lager)], components: [invPageButtons(page, totalPages, targetId, 'lager'), lagerActionButtons(page, targetId)], ephemeral: true });
+      }
+    } catch (e) { console.error('[Inventar Interaction]', e.message); }
+  });
+
+  // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
   console.error('[UNHANDLED REJECTION]', reason);
 });
