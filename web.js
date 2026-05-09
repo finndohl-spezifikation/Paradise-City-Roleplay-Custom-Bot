@@ -468,6 +468,17 @@ module.exports = function startWebServer(client, DATA_DIR) {
             <div class="form-row one">
               ${memberPicker('discord_id', 'Dein Discord-Account')}
             </div>
+            <p class="section-title" style="margin-top:18px">🎭 Charakter Name</p>
+              <div class="form-row two">
+                <div class="form-group">
+                  <label>Vorname <span class="req">*</span></label>
+                  <input type="text" name="vorname" placeholder="Vorname" required>
+                </div>
+                <div class="form-group">
+                  <label>Nachname <span class="req">*</span></label>
+                  <input type="text" name="nachname" placeholder="Nachname" required>
+                </div>
+              </div>
             <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
               <input type="checkbox" id="confirm" name="confirm" value="1" required style="width:18px;height:18px;accent-color:#e65100;cursor:pointer;flex-shrink:0">
               <label for="confirm" style="color:#e0e0e0;font-size:.88em;cursor:pointer">Ich verstehe die Konsequenzen und möchte illegal einreisen.</label>
