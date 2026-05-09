@@ -1786,7 +1786,7 @@ async function buildInviteCache(guild) {
       // ── Einmalig: Rubbellos-Embed senden ────────────────────────────────────────
       {
         const setupR = loadSetup();
-        if (!setupR.rubbellosEmbedSent) {
+        if (!setupR.rubbellosEmbedSent2) {
           const rubbelEmbed = new EmbedBuilder()
             .setColor(0xE65100)
             .setTitle('🎟️  Rubbellos')
@@ -1822,7 +1822,7 @@ async function buildInviteCache(guild) {
             const rubbCh = await client.channels.fetch('1490889784753782784');
             if (rubbCh) {
               await rubbCh.send({ embeds: [rubbelEmbed], components: [rubbRow] });
-              setupR.rubbellosEmbedSent = true;
+              setupR.rubbellosEmbedSent2 = true;
               saveSetup(setupR);
               console.log('✅ Rubbellos-Embed einmalig gesendet.');
             }
