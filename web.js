@@ -91,12 +91,12 @@ function warning() {
   return `<p class="warning-text">⚠️ Bitte gebe hier korrekte Daten zu deinem Charakter an.<br>Änderungen sind nur durch den RP Tod möglich.</p>`;
 }
 
-function memberPicker(name, label) {
+function memberPicker(name, label, defaultId) {
     return `
     <div class="form-group">
       <label>${label} <span class="req">*</span></label>
       <input type="text" class="member-search" placeholder="🔍 Mitglied suchen..." autocomplete="off">
-      <select name="${name}" class="member-select" required>
+      <select name="${name}" class="member-select" required data-default="${defaultId||''}">
         <option value="">— Wird geladen... —</option>
       </select>
     </div>`;
@@ -127,7 +127,10 @@ document.querySelectorAll('.file-box input[type=file]').forEach(inp => {
         members.filter(function(m) { return !f || m.name.toLowerCase().includes(f.toLowerCase()); })
                .map(function(m) { return '<option value="' + m.id + '"' + (m.id===prev?' selected':'') + '>' + m.name + '</option>'; }).join('');
     }
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
     populate('');
+    const def = sel.getAttribute('data-default'); if (def) sel.value = def;
     search.addEventListener('input', function() { populate(search.value); });
   });
 })();
@@ -135,16 +138,16 @@ document.querySelectorAll('.file-box input[type=file]').forEach(inp => {
 </body></html>`;
 }
 
-function charFields(prefix, idx) {
+function charFields(prefix, idx, vals) {
   return `
   <div class="form-row">
     <div class="form-group">
       <label for="${prefix}vorname_${idx}">Vorname <span class="req">*</span></label>
-      <input type="text" id="${prefix}vorname_${idx}" name="${prefix}vorname_${idx}" required placeholder="Max">
+      <input type="text" id="${prefix}vorname_${idx}" name="${prefix}vorname_${idx}" value="${escHtml(vals && vals[prefix+'vorname_'+idx] || '')}" required placeholder="Max">
     </div>
     <div class="form-group">
       <label for="${prefix}nachname_${idx}">Nachname <span class="req">*</span></label>
-      <input type="text" id="${prefix}nachname_${idx}" name="${prefix}nachname_${idx}" required placeholder="Mustermann">
+      <input type="text" id="${prefix}nachname_${idx}" name="${prefix}nachname_${idx}" value="${escHtml(vals && vals[prefix+'nachname_'+idx] || '')}" required placeholder="Mustermann">
     </div>
   </div>
   <div class="form-row">
@@ -154,13 +157,13 @@ function charFields(prefix, idx) {
     </div>
     <div class="form-group">
       <label for="${prefix}geburtsort_${idx}">Geburtsort <span class="req">*</span></label>
-      <input type="text" id="${prefix}geburtsort_${idx}" name="${prefix}geburtsort_${idx}" required placeholder="Los Angeles">
+      <input type="text" id="${prefix}geburtsort_${idx}" name="${prefix}geburtsort_${idx}" value="${escHtml(vals && vals[prefix+'geburtsort_'+idx] || '')}" required placeholder="Los Angeles">
     </div>
   </div>
   <div class="form-row one">
     <div class="form-group">
       <label for="${prefix}nationalitaet_${idx}">Nationalität <span class="req">*</span></label>
-      <input type="text" id="${prefix}nationalitaet_${idx}" name="${prefix}nationalitaet_${idx}" required placeholder="Amerikanisch">
+      <input type="text" id="${prefix}nationalitaet_${idx}" name="${prefix}nationalitaet_${idx}" value="${escHtml(vals && vals[prefix+'nationalitaet_'+idx] || '')}" required placeholder="Amerikanisch">
     </div>
   </div>
   <div class="form-row one">
@@ -175,7 +178,7 @@ function charFields(prefix, idx) {
   <div class="form-row one">
     <div class="form-group">
       <label for="${prefix}psn_${idx}">PSN Name <span class="req">*</span></label>
-      <input type="text" id="${prefix}psn_${idx}" name="${prefix}psn_${idx}" required placeholder="dein_psn_name">
+      <input type="text" id="${prefix}psn_${idx}" name="${prefix}psn_${idx}" value="${escHtml(vals && vals[prefix+'psn_'+idx] || '')}" required placeholder="dein_psn_name">
     </div>
   </div>`;
 }
@@ -358,6 +361,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
   app.get('/einreise/legal', (req, res) => {
     const error = req.session.legalError || '';
     delete req.session.legalError;
+    const legalForm = req.session.legalFormData || {}; delete req.session.legalFormData;
     res.send(page('Legale Einreise', `
       ${header('Legale Einreise — Ausweis Erstellung')}
       <div class="card">
@@ -366,7 +370,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
           
           <p class="section-title">📋 IC Charakter Daten</p>
-          ${charFields('', 0)}
+          ${charFields('', 0, legalForm)}
 
           <hr class="divider">
           <p class="section-title">📷 Passbild</p>
@@ -404,24 +408,24 @@ module.exports = function startWebServer(client, DATA_DIR) {
   app.post('/einreise/legal', upload.single('foto'), async (req, res) => {
     const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0, geschlecht_0, psn_0, discord_id } = req.body;
 
-    if (!req.file) { req.session.legalError = 'Kein Passbild hochgeladen. Bitte füge ein Bild hinzu.'; return res.redirect('/einreise/legal'); }
+    if (!req.file) { req.session.legalError = 'Kein Passbild hochgeladen. Bitte füge ein Bild hinzu.'; req.session.legalFormData = Object.assign({},req.body); return res.redirect('/einreise/legal'); }
     if (!vorname_0 || !nachname_0 || !geburtsdatum_0 || !geburtsort_0 || !nationalitaet_0) {
-      req.session.legalError = 'Bitte alle Pflichtfelder ausfüllen.'; return res.redirect('/einreise/legal');
+      req.session.legalError = 'Bitte alle Pflichtfelder ausfüllen.'; req.session.legalFormData = Object.assign({},req.body); return res.redirect('/einreise/legal');
     }
     const discordId = (discord_id || '').trim();
     if (!discordId || !/^\d{17,20}$/.test(discordId)) {
       req.session.legalError = 'Bitte gib eine gültige Discord-ID ein.';
-      return res.redirect('/einreise/legal');
+      req.session.legalFormData = Object.assign({},req.body); return res.redirect('/einreise/legal');
     }
     // Duplikat-Prüfung: Ausweis bereits vorhanden?
       const _existAusweis = loadAusweis();
       if (_existAusweis[discordId]) {
         req.session.legalError = 'Diese Discord-ID hat bereits einen Ausweis. Eine neue Einreise ist nur über /ausweis-create durch das Team möglich.';
-        return res.redirect('/einreise/legal');
+        req.session.legalFormData = Object.assign({},req.body); return res.redirect('/einreise/legal');
     const geschlecht_0 = (req.body.geschlecht_0 || '').trim();
     if (!geschlecht_0 || !['Männlich','Weiblich'].includes(geschlecht_0)) {
       req.session.legalError = 'Bitte wähle ein Geschlecht aus.';
-      return res.redirect('/einreise/legal');
+      req.session.legalFormData = Object.assign({},req.body); return res.redirect('/einreise/legal');
     }
       }
     // Charakter-Rollen-Prüfung
@@ -479,6 +483,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
   app.get('/einreise/illegal', (req, res) => {
     const error = req.session.illegalError || '';
     delete req.session.illegalError;
+    const illForm = req.session.illegalFormData || {}; delete req.session.illegalFormData;
     res.send(page('Illegale Einreise', `
       ${header('Illegale Einreise')}
       <div class="card">
@@ -488,23 +493,23 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
             <p class="section-title">👤 Discord Mitglied</p>
             <div class="form-row one">
-              ${memberPicker('discord_id', 'Dein Discord-Account')}
+              ${memberPicker('discord_id', 'Dein Discord-Account', illForm.discord_id || '')}
             </div>
             <p class="section-title" style="margin-top:18px">🎭 Charakter Name</p>
               <div class="form-row two">
                 <div class="form-group">
                   <label>Vorname <span class="req">*</span></label>
-                  <input type="text" name="vorname" placeholder="Vorname" required>
+                  <input type="text" name="vorname" value="${escHtml(illForm.vorname||'')}" placeholder="Vorname" required>
                 </div>
                 <div class="form-group">
                   <label>Nachname <span class="req">*</span></label>
-                  <input type="text" name="nachname" placeholder="Nachname" required>
+                  <input type="text" name="nachname" value="${escHtml(illForm.nachname||'')}" placeholder="Nachname" required>
                 </div>
               </div>
               <div class="form-row one">
                 <div class="form-group">
                   <label>PSN Name <span class="req">*</span></label>
-                  <input type="text" name="psn" placeholder="dein_psn_name" required>
+                  <input type="text" name="psn" value="${escHtml(illForm.psn||'')}" placeholder="dein_psn_name" required>
                 </div>
               </div>
               <div class="form-row one">
@@ -533,23 +538,23 @@ module.exports = function startWebServer(client, DATA_DIR) {
   app.post('/einreise/illegal', async (req, res) => {
     const { confirm, discord_id, vorname: ill_vor, nachname: ill_nach, psn: ill_psn, geschlecht: ill_geschlecht } = req.body;
 
-    if (!confirm) { req.session.illegalError = 'Du musst die Konsequenzen bestätigen.'; return res.redirect('/einreise/illegal'); }
+    if (!confirm) { req.session.illegalError = 'Du musst die Konsequenzen bestätigen.'; req.session.illegalFormData = Object.assign({},req.body); return res.redirect('/einreise/illegal'); }
 
     const discordId = (discord_id || '').trim();
     if (!discordId || !/^\d{17,20}$/.test(discordId)) {
       req.session.illegalError = 'Bitte gib eine gültige Discord-ID ein.';
-      return res.redirect('/einreise/illegal');
+      req.session.illegalFormData = Object.assign({},req.body); return res.redirect('/einreise/illegal');
     }
     const illVor  = (ill_vor  || '').trim();
     const illNach = (ill_nach || '').trim();
-    if (!illVor || !illNach) { req.session.illegalError = 'Bitte gib deinen Charakter Vor- und Nachnamen an.'; return res.redirect('/einreise/illegal'); }
+    if (!illVor || !illNach) { req.session.illegalError = 'Bitte gib deinen Charakter Vor- und Nachnamen an.'; req.session.illegalFormData = Object.assign({},req.body); return res.redirect('/einreise/illegal'); }
     const illPsn  = (ill_psn  || '').trim();
-    if (!illPsn) { req.session.illegalError = 'Bitte gib deinen PSN Namen an.'; return res.redirect('/einreise/illegal'); }
+    if (!illPsn) { req.session.illegalError = 'Bitte gib deinen PSN Namen an.'; req.session.illegalFormData = Object.assign({},req.body); return res.redirect('/einreise/illegal'); }
     // Duplikat-Prüfung
     const _existAusweisIll = loadAusweis();
     if (_existAusweisIll[discordId]) {
       req.session.illegalError = 'Diese Discord-ID hat bereits einen Ausweis. Neue Einreise nur über /ausweis-create durch das Team.';
-      return res.redirect('/einreise/illegal');
+      req.session.illegalFormData = Object.assign({},req.body); return res.redirect('/einreise/illegal');
     }
     // Charakter-Rollen-Prüfung: Spieler darf keine Charakter-Rolle mehr haben
     // Ausweis speichern
