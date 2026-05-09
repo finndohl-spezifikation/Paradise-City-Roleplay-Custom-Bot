@@ -162,6 +162,16 @@ function charFields(prefix, idx) {
       <label for="${prefix}nationalitaet_${idx}">Nationalität <span class="req">*</span></label>
       <input type="text" id="${prefix}nationalitaet_${idx}" name="${prefix}nationalitaet_${idx}" required placeholder="Amerikanisch">
     </div>
+  </div>
+  <div class="form-row one">
+    <div class="form-group">
+      <label for="${prefix}geschlecht_${idx}">Geschlecht <span class="req">*</span></label>
+      <select id="${prefix}geschlecht_${idx}" name="${prefix}geschlecht_${idx}" required>
+        <option value="" disabled selected>Bitte wählen</option>
+        <option value="Männlich">Männlich</option>
+        <option value="Weiblich">Weiblich</option>
+      </select>
+    </div>
   <div class="form-row one">
     <div class="form-group">
       <label for="${prefix}psn_${idx}">PSN Name <span class="req">*</span></label>
@@ -392,7 +402,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/legal ──────────────────────────────────────────────────
   app.post('/einreise/legal', upload.single('foto'), async (req, res) => {
-    const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0, psn_0, discord_id } = req.body;
+    const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0, geschlecht_0, psn_0, discord_id } = req.body;
 
     if (!req.file) { req.session.legalError = 'Kein Passbild hochgeladen. Bitte füge ein Bild hinzu.'; return res.redirect('/einreise/legal'); }
     if (!vorname_0 || !nachname_0 || !geburtsdatum_0 || !geburtsort_0 || !nationalitaet_0) {
@@ -408,6 +418,11 @@ module.exports = function startWebServer(client, DATA_DIR) {
       if (_existAusweis[discordId]) {
         req.session.legalError = 'Diese Discord-ID hat bereits einen Ausweis. Eine neue Einreise ist nur über /ausweis-create durch das Team möglich.';
         return res.redirect('/einreise/legal');
+    const geschlecht_0 = (req.body.geschlecht_0 || '').trim();
+    if (!geschlecht_0 || !['Männlich','Weiblich'].includes(geschlecht_0)) {
+      req.session.legalError = 'Bitte wähle ein Geschlecht aus.';
+      return res.redirect('/einreise/legal');
+    }
       }
     // Charakter-Rollen-Prüfung
       // Passbild als Buffer speichern (multer memory)
@@ -417,8 +432,24 @@ module.exports = function startWebServer(client, DATA_DIR) {
     } catch {}
     // Ausweis speichern
     const ausweis = loadAusweis();
-    ausweis[discordId] = { vorname: vorname_0, nachname: nachname_0, geburtsdatum: geburtsdatum_0, geburtsort: geburtsort_0, nationalitaet: nationalitaet_0, psn: psn_0, createdAt: new Date().toISOString() };
+    ausweis[discordId] = { vorname: vorname_0, nachname: nachname_0, geburtsdatum: geburtsdatum_0, geburtsort: geburtsort_0, nationalitaet: nationalitaet_0, psn: psn_0, geschlecht: geschlecht_0 || '', createdAt: new Date().toISOString() };
     saveAusweis(ausweis);
+    // Startgeld automatisch vergeben (einmalig)
+    try {
+      const _kf = require('path').join(DATA_DIR, 'konto.json');
+      const _tf = require('path').join(DATA_DIR, 'transaktionen.json');
+      let _k = {}; try { _k = JSON.parse(fs.readFileSync(_kf, 'utf8')); } catch {}
+      if (!_k[discordId]) _k[discordId] = { konto: 0, schwarz: 0 };
+      if (!_k[discordId]._startgeld) {
+        _k[discordId].konto += 5000;
+        _k[discordId]._startgeld = true;
+        fs.writeFileSync(_kf, JSON.stringify(_k, null, 2));
+        let _t = {}; try { _t = JSON.parse(fs.readFileSync(_tf, 'utf8')); } catch {}
+        if (!_t[discordId]) _t[discordId] = [];
+        _t[discordId].unshift({ ts: Date.now(), text: '+5.000 $ Startgeld (Legale Einreise)', betrag: 5000 });
+        fs.writeFileSync(_tf, JSON.stringify(_t, null, 2));
+      }
+    } catch {}
     // Rollen vergeben
     try {
       const guild  = client.guilds.cache.first();
@@ -476,6 +507,16 @@ module.exports = function startWebServer(client, DATA_DIR) {
                   <input type="text" name="psn" placeholder="dein_psn_name" required>
                 </div>
               </div>
+              <div class="form-row one">
+                <div class="form-group">
+                  <label for="geschlecht_ill">Geschlecht <span class="req">*</span></label>
+                  <select id="geschlecht_ill" name="geschlecht" required>
+                    <option value="" disabled selected>Bitte wählen</option>
+                    <option value="Männlich">Männlich</option>
+                    <option value="Weiblich">Weiblich</option>
+                  </select>
+                </div>
+              </div>
             <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
               <input type="checkbox" id="confirm" name="confirm" value="1" required style="width:18px;height:18px;accent-color:#e65100;cursor:pointer;flex-shrink:0">
               <label for="confirm" style="color:#e0e0e0;font-size:.88em;cursor:pointer">Ich verstehe die Konsequenzen und möchte illegal einreisen.</label>
@@ -490,7 +531,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/illegal ────────────────────────────────────────────────
   app.post('/einreise/illegal', async (req, res) => {
-    const { confirm, discord_id, vorname: ill_vor, nachname: ill_nach, psn: ill_psn } = req.body;
+    const { confirm, discord_id, vorname: ill_vor, nachname: ill_nach, psn: ill_psn, geschlecht: ill_geschlecht } = req.body;
 
     if (!confirm) { req.session.illegalError = 'Du musst die Konsequenzen bestätigen.'; return res.redirect('/einreise/illegal'); }
 
@@ -511,6 +552,26 @@ module.exports = function startWebServer(client, DATA_DIR) {
       return res.redirect('/einreise/illegal');
     }
     // Charakter-Rollen-Prüfung: Spieler darf keine Charakter-Rolle mehr haben
+    // Ausweis speichern
+    const illAusweis = loadAusweis();
+    illAusweis[discordId] = { vorname: illVor, nachname: illNach, psn: illPsn, geschlecht: illGeschlecht, typ: 'illegal', createdAt: new Date().toISOString() };
+    saveAusweis(illAusweis);
+    // Startgeld automatisch vergeben (einmalig, Schwarzgeld)
+    try {
+      const _kf = require('path').join(DATA_DIR, 'konto.json');
+      const _tf = require('path').join(DATA_DIR, 'transaktionen.json');
+      let _k = {}; try { _k = JSON.parse(fs.readFileSync(_kf, 'utf8')); } catch {}
+      if (!_k[discordId]) _k[discordId] = { konto: 0, schwarz: 0 };
+      if (!_k[discordId]._startgeld) {
+        _k[discordId].schwarz += 5000;
+        _k[discordId]._startgeld = true;
+        fs.writeFileSync(_kf, JSON.stringify(_k, null, 2));
+        let _t = {}; try { _t = JSON.parse(fs.readFileSync(_tf, 'utf8')); } catch {}
+        if (!_t[discordId]) _t[discordId] = [];
+        _t[discordId].unshift({ ts: Date.now(), text: '+5.000 $ Startgeld (Illegale Einreise)', betrag: 5000 });
+        fs.writeFileSync(_tf, JSON.stringify(_t, null, 2));
+      }
+    } catch {}
     // Rollen vergeben
     try {
       const guild  = client.guilds.cache.first();
