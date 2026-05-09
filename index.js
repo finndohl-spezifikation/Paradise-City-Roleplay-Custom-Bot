@@ -83,6 +83,15 @@ function loadAusweisData()  { try { return JSON.parse(fs.readFileSync(path.join(
 
 // ─── Aktivitätscheck-System ─────────────────────────────────────────────────
 const AKTIVITAET_CH      = '1502382574310392040';
+  const TEAM_OVERVIEW_CH   = '1490882570899030136';
+  const TEAM_ROLE_IDS      = [
+    '1490855647259136053','1490855648978669599','1498395437206601828','1498395500137807932',
+    '1490855654347505706','1490855657543303239','1490855655408664577','1490855656352251987',
+    '1496136847338770693','1490855659506372743','1490855661137956879','1490855664854106225',
+    '1490855699282516100','1490855680708579389','1490855688208126095','1490855689424212110',
+    '1490855690183381087','1492698578071146536','1492698644277969048','1490855692477923520',
+    '1490855693786550404','1490855695363342358','1490855695912931329',
+  ];
 const AKTIVITAET_FILE    = path.join(DATA_DIR, 'aktivitaetscheck.json');
 if (!fs.existsSync(AKTIVITAET_FILE)) fs.writeFileSync(AKTIVITAET_FILE, '{}', 'utf8');
 function loadAktivitaet()  { try { return JSON.parse(fs.readFileSync(AKTIVITAET_FILE, 'utf8')); } catch { return {}; } }
@@ -325,7 +334,55 @@ async function buildInviteCache(guild) {
 }
 
 // ─── READY ───────────────────────────────────────────────────────────────────
-client.once('ready', async () => {
+// ─── TEAM ÜBERSICHT ──────────────────────────────────────────────────────────
+  async function updateTeamEmbed(guild) {
+    try {
+      await guild.members.fetch();
+      const fields = [];
+      for (const roleId of TEAM_ROLE_IDS) {
+        const role = guild.roles.cache.get(roleId);
+        if (!role) continue;
+        const members = role.members.map(m => m.toString());
+        if (members.length === 0) continue;
+        const chunks = [];
+        for (let i = 0; i < members.length; i += 10) chunks.push(members.slice(i, i + 10));
+        chunks.forEach((chunk, ci) => {
+          fields.push({
+            name: ci === 0 ? `${role.name} [${members.length}]` : `​`,
+            value: chunk.join('\n'),
+            inline: true,
+          });
+        });
+      }
+      const totalTeam = [...new Set(
+        TEAM_ROLE_IDS.flatMap(id => (guild.roles.cache.get(id)?.members.map(m => m.id) ?? []))
+      )].length;
+      const embed = new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('👥  Team Übersicht — Paradise City Roleplay')
+        .setDescription(
+          `Hier siehst du alle aktuellen **Teammitglieder** von Paradise City Roleplay.\n` +
+          `Das Embed wird automatisch aktualisiert wenn sich Rollen ändern.\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `👤 **Gesamte Teammitglieder:** ${totalTeam}`
+        )
+        .addFields(fields.length ? fields : [{ name: 'Keine Einträge', value: 'Noch keine Teammitglieder.' }])
+        .setFooter({ text: 'Paradise City Roleplay  •  Team' })
+        .setTimestamp();
+      const setup = loadSetup();
+      const ch = await client.channels.fetch(TEAM_OVERVIEW_CH).catch(() => null);
+      if (!ch) return;
+      if (setup.teamOverviewMsgId) {
+        const msg = await ch.messages.fetch(setup.teamOverviewMsgId).catch(() => null);
+        if (msg) { await msg.edit({ embeds: [embed] }); return; }
+      }
+      const sent = await ch.send({ embeds: [embed] });
+      setup.teamOverviewMsgId = sent.id;
+      saveSetup(setup);
+    } catch (e) { console.error('[Team-Embed] Fehler:', e.message); }
+  }
+
+  client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
 
   for (const guild of client.guilds.cache.values()) {
@@ -1088,6 +1145,10 @@ client.once('ready', async () => {
           }
         } catch (e) { console.error('Ping-Rollen-Embed Fehler:', e.message); }
       }
+
+      // Team-Übersicht initial laden
+      const guild0 = client.guilds.cache.first();
+      if (guild0) await updateTeamEmbed(guild0).catch(() => {});
     });
 
 
