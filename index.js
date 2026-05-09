@@ -1041,10 +1041,57 @@ client.once('ready', async () => {
       } catch (e) { console.error('Ticket-Panel Fehler:', e.message); }
     }
 
-  });
 
 
-  // ─── TICKET INTERAKTIONEN ─────────────────────────────────────────────────────
+      // ── Einmalig: Ping-Rollen Embed senden ───────────────────────────────────
+      const setupPing = loadSetup();
+      if (!setupPing.pingRollenEmbedSent) {
+        const PING_ROLLEN_CH = '1490882567690518579';
+        const PING_ROLES_CFG = [
+          { label: '📌 Lobby Ping',     value: 'ping_lobby',    id: '1490855734517174376' },
+          { label: '📌 Event Ping',     value: 'ping_event',    id: '1490855737130221598' },
+          { label: '📌 Fraktions Ping', value: 'ping_fraktion', id: '1490855739495813150' },
+          { label: '📌 IC Ping',        value: 'ping_ic',       id: '1490855738644365603' },
+          { label: '📌 Info Ping',      value: 'ping_info',     id: '1490855733124923486' },
+          { label: '📌 Update Ping',    value: 'ping_update',   id: '1490855740435468320' },
+        ];
+        const pingEmbed = new EmbedBuilder()
+          .setColor(DARK_ORANGE)
+          .setTitle('🔔  Ping-Rollen — Paradise City Roleplay')
+          .setDescription(
+            'Wähle deine **Ping-Rollen** über das Auswahlmenü aus.\n' +
+            'Du kannst mehrere Rollen gleichzeitig auswählen.\n' +
+            'Bereits ausgewählte Rollen werden **entfernt**, nicht ausgewählte werden **hinzugefügt**.\n\n' +
+            '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+            '📌 **Lobby Ping** — Werde bei Lobby-Nachrichten gepingt\n' +
+            '📌 **Event Ping** — Werde bei Events gepingt\n' +
+            '📌 **Fraktions Ping** — Werde bei Fraktions-Nachrichten gepingt\n' +
+            '📌 **IC Ping** — Werde bei IC-Nachrichten gepingt\n' +
+            '📌 **Info Ping** — Werde bei Infos gepingt\n' +
+            '📌 **Update Ping** — Werde bei Updates gepingt'
+          )
+          .setFooter({ text: 'Paradise City Roleplay  •  Ping-Rollen verwalten' });
+        const pingSelect = new StringSelectMenuBuilder()
+          .setCustomId('ping_rollen_select')
+          .setPlaceholder('Ping-Rolle hinzufügen / entfernen …')
+          .setMinValues(1)
+          .setMaxValues(PING_ROLES_CFG.length)
+          .addOptions(PING_ROLES_CFG.map(r => new StringSelectMenuOptionBuilder().setLabel(r.label).setValue(r.value)));
+        const pingRow = new ActionRowBuilder().addComponents(pingSelect);
+        try {
+          const pingCh = await client.channels.fetch(PING_ROLLEN_CH);
+          if (pingCh) {
+            await pingCh.send({ embeds: [pingEmbed], components: [pingRow] });
+            setupPing.pingRollenEmbedSent = true;
+            saveSetup(setupPing);
+            console.log('✅ Ping-Rollen-Embed einmalig gesendet.');
+          }
+        } catch (e) { console.error('Ping-Rollen-Embed Fehler:', e.message); }
+      }
+    });
+
+
+    // ─── TICKET INTERAKTIONEN ─────────────────────────────────────────────────────
   client.on('interactionCreate', async (interaction) => {
     try {
 
@@ -1202,7 +1249,38 @@ client.once('ready', async () => {
         } catch (e) { return interaction.reply({ content: `❌ Fehler: ${e.message}`, ephemeral: true }); }
       }
 
-      // ── Select Menu: Bewertung auswählen (in DM) ──────────────────────────────
+      // ── Select Menu: Ping-Rollen hinzufügen / entfernen ─────────────────────
+        if (interaction.isStringSelectMenu() && interaction.customId === 'ping_rollen_select') {
+          const PING_ROLES_MAP = {
+            ping_lobby:    '1490855734517174376',
+            ping_event:    '1490855737130221598',
+            ping_fraktion: '1490855739495813150',
+            ping_ic:       '1490855738644365603',
+            ping_info:     '1490855733124923486',
+            ping_update:   '1490855740435468320',
+          };
+          await interaction.deferReply({ ephemeral: true });
+          const member = interaction.member;
+          const selected = interaction.values;
+          const added = [], removed = [];
+          for (const val of selected) {
+            const roleId = PING_ROLES_MAP[val];
+            if (!roleId) continue;
+            if (member.roles.cache.has(roleId)) {
+              await member.roles.remove(roleId).catch(() => {});
+              removed.push(val.replace('ping_', '').replace('fraktion', 'Fraktions').replace(/^w/, c => c.toUpperCase()) + ' Ping');
+            } else {
+              await member.roles.add(roleId).catch(() => {});
+              added.push(val.replace('ping_', '').replace('fraktion', 'Fraktions').replace(/^w/, c => c.toUpperCase()) + ' Ping');
+            }
+          }
+          const lines = [];
+          if (added.length)   lines.push('✅ **Hinzugefügt:** ' + added.join(', '));
+          if (removed.length) lines.push('❌ **Entfernt:** ' + removed.join(', '));
+          return interaction.editReply({ content: lines.join('\n') || 'Keine Änderungen.', ephemeral: true });
+        }
+
+              // ── Select Menu: Bewertung auswählen (in DM) ──────────────────────────────
         if (interaction.isStringSelectMenu() && interaction.customId.startsWith('ticket_rate_select_')) {
           const ticketId = interaction.customId.slice('ticket_rate_select_'.length);
           const stars    = parseInt(interaction.values[0]);
