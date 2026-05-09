@@ -26,11 +26,13 @@ const path = require('path');
 // ─── Datenspeicherung ─────────────────────────────────────────────────────────
 const DATA_DIR      = path.join(__dirname, 'data');
 const WARN_FILE     = path.join(DATA_DIR, 'teamwarns.json');
+const PLAYER_WARN_FILE = path.join(DATA_DIR, 'player_warns.json');
 const INVITES_FILE  = path.join(DATA_DIR, 'invites.json');
 const SETUP_FILE    = path.join(DATA_DIR, 'setup.json');
 
 if (!fs.existsSync(DATA_DIR))     fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(WARN_FILE))    fs.writeFileSync(WARN_FILE,    '{}', 'utf8');
+if (!fs.existsSync(PLAYER_WARN_FILE)) fs.writeFileSync(PLAYER_WARN_FILE, '{}', 'utf8');
 if (!fs.existsSync(INVITES_FILE)) fs.writeFileSync(INVITES_FILE, '{}', 'utf8');
 if (!fs.existsSync(SETUP_FILE))   fs.writeFileSync(SETUP_FILE,   '{}', 'utf8');
 
@@ -154,6 +156,10 @@ function makeCode()     { return Math.random().toString(36).toUpperCase().slice(
 
 function loadWarns()    { try { return JSON.parse(fs.readFileSync(WARN_FILE,    'utf8')); } catch { return {}; } }
 function saveWarns(d)   { fs.writeFileSync(WARN_FILE,    JSON.stringify(d, null, 2), 'utf8'); }
+function loadPlayerWarns() { try { return JSON.parse(fs.readFileSync(PLAYER_WARN_FILE, 'utf8')); } catch { return {}; } }
+function savePlayerWarns(d) { fs.writeFileSync(PLAYER_WARN_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+const PLAYER_WARN_ROLES = ['1490855747192361000','1490855745842053221','1490855744868716695','1490855743610552491','1490855743015092405'];
+const PLAYER_WARN_CH    = '1491113577258684466';
 function loadInvites()  { try { return JSON.parse(fs.readFileSync(INVITES_FILE, 'utf8')); } catch { return {}; } }
 function saveInvites(d) { fs.writeFileSync(INVITES_FILE, JSON.stringify(d, null, 2), 'utf8'); }
 function loadSetup()    { try { return JSON.parse(fs.readFileSync(SETUP_FILE,   'utf8')); } catch { return {}; } }
@@ -392,6 +398,26 @@ client.once('ready', async () => {
       .setName('ausweise')
       .setDescription('Zeigt den offiziellen Ausweis einer Person an')
       .addUserOption(opt => opt.setName('person').setDescription('Mitglied dessen Ausweis angezeigt werden soll').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('warn')
+      .setDescription('Erteilt einem Spieler eine Verwarnung')
+      .addUserOption(opt => opt.setName('spieler').setDescription('Welcher Spieler?').setRequired(true))
+      .addStringOption(opt => opt.setName('grund').setDescription('Grund der Verwarnung').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('warn-remove')
+      .setDescription('Entfernt einen bestimmten Warn eines Spielers')
+      .addUserOption(opt => opt.setName('spieler').setDescription('Welcher Spieler?').setRequired(true))
+      .addIntegerOption(opt => opt.setName('nummer').setDescription('Welche Warn-Nummer entfernen? (1-5)').setRequired(true).setMinValue(1).setMaxValue(5))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('warnlist')
+      .setDescription('Zeigt die Warn-Liste eines Spielers')
+      .addUserOption(opt => opt.setName('spieler').setDescription('Welcher Spieler?').setRequired(true))
       .toJSON(),
 
     new SlashCommandBuilder()
@@ -2019,6 +2045,108 @@ client.on('interactionCreate', async (interaction) => {
       ephemeral: true
     });
     return;
+  }
+
+  // /warn
+  if (commandName === 'warn') {
+    const target = interaction.options.getUser('spieler');
+    const grund  = interaction.options.getString('grund');
+    const warns  = loadPlayerWarns();
+    if (!warns[target.id]) warns[target.id] = [];
+    if (warns[target.id].length >= 5)
+      return interaction.reply({ content: '\u274C **' + target.username + '** hat bereits 5 Warns (Maximum).', ephemeral: true });
+    const warnNum = warns[target.id].length + 1;
+    const roleId  = PLAYER_WARN_ROLES[warnNum - 1];
+    const entry   = { id: Date.now().toString(), nummer: warnNum, grund, roleId, moderator: user.id, moderatorTag: user.tag, timestamp: new Date().toISOString() };
+    warns[target.id].push(entry);
+    savePlayerWarns(warns);
+    try {
+      const guild  = client.guilds.cache.first();
+      const member = guild ? await guild.members.fetch(target.id).catch(() => null) : null;
+      if (member && roleId) await member.roles.add(roleId).catch(() => {});
+    } catch {}
+    const warnBars = ['\uD83D\uDFE5\u2B1B\u2B1B\u2B1B\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\u2B1B\u2B1B\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\u2B1B\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5'];
+    try {
+      const warnCh = await client.channels.fetch(PLAYER_WARN_CH).catch(() => null);
+      if (warnCh) {
+        const embed = new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('\uD83D\uDEA8  \u2501\u2501\u2501  V E R W A R N U N G  \u2501\u2501\u2501  \uD83D\uDEA8')
+          .setDescription(
+            '\u2501'.repeat(40) + '\n' +
+            '**Ein Spieler hat eine offizielle Verwarnung erhalten.**\n' +
+            '\u2501'.repeat(40)
+          )
+          .addFields(
+            { name: '\uD83D\uDC64  Verwarnt',      value: '<@' + target.id + '>\n`' + target.username + '`', inline: true },
+            { name: '\uD83D\uDEE1\uFE0F  Von',         value: '<@' + user.id + '>\n`' + user.tag + '`',       inline: true },
+            { name: '\uD83D\uDD22  Warn ' + warnNum + ' / 5', value: warnBars[warnNum - 1],                        inline: true },
+            { name: '\uD83D\uDCCB  Grund',          value: '```' + grund + '```',                           inline: false },
+            { name: '\uD83C\uDFF7\uFE0F  Warn-Rolle',   value: '<@&' + roleId + '>',                              inline: true },
+            { name: '\u23F0  Zeitpunkt',      value: '<t:' + Math.floor(Date.now()/1000) + ':f>',         inline: true },
+          )
+          .setFooter({ text: 'Paradise City Roleplay  \u2022  Verwarnungssystem' })
+          .setTimestamp();
+        await warnCh.send({ embeds: [embed] });
+      }
+    } catch (e) { console.error('Warn-Channel Fehler:', e.message); }
+    return interaction.reply({
+      embeds: [new EmbedBuilder().setColor(0xFF0000)
+        .setDescription('\uD83D\uDEA8 Warn **' + warnNum + '/5** f\u00FCr **' + target.username + '** ausgestellt.\n\uD83D\uDCCB Grund: ' + grund)],
+      ephemeral: true
+    });
+  }
+
+  // /warn-remove
+  if (commandName === 'warn-remove') {
+    const target = interaction.options.getUser('spieler');
+    const nummer = interaction.options.getInteger('nummer');
+    const warns  = loadPlayerWarns();
+    const list   = warns[target.id] || [];
+    const entry  = list.find(w => w.nummer === nummer);
+    if (!entry)
+      return interaction.reply({ content: '\u274C Warn Nr. **' + nummer + '** bei **' + target.username + '** nicht gefunden.', ephemeral: true });
+    warns[target.id] = list.filter(w => w.id !== entry.id);
+    if (warns[target.id].length === 0) delete warns[target.id];
+    savePlayerWarns(warns);
+    try {
+      const guild  = client.guilds.cache.first();
+      const member = guild ? await guild.members.fetch(target.id).catch(() => null) : null;
+      if (member && entry.roleId) await member.roles.remove(entry.roleId).catch(() => {});
+    } catch {}
+    return interaction.reply({
+      embeds: [new EmbedBuilder().setColor(0x3FB950)
+        .setTitle('\u2705 Warn entfernt')
+        .setDescription('Warn Nr. **' + nummer + '** von **' + target.username + '** wurde entfernt.\n\uD83D\uDCCB Grund war: ' + entry.grund)],
+      ephemeral: true
+    });
+  }
+
+  // /warnlist
+  if (commandName === 'warnlist') {
+    const target = interaction.options.getUser('spieler');
+    const warns  = loadPlayerWarns();
+    const list   = warns[target.id] || [];
+    if (list.length === 0)
+      return interaction.reply({
+        embeds: [new EmbedBuilder().setColor(0x3FB950)
+          .setDescription('\u2705 **' + target.username + '** hat keine aktiven Warns.')],
+        ephemeral: true
+      });
+    const warnBars2 = ['\uD83D\uDFE5\u2B1B\u2B1B\u2B1B\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\u2B1B\u2B1B\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\u2B1B\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5'];
+    const fields = list.map(w =>
+      ({ name: '\uD83D\uDEA8 Warn ' + w.nummer + ' / 5  \u2502  ' + warnBars2[w.nummer-1], value: '\uD83D\uDCCB **Grund:** ' + w.grund + '\n\uD83D\uDEE1\uFE0F **Von:** <@' + w.moderator + '> \u2022 <t:' + Math.floor(new Date(w.timestamp).getTime()/1000) + ':R>', inline: false })
+    );
+    return interaction.reply({
+      embeds: [new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('\uD83D\uDCCB  Warn-Liste — ' + target.username)
+        .setDescription('\u2501'.repeat(38) + '\n' + list.length + '/5 aktive Warns\n' + '\u2501'.repeat(38))
+        .addFields(...fields)
+        .setFooter({ text: 'Paradise City Roleplay  \u2022  Verwarnungssystem' })
+        .setTimestamp()],
+      ephemeral: true
+    });
   }
 
     // /einreise-code
