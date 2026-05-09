@@ -1099,6 +1099,11 @@ async function buildInviteCache(guild) {
       .addStringOption(o => o.setName('beschreibung').setDescription('Beschreibung').setRequired(true))
       .addIntegerOption(o => o.setName('betrag').setDescription('Betrag in $').setRequired(true).setMinValue(1))
       .toJSON(),
+    new SlashCommandBuilder()
+      .setName('charakter-reset')
+      .setDescription('Setzt einen Spieler vollständig zurück (Konto, Inventar, Ausweis, Nickname)')
+      .addUserOption(o => o.setName('spieler').setDescription('Spieler auswählen').setRequired(true))
+      .toJSON(),
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -3856,6 +3861,48 @@ client.on('interactionCreate', async (interaction) => {
             ], ephemeral: true
           });
         }
+
+      // ─── CHARAKTER RESET ──────────────────────────────────────────────────────
+      if (commandName === 'charakter-reset') {
+        const target = interaction.options.getUser('spieler');
+        const uid    = target.id;
+
+        // Konto + Bargeld + Transaktionen + Lohnlog + Rechnungen
+        const konto = loadKonto(); delete konto[uid]; setKonto && saveKonto ? (delete konto[uid], saveKonto(konto)) : (() => { delete konto[uid]; fs.writeFileSync(KONTO_FILE, JSON.stringify(konto,null,2)); })();
+        const bargeld = loadBargeld ? loadBargeld() : (()=>{ try{return JSON.parse(fs.readFileSync(BARGELD_FILE,'utf8'));}catch{return{};} })(); delete bargeld[uid]; fs.writeFileSync(BARGELD_FILE, JSON.stringify(bargeld,null,2));
+        const trans = loadTrans ? loadTrans() : (()=>{ try{return JSON.parse(fs.readFileSync(TRANS_FILE,'utf8'));}catch{return{};} })(); delete trans[uid]; fs.writeFileSync(TRANS_FILE, JSON.stringify(trans,null,2));
+        const lohnlog = loadLohnlog(); delete lohnlog[uid]; saveLohnlog(lohnlog);
+        const rechnungen = loadRechnungen(); delete rechnungen[uid]; saveRechnungen(rechnungen);
+
+        // Inventar + Lager
+        const inv = loadInv(); delete inv[uid]; saveInv(inv);
+        const lager = loadLager(); delete lager[uid]; saveLager(lager);
+
+        // Ausweis + Einreise-Code
+        const ausweis = loadAusweis(); delete ausweis[uid]; saveAusweis(ausweis);
+        try { const codes = loadCodes ? loadCodes() : JSON.parse(fs.readFileSync(CODES_FILE,'utf8')||'{}'); const newCodes = Object.fromEntries(Object.entries(codes).filter(([k,v])=>v!==uid && k!==uid)); fs.writeFileSync(CODES_FILE, JSON.stringify(newCodes,null,2)); } catch {}
+        try { const tokens = loadAusweisTokens(); const newTok = Object.fromEntries(Object.entries(tokens).filter(([k,v])=>v.discordId!==uid&&k!==uid)); saveAusweisTokens(newTok); } catch {}
+
+        // Passbild löschen
+        for (const ext of ['jpg','png','webp']) { try { fs.unlinkSync(path.join(DATA_DIR,'uploads',uid+'.'+ext)); } catch {} }
+
+        // Server-Nickname zurücksetzen
+        try {
+          const member = await interaction.guild.members.fetch(uid).catch(() => null);
+          if (member) await member.setNickname(null).catch(() => {});
+        } catch {}
+
+        await interaction.reply({
+          embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🔄 Charakter zurückgesetzt')
+            .setDescription(`<@${uid}> wurde vollständig zurückgesetzt.`)
+            .addFields(
+              { name: '🗑️ Gelöscht', value: 'Konto · Bargeld · Inventar · Lager · Ausweis · Transaktionen · Rechnungen · Lohnlog · Nickname', inline: false },
+            )
+            .setFooter({ text: `Durchgeführt von ${interaction.user.tag}` }).setTimestamp()
+          ], ephemeral: true
+        });
+        return;
+      }
 
   // ─── INVENTAR: Buttons & Modals ──────────────────────────────────────────────
 });
