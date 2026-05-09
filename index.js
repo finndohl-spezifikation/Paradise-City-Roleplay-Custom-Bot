@@ -3936,9 +3936,45 @@ Link: ${link}`, ephemeral: true });
             .setColor(0xE65100)
             .setTitle('🎟️  Rubbellos')
             .setDescription(
-                `**Mögliche Gewinne:**\n❌  Niete\n💵  1.000 $\n💴  2.500 $\n💶  5.000 $\n💷  10.000 $\n💰  25.000 $\n🚬  10× Marlboro Rot\n🚲  Elektro Fahrrad\n⛳  Golfschläger\n🎰  Lottoschein\n🎫  20% Gutschein Autohaus\n🏎️  **SPORTWAGEN** *(Hauptgewinn — Ticket erstellen!)*\n\n──────────────────────────────\n🛒 Kaufe ein Rubbellos im **Kwik-E-Markt** für **1.000 $**.\n▶️ Drücke den Button um dein Rubbellos einzulösen.\n\n🎯 Rubbele alle 9 Felder frei — **3× dasselbe Symbol = Gewinn!**\n🏆 Beim Sportwagen-Hauptgewinn bitte ein **Ticket erstellen!**`
-              )
-              .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' });
+              '**Mögliche Gewinne:**
+' +
+              '❌  Niete
+' +
+              '💵  1.000 $
+' +
+              '💴  2.500 $
+' +
+              '💶  5.000 $
+' +
+              '💷  10.000 $
+' +
+              '💰  25.000 $
+' +
+              '🚬  10× Marlboro Rot
+' +
+              '🚲  Elektro Fahrrad
+' +
+              '⛳  Golfschläger
+' +
+              '🎰  Lottoschein
+' +
+              '🎫  20% Gutschein Autohaus
+' +
+              '🏎️  **SPORTWAGEN** *(Hauptgewinn — Ticket erstellen!)*
+
+' +
+              '──────────────────────────────
+' +
+              '🛒 Kaufe ein Rubbellos im **Kwik-E-Markt** für **1.000 $**.
+' +
+              '▶️ Drücke den Button um dein Rubbellos einzulösen.
+
+' +
+              '🎯 Rubbele alle 9 Felder frei — **3× dasselbe Symbol = Gewinn!**
+' +
+              '🏆 Beim Sportwagen-Hauptgewinn bitte ein **Ticket erstellen!**'
+            )
+            .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' });
           const rubbBtn = new ButtonBuilder()
             .setCustomId('rubbellos_use')
             .setLabel('🎟️ Rubbellos einlösen')
@@ -3998,144 +4034,49 @@ Link: ${link}`, ephemeral: true });
 
   
   // ─── RUBBELLOS ────────────────────────────────────────────────────────────────
-  const RUBBELLOS_PRIZES = [
-    { sym: '❌', label: 'Niete',                    type: 'niete',  weight: 35   },
-    { sym: '💵', label: '1.000 $',                  type: 'cash',   amount: 1000,  weight: 20   },
-    { sym: '💴', label: '2.500 $',                  type: 'cash',   amount: 2500,  weight: 13   },
-    { sym: '💶', label: '5.000 $',                  type: 'cash',   amount: 5000,  weight: 10   },
-    { sym: '💷', label: '10.000 $',                type: 'cash',   amount: 10000, weight: 7    },
-    { sym: '💰', label: '25.000 $',                type: 'cash',   amount: 25000, weight: 5    },
-    { sym: '🚬', label: '10× Marlboro Rot',         type: 'item',   item: 'Marlboro Rot',          menge: 10, weight: 4   },
-    { sym: '🚲', label: 'Elektro Fahrrad',           type: 'item',   item: 'Elektro Fahrrad',       menge: 1,  weight: 2   },
-    { sym: '⛳', label: 'Golfschläger',              type: 'item',   item: 'Golfschläger',          menge: 1,  weight: 1.5 },
-    { sym: '🎰', label: 'Lottoschein',               type: 'item',   item: 'Lottoschein',           menge: 1,  weight: 1   },
-    { sym: '🎫', label: '20% Gutschein Autohaus',   type: 'item',   item: '20% Gutschein Autohaus',menge: 1,  weight: 1   },
-    { sym: '🏎️', label: '🏆 SPORTWAGEN',            type: 'ticket', weight: 0.5 },
-  ];
-  function pickRubbelPrize() {
-    const total = RUBBELLOS_PRIZES.reduce((s,p) => s + p.weight, 0);
-    let r = Math.random() * total;
-    for (const p of RUBBELLOS_PRIZES) { r -= p.weight; if (r <= 0) return p; }
-    return RUBBELLOS_PRIZES[0];
-  }
-  function buildRubbelGrid(prize) {
-    const allSyms = RUBBELLOS_PRIZES.map(p => p.sym);
-    if (prize.type === 'niete') {
-      const grid = [];
-      for (let i = 0; i < 9; i++) {
-        let sym, att = 0;
-        do { sym = allSyms[Math.floor(Math.random() * allSyms.length)]; att++; }
-        while (att < 30 && (
-          (i >= 2 && grid[i-1] === sym && grid[i-2] === sym) ||
-          (i >= 6 && grid[i-3] === sym && grid[i-6] === sym)
-        ));
-        grid.push(sym);
-      }
-      return grid;
-    } else {
-      const others = allSyms.filter(s => s !== prize.sym);
-      const winRow = Math.floor(Math.random() * 3);
-      return Array(9).fill(null).map((_,i) => Math.floor(i/3) === winRow ? prize.sym : others[Math.floor(Math.random() * others.length)]);
+    const RUBBELLOS_PRIZES = [
+      { sym: '❌', label: 'Niete',                    type: 'niete',  weight: 35   },
+      { sym: '💵', label: '1.000 $',            type: 'cash',   amount: 1000,  weight: 20   },
+      { sym: '💴', label: '2.500 $',            type: 'cash',   amount: 2500,  weight: 13   },
+      { sym: '💶', label: '5.000 $',            type: 'cash',   amount: 5000,  weight: 10   },
+      { sym: '💷', label: '10.000 $',           type: 'cash',   amount: 10000, weight: 7    },
+      { sym: '💰', label: '25.000 $',           type: 'cash',   amount: 25000, weight: 5    },
+      { sym: '🚬', label: '10× Marlboro Rot',  type: 'item',   item: 'Marlboro Rot',           menge: 10, weight: 4   },
+      { sym: '🚲', label: 'Elektro Fahrrad',    type: 'item',   item: 'Elektro Fahrrad',        menge: 1,  weight: 2   },
+      { sym: '⛳', label: 'Golfschläger',          type: 'item',   item: 'Golfschläger',        menge: 1,  weight: 1.5 },
+      { sym: '🎰', label: 'Lottoschein',        type: 'item',   item: 'Lottoschein',            menge: 1,  weight: 1   },
+      { sym: '🎟️', label: '20% Gutschein Autohaus', type: 'item', item: '20% Gutschein Autohaus', menge: 1, weight: 1 },
+      { sym: '🏎️', label: '🏆 SPORTWAGEN', type: 'ticket', weight: 0.5 },
+    ];
+    function pickRubbelPrize() {
+      const total = RUBBELLOS_PRIZES.reduce((s, p) => s + p.weight, 0);
+      let r = Math.random() * total;
+      for (const p of RUBBELLOS_PRIZES) { r -= p.weight; if (r <= 0) return p; }
+      return RUBBELLOS_PRIZES[0];
     }
-  }
-  function formatRubbelGrid(g) {
-    return [g.slice(0,3).join('  '), g.slice(3,6).join('  '), g.slice(6,9).join('  ')].join('
-');
-  }
-
-  client.on('interactionCreate', async (interaction) => {
-    try {
-      // ── Pagination: Rucksack ────────────────────────────────────────────────
-      if (interaction.isButton() && (interaction.customId.startsWith('inv_prev:') || interaction.customId.startsWith('inv_next:'))) {
-        const [action, pageStr, targetId] = interaction.customId.split(':');
-        let page = parseInt(pageStr);
-        if (action === 'inv_prev') page--; else page++;
-        const target = await interaction.client.users.fetch(targetId).catch(() => null);
-        if (!target) return interaction.reply({ content: '❌ Spieler nicht gefunden.', ephemeral: true });
-        const inv = getUserInv(targetId);
-        const totalPages = Math.max(1, Math.ceil(Object.keys(inv).length / ITEMS_PER_PAGE));
-        page = Math.max(0, Math.min(page, totalPages - 1));
-        return interaction.update({ embeds: [buildInvEmbed(target, page, inv)], components: [invPageButtons(page, totalPages, targetId, 'inv')] });
+    function buildRubbelGrid(prize) {
+      const allSyms = RUBBELLOS_PRIZES.map(p => p.sym);
+      if (prize.type === 'niete') {
+        const grid = [];
+        for (let i = 0; i < 9; i++) {
+          let sym, att = 0;
+          do { sym = allSyms[Math.floor(Math.random() * allSyms.length)]; att++; }
+          while (att < 30 && (
+            (i >= 2 && grid[i-1] === sym && grid[i-2] === sym) ||
+            (i >= 6 && grid[i-3] === sym && grid[i-6] === sym)
+          ));
+          grid.push(sym);
+        }
+        return grid;
+      } else {
+        const others = allSyms.filter(s => s !== prize.sym);
+        const winRow = Math.floor(Math.random() * 3);
+        return Array(9).fill(null).map((_, i) => Math.floor(i / 3) === winRow ? prize.sym : others[Math.floor(Math.random() * others.length)]);
       }
-
-      // ── Pagination: Lager ───────────────────────────────────────────────────
-      if (interaction.isButton() && (interaction.customId.startsWith('lager_prev:') || interaction.customId.startsWith('lager_next:'))) {
-        const [action, pageStr, targetId] = interaction.customId.split(':');
-        let page = parseInt(pageStr);
-        if (action === 'lager_prev') page--; else page++;
-        const target = await interaction.client.users.fetch(targetId).catch(() => null);
-        if (!target) return interaction.reply({ content: '❌ Spieler nicht gefunden.', ephemeral: true });
-        const lager = getUserLager(targetId);
-        const totalPages = Math.max(1, Math.ceil(Object.keys(lager).length / ITEMS_PER_PAGE));
-        page = Math.max(0, Math.min(page, totalPages - 1));
-        return interaction.update({ embeds: [buildLagerEmbed(target, page, lager)], components: [invPageButtons(page, totalPages, targetId, 'lager'), lagerActionButtons(page, targetId)] });
-      }
-
-      // ── Button: Items einlagern (Inventar → Lager) ──────────────────────────
-      if (interaction.isButton() && interaction.customId.startsWith('lager_einlagern:')) {
-        const [, pageStr, targetId] = interaction.customId.split(':');
-        if (interaction.user.id !== targetId) return interaction.reply({ content: '❌ Das ist nicht dein Lager.', ephemeral: true });
-        const modal = new ModalBuilder()
-          .setCustomId(`modal_einlagern:${pageStr}:${targetId}`)
-          .setTitle('📦 Items einlagern')
-          .addComponents(
-            new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('item_name').setLabel('Item-Name').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. Gold')),
-            new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('item_menge').setLabel('Menge').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 5'))
-          );
-        return interaction.showModal(modal);
-      }
-
-      // ── Button: In Rucksack legen (Lager → Inventar) ───────────────────────
-      if (interaction.isButton() && interaction.customId.startsWith('lager_rucksack:')) {
-        const [, pageStr, targetId] = interaction.customId.split(':');
-        if (interaction.user.id !== targetId) return interaction.reply({ content: '❌ Das ist nicht dein Lager.', ephemeral: true });
-        const modal = new ModalBuilder()
-          .setCustomId(`modal_rucksack:${pageStr}:${targetId}`)
-          .setTitle('🎒 In Rucksack legen')
-          .addComponents(
-            new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('item_name').setLabel('Item-Name').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. Gold')),
-            new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('item_menge').setLabel('Menge').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 5'))
-          );
-        return interaction.showModal(modal);
-      }
-
-      // ── Modal: einlagern submit ─────────────────────────────────────────────
-      if (interaction.isModalSubmit() && interaction.customId.startsWith('modal_einlagern:')) {
-        const [, pageStr, targetId] = interaction.customId.split(':');
-        const itemName = interaction.fields.getTextInputValue('item_name').trim();
-        const menge    = parseInt(interaction.fields.getTextInputValue('item_menge').trim());
-        if (isNaN(menge) || menge < 1) return interaction.reply({ content: '❌ Ungültige Menge.', ephemeral: true });
-        const inv = getUserInv(targetId);
-        if (!inv[itemName] || inv[itemName] < menge) return interaction.reply({ content: `❌ Nicht genug **${itemName}** im Rucksack (hast: ${inv[itemName] ?? 0}x).`, ephemeral: true });
-        inv[itemName] -= menge; if (inv[itemName] <= 0) delete inv[itemName];
-        setUserInv(targetId, inv);
-        const lager = getUserLager(targetId);
-        lager[itemName] = (lager[itemName] || 0) + menge;
-        setUserLager(targetId, lager);
-        const page = parseInt(pageStr);
-        const totalPages = Math.max(1, Math.ceil(Object.keys(lager).length / ITEMS_PER_PAGE));
-        const target = await interaction.client.users.fetch(targetId).catch(() => null);
-        return interaction.reply({ content: `✅ **${menge}x ${itemName}** ins Lager eingelagert.`, embeds: [buildLagerEmbed(target, page, lager)], components: [invPageButtons(page, totalPages, targetId, 'lager'), lagerActionButtons(page, targetId)], ephemeral: true });
-      }
-
-      // ── Modal: rucksack submit ──────────────────────────────────────────────
-      if (interaction.isModalSubmit() && interaction.customId.startsWith('modal_rucksack:')) {
-        const [, pageStr, targetId] = interaction.customId.split(':');
-        const itemName = interaction.fields.getTextInputValue('item_name').trim();
-        const menge    = parseInt(interaction.fields.getTextInputValue('item_menge').trim());
-        if (isNaN(menge) || menge < 1) return interaction.reply({ content: '❌ Ungültige Menge.', ephemeral: true });
-        const lager = getUserLager(targetId);
-        if (!lager[itemName] || lager[itemName] < menge) return interaction.reply({ content: `❌ Nicht genug **${itemName}** im Lager (hast: ${lager[itemName] ?? 0}x).`, ephemeral: true });
-        lager[itemName] -= menge; if (lager[itemName] <= 0) delete lager[itemName];
-        setUserLager(targetId, lager);
-        const inv = getUserInv(targetId);
-        inv[itemName] = (inv[itemName] || 0) + menge;
-        setUserInv(targetId, inv);
-        const page = parseInt(pageStr);
-        const totalPages = Math.max(1, Math.ceil(Object.keys(lager).length / ITEMS_PER_PAGE));
-        const target = await interaction.client.users.fetch(targetId).catch(() => null);
-        return interaction.reply({ content: `✅ **${menge}x ${itemName}** in den Rucksack gelegt.`, embeds: [buildLagerEmbed(target, page, lager)], components: [invPageButtons(page, totalPages, targetId, 'lager'), lagerActionButtons(page, targetId)], ephemeral: true });
-      }
+    }
+    function formatRubbelGrid(g) {
+      const NL = String.fromCharCode(10);
+      return g.slice(0,3).join('  ') + NL + g.slice(3,6).join('  ') + NL + g.slice(6,9).join('  ');
     } catch (e) { console.error('[Inventar Interaction]', e.message); }
   });
 
