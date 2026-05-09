@@ -91,7 +91,9 @@ function warning() {
   return `<p class="warning-text">⚠️ Bitte gebe hier korrekte Daten zu deinem Charakter an.<br>Änderungen sind nur durch den RP Tod möglich.</p>`;
 }
 
-function memberPicker(name, label, defaultId) {
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function memberPicker(name, label, defaultId) {
     return `
     <div class="form-group">
       <label>${label} <span class="req">*</span></label>
