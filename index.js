@@ -2875,7 +2875,10 @@ client.on('interactionCreate', async (interaction) => {
         if (cmd === 'item-give' || cmd === 'item-remove') {
           const focused = interaction.options.getFocused().toLowerCase();
           const items = loadItems();
-          const choices = items
+          const shops = loadShops();
+          const shopItems = Object.values(shops).flat().map(i => i.name).filter(Boolean);
+          const allItems = [...new Set([...items, ...shopItems])].sort((a,b) => a.localeCompare(b,'de'));
+          const choices = allItems
             .filter(n => n.toLowerCase().includes(focused))
             .slice(0, 25)
             .map(n => ({ name: n, value: n }));
