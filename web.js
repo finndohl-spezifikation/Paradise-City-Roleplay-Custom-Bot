@@ -914,8 +914,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
         <div class="person-block">
           <div class="person-head">👤 Person ${i + 1}${i === 0 ? ' (Du)' : ''}</div>
           <div class="form-row one">
-            ${memberPicker(`discord_id_${i}`, i === 0 ? 'Dein Mitglied (Person 1)' : `Person ${i + 1}`)}
-          </div>
+              <div class="form-group">
+                <label>Discord Nutzername <span class="req">*</span></label>
+                <input type="text" name="discord_username_${i}" placeholder="z.B. maxmustermann" required autocomplete="off">
+                <small style="color:#e8a000;margin-top:6px;display:block">⚠️ Bitte gib den Nutzernamen korrekt an und achte auf Groß- und Kleinschreibung.</small>
+              </div>
+            </div>
           <div class="char-name hidden" id="char_name_${i}">
               <hr class="divider" style="margin:10px 0">
               <p style="color:#ffd180;font-size:.78em;margin-bottom:12px">🎭 Charakter Name</p>
@@ -1021,16 +1025,20 @@ module.exports = function startWebServer(client, DATA_DIR) {
     const ids = [];
     const errors = [];
 
-    for (let i = 0; i < 4; i++) {
-      const uid = (req.body[`discord_id_${i}`] || '').trim();
-      if (!uid) { errors.push(`Person ${i + 1}: Discord ID fehlt.`); continue; }
-      if (ids.includes(uid)) { errors.push(`Person ${i + 1}: Discord ID ${uid} doppelt.`); continue; }
-      ids.push(uid);
-      const _existG = loadAusweis();
-      if (_existG[uid]) { errors.push(`Person ${i + 1}: Discord ID ${uid} hat bereits einen Ausweis. Neue Einreise nur über /ausweis-create.`); continue; }
-      const v = await validateApplicant(uid);
-      if (!v.ok) { errors.push(`Person ${i + 1}: ${v.reason}`); }
-    }
+    await (client.guilds.cache.first()?.members.fetch().catch(()=>{}));
+      for (let i = 0; i < 4; i++) {
+        const uname = (req.body[`discord_username_${i}`] || '').trim();
+        if (!uname) { errors.push(`Person ${i + 1}: Discord Nutzername fehlt.`); continue; }
+        const _gm = client.guilds.cache.first()?.members.cache.find(m => m.user.username === uname || m.user.tag === uname || m.displayName === uname);
+        if (!_gm) { errors.push(`Person ${i + 1}: Kein Mitglied "${uname}" gefunden. Achte auf Groß- und Kleinschreibung.`); continue; }
+        const uid = _gm.id;
+        if (ids.includes(uid)) { errors.push(`Person ${i + 1}: "${uname}" ist bereits in dieser Gruppe.`); continue; }
+        ids.push(uid);
+        const _existG = loadAusweis();
+        if (_existG[uid]) { errors.push(`Person ${i + 1}: "${uname}" hat bereits einen Ausweis.`); continue; }
+        const v = await validateApplicant(uid);
+        if (!v.ok) { errors.push(`Person ${i + 1}: ${v.reason}`); }
+      }
 
     if (isLegal) {
       for (let i = 0; i < 4; i++) {
