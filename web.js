@@ -162,6 +162,11 @@ function charFields(prefix, idx) {
       <label for="${prefix}nationalitaet_${idx}">Nationalität <span class="req">*</span></label>
       <input type="text" id="${prefix}nationalitaet_${idx}" name="${prefix}nationalitaet_${idx}" required placeholder="Amerikanisch">
     </div>
+  <div class="form-row one">
+    <div class="form-group">
+      <label for="${prefix}psn_${idx}">PSN Name <span class="req">*</span></label>
+      <input type="text" id="${prefix}psn_${idx}" name="${prefix}psn_${idx}" required placeholder="dein_psn_name">
+    </div>
   </div>`;
 }
 
@@ -357,6 +362,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
           <p class="section-title">📷 Passbild</p>
           <div class="form-row one">
             <div class="form-group">
+              <label>PSN Name <span class="req">*</span></label>
+              <input type="text" name="psn" required placeholder="dein_psn_name">
+            </div>
+          </div>
+          <div class="form-row one">
+            <div class="form-group">
               <label>Passbild Hinzufügen <span class="req">*</span></label>
               <div class="file-box">
                 <input type="file" name="foto" accept="image/*" required id="fotoInput">
@@ -381,7 +392,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/legal ──────────────────────────────────────────────────
   app.post('/einreise/legal', upload.single('foto'), async (req, res) => {
-    const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0, discord_id } = req.body;
+    const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0, psn_0, discord_id } = req.body;
 
     if (!req.file) { req.session.legalError = 'Kein Passbild hochgeladen. Bitte füge ein Bild hinzu.'; return res.redirect('/einreise/legal'); }
     if (!vorname_0 || !nachname_0 || !geburtsdatum_0 || !geburtsort_0 || !nationalitaet_0) {
@@ -399,7 +410,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
     } catch {}
     // Ausweis speichern
     const ausweis = loadAusweis();
-    ausweis[discordId] = { vorname: vorname_0, nachname: nachname_0, geburtsdatum: geburtsdatum_0, geburtsort: geburtsort_0, nationalitaet: nationalitaet_0, createdAt: new Date().toISOString() };
+    ausweis[discordId] = { vorname: vorname_0, nachname: nachname_0, geburtsdatum: geburtsdatum_0, geburtsort: geburtsort_0, nationalitaet: nationalitaet_0, psn: psn_0, createdAt: new Date().toISOString() };
     saveAusweis(ausweis);
     // Rollen vergeben
     try {
@@ -408,7 +419,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
       if (member) {
         await member.roles.remove(ROLE_REMOVE).catch(() => {});
         for (const r of [...ROLES_ALL, ...ROLES_LEGAL]) await member.roles.add(r).catch(() => {});
-        await member.setNickname(`${vorname_0} ${nachname_0}`).catch(() => {});
+        await member.setNickname(`${vorname_0} ${nachname_0} | ${psn_0 || ''}`).catch(() => {});
       }
     } catch (e) { console.error('Rollen Fehler legal:', e.message); }
 
@@ -452,6 +463,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
                   <input type="text" name="nachname" placeholder="Nachname" required>
                 </div>
               </div>
+              <div class="form-row one">
+                <div class="form-group">
+                  <label>PSN Name <span class="req">*</span></label>
+                  <input type="text" name="psn" placeholder="dein_psn_name" required>
+                </div>
+              </div>
             <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
               <input type="checkbox" id="confirm" name="confirm" value="1" required style="width:18px;height:18px;accent-color:#e65100;cursor:pointer;flex-shrink:0">
               <label for="confirm" style="color:#e0e0e0;font-size:.88em;cursor:pointer">Ich verstehe die Konsequenzen und möchte illegal einreisen.</label>
@@ -466,7 +483,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /einreise/illegal ────────────────────────────────────────────────
   app.post('/einreise/illegal', async (req, res) => {
-    const { confirm, discord_id, vorname: ill_vor, nachname: ill_nach } = req.body;
+    const { confirm, discord_id, vorname: ill_vor, nachname: ill_nach, psn: ill_psn } = req.body;
 
     if (!confirm) { req.session.illegalError = 'Du musst die Konsequenzen bestätigen.'; return res.redirect('/einreise/illegal'); }
 
@@ -478,6 +495,8 @@ module.exports = function startWebServer(client, DATA_DIR) {
     const illVor  = (ill_vor  || '').trim();
     const illNach = (ill_nach || '').trim();
     if (!illVor || !illNach) { req.session.illegalError = 'Bitte gib deinen Charakter Vor- und Nachnamen an.'; return res.redirect('/einreise/illegal'); }
+    const illPsn  = (ill_psn  || '').trim();
+    if (!illPsn) { req.session.illegalError = 'Bitte gib deinen PSN Namen an.'; return res.redirect('/einreise/illegal'); }
     // Rollen vergeben
     try {
       const guild  = client.guilds.cache.first();
@@ -485,7 +504,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
       if (member) {
         await member.roles.remove(ROLE_REMOVE).catch(() => {});
         for (const r of [...ROLES_ALL, ...ROLES_ILLEGAL]) await member.roles.add(r).catch(() => {});
-        await member.setNickname(`${illVor} ${illNach}`).catch(() => {});
+        await member.setNickname(`${illVor} ${illNach} | ${illPsn}`).catch(() => {});
       }
     } catch (e) { console.error('Rollen Fehler illegal:', e.message); }
 
@@ -526,6 +545,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
                 <div class="form-group">
                   <label>Nachname <span class="req">*</span></label>
                   <input type="text" name="g_ill_nachname_${i}" placeholder="Nachname">
+                </div>
+              </div>
+              <div class="form-row one">
+                <div class="form-group">
+                  <label>PSN Name <span class="req">*</span></label>
+                  <input type="text" name="g_ill_psn_${i}" placeholder="dein_psn_name">
                 </div>
               </div>
             </div>
@@ -583,6 +608,7 @@ module.exports = function startWebServer(client, DATA_DIR) {
           }
           document.querySelectorAll('[name^="g_ill_vorname"]').forEach(f => f.required = mode === 'illegal');
             document.querySelectorAll('[name^="g_ill_nachname"]').forEach(f => f.required = mode === 'illegal');
+          document.querySelectorAll('[name^="g_ill_psn"]').forEach(f => f.required = mode === 'illegal');
             document.querySelectorAll('[name^="g_vorname"]').forEach(f => f.required = mode === 'legal');
           document.querySelectorAll('[name^="g_nachname"]').forEach(f => f.required = mode === 'legal');
           document.querySelectorAll('[name^="g_geburtsdatum"]').forEach(f => f.required = mode === 'legal');
@@ -647,9 +673,9 @@ module.exports = function startWebServer(client, DATA_DIR) {
       const ok  = await applyRoles(uid, isLegal);
       if (!ok) { failed.push(uid); continue; }
       const nick = isLegal
-        ? (`${req.body[`g_vorname_${gi}`]||''} ${req.body[`g_nachname_${gi}`]||''}`).trim()
-        : (`${req.body[`g_ill_vorname_${gi}`]||''} ${req.body[`g_ill_nachname_${gi}`]||''}`).trim();
-      if (nick) { const mem = await getMember(uid); if (mem) await mem.setNickname(nick).catch(() => {}); }
+      const nick = isLegal
+        ? (`${req.body[`g_vorname_${gi}`]||''} ${req.body[`g_nachname_${gi}`]||''} | ${req.body[`g_psn_${gi}`]||''}`).trim()
+        : (`${req.body[`g_ill_vorname_${gi}`]||''} ${req.body[`g_ill_nachname_${gi}`]||''} | ${req.body[`g_ill_psn_${gi}`]||''}`).trim();
     }
 
     if (failed.length > 0) {
@@ -809,15 +835,15 @@ module.exports = function startWebServer(client, DATA_DIR) {
     if (!entry || entry.expiresAt < Date.now()) {
       return res.send(page('Ungültiger Link', `${header('Ungültiger Link')}<div class="card"><p style="color:#f85149;text-align:center">Dieser Link ist ungültig oder abgelaufen.</p></div>`));
     }
-    const { vorname, nachname, geburtsdatum, geburtsort, nationalitaet } = req.body;
+    const { vorname, nachname, geburtsdatum, geburtsort, nationalitaet, psn: aw_psn } = req.body;
     if (!req.file) { req.session.ausweisError = 'Kein Passbild hochgeladen.'; return res.redirect(`/ausweis/create/${req.params.token}`); }
-    if (!vorname || !nachname || !geburtsdatum || !geburtsort || !nationalitaet) {
+    if (!vorname || !nachname || !geburtsdatum || !geburtsort || !nationalitaet || !aw_psn) {
       req.session.ausweisError = 'Bitte alle Pflichtfelder ausfüllen.'; return res.redirect(`/ausweis/create/${req.params.token}`);
     }
     // Prüfe ob bereits ein Ausweis existiert
     const ausweise = loadAusweis();
     if (ausweise[entry.userId]) {
-      req.session.ausweisError = 'Für diesen Benutzer existiert bereits ein Ausweis.'; return res.redirect(`/ausweis/create/${req.params.token}`);
+      // Existierender Ausweis wird überschrieben (Nickname wird immer aktualisiert)
     }
     // Passbild speichern
     try {
@@ -825,13 +851,13 @@ module.exports = function startWebServer(client, DATA_DIR) {
       fs.writeFileSync(path.join(DATA_DIR, 'uploads', entry.userId + '.' + ext), req.file.buffer);
     } catch {}
     // Ausweis speichern (keine Rollenvergabe)
-    ausweise[entry.userId] = { vorname, nachname, geburtsdatum, geburtsort, nationalitaet, createdAt: new Date().toISOString(), createdBy: entry.createdBy };
+    ausweise[entry.userId] = { vorname, nachname, geburtsdatum, geburtsort, nationalitaet, psn: aw_psn, createdAt: new Date().toISOString(), createdBy: entry.createdBy };
     saveAusweis(ausweise);
     // Nickname setzen
     try {
       const guild9 = client.guilds.cache.first();
       const mem9   = guild9 ? await guild9.members.fetch(entry.userId).catch(() => null) : null;
-      if (mem9) await mem9.setNickname(`${vorname} ${nachname}`).catch(() => {});
+      if (mem9) await mem9.setNickname(`${vorname} ${nachname} | ${aw_psn || ''}`).catch(() => {});
     } catch {}
     // Token verbrauchen
     delete tokens[req.params.token];
