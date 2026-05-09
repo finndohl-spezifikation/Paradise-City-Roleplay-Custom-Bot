@@ -311,23 +311,25 @@ function buildScratchPage(token, entry) {
   const SYM_MAP={'\u274C':'Niete','\uD83D\uDCB5':'1.000 \u0024','\uD83D\uDCB4':'2.500 \u0024','\uD83D\uDCB6':'5.000 \u0024','\uD83D\uDCB7':'10.000 \u0024','\uD83D\uDCB0':'25.000 \u0024','\uD83D\uDEAC':'10\u00D7 Marlboro Rot','\uD83D\uDEB2':'Elektro Fahrrad','\u26F3':'Golfschl\u00E4ger','\uD83C\uDFB0':'Lottoschein','\uD83C\uDF9F\uFE0F':'20% Gutschein Autohaus','\uD83C\uDFCE\uFE0F':'SPORTWAGEN'};
   const CASH_SYMS=new Set(['\uD83D\uDCB5','\uD83D\uDCB4','\uD83D\uDCB6','\uD83D\uDCB7','\uD83D\uDCB0']);
   const scratched=new Array(9).fill(0);
+  const GSIZE=14;
+  const GCELLS=GSIZE*GSIZE;
+  const covered=Array.from({length:9},()=>new Uint8Array(GCELLS));
   let claimed=false;
 
   // Paint each canvas with scratch coating
   document.querySelectorAll('.cv').forEach((cv,i)=>{
     const ctx=cv.getContext('2d');
-    const g=ctx.createLinearGradient(0,0,104,104);
+    ctx.globalCompositeOperation='source-over';
+    const g=ctx.createLinearGradient(0,0,cv.width,cv.height);
     g.addColorStop(0,'#9e9e9e');g.addColorStop(.5,'#c8c8c8');g.addColorStop(1,'#757575');
-    ctx.fillStyle=g;
-    if(ctx.roundRect)ctx.roundRect(0,0,104,104,8);else ctx.fillRect(0,0,104,104);
-    ctx.fill();
-    // "RUBBELN" label
-    ctx.fillStyle='rgba(0,0,0,.35)';ctx.font='bold 12px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('RUBBELN',52,52);
-    // star deco
-    ctx.fillStyle='rgba(255,255,255,.18)';
-    for(let s=0;s<6;s++){ctx.beginPath();ctx.arc(Math.random()*90+7,Math.random()*90+7,1.5,0,Math.PI*2);ctx.fill();}
+    ctx.beginPath();ctx.rect(0,0,cv.width,cv.height);
+    ctx.fillStyle=g;ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.4)';ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('RUBBELN',cv.width/2,cv.height/2);
+    ctx.fillStyle='rgba(255,255,255,.2)';
+    for(let s=0;s<6;s++){ctx.beginPath();ctx.arc(Math.random()*(cv.width-14)+7,Math.random()*(cv.height-14)+7,2,0,Math.PI*2);ctx.fill();}
   });
+
 
   function symLabel(sym){
     if(sym!==PRIZE.sym)return '';
@@ -361,28 +363,32 @@ function buildScratchPage(token, entry) {
   function markDone(i){
     if(scratched[i]===100)return;
     scratched[i]=100;
-    const cv2=canvases[i];
-    const ctx2=cv2.getContext('2d');
+    const cv2=canvases[i];const ctx2=cv2.getContext('2d');
     ctx2.clearRect(0,0,cv2.width,cv2.height);
-    const cell=document.getElementById('c'+i);
-    cell.classList.add('done');
-    const sym=GRID[i];
-    const lbl=SYM_MAP[sym]||sym;
+    const cell=document.getElementById('c'+i);cell.classList.add('done');
+    const sym=GRID[i];const lbl=SYM_MAP[sym]||sym;
     const spanEl=cell.querySelector('.sym');
     if(CASH_SYMS.has(sym)){spanEl.textContent=lbl;spanEl.classList.add('txt');}
     upd();
   }
   function scrAt(cv,i,x,y,r){
     if(scratched[i]===100)return;
+    // Erase on canvas
     const ctx=cv.getContext('2d');
     ctx.globalCompositeOperation='destination-out';
     ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
-    const d=ctx.getImageData(0,0,cv.width,cv.height).data;
-    let t=0;for(let p=3;p<d.length;p+=4)if(d[p]===0)t++;
-    scratched[i]=Math.min(100,Math.round(t/(d.length/4)*100));
+    ctx.globalCompositeOperation='source-over';
+    // Track coverage via virtual 14x14 grid (no getImageData needed)
+    const cov=covered[i];const cw=cv.width;const cellSz=cw/GSIZE;const r2=r*r;
+    for(let gy=0;gy<GSIZE;gy++){for(let gx=0;gx<GSIZE;gx++){
+      const cx=(gx+.5)*cellSz,cy=(gy+.5)*cellSz;
+      const dx=cx-x,dy=cy-y;
+      if(dx*dx+dy*dy<=r2)cov[gy*GSIZE+gx]=1;
+    }}
+    let cnt=0;for(let k=0;k<GCELLS;k++)if(cov[k])cnt++;
+    scratched[i]=Math.round(cnt/GCELLS*100);
     if(scratched[i]>=55)markDone(i);else upd();
   }
-
   let dn=false;
   const R=window.innerWidth<380?30:42;
   const canvases=[...document.querySelectorAll('.cv')];
@@ -393,7 +399,9 @@ function buildScratchPage(token, entry) {
       if(type==='end'){dn=false;return;}
       const rect=cv.getBoundingClientRect();
       const src=e.touches?e.touches[0]:e;
-      scrAt(cv,i,src.clientX-rect.left,src.clientY-rect.top,R);
+      const sx=(src.clientX-rect.left)*(cv.width/rect.width);
+      const sy=(src.clientY-rect.top)*(cv.height/rect.height);
+      scrAt(cv,i,sx,sy,R);
     };
     cv.addEventListener('mousedown',e=>go(e,'start'));
     cv.addEventListener('mousemove',e=>go(e,'move'));
@@ -408,7 +416,8 @@ function buildScratchPage(token, entry) {
     if(!dn)return;
     canvases.forEach((cv,i)=>{
       const r=cv.getBoundingClientRect();
-      const x=e.clientX-r.left,y=e.clientY-r.top;
+      const x=(e.clientX-r.left)*(cv.width/r.width);
+      const y=(e.clientY-r.top)*(cv.height/r.height);
       if(x>=0&&x<=cv.width&&y>=0&&y<=cv.height)scrAt(cv,i,x,y,R);
     });
   });
