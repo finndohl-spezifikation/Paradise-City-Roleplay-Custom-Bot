@@ -917,23 +917,6 @@ async function buildInviteCache(guild) {
         .addChoices({name:'Kwik-E-Markt',value:'kwik'},{name:'Baumarkt',value:'baumarkt'},{name:'Angler Shop',value:'angler'},{name:'Schwarzmarkt',value:'schwarz'}))
       .addStringOption(opt => opt.setName('item').setDescription('Item waehlen').setRequired(true).setAutocomplete(true))
       .toJSON(),
-    new SlashCommandBuilder()
-      .setName('geld-geben')
-      .setDescription('Gibt einem Spieler Bargeld')
-      .addUserOption(opt => opt.setName('spieler').setDescription('Spieler').setRequired(true))
-      .addIntegerOption(opt => opt.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
-      .toJSON(),
-    new SlashCommandBuilder()
-      .setName('geld-nehmen')
-      .setDescription('Nimmt einem Spieler Bargeld weg')
-      .addUserOption(opt => opt.setName('spieler').setDescription('Spieler').setRequired(true))
-      .addIntegerOption(opt => opt.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
-      .toJSON(),
-    new SlashCommandBuilder()
-      .setName('bargeld')
-      .setDescription('Zeigt den Bargeldstand an')
-      .addUserOption(opt => opt.setName('spieler').setDescription('Spieler (optional)').setRequired(false))
-      .toJSON(),
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -3553,30 +3536,6 @@ client.on('interactionCreate', async (interaction) => {
         if ((shops[shopId]||[]).length === lenB2) return interaction.reply({ content: '❌ **' + name + '** nicht gefunden.', ephemeral: true });
         saveShops(shops); await updateShopEmbed(shopId).catch(() => {});
         return interaction.reply({ content: '✅ **' + name + '** entfernt.', ephemeral: true });
-      }
-      if (commandName === 'geld-geben') {
-        const target = interaction.options.getUser('spieler');
-        const betrag = interaction.options.getInteger('betrag');
-        setCash(target.id, getCash(target.id) + betrag);
-        return interaction.reply({ ephemeral: true, embeds:[new EmbedBuilder().setColor(0x57F287).setTitle('💵  Bargeld vergeben')
-          .addFields({name:'Spieler',value:'<@'+target.id+'>',inline:true},{name:'Betrag',value:'+'+betrag.toLocaleString('de-DE')+' Euro',inline:true},{name:'Neuer Stand',value:getCash(target.id).toLocaleString('de-DE')+' Euro',inline:true})
-          .setTimestamp().setFooter({text:'Paradise City Roleplay  •  Bargeld'})], ephemeral:true });
-      }
-      if (commandName === 'geld-nehmen') {
-        const target = interaction.options.getUser('spieler');
-        const betrag = interaction.options.getInteger('betrag');
-        if (getCash(target.id) < betrag) return interaction.reply({ content:'❌ <@'+target.id+'> hat nur '+getCash(target.id).toLocaleString('de-DE')+' Euro.', ephemeral:true });
-        setCash(target.id, getCash(target.id) - betrag);
-        return interaction.reply({ ephemeral: true, embeds:[new EmbedBuilder().setColor(0xED4245).setTitle('💸  Bargeld entfernt')
-          .addFields({name:'Spieler',value:'<@'+target.id+'>',inline:true},{name:'Betrag',value:'-'+betrag.toLocaleString('de-DE')+' Euro',inline:true},{name:'Neuer Stand',value:getCash(target.id).toLocaleString('de-DE')+' Euro',inline:true})
-          .setTimestamp().setFooter({text:'Paradise City Roleplay  •  Bargeld'})], ephemeral:true });
-      }
-      if (commandName === 'bargeld') {
-        const target = interaction.options.getUser('spieler') || user;
-        const cash   = getCash(target.id);
-        return interaction.reply({ ephemeral: true, embeds:[new EmbedBuilder().setColor(0xF4A400).setTitle('💵  Bargeldstand')
-          .setDescription('<@'+target.id+'> hat aktuell **'+cash.toLocaleString('de-DE')+' Euro** Bargeld.')
-          .setTimestamp().setFooter({text:'Paradise City Roleplay  •  Bargeld'})], ephemeral:true });
       }
 });
 
