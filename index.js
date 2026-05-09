@@ -1791,7 +1791,7 @@ async function buildInviteCache(guild) {
         for (const roleId of cfg.roles) {
           permOverwrites.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageMessages, PermissionFlagsBits.AttachFiles] });
         }
-        const ticketCh = await guild.channels.create({ name, type: ChannelType.GuildText, parent: cfg.category, permissionOverwrites: permOverwrites });
+        const ticketCh = await guild.channels.create({ name, type: ChannelType.GuildText, parent: cfg.category, topic: `${ticketId}|${type}|${member.id}`, permissionOverwrites: permOverwrites });
         tickets[ticketCh.id] = { id: ticketId, channelId: ticketCh.id, openerId: member.id, openerTag: member.user.tag, type, label: cfg.label, createdAt: new Date().toISOString(), bearbeiter: null, bearbeiterTag: null, assignedUsers: [], closed: false, rated: false };
         saveTickets(tickets);
         const welcomeEmbed = new EmbedBuilder()
@@ -1815,7 +1815,11 @@ async function buildInviteCache(guild) {
       // ── Button: Ticket schließen anfordern ────────────────────────────────────
       if (interaction.isButton() && interaction.customId === 'ticket_close') {
         const tickets = loadTickets();
-        const ticket  = tickets[interaction.channel?.id];
+        let ticket  = tickets[interaction.channel?.id];
+        if (!ticket) {
+          const tp = interaction.channel.topic?.split('|');
+          if (tp?.length >= 3) { const [tId,tType,tOpener]=tp; const cfg2=TICKET_TYPES[tType]||{}; ticket={ id:tId, channelId:interaction.channel.id, openerId:tOpener, type:tType, label:cfg2.label||tType, createdAt:new Date().toISOString(), bearbeiter:null, bearbeiterTag:null, assignedUsers:[], closed:false }; }
+        }
         if (!ticket) return interaction.reply({ content: '❌ Kein Ticket gefunden.', ephemeral: true });
         const canClose = hasTicketRights(interaction.member, ticket.type) || interaction.user.id === ticket.openerId;
         if (!canClose) return interaction.reply({ content: '❌ Du hast keine Berechtigung dieses Ticket zu schließen.', ephemeral: true });
@@ -1834,7 +1838,11 @@ async function buildInviteCache(guild) {
       // ── Button: Schließen bestätigt ───────────────────────────────────────────
       if (interaction.isButton() && interaction.customId === 'ticket_close_confirm') {
         const tickets = loadTickets();
-        const ticket  = tickets[interaction.channel?.id];
+        let ticket  = tickets[interaction.channel?.id];
+        if (!ticket) {
+          const tp = interaction.channel.topic?.split('|');
+          if (tp?.length >= 3) { const [tId,tType,tOpener]=tp; const cfg2=TICKET_TYPES[tType]||{}; ticket={ id:tId, channelId:interaction.channel.id, openerId:tOpener, type:tType, label:cfg2.label||tType, createdAt:new Date().toISOString(), bearbeiter:null, bearbeiterTag:null, assignedUsers:[], closed:false }; }
+        }
         if (!ticket || ticket.closed) return interaction.reply({ content: '❌ Ticket bereits geschlossen.', ephemeral: true });
         const canClose = hasTicketRights(interaction.member, ticket.type) || interaction.user.id === ticket.openerId;
         if (!canClose) return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
@@ -1899,26 +1907,23 @@ async function buildInviteCache(guild) {
 
       // ── Button: Nutzer zuweisen ───────────────────────────────────────────────
       if (interaction.isButton() && interaction.customId === 'ticket_assign') {
-        const ticket = loadTickets()[interaction.channel?.id];
-        if (!ticket) return interaction.reply({ content: '❌ Kein Ticket.', ephemeral: true });
-        if (!hasTicketRights(interaction.member, ticket.type)) return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
-        const modal = new ModalBuilder().setCustomId('ticket_assign_modal').setTitle('Nutzer zuweisen');
-        modal.addComponents(new ActionRowBuilder().addComponents(
-          new TextInputBuilder().setCustomId('assign_user_id').setLabel('Discord User ID').setStyle(TextInputStyle.Short).setPlaceholder('123456789012345678').setRequired(true)
-        ));
-        return interaction.showModal(modal);
+        let tktChk = loadTickets()[interaction.channel?.id];
+        if (!tktChk) { const tp=interaction.channel.topic?.split('|'); if (tp?.length>=3) tktChk={ type:tp[1] }; }
+        if (!tktChk) return interaction.reply({ content: '❌ Kein Ticket.', ephemeral: true });
+        if (!hasTicketRights(interaction.member, tktChk.type)) return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+        const asel = new UserSelectMenuBuilder().setCustomId('ticket_assign_sel').setPlaceholder('Nutzer auswählen').setMinValues(1).setMaxValues(1);
+        return interaction.reply({ content: '👤 **Wen möchtest du dem Ticket zuweisen?**', components: [new ActionRowBuilder().addComponents(asel)], ephemeral: true });
       }
 
       // ── Modal: Nutzer zuweisen ────────────────────────────────────────────────
-      if (interaction.isModalSubmit() && interaction.customId === 'ticket_assign_modal') {
-        const userId = interaction.fields.getTextInputValue('assign_user_id').trim().replace(/[<@>]/g, '');
-        if (!/^\d{17,20}$/.test(userId)) return interaction.reply({ content: '❌ Ungültige User ID.', ephemeral: true });
+      // ── UserSelect: Nutzer zuweisen ─────────────────────────────────────────
+      if (interaction.isUserSelectMenu() && interaction.customId === 'ticket_assign_sel') {
+        const userId  = interaction.values[0];
         const tickets = loadTickets();
         const ticket  = tickets[interaction.channel?.id];
-        if (!ticket) return interaction.reply({ content: '❌ Kein Ticket.', ephemeral: true });
         try {
           await interaction.channel.permissionOverwrites.edit(userId, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true });
-          if (!ticket.assignedUsers.includes(userId)) { ticket.assignedUsers.push(userId); saveTickets(tickets); }
+          if (ticket && !ticket.assignedUsers.includes(userId)) { ticket.assignedUsers.push(userId); saveTickets(tickets); }
           return interaction.reply({ content: `✅ <@${userId}> wurde dem Ticket zugewiesen und kann es jetzt sehen.` });
         } catch (e) { return interaction.reply({ content: `❌ Fehler: ${e.message}`, ephemeral: true }); }
       }
