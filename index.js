@@ -607,6 +607,11 @@ const CH = {
 
 const DARK_ORANGE = 0xE65100;
 
+// Entfernt custom Discord Emojis (<:name:id> und <a:name:id>) aus Text für Anzeige
+function stripCustomEmoji(text) {
+  return text.replace(/<a?:[^:]+:\d+>/g, '').trim();
+}
+
 // Rollen die von ALLEN Filterregeln ausgenommen sind
 const EXEMPT_ROLE = '1490855646558556282';
 
@@ -2999,10 +3004,10 @@ client.on('interactionCreate', async (interaction) => {
           const choices = Object.entries(inv)
             .filter(([n]) => n.toLowerCase().includes(focused))
             .slice(0, 25)
-            .map(([n, q]) => ({ name: `${n}  (${q}x)`, value: n }));
+            .map(([n, q]) => ({ name: stripCustomEmoji(n) + '  (' + q + 'x)', value: n }));
           return interaction.respond(choices);
         }
-        if (cmd === 'item-give' || cmd === 'item-remove') {
+        if (cmd === 'item-give') {
           const focused = interaction.options.getFocused().toLowerCase();
           const items = loadItems();
           const shops = loadShops();
@@ -3011,7 +3016,32 @@ client.on('interactionCreate', async (interaction) => {
           const choices = allItems
             .filter(n => n.toLowerCase().includes(focused))
             .slice(0, 25)
-            .map(n => ({ name: n, value: n }));
+            .map(n => ({ name: stripCustomEmoji(n) + (n !== stripCustomEmoji(n) ? '' : ''), value: n }));
+          return interaction.respond(choices);
+        }
+        if (cmd === 'item-remove') {
+          const focused = interaction.options.getFocused().toLowerCase();
+          // Ziel-Spieler ID aus den bereits gesetzten Optionen holen
+          const targetId = interaction.options.get('spieler')?.value;
+          if (targetId) {
+            // Nur Items anzeigen die der Spieler tatsächlich hat
+            const inv = getUserInv(targetId);
+            const choices = Object.entries(inv)
+              .filter(([n]) => n.toLowerCase().includes(focused))
+              .sort((a, b) => a[0].localeCompare(b[0], 'de'))
+              .slice(0, 25)
+              .map(([n, q]) => ({ name: stripCustomEmoji(n) + '  (' + q + 'x)', value: n }));
+            return interaction.respond(choices);
+          }
+          // Fallback: alle Items (wenn noch kein Spieler gewählt)
+          const items = loadItems();
+          const shops = loadShops();
+          const shopItems = Object.values(shops).flat().map(i => i.name).filter(Boolean);
+          const allItems = [...new Set([...items, ...shopItems])].sort((a,b) => a.localeCompare(b,'de'));
+          const choices = allItems
+            .filter(n => n.toLowerCase().includes(focused))
+            .slice(0, 25)
+            .map(n => ({ name: stripCustomEmoji(n), value: n }));
           return interaction.respond(choices);
         }
         if (cmd === 'teamshop-delete') {
