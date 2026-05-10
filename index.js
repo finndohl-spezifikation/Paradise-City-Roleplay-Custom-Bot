@@ -5029,18 +5029,40 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── APPS ──────────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_apps') {
-    if (!hatHandy(uid))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandy(uid))        return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     if (!hatHandyAn(member, uid)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
+    // Häkchen: welche Apps hat der Spieler bereits?
+    const hasInsta   = member.roles.cache.has(ROLE_APP_INSTA);
+    const hasEbay    = member.roles.cache.has(ROLE_APP_EBAY);
+    const hasParship = member.roles.cache.has(ROLE_APP_PARSHIP);
     const appSelect = new StringSelectMenuBuilder()
       .setCustomId('app_select')
       .setPlaceholder('App auswählen...')
       .addOptions(
-        new StringSelectMenuOptionBuilder().setLabel('Instagram').setValue('instagram').setEmoji('📸').setDescription('Instagram-Rolle'),
-        new StringSelectMenuOptionBuilder().setLabel('eBay').setValue('ebay').setEmoji('🛒').setDescription('eBay-Rolle'),
-        new StringSelectMenuOptionBuilder().setLabel('Parship').setValue('parship').setEmoji('💕').setDescription('Parship-Rolle'),
+        new StringSelectMenuOptionBuilder()
+          .setLabel((hasInsta   ? '✅ ' : '') + 'Instagram')
+          .setValue('instagram').setEmoji('📸')
+          .setDescription(hasInsta   ? 'Installiert – Klicken zum Deinstallieren' : 'Instagram-Rolle installieren')
+          .setDefault(hasInsta),
+        new StringSelectMenuOptionBuilder()
+          .setLabel((hasEbay    ? '✅ ' : '') + 'eBay')
+          .setValue('ebay').setEmoji('🛒')
+          .setDescription(hasEbay    ? 'Installiert – Klicken zum Deinstallieren' : 'eBay-Rolle installieren')
+          .setDefault(hasEbay),
+        new StringSelectMenuOptionBuilder()
+          .setLabel((hasParship ? '✅ ' : '') + 'Parship')
+          .setValue('parship').setEmoji('💕')
+          .setDescription(hasParship ? 'Installiert – Klicken zum Deinstallieren' : 'Parship-Rolle installieren')
+          .setDefault(hasParship),
       );
+    const installedCount = [hasInsta, hasEbay, hasParship].filter(Boolean).length;
     return sendReply({
-      embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('📲 Apps').setDescription('Wähle eine App. Ein erneuter Klick deinstalliert sie.')],
+      embeds: [new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('📲 Apps')
+        .setDescription('Wähle eine App zum Installieren oder Deinstallieren.
+✅ = bereits installiert')
+        .setFooter({ text: installedCount + ' von 3 Apps installiert' })],
       components: [new ActionRowBuilder().addComponents(appSelect)],
     });
   }
@@ -5056,12 +5078,51 @@ client.on('interactionCreate', async (interaction) => {
     const app = appMap[val];
     if (!app) return interaction.update({ content: 'Unbekannte App.', components: [] });
     if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate().catch(() => {});
-    if (member.roles.cache.has(app.role)) {
+    // Rolle umschalten
+    const hatApp = member.roles.cache.has(app.role);
+    if (hatApp) {
       await member.roles.remove(app.role).catch(() => {});
-      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff9900).setDescription(app.emoji + ' **' + app.name + '** wurde deinstalliert.')], components: [] });
+    } else {
+      await member.roles.add(app.role).catch(() => {});
     }
-    await member.roles.add(app.role).catch(() => {});
-    return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x57f287).setDescription(app.emoji + ' **' + app.name + '** wurde installiert!')], components: [] });
+    // Rollen-Cache neu laden und Menü aktualisieren
+    await member.fetch();
+    const hasInsta2   = member.roles.cache.has(ROLE_APP_INSTA);
+    const hasEbay2    = member.roles.cache.has(ROLE_APP_EBAY);
+    const hasParship2 = member.roles.cache.has(ROLE_APP_PARSHIP);
+    const appSelect2 = new StringSelectMenuBuilder()
+      .setCustomId('app_select')
+      .setPlaceholder('App auswählen...')
+      .addOptions(
+        new StringSelectMenuOptionBuilder()
+          .setLabel((hasInsta2   ? '✅ ' : '') + 'Instagram')
+          .setValue('instagram').setEmoji('📸')
+          .setDescription(hasInsta2   ? 'Installiert – Klicken zum Deinstallieren' : 'Instagram-Rolle installieren')
+          .setDefault(hasInsta2),
+        new StringSelectMenuOptionBuilder()
+          .setLabel((hasEbay2    ? '✅ ' : '') + 'eBay')
+          .setValue('ebay').setEmoji('🛒')
+          .setDescription(hasEbay2    ? 'Installiert – Klicken zum Deinstallieren' : 'eBay-Rolle installieren')
+          .setDefault(hasEbay2),
+        new StringSelectMenuOptionBuilder()
+          .setLabel((hasParship2 ? '✅ ' : '') + 'Parship')
+          .setValue('parship').setEmoji('💕')
+          .setDescription(hasParship2 ? 'Installiert – Klicken zum Deinstallieren' : 'Parship-Rolle installieren')
+          .setDefault(hasParship2),
+      );
+    const installedCount2 = [hasInsta2, hasEbay2, hasParship2].filter(Boolean).length;
+    const statusMsg = hatApp
+      ? app.emoji + ' **' + app.name + '** wurde deinstalliert.'
+      : app.emoji + ' **' + app.name + '** wurde installiert!';
+    return interaction.editReply({
+      embeds: [new EmbedBuilder()
+        .setColor(hatApp ? 0xff9900 : 0x57f287)
+        .setTitle('📲 Apps')
+        .setDescription(statusMsg + '\n\nWähle eine weitere App oder schließe das Menü.
+✅ = bereits installiert')
+        .setFooter({ text: installedCount2 + ' von 3 Apps installiert' })],
+      components: [new ActionRowBuilder().addComponents(appSelect2)],
+    });
   }
 
   // ── SPIELE ────────────────────────────────────────────────────────────────
