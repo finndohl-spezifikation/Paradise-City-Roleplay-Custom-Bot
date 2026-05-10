@@ -263,17 +263,17 @@ function buildScratchPage(token, entry) {
   .card{background:#161b22;border:2px solid #e65100;border-radius:18px;padding:28px 24px;max-width:430px;width:100%}
   .hint{color:#8b949e;font-size:.78em;text-align:center;margin-bottom:14px}
   .grid{display:grid;grid-template-columns:repeat(3,104px);grid-template-rows:repeat(3,104px);gap:8px;margin:0 auto;width:fit-content}
-  .cell{position:relative;width:104px;height:104px;background:#a0a0a0;border:2px solid #30363d;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .sym{font-size:2.4em;pointer-events:none;user-select:none;visibility:hidden}
-  .cv{position:absolute;inset:0;width:104px;height:104px;border-radius:8px;cursor:crosshair;touch-action:none}
+  .cell{position:relative;width:104px;height:104px;background:#1a1f2e;border:2px solid #30363d;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:border-color .3s,box-shadow .3s}
+  .sym{font-size:2.4em;pointer-events:none;user-select:none;visibility:hidden;transition:transform .3s}
+  .cv{position:absolute;inset:0;width:104px;height:104px;border-radius:8px;cursor:crosshair;touch-action:none;will-change:transform}
   .prog-wrap{margin:16px 0 8px}
   .prog-txt{color:#8b949e;font-size:.78em;text-align:center;margin-bottom:6px}
-  .prog-bar{height:5px;background:#21262d;border-radius:3px;overflow:hidden}
-  .prog-fill{height:100%;background:linear-gradient(90deg,#bf360c,#e65100);transition:width .25s;width:0%}
-  .claim-btn{display:none;width:100%;padding:16px;background:#e65100;color:#fff;border:none;border-radius:10px;font-size:1.05em;font-weight:700;letter-spacing:1px;cursor:pointer;margin-top:12px;transition:background .15s}
-  .claim-btn:hover{background:#bf360c}
-  .claim-btn.show{display:block}
-  .claim-btn:disabled{background:#555;cursor:not-allowed}
+  .prog-bar{height:6px;background:#21262d;border-radius:3px;overflow:hidden}
+  .prog-fill{height:100%;background:linear-gradient(90deg,#bf360c,#ff6d00);transition:width .2s;width:0%;box-shadow:0 0 6px rgba(230,81,0,.5)}
+  .claim-btn{display:none;width:100%;padding:16px;background:linear-gradient(135deg,#e65100,#ff6d00);color:#fff;border:none;border-radius:10px;font-size:1.05em;font-weight:700;letter-spacing:1px;cursor:pointer;margin-top:12px;transition:all .2s;box-shadow:0 4px 15px rgba(230,81,0,.4)}
+  .claim-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(230,81,0,.5)}
+  .claim-btn.show{display:block;animation:fadeUp .4s ease}
+  .claim-btn:disabled{background:#555;cursor:not-allowed;box-shadow:none;transform:none}
   .result{display:none;text-align:center;margin-top:20px;padding-top:18px;border-top:1px solid #21262d}
   .result.show{display:block}
   .result .ri{font-size:3em;margin-bottom:10px}
@@ -283,21 +283,27 @@ function buildScratchPage(token, entry) {
   .lose{color:#8b949e}
   .spinner{display:inline-block;width:18px;height:18px;border:2px solid #555;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
   @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.15)}60%{transform:scale(0.95)}80%{transform:scale(1.05)}100%{transform:scale(1)}}
+  @keyframes glowPulse{0%,100%{box-shadow:0 0 8px rgba(63,185,80,.35),inset 0 0 10px rgba(63,185,80,.1)}50%{box-shadow:0 0 22px rgba(63,185,80,.7),inset 0 0 20px rgba(63,185,80,.2)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes symPop{from{transform:scale(0.5);opacity:0}to{transform:scale(1);opacity:1}}
+  .cell.done{border-color:#3fb950!important;animation:glowPulse 2s ease infinite}
+  .cell.done .sym{animation:symPop .35s cubic-bezier(.34,1.56,.64,1) both}
+  .particle{position:fixed;border-radius:50%;pointer-events:none;z-index:9999;will-change:transform,opacity}
+  .sym.txt{font-size:.82em;font-weight:700;text-align:center;line-height:1.2;padding:0 4px;word-break:break-word;color:#f0f0f0}
   .expire{color:#555;font-size:.7em;text-align:center;margin-top:18px}
   .live-count{min-height:36px;margin:14px 0 4px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center}
-  .chip{display:inline-flex;align-items:center;gap:5px;background:#21262d;border:1px solid #30363d;border-radius:20px;padding:5px 12px;font-size:.93em;transition:all .25s}
+  .chip{display:inline-flex;align-items:center;gap:5px;background:#21262d;border:1px solid #30363d;border-radius:20px;padding:5px 12px;font-size:.93em;transition:all .3s}
   .chip b{color:#c9d1d9}
   .chip em{font-style:normal;color:#8b949e}
-  .win-chip{border-color:#3fb950;background:#0d2311;box-shadow:0 0 8px rgba(63,185,80,.35)}
+  .win-chip{border-color:#3fb950;background:#0d2311;box-shadow:0 0 10px rgba(63,185,80,.4)}
   .win-chip em{color:#3fb950;font-weight:700}
-  .cell.done{border-color:#3fb950!important;box-shadow:inset 0 0 14px rgba(63,185,80,.18),0 0 8px rgba(63,185,80,.25)}
-  .sym.txt{font-size:.85em;font-weight:700;text-align:center;line-height:1.2;padding:0 4px;word-break:break-word;color:#e6e6e6}
   @media(max-width:380px){.grid{grid-template-columns:repeat(3,90px);grid-template-rows:repeat(3,90px)}.cell,.cv{width:90px;height:90px}}
   </style></head><body>
   <div class="hdr"><div class="ico">🎟️</div><h1>Paradise City Rubbellos</h1><p>Rubbele alle 9 Felder frei und sichere deinen Gewinn!</p></div>
   <div class="card">
-  <p class="hint">🖱️ Maus gedrückt halten &amp; rubbeln &mdash; oder auf dem Handy mit dem Finger</p>
-  <div class="grid">${cells}</div>
+  <p class="hint">🖱️ Maus gedrückt halten &amp; rubbeln &mdash; oder auf dem Handy mit dem Finger wischen</p>
+  <div class="grid" id="grid">${cells}</div>
   <div class="live-count" id="lc"></div>
   <div class="prog-wrap"><p class="prog-txt" id="pt">0 % freigerubbelt</p><div class="prog-bar"><div class="prog-fill" id="pf"></div></div></div>
   <button class="claim-btn" id="cb" onclick="claim()">🏆 Gewinn jetzt sichern!</button>
@@ -308,34 +314,111 @@ function buildScratchPage(token, entry) {
   const TOKEN='${token}';
   const GRID=${gridJ};
   const PRIZE=${JSON.stringify(entry.prize)};
-  const SYM_MAP={'\u274C':'Niete','\uD83D\uDCB5':"1'000 \u0024",'\uD83D\uDCB4':"2'500 \u0024",'\uD83D\uDCB6':"5'000 \u0024",'\uD83D\uDCB0':"25'000 \u0024",'\uD83D\uDEAC':'10\u00D7 Marlboro Rot','\uD83D\uDEB2':'Elektro Fahrrad','\uD83C\uDFC3\u200D\u2642\uFE0F':'Golfschl\u00E4ger','\uD83C\uDF9F\uFE0F':'Lottoschein','\uD83C\uDFAB':'20% Rabatt beim Autohaus'}
+  const SYM_MAP={'\u274C':'Niete','\uD83D\uDCB5':"1'000 \u0024",'\uD83D\uDCB4':"2'500 \u0024",'\uD83D\uDCB6':"5'000 \u0024",'\uD83D\uDCB0':"25'000 \u0024",'\uD83D\uDEAC':'10\u00D7 Marlboro Rot','\uD83D\uDEB2':'Elektro Fahrrad','\uD83C\uDFC3\u200D\u2642\uFE0F':'Golfschl\u00E4ger','\uD83C\uDF9F\uFE0F':'Lottoschein','\uD83C\uDFAB':'20% Rabatt beim Autohaus'};
   const CASH_SYMS=new Set(['\uD83D\uDCB5','\uD83D\uDCB4','\uD83D\uDCB6','\uD83D\uDCB0']);
   const scratched=new Array(9).fill(0);
-  const GSIZE=14;
-  const GCELLS=GSIZE*GSIZE;
+  const GSIZE=14;const GCELLS=GSIZE*GSIZE;
   const covered=Array.from({length:9},()=>new Uint8Array(GCELLS));
+  const lastPos=new Array(9).fill(null);
   let claimed=false;
 
-  // Paint each canvas with scratch coating
+  // ── Paint metallic silver coating ───────────────────────────────────────────
   document.querySelectorAll('.cv').forEach((cv,i)=>{
     const ctx=cv.getContext('2d');
+    const w=cv.width,h=cv.height;
     ctx.globalCompositeOperation='source-over';
-    const g=ctx.createLinearGradient(0,0,cv.width,cv.height);
-    g.addColorStop(0,'#9e9e9e');g.addColorStop(.5,'#c8c8c8');g.addColorStop(1,'#757575');
-    ctx.beginPath();ctx.rect(0,0,cv.width,cv.height);
-    ctx.fillStyle=g;ctx.fill();
-    ctx.fillStyle='rgba(0,0,0,.4)';ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('RUBBELN',cv.width/2,cv.height/2);
-    ctx.fillStyle='rgba(255,255,255,.2)';
-    for(let s=0;s<6;s++){ctx.beginPath();ctx.arc(Math.random()*(cv.width-14)+7,Math.random()*(cv.height-14)+7,2,0,Math.PI*2);ctx.fill();}
+
+    // Base silver metallic gradient
+    const g=ctx.createLinearGradient(0,0,w,h);
+    g.addColorStop(0,'#888');g.addColorStop(.2,'#bbb');
+    g.addColorStop(.45,'#d8d8d8');g.addColorStop(.55,'#cfcfcf');
+    g.addColorStop(.8,'#aaa');g.addColorStop(1,'#777');
+    ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+
+    // Diagonal specular shine streaks
+    for(let k=0;k<4;k++){
+      const ox=Math.random()*w*.7;
+      const sh=ctx.createLinearGradient(ox,0,ox+w*.25,h);
+      sh.addColorStop(0,'rgba(255,255,255,0)');
+      sh.addColorStop(.4,'rgba(255,255,255,'+(.06+Math.random()*.1)+')');
+      sh.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=sh;ctx.fillRect(0,0,w,h);
+    }
+
+    // Subtle noise texture (silver grain)
+    for(let n=0;n<60;n++){
+      const v=Math.random()>.5?255:0;
+      ctx.fillStyle='rgba('+v+','+v+','+v+','+(Math.random()*.06)+')';
+      ctx.fillRect(Math.random()*w|0,Math.random()*h|0,1,1);
+    }
+
+    // Pre-scratched texture lines (make it look used)
+    ctx.save();
+    for(let s=0;s<6;s++){
+      ctx.strokeStyle='rgba(255,255,255,'+(Math.random()*.15)+')';
+      ctx.lineWidth=Math.random()*1.5+.3;
+      ctx.lineCap='round';
+      ctx.beginPath();
+      const x1=Math.random()*w,y1=Math.random()*h;
+      ctx.moveTo(x1,y1);
+      ctx.lineTo(x1+(Math.random()-.5)*30,y1+(Math.random()-.5)*20);
+      ctx.stroke();
+    }
+    for(let s=0;s<4;s++){
+      ctx.strokeStyle='rgba(0,0,0,'+(Math.random()*.08)+')';
+      ctx.lineWidth=.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.random()*w,Math.random()*h);
+      ctx.lineTo(Math.random()*w,Math.random()*h);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // "RUBBELN" text with emboss effect
+    ctx.font='bold 13px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(80,80,80,.6)';ctx.fillText('RUBBELN',w/2+1,h/2+1);
+    ctx.fillStyle='rgba(240,240,240,.9)';ctx.fillText('RUBBELN',w/2,h/2);
+
+    // Coin hint below text
+    ctx.font='14px serif';
+    ctx.fillStyle='rgba(180,180,180,.55)';
+    ctx.fillText('\u25A1',w/2,h/2+18);
   });
-  // Reveal symbols now that canvas coating is painted
+
+  // Reveal symbols under the coating
   document.querySelectorAll('.sym').forEach(s=>s.style.visibility='visible');
 
+  // ── Particle system ──────────────────────────────────────────────────────────
+  function spawnParticles(clientX,clientY){
+    const count=2+Math.floor(Math.random()*3);
+    const colors=['#c0c0c0','#d8d8d8','#b8b8b8','#e8e8e8','#a0a0a0'];
+    for(let p=0;p<count;p++){
+      const el=document.createElement('div');
+      el.className='particle';
+      const size=1.5+Math.random()*2.5;
+      el.style.width=size+'px';el.style.height=size+'px';
+      el.style.left=clientX+'px';el.style.top=clientY+'px';
+      el.style.background=colors[Math.floor(Math.random()*colors.length)];
+      document.body.appendChild(el);
+      const angle=(Math.random()*Math.PI*2);
+      const speed=1.5+Math.random()*3;
+      let vx=Math.cos(angle)*speed;
+      let vy=Math.sin(angle)*speed-2;
+      let life=1;let cx=clientX;let cy=clientY;
+      const tick=()=>{
+        life-=.055;if(life<=0){el.remove();return;}
+        vy+=.15;cx+=vx;cy+=vy;
+        el.style.transform='translate('+cx+'px,'+cy+'px) translate(-'+clientX+'px,-'+clientY+'px)';
+        el.style.opacity=life;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+  }
 
   function symLabel(sym){
     if(sym!==PRIZE.sym)return '';
-    if(PRIZE.type==='cash')return PRIZE.amount.toLocaleString('de-DE')+' \u0024';
+    if(PRIZE.type==='cash')return PRIZE.amount.toLocaleString('de-DE')+'\u0020\u0024';
     if(PRIZE.type==='item')return (PRIZE.menge||1)+'\u00D7 '+PRIZE.item;
     if(PRIZE.type==='ticket')return '\uD83C\uDFCE\uFE0F SPORTWAGEN';
     return '';
@@ -343,12 +426,11 @@ function buildScratchPage(token, entry) {
   function updateCounter(){
     const lc=document.getElementById('lc');
     const counts={};
-    GRID.forEach((sym,i)=>{if(scratched[i]>=40)counts[sym]=(counts[sym]||0)+1;});
+    GRID.forEach((sym,idx)=>{if(scratched[idx]>=40)counts[sym]=(counts[sym]||0)+1;});
     const keys=Object.keys(counts);
     if(!keys.length){lc.innerHTML='';return;}
     lc.innerHTML=keys.map(sym=>{
-      const cnt=counts[sym];
-      const lbl=symLabel(sym);
+      const cnt=counts[sym];const lbl=symLabel(sym);
       const isWin=sym===PRIZE.sym&&PRIZE.type!=='nichts'&&cnt>=3;
       return '<span class="chip'+(isWin?' win-chip':'')+'">'+sym+' <b>\u00D7'+cnt+'</b>'+(lbl?' <em>'+lbl+'</em>':'')+'</span>';
     }).join('');
@@ -366,98 +448,124 @@ function buildScratchPage(token, entry) {
     if(scratched[i]===100)return;
     scratched[i]=100;
     const cv2=canvases[i];const ctx2=cv2.getContext('2d');
-    ctx2.clearRect(0,0,cv2.width,cv2.height);
+    // Animate the clear
+    let alpha=1;
+    const fadeOut=()=>{
+      alpha-=.07;
+      if(alpha<=0){ctx2.clearRect(0,0,cv2.width,cv2.height);finalise(i);return;}
+      ctx2.globalCompositeOperation='destination-out';
+      ctx2.fillStyle='rgba(0,0,0,'+.07+')';
+      ctx2.fillRect(0,0,cv2.width,cv2.height);
+      ctx2.globalCompositeOperation='source-over';
+      requestAnimationFrame(fadeOut);
+    };
+    requestAnimationFrame(fadeOut);
+  }
+  function finalise(i){
     const cell=document.getElementById('c'+i);cell.classList.add('done');
-    const sym=GRID[i];const lbl=SYM_MAP[sym]||sym;
+    const sym=GRID[i];
     const spanEl=cell.querySelector('.sym');
-    if(CASH_SYMS.has(sym)){spanEl.textContent=lbl;spanEl.classList.add('txt');}
+    if(CASH_SYMS.has(sym)){spanEl.textContent=SYM_MAP[sym]||sym;spanEl.classList.add('txt');}
     spanEl.style.visibility='visible';
     upd();
   }
-  function scrAt(cv,i,x,y,r){
+
+  // ── Scratch at position ──────────────────────────────────────────────────────
+  function scrAt(cv,i,x,y,r,clientX,clientY){
     if(scratched[i]===100)return;
-    // Erase on canvas
     const ctx=cv.getContext('2d');
     ctx.globalCompositeOperation='destination-out';
-    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+
+    const last=lastPos[i];
+    if(last){
+      const dx=x-last.x,dy=y-last.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      const steps=Math.max(1,Math.floor(dist/3));
+      for(let s=0;s<=steps;s++){
+        const t=s/steps;
+        const px=last.x+dx*t,py=last.y+dy*t;
+        ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();
+        // Natural jitter
+        if(s%2===0){
+          const jx=px+(Math.random()-.5)*r*.5,jy=py+(Math.random()-.5)*r*.5;
+          ctx.beginPath();ctx.arc(jx,jy,r*.55,0,Math.PI*2);ctx.fill();
+        }
+      }
+      // Spawn particles only every few pixels to avoid flooding
+      if(dist>8&&clientX!==undefined){spawnParticles(clientX,clientY);}
+    } else {
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+    }
+    lastPos[i]={x,y};
     ctx.globalCompositeOperation='source-over';
-    // Track coverage via virtual 14x14 grid (no getImageData needed)
+
+    // Track coverage (virtual 14x14 grid)
     const cov=covered[i];const cw=cv.width;const cellSz=cw/GSIZE;const r2=r*r;
-    for(let gy=0;gy<GSIZE;gy++){for(let gx=0;gx<GSIZE;gx++){
-      const cx=(gx+.5)*cellSz,cy=(gy+.5)*cellSz;
-      const dx=cx-x,dy=cy-y;
-      if(dx*dx+dy*dy<=r2)cov[gy*GSIZE+gx]=1;
+    const startGx=Math.max(0,Math.floor((x-r)/cellSz)),endGx=Math.min(GSIZE-1,Math.floor((x+r)/cellSz));
+    const startGy=Math.max(0,Math.floor((y-r)/cellSz)),endGy=Math.min(GSIZE-1,Math.floor((y+r)/cellSz));
+    for(let gy=startGy;gy<=endGy;gy++){for(let gx=startGx;gx<=endGx;gx++){
+      const cx2=(gx+.5)*cellSz,cy2=(gy+.5)*cellSz;
+      const dx2=cx2-x,dy2=cy2-y;
+      if(dx2*dx2+dy2*dy2<=r2)cov[gy*GSIZE+gx]=1;
     }}
     let cnt=0;for(let k=0;k<GCELLS;k++)if(cov[k])cnt++;
     scratched[i]=Math.round(cnt/GCELLS*100);
     if(scratched[i]>=75)markDone(i);else upd();
   }
-  let dn=false;
-  const R=window.innerWidth<380?18:26;
-  const canvases=[...document.querySelectorAll('.cv')];
-  canvases.forEach((cv,i)=>{
-    const go=(e,type)=>{
-      if(type==='start')dn=true;
-      if(!dn)return;
-      if(type==='end'){dn=false;return;}
-      const rect=cv.getBoundingClientRect();
-      const src=e.touches?e.touches[0]:e;
-      const sx=(src.clientX-rect.left)*(cv.width/rect.width);
-      const sy=(src.clientY-rect.top)*(cv.height/rect.height);
-      scrAt(cv,i,sx,sy,R);
-    };
-    cv.addEventListener('mousedown',e=>go(e,'start'));
-    cv.addEventListener('mousemove',e=>go(e,'move'));
-    cv.addEventListener('touchstart',e=>{e.preventDefault();go(e,'start');},{passive:false});
-    cv.addEventListener('touchmove',e=>{e.preventDefault();go(e,'move');},{passive:false});
-    cv.addEventListener('touchend',e=>go(e,'end'));
-  });
-  document.addEventListener('mouseup',()=>{dn=false;});
 
-  // allow scratch to cross cell borders
-  document.querySelector('.grid').addEventListener('mousemove',e=>{
-    if(!dn)return;
-    canvases.forEach((cv,i)=>{
-      const r=cv.getBoundingClientRect();
-      const x=(e.clientX-r.left)*(cv.width/r.width);
-      const y=(e.clientY-r.top)*(cv.height/r.height);
-      if(x>=0&&x<=cv.width&&y>=0&&y<=cv.height)scrAt(cv,i,x,y,R);
-    });
+  const R=window.innerWidth<380?20:28;
+  const canvases=[...document.querySelectorAll('.cv')];
+
+  // ── Pointer events (works on mouse, touch, stylus) ───────────────────────────
+  canvases.forEach((cv,i)=>{
+    cv.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      try{cv.setPointerCapture(e.pointerId);}catch(err){}
+      lastPos[i]=null;
+      const rect=cv.getBoundingClientRect();
+      const sx=(e.clientX-rect.left)*(cv.width/rect.width);
+      const sy=(e.clientY-rect.top)*(cv.height/rect.height);
+      scrAt(cv,i,sx,sy,R,e.clientX,e.clientY);
+    },{passive:false});
+    cv.addEventListener('pointermove',e=>{
+      if(e.buttons===0)return;
+      const rect=cv.getBoundingClientRect();
+      const sx=(e.clientX-rect.left)*(cv.width/rect.width);
+      const sy=(e.clientY-rect.top)*(cv.height/rect.height);
+      scrAt(cv,i,sx,sy,R,e.clientX,e.clientY);
+    },{passive:false});
+    cv.addEventListener('pointerup',e=>{lastPos[i]=null;});
+    cv.addEventListener('pointercancel',e=>{lastPos[i]=null;});
   });
 
   async function claim(){
-    if(claimed)return;
-    claimed=true;
+    if(claimed)return;claimed=true;
     const btn=document.getElementById('cb');
-    btn.disabled=true;
-    btn.innerHTML='<span class="spinner"></span>Wird gebucht\u2026';
+    btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Wird gebucht\u2026';
     try{
       const r=await fetch('/api/rubbellos/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN})});
       const d=await r.json();
       const res=document.getElementById('res');
-      res.classList.add('show');
-      btn.style.display='none';
+      res.classList.add('show');btn.style.display='none';
       if(d.ok){
-        const p=d.prize;
-        let ico=p.sym||'🎁',h='',msg='';
-        if(p.type==='cash'){h='🎉 Gewonnen!';msg='<span class="win">'+p.amount.toLocaleString('de-CH').replace(/\./g,"'")+" \u0024 wurden deinem Bargeld gutgeschrieben!</span>";}
-        else if(p.type==='item'){h='🎉 Gewonnen!';msg='<span class="win">🎁 '+(p.menge||1)+'\u00D7 '+p.item+' wurde deinem Inventar hinzugef\u00FCgt!</span>';}
-        else if(p.type==='ticket'){h='🏆 HAUPTGEWINN!';ico='🏎️';msg='<span class="win">🏎️ SPORTWAGEN! Bitte ein Support-Ticket in Discord erstellen!</span>';}
-        else{h='😢 Leider Niete';msg='<span class="lose">Kein Gewinn diesmal — viel Gl\u00FCck beim n\u00E4chsten Mal!</span>';}
+        const p=d.prize;let ico=p.sym||'\uD83C\uDF81',h='',msg='';
+        if(p.type==='cash'){h='\uD83C\uDF89 Gewonnen!';msg='<span class="win">'+p.amount.toLocaleString('de-CH').replace(/\./g,"'")+' \u0024 wurden deinem Bargeld gutgeschrieben!</span>';}
+        else if(p.type==='item'){h='\uD83C\uDF89 Gewonnen!';msg='<span class="win">\uD83C\uDF81 '+(p.menge||1)+'\u00D7 '+p.item+' wurde deinem Inventar hinzugef\u00FCgt!</span>';}
+        else if(p.type==='ticket'){h='\uD83C\uDFC6 HAUPTGEWINN!';ico='\uD83C\uDFCE\uFE0F';msg='<span class="win">\uD83C\uDFCE\uFE0F SPORTWAGEN! Bitte ein Support-Ticket in Discord erstellen!</span>';}
+        else{h='\uD83D\uDE22 Leider Niete';msg='<span class="lose">Kein Gewinn diesmal \u2014 viel Gl\u00FCck beim n\u00E4chsten Mal!</span>';}
         res.innerHTML='<div class="ri">'+ico+'</div><h2>'+h+'</h2><p>'+msg+'</p><p style="color:#555;font-size:.75em;margin-top:14px">Du kannst dieses Fenster schlie\u00DFen.</p>';
       }else{
-        res.innerHTML='<div class="ri">❌</div><h2>Fehler</h2><p>'+(d.error||'Unbekannter Fehler')+'</p>';
-        claimed=false;btn.disabled=false;btn.innerHTML='🏆 Gewinn jetzt sichern!';
+        res.innerHTML='<div class="ri">\u274C</div><h2>Fehler</h2><p>'+(d.error||'Unbekannter Fehler')+'</p>';
+        claimed=false;btn.disabled=false;btn.innerHTML='\uD83C\uDFC6 Gewinn jetzt sichern!';
       }
     }catch(e){
-      document.getElementById('res').innerHTML='<div class="ri">❌</div><h2>Verbindungsfehler</h2><p>Bitte erneut versuchen.</p>';
+      document.getElementById('res').innerHTML='<div class="ri">\u274C</div><h2>Verbindungsfehler</h2><p>Bitte erneut versuchen.</p>';
       document.getElementById('res').classList.add('show');
-      claimed=false;const btn=document.getElementById('cb');btn.disabled=false;btn.innerHTML='🏆 Gewinn jetzt sichern!';
+      claimed=false;const btn2=document.getElementById('cb');btn2.disabled=false;btn2.innerHTML='\uD83C\uDFC6 Gewinn jetzt sichern!';
     }
   }
   </script></body></html>`;
   }
-
   const rubbellosTokens = new Map();
 
 module.exports = function startWebServer(client, DATA_DIR) {
