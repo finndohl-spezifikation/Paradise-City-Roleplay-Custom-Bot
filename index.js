@@ -4788,7 +4788,7 @@ async function doLottoZiehung(client) {
       try {
         const user = await client.users.fetch(w.userId);
         const dmEmbed = new EmbedBuilder()
-          .setColor(0xFFD700)
+          .setColor(0xFF6600)
           .setTitle('🏆 Du hast im Lotto gewonnen!')
           .setDescription(
             `**Herzlichen Glückwunsch!** 🎉\n\n` +
@@ -4818,7 +4818,7 @@ async function doLottoZiehung(client) {
       }
 
       const resultEmbed = new EmbedBuilder()
-        .setColor(0xFFD700)
+        .setColor(0xFF6600)
         .setTitle('🎰 Paradise City Lotto — Tagesziehung')
         .setDescription(
           `**📅 Datum:** ${today}\n\n` +
