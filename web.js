@@ -440,7 +440,7 @@ function buildScratchPage(token, entry) {
       if(d.ok){
         const p=d.prize;
         let ico=p.sym||'🎁',h='',msg='';
-        if(p.type==='cash'){h='🎉 Gewonnen!';msg='<span class="win">'+p.amount.toLocaleString('de-CH').replace(/\./g,"'")+" \u0024 wurden deinem Bargeld gutgeschrieben!</span>';}
+        if(p.type==='cash'){h='🎉 Gewonnen!';msg='<span class="win">'+p.amount.toLocaleString('de-CH').replace(/\./g,"'")+" \u0024 wurden deinem Bargeld gutgeschrieben!</span>";}
         else if(p.type==='item'){h='🎉 Gewonnen!';msg='<span class="win">🎁 '+(p.menge||1)+'\u00D7 '+p.item+' wurde deinem Inventar hinzugef\u00FCgt!</span>';}
         else if(p.type==='ticket'){h='🏆 HAUPTGEWINN!';ico='🏎️';msg='<span class="win">🏎️ SPORTWAGEN! Bitte ein Support-Ticket in Discord erstellen!</span>';}
         else{h='😢 Leider Niete';msg='<span class="lose">Kein Gewinn diesmal — viel Gl\u00FCck beim n\u00E4chsten Mal!</span>';}
