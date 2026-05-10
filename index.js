@@ -1151,11 +1151,6 @@ async function buildInviteCache(guild) {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .toJSON(),
     new SlashCommandBuilder()
-        .setName('lotto-setup')
-        .setDescription('Postet das Lotto-Embed in den Lotto-Kanal')
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-        .toJSON(),
-    new SlashCommandBuilder()
         .setName('lotto-ziehung')
         .setDescription('Führt die Lotto-Ziehung manuell durch (Admin)')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
@@ -1865,6 +1860,49 @@ async function buildInviteCache(guild) {
               console.log('✅ Rubbellos-Embed einmalig gesendet.');
             }
           } catch (e) { console.error('Rubbellos-Embed Fehler:', e.message); }
+        }
+      }
+
+      // ── Einmalig: Lotto-Embed senden ─────────────────────────────────────────
+      {
+        const setupL = loadSetup();
+        if (!setupL.lottoEmbedSent) {
+          const lottoEmbed = new EmbedBuilder()
+            .setColor(0xFFD700)
+            .setTitle('🎰 Paradise City Lotto')
+            .setDescription(
+              `**Täglich um 12:00 Uhr werden die Gewinner gezogen!**\n\n` +
+              `**So funktioniert es:**\n` +
+              `Wähle **6 Zahlen** (1–100) und eine **Superzahl** (1–10).\n` +
+              `Du brauchst einen 🎟️ **Lottoschein** aus dem Shop **(2.800 $)**.\n\n` +
+              `**Gewinntabelle:**\n` +
+              `🎯 1 Richtige → **50.000 $**\n` +
+              `🎯 2 Richtige → **100.000 $**\n` +
+              `🎯 3 Richtige → **200.000 $**\n` +
+              `🎯 4 Richtige → **400.000 $**\n` +
+              `🎯 5 Richtige → **800.000 $**\n` +
+              `🎯 6 Richtige → **1.000.000 $**\n` +
+              `🌟 Superzahl → **3.000.000 $** *(extrem selten!)*\n\n` +
+              `Du kannst mehrere Scheine pro Tag kaufen & abgeben.\n` +
+              `⚠️ **Maximal 5 Gewinner pro Woche** — danach keine weiteren Gewinne bis nächste Woche.\n` +
+              `Gewinner werden per DM benachrichtigt.\n\n` +
+              `**Paradise City Roleplay — Viel Glück!**`
+            )
+            .setFooter({ text: 'Paradise City Roleplay  •  Lotto' });
+          const lottoBtn = new ButtonBuilder()
+            .setCustomId('lotto_play')
+            .setLabel('🎰 Lotto spielen')
+            .setStyle(ButtonStyle.Primary);
+          const lottoRow = new ActionRowBuilder().addComponents(lottoBtn);
+          try {
+            const lottoCh = await client.channels.fetch(LOTTO_CH);
+            if (lottoCh) {
+              await lottoCh.send({ embeds: [lottoEmbed], components: [lottoRow] });
+              setupL.lottoEmbedSent = true;
+              saveSetup(setupL);
+              console.log('✅ Lotto-Embed einmalig gesendet.');
+            }
+          } catch (e) { console.error('Lotto-Embed Fehler:', e.message); }
         }
       }
     });
@@ -4017,42 +4055,6 @@ Link: ${link}`, ephemeral: true });
 
 
         // ── /rubbellos-setup ────────────────────────────────────────────────────
-        // ── /lotto-setup ─────────────────────────────────────────────────────────
-        if (commandName === 'lotto-setup') {
-          const ch = await client.channels.fetch(LOTTO_CH).catch(() => null);
-          if (!ch) return interaction.reply({ content: '❌ Lotto-Kanal nicht gefunden.', ephemeral: true });
-          const lottoEmbed = new EmbedBuilder()
-            .setColor(0xFFD700)
-            .setTitle('🎰 Paradise City Lotto')
-            .setDescription(
-              `**Täglich um 12:00 Uhr werden die Gewinner gezogen!**\n\n` +
-              `**So funktioniert es:**\n` +
-              `Wähle **6 Zahlen** (1–100) und eine **Superzahl** (1–10).\n` +
-              `Du brauchst einen 🎟️ **Lottoschein** aus dem Shop **(2.800 $)**.\n\n` +
-              `**Gewinntabelle:**\n` +
-              `🎯 1 Richtige → **50.000 $**\n` +
-              `🎯 2 Richtige → **100.000 $**\n` +
-              `🎯 3 Richtige → **200.000 $**\n` +
-              `🎯 4 Richtige → **400.000 $**\n` +
-              `🎯 5 Richtige → **800.000 $**\n` +
-              `🎯 6 Richtige → **1.000.000 $**\n` +
-              `🌟 Superzahl → **3.000.000 $** *(extrem selten!)*\n\n` +
-              `Du kannst mehrere Scheine pro Tag kaufen & abgeben.\n` +
-              `⚠️ **Maximal 5 Gewinner pro Woche** — danach keine weiteren Gewinne bis nächste Woche.\n` +
-              `Gewinner werden per DM benachrichtigt.\n\n` +
-              `**Paradise City Roleplay — Viel Glück!**`
-            )
-            .setFooter({ text: 'Paradise City Roleplay  •  Lotto' })
-            .setTimestamp();
-          const lottoBtn = new ButtonBuilder()
-            .setCustomId('lotto_play')
-            .setLabel('🎰 Lotto spielen')
-            .setStyle(ButtonStyle.Primary);
-          const lottoRow = new ActionRowBuilder().addComponents(lottoBtn);
-          await ch.send({ embeds: [lottoEmbed], components: [lottoRow] });
-          return interaction.reply({ content: '✅ Lotto-Embed wurde gepostet!', ephemeral: true });
-        }
-
         // ── /lotto-ziehung (manuell) ──────────────────────────────────────────────
         if (commandName === 'lotto-ziehung') {
           await interaction.deferReply({ ephemeral: true });
