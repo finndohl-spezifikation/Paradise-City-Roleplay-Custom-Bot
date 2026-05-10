@@ -616,6 +616,312 @@ function buildScratchPage(token, entry, scratchedCells) {
   </script></body></html>`;
   }
   const rubbellosTokens = new Map();
+  const lottoTokens = new Map();
+
+// ─── LOTTO PAGE BUILDER ───────────────────────────────────────────────────────
+function buildLottoPage(token) {
+  return `<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Lotto — Paradise City Roleplay</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#FFD700;--gold2:#FFA500;--gold3:#B8860B;--bg:#0a0c10;--card:#111318;--border:#2a2d35;--text:#e8e8e8;--sub:#8b949e}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 12px 60px;user-select:none}
+
+/* ── Header ── */
+.hdr{text-align:center;margin-bottom:26px}
+.hdr-logo{font-size:3.2em;filter:drop-shadow(0 0 18px rgba(255,215,0,.6));animation:floatLogo 3s ease-in-out infinite;display:inline-block;margin-bottom:6px}
+@keyframes floatLogo{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.hdr h1{color:var(--gold);font-size:1.4em;font-weight:800;letter-spacing:3px;text-transform:uppercase;text-shadow:0 0 20px rgba(255,215,0,.4)}
+.hdr p{color:var(--sub);font-size:.82em;margin-top:5px}
+
+/* ── Card ── */
+.card{background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:24px 20px;max-width:560px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+
+/* ── Section label ── */
+.sec{color:var(--gold);font-size:.72em;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.sec::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(255,215,0,.4),transparent)}
+
+/* ── Number grid ── */
+.nums-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-bottom:6px}
+.ball{width:100%;aspect-ratio:1;border-radius:50%;border:2px solid var(--border);background:radial-gradient(circle at 35% 35%,#1e2330,#0d1020);display:flex;align-items:center;justify-content:center;font-size:.78em;font-weight:700;cursor:pointer;transition:all .18s;position:relative;color:#9099aa}
+.ball:hover{border-color:rgba(255,215,0,.5);color:#ccc;transform:scale(1.08)}
+.ball.sel{background:radial-gradient(circle at 35% 35%,#ffe066,#e6a000);border-color:var(--gold);color:#3a2000;box-shadow:0 0 12px rgba(255,215,0,.55),inset 0 1px 0 rgba(255,255,255,.35);transform:scale(1.12);animation:ballPop .22s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes ballPop{from{transform:scale(.7)}to{transform:scale(1.12)}}
+.ball.done{cursor:not-allowed;opacity:.45}
+.ball.done:hover{transform:none;border-color:var(--border);color:#9099aa}
+
+/* ── Superzahl ── */
+.sz-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-bottom:4px}
+.sz-ball{width:100%;aspect-ratio:1;border-radius:50%;border:2px solid var(--border);background:radial-gradient(circle at 35% 35%,#1e1830,#100d20);display:flex;align-items:center;justify-content:center;font-size:.85em;font-weight:700;cursor:pointer;transition:all .18s;color:#9099aa}
+.sz-ball:hover{border-color:rgba(180,100,255,.5);color:#ccc;transform:scale(1.08)}
+.sz-ball.sel{background:radial-gradient(circle at 35% 35%,#cc88ff,#8800cc);border-color:#cc88ff;color:#fff;box-shadow:0 0 12px rgba(180,100,255,.6),inset 0 1px 0 rgba(255,255,255,.25);transform:scale(1.12);animation:ballPop .22s cubic-bezier(.34,1.56,.64,1) both}
+
+/* ── Status bar ── */
+.status{background:#0d1020;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin:16px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.status-item{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:80px}
+.status-label{font-size:.65em;color:var(--sub);letter-spacing:1px;text-transform:uppercase}
+.status-val{font-size:1.05em;font-weight:700;color:var(--gold);font-family:monospace;min-height:1.4em;transition:all .2s}
+.status-val.ok{color:#3fb950}
+.status-divider{width:1px;height:36px;background:var(--border);flex-shrink:0}
+
+/* ── Selected chips ── */
+.chips{min-height:32px;display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;align-items:center}
+.chip{background:radial-gradient(circle at 35% 35%,#ffe066,#e6a000);color:#3a2000;font-weight:700;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:.75em;box-shadow:0 0 8px rgba(255,215,0,.4);animation:chipIn .25s cubic-bezier(.34,1.56,.64,1)}
+@keyframes chipIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.chip-sz{background:radial-gradient(circle at 35% 35%,#cc88ff,#8800cc);color:#fff;box-shadow:0 0 8px rgba(180,100,255,.4)}
+.chip-placeholder{color:#3a4050;font-size:.75em;font-style:italic}
+
+/* ── Ticket price strip ── */
+.ticket-strip{background:linear-gradient(135deg,#1a1000,#1e1500);border:1px dashed rgba(255,215,0,.3);border-radius:10px;padding:10px 16px;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.ticket-strip .ts-icon{font-size:1.4em}
+.ticket-strip .ts-text{font-size:.8em;color:var(--sub);line-height:1.5}
+.ticket-strip .ts-text strong{color:var(--gold)}
+
+/* ── Submit button ── */
+.submit-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--gold3),var(--gold2));color:#1a0a00;border:none;border-radius:12px;font-size:1.05em;font-weight:800;letter-spacing:1px;cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(255,165,0,.35);position:relative;overflow:hidden}
+.submit-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);pointer-events:none}
+.submit-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 28px rgba(255,165,0,.5)}
+.submit-btn:disabled{background:linear-gradient(135deg,#2a2d35,#1e2028);color:#4a5060;cursor:not-allowed;box-shadow:none;transform:none}
+.submit-btn.loading{pointer-events:none}
+
+/* ── Result screen ── */
+.result{display:none;text-align:center;padding:20px 0 10px;border-top:1px solid var(--border);margin-top:20px}
+.result.show{display:block;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.result-icon{font-size:3.5em;margin-bottom:12px;display:block}
+.result h2{color:var(--gold);font-size:1.2em;margin-bottom:10px;font-weight:800}
+.result-ticket{background:#0d1020;border:1px solid var(--border);border-radius:12px;padding:16px;margin:14px 0;text-align:left}
+.result-ticket .rt-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:.88em}
+.result-ticket .rt-label{color:var(--sub)}
+.result-ticket .rt-val{font-weight:700;color:var(--gold);font-family:monospace}
+.result-ticket .rt-val.sz{color:#cc88ff}
+.result p{color:var(--sub);font-size:.85em;line-height:1.65;margin-top:6px}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(0,0,0,.2);border-top-color:#1a0a00;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Confetti particle ── */
+.confetti{position:fixed;pointer-events:none;z-index:9999;border-radius:2px}
+
+.expire{color:#3a4050;font-size:.7em;text-align:center;margin-top:20px}
+@media(max-width:400px){.ball,.sz-ball{font-size:.65em}.hdr h1{font-size:1.1em}}
+</style></head><body>
+
+<div class="hdr">
+  <div class="hdr-logo">🎰</div>
+  <h1>Paradise City Lotto</h1>
+  <p>Wähle deine Glückszahlen und gib deinen Schein ab!</p>
+</div>
+
+<div class="card">
+  <div class="ticket-strip">
+    <span class="ts-icon">🎟️</span>
+    <div class="ts-text"><strong>Lottoschein</strong> wird für diese Teilnahme eingelöst.<br>Ziehung täglich um <strong>12:00 Uhr</strong> · Gewinner per DM</div>
+  </div>
+
+  <div class="sec">🎯 Wähle 6 Zahlen (1–100)</div>
+  <div class="nums-grid" id="numGrid"></div>
+
+  <div class="status" id="statusBar">
+    <div class="status-item">
+      <span class="status-label">Zahlen</span>
+      <span class="status-val" id="stNums">0 / 6</span>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-item">
+      <span class="status-label">Superzahl</span>
+      <span class="status-val" id="stSz">–</span>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-item">
+      <span class="status-label">Jackpot</span>
+      <span class="status-val" style="color:#cc88ff">3.000.000 $</span>
+    </div>
+  </div>
+
+  <div class="chips" id="selChips"><span class="chip-placeholder">Noch keine Zahlen gewählt…</span></div>
+
+  <div class="sec" style="margin-top:4px">🌟 Superzahl (1–10)</div>
+  <div class="sz-grid" id="szGrid"></div>
+
+  <div style="margin-top:20px">
+    <button class="submit-btn" id="submitBtn" disabled onclick="submitTicket()">
+      🎟️ Lottoschein abgeben
+    </button>
+  </div>
+
+  <div class="result" id="result"></div>
+  <p class="expire">⏰ Dieser Link ist 30 Minuten gültig &bull; Einmalig verwendbar</p>
+</div>
+
+<script>
+const TOKEN = '${token}';
+const selected = new Set();
+let superzahl = null;
+let submitted = false;
+
+// Build number grid 1-100
+const numGrid = document.getElementById('numGrid');
+for (let n = 1; n <= 100; n++) {
+  const b = document.createElement('div');
+  b.className = 'ball'; b.textContent = n; b.dataset.n = n;
+  b.addEventListener('click', () => toggleNum(n, b));
+  numGrid.appendChild(b);
+}
+
+// Build superzahl grid 1-10
+const szGrid = document.getElementById('szGrid');
+for (let n = 1; n <= 10; n++) {
+  const b = document.createElement('div');
+  b.className = 'sz-ball'; b.textContent = n; b.dataset.n = n;
+  b.addEventListener('click', () => toggleSz(n, b));
+  szGrid.appendChild(b);
+}
+
+function toggleNum(n, el) {
+  if (submitted) return;
+  if (selected.has(n)) {
+    selected.delete(n);
+    el.classList.remove('sel');
+  } else {
+    if (selected.size >= 6) {
+      // Shake animation
+      el.style.animation = 'none'; requestAnimationFrame(() => { el.style.animation = ''; });
+      return;
+    }
+    selected.add(n);
+    el.classList.add('sel');
+    spawnGoldParticle(el);
+  }
+  // Disable unselected if 6 chosen
+  document.querySelectorAll('.ball').forEach(b => {
+    const bn = Number(b.dataset.n);
+    if (!selected.has(bn)) b.classList.toggle('done', selected.size >= 6);
+  });
+  updateStatus();
+}
+
+function toggleSz(n, el) {
+  if (submitted) return;
+  document.querySelectorAll('.sz-ball').forEach(b => b.classList.remove('sel'));
+  if (superzahl === n) { superzahl = null; }
+  else { superzahl = n; el.classList.add('sel'); spawnGoldParticle(el); }
+  updateStatus();
+}
+
+function updateStatus() {
+  const sn = document.getElementById('stNums');
+  const sz = document.getElementById('stSz');
+  sn.textContent = selected.size + ' / 6';
+  sn.className = 'status-val' + (selected.size === 6 ? ' ok' : '');
+  sz.textContent = superzahl !== null ? superzahl : '–';
+  sz.className = 'status-val' + (superzahl !== null ? ' ok' : '');
+
+  // Chips
+  const chips = document.getElementById('selChips');
+  const sorted = [...selected].sort((a,b)=>a-b);
+  let html = sorted.map(n => '<span class="chip">'+n+'</span>').join('');
+  if (superzahl !== null) html += '<span class="chip chip-sz">'+superzahl+'</span>';
+  if (!html) html = '<span class="chip-placeholder">Noch keine Zahlen gewählt…</span>';
+  chips.innerHTML = html;
+
+  document.getElementById('submitBtn').disabled = !(selected.size === 6 && superzahl !== null);
+}
+
+function spawnGoldParticle(el) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2;
+  const colors = ['#FFD700','#FFA500','#FFE066','#cc88ff','#fff'];
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti';
+    const size = 4 + Math.random()*5;
+    p.style.cssText = 'width:'+size+'px;height:'+size+'px;left:'+cx+'px;top:'+cy+'px;background:'+colors[Math.floor(Math.random()*colors.length)]+';border-radius:'+(Math.random()>.5?'50%':'2px');
+    document.body.appendChild(p);
+    const angle = Math.random()*Math.PI*2;
+    const speed = 3 + Math.random()*5;
+    let vx = Math.cos(angle)*speed, vy = Math.sin(angle)*speed - 3;
+    let life = 1; let x = 0, y = 0;
+    const tick = () => {
+      life -= .055; if (life <= 0) { p.remove(); return; }
+      vy += .2; x += vx; y += vy;
+      p.style.transform = 'translate('+x+'px,'+y+'px)';
+      p.style.opacity = life;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+}
+
+function spawnWinConfetti() {
+  for (let i = 0; i < 80; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      p.className = 'confetti';
+      const size = 5+Math.random()*8;
+      const colors = ['#FFD700','#FFA500','#cc88ff','#3fb950','#fff','#ff6b6b'];
+      p.style.cssText = 'width:'+size+'px;height:'+size+'px;left:'+Math.random()*window.innerWidth+'px;top:-10px;background:'+colors[Math.floor(Math.random()*colors.length)]+';border-radius:'+(Math.random()>.5?'50%':'2px');
+      document.body.appendChild(p);
+      let vy = 2+Math.random()*4, vx=(Math.random()-.5)*3, y=0;
+      const tick=()=>{y+=vy;vx*=.99;p.style.transform='translate('+vx*10+'px,'+y+'px) rotate('+(y*2)+'deg)';if(y>window.innerHeight+50){p.remove();return;}requestAnimationFrame(tick);};
+      requestAnimationFrame(tick);
+    }, i*30);
+  }
+}
+
+async function submitTicket() {
+  if (submitted) return;
+  submitted = true;
+  const btn = document.getElementById('submitBtn');
+  btn.classList.add('loading');
+  btn.innerHTML = '<span class="spinner"></span>Wird eingereicht…';
+  try {
+    const r = await fetch('/api/lotto/submit', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ token: TOKEN, zahlen: [...selected].sort((a,b)=>a-b), superzahl })
+    });
+    const d = await r.json();
+    const res = document.getElementById('result');
+    res.classList.add('show');
+    btn.style.display = 'none';
+    if (d.ok) {
+      spawnWinConfetti();
+      const zStr = d.zahlen.map(n => '<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe066,#e6a000);color:#3a2000;font-weight:700;font-size:.8em;margin:0 2px">' + n + '</span>').join('');
+      res.innerHTML = '<span class="result-icon">🎟️</span><h2>Lottoschein eingereicht!</h2>' +
+        '<div class="result-ticket">' +
+        '<div class="rt-row"><span class="rt-label">Deine Zahlen</span><span style="display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end">' + zStr + '</span></div>' +
+        '<div class="rt-row"><span class="rt-label">Superzahl</span><span class="rt-val sz">' + d.superzahl + '</span></div>' +
+        '</div>' +
+        '<p>🕛 Ziehung täglich um <strong style="color:var(--gold)">12:00 Uhr</strong><br>📩 Gewinner werden per <strong style="color:var(--gold)">DM</strong> benachrichtigt<br><br>Viel Glück! 🍀</p>' +
+        '<p style="color:#3a4050;font-size:.72em;margin-top:14px">Du kannst dieses Fenster schließen.</p>';
+    } else {
+      submitted = false; btn.style.display=''; btn.classList.remove('loading');
+      btn.innerHTML = '🎟️ Lottoschein abgeben'; btn.disabled = false;
+      res.innerHTML = '<span class="result-icon">❌</span><h2>Fehler</h2><p>' + (d.error||'Unbekannter Fehler') + '</p>';
+    }
+  } catch(e) {
+    submitted = false;
+    const btn2 = document.getElementById('submitBtn');
+    btn2.style.display=''; btn2.classList.remove('loading');
+    btn2.innerHTML='🎟️ Lottoschein abgeben'; btn2.disabled=false;
+    const res2=document.getElementById('result');
+    res2.classList.add('show');
+    res2.innerHTML='<span class="result-icon">⚠️</span><h2>Verbindungsfehler</h2><p>Bitte erneut versuchen.</p>';
+  }
+}
+</script></body></html>`;
+}
+
+function buildInvalidLottoPage(msg) {
+  return `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lotto — Paradise City</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#0a0c10;color:#e8e8e8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.box{background:#111318;border:1.5px solid #2a2d35;border-radius:20px;padding:40px 28px;max-width:400px;width:100%;text-align:center}
+.ico{font-size:3em;margin-bottom:16px}.h{color:#FFD700;font-size:1.2em;font-weight:700;margin-bottom:10px}.p{color:#8b949e;font-size:.88em;line-height:1.65}</style></head>
+<body><div class="box"><div class="ico">⛔</div><div class="h">Link ungültig oder abgelaufen</div><div class="p">${msg}</div></div></body></html>`;
+}
 
 module.exports = function startWebServer(client, DATA_DIR) {
   const app        = express();
@@ -1696,6 +2002,67 @@ module.exports = function startWebServer(client, DATA_DIR) {
   });
 
 
+    // ─── LOTTO ROUTES ────────────────────────────────────────────────────────────
+
+    // GET /lotto?token=XXX — serves the lotto number picker page
+    app.get('/lotto', (req, res) => {
+      const token = req.query.token || '';
+      const entry = lottoTokens.get(token);
+      if (!entry || entry.expiresAt < Date.now()) {
+        return res.send(buildInvalidLottoPage('Bitte löse einen neuen Lottoschein über Discord ein.'));
+      }
+      if (entry.submitted) {
+        return res.send(buildInvalidLottoPage('Dieser Lottoschein wurde bereits eingereicht.'));
+      }
+      res.send(buildLottoPage(token));
+    });
+
+    // POST /api/lotto/submit — validate token, deduct ticket, save numbers
+    app.post('/api/lotto/submit', express.json(), (req, res) => {
+      const token     = (req.body || {}).token || '';
+      const zahlen    = (req.body || {}).zahlen;
+      const superzahl = (req.body || {}).superzahl;
+      const entry = lottoTokens.get(token);
+      if (!entry || entry.submitted || entry.expiresAt < Date.now()) {
+        return res.json({ ok: false, error: 'Token ungültig oder bereits verwendet.' });
+      }
+      // Validate zahlen
+      if (!Array.isArray(zahlen) || zahlen.length !== 6) {
+        return res.json({ ok: false, error: 'Bitte genau 6 Zahlen auswählen.' });
+      }
+      if (zahlen.some(n => typeof n !== 'number' || n < 1 || n > 100 || !Number.isInteger(n))) {
+        return res.json({ ok: false, error: 'Zahlen müssen ganze Zahlen zwischen 1 und 100 sein.' });
+      }
+      if (new Set(zahlen).size !== 6) {
+        return res.json({ ok: false, error: 'Alle 6 Zahlen müssen unterschiedlich sein.' });
+      }
+      if (typeof superzahl !== 'number' || superzahl < 1 || superzahl > 10 || !Number.isInteger(superzahl)) {
+        return res.json({ ok: false, error: 'Superzahl muss eine ganze Zahl zwischen 1 und 10 sein.' });
+      }
+      const uid = entry.uid;
+      // Deduct Lottoschein from inventory
+      const inv = app._rInv(uid);
+      const lottoKey = Object.keys(inv).find(k => k.toLowerCase().includes('lottoschein'));
+      if (!lottoKey || inv[lottoKey] < 1) {
+        return res.json({ ok: false, error: 'Kein Lottoschein im Inventar gefunden.' });
+      }
+      inv[lottoKey] -= 1;
+      if (inv[lottoKey] <= 0) delete inv[lottoKey];
+      app._wInv(uid, inv);
+      // Save ticket
+      const LOTTO_TICKETS_FILE = path.join(DATA_DIR, 'lotto_tickets.json');
+      let tickets = {};
+      try { tickets = JSON.parse(fs.readFileSync(LOTTO_TICKETS_FILE, 'utf8')); } catch {}
+      if (!tickets[uid]) tickets[uid] = [];
+      const drawKey = new Date().toISOString().split('T')[0];
+      const sortedZahlen = [...zahlen].sort((a, b) => a - b);
+      tickets[uid].push({ zahlen: sortedZahlen, superzahl, ts: Date.now(), drawKey, tag: entry.userTag });
+      fs.writeFileSync(LOTTO_TICKETS_FILE, JSON.stringify(tickets, null, 2), 'utf8');
+      // Mark token as used
+      entry.submitted = true;
+      return res.json({ ok: true, zahlen: sortedZahlen, superzahl });
+    });
+
     // ─── RUBBELLOS SCRATCH CARD ──────────────────────────────────────────────────
 
     // Helper: cash + inventory access from web context
@@ -1767,5 +2134,6 @@ module.exports = function startWebServer(client, DATA_DIR) {
   const PORT = process.env.PORT || 8080;
   app.listen(PORT, '0.0.0.0', () => console.log(`🌐 Web-Server läuft auf Port ${PORT}`));
 };
-module.exports.tokens = rubbellosTokens;
+module.exports.tokens      = rubbellosTokens;
+module.exports.lottoTokens = lottoTokens;
 
