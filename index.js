@@ -1863,51 +1863,52 @@ async function buildInviteCache(guild) {
         }
       }
 
-      // ── Einmalig: Lotto-Embed senden ─────────────────────────────────────────
-      {
-        const setupL = loadSetup();
-        if (!setupL.lottoEmbedSent) {
-          const lottoEmbed = new EmbedBuilder()
-            .setColor(0x1A0040)
-            .setTitle('🎰  P A R A D I S E   C I T Y   L O T T O')
-            .setDescription(
-              `> *Täglich um **12:00 Uhr** dreht sich das Rad des Schicksals…*\n` +
-              `\u200B\n` +
-              `**▸ SO FUNKTIONIERT ES**\n` +
-              `Wähle **6 Zahlen** \`(1–100)\` und eine **Superzahl** \`(1–10)\`.\n` +
-              `Du benötigst einen 🎟️ **Lottoschein** aus dem Shop für **2.800 $**.\n` +
-              `Du kannst mehrere Scheine kaufen & pro Tag abgeben.\n` +
-              `\u200B\n` +
-              `**▸ GEWINNTABELLE**\n` +
-              `\`\`\`\n` +
-              `  1 Richtige  →      50.000 $\n` +
-              `  2 Richtige  →     100.000 $\n` +
-              `  3 Richtige  →     200.000 $\n` +
-              `  4 Richtige  →     400.000 $\n` +
-              `  5 Richtige  →     800.000 $\n` +
-              `  6 Richtige  →   1.000.000 $\n` +
-              `  ★ Superzahl  →   3.000.000 $\n` +
-              `\`\`\`\n` +
-              `⚠️ **Maximal 5 Gewinner pro Woche.** Danach keine Auszahlung bis zur nächsten Woche.\n` +
-              `📩 Gewinner werden per **DM** benachrichtigt.`
-            )
-            .setFooter({ text: 'Paradise City Roleplay  •  Lotto  •  Viel Glück! 🍀' });
-          const lottoBtn = new ButtonBuilder()
-            .setCustomId('lotto_play')
-            .setLabel('🎰 Lotto spielen')
-            .setStyle(ButtonStyle.Primary);
-          const lottoRow = new ActionRowBuilder().addComponents(lottoBtn);
-          try {
-            const lottoCh = await client.channels.fetch(LOTTO_CH);
-            if (lottoCh) {
-              await lottoCh.send({ embeds: [lottoEmbed], components: [lottoRow] });
-              setupL.lottoEmbedSent = true;
-              saveSetup(setupL);
-              console.log('✅ Lotto-Embed einmalig gesendet.');
-            }
-          } catch (e) { console.error('Lotto-Embed Fehler:', e.message); }
+      // ── Lotto-Embed senden (prüft ob bereits vorhanden) ──────────────────────
+      try {
+        const lottoCh = await client.channels.fetch(LOTTO_CH).catch(() => null);
+        if (lottoCh) {
+          const recent = await lottoCh.messages.fetch({ limit: 50 }).catch(() => null);
+          const exists = recent && recent.find(msg =>
+            msg.author.id === client.user.id &&
+            msg.components.length > 0 &&
+            msg.components[0]?.components?.[0]?.customId === 'lotto_play'
+          );
+          if (!exists) {
+            const lottoEmbed = new EmbedBuilder()
+              .setColor(0x1A0040)
+              .setTitle('🎰  P A R A D I S E   C I T Y   L O T T O')
+              .setDescription(
+                `> *Täglich um **12:00 Uhr** dreht sich das Rad des Schicksals…*\n` +
+                `\u200B\n` +
+                `**▸ SO FUNKTIONIERT ES**\n` +
+                `Wähle **6 Zahlen** \`(1–100)\` und eine **Superzahl** \`(1–10)\`.\n` +
+                `Du benötigst einen 🎟️ **Lottoschein** aus dem Shop für **2.800 $**.\n` +
+                `Du kannst mehrere Scheine kaufen & pro Tag abgeben.\n` +
+                `\u200B\n` +
+                `**▸ GEWINNTABELLE**\n` +
+                `\`\`\`\n` +
+                `  1 Richtige  →      50.000 $\n` +
+                `  2 Richtige  →     100.000 $\n` +
+                `  3 Richtige  →     200.000 $\n` +
+                `  4 Richtige  →     400.000 $\n` +
+                `  5 Richtige  →     800.000 $\n` +
+                `  6 Richtige  →   1.000.000 $\n` +
+                `  ★ Superzahl  →   3.000.000 $\n` +
+                `\`\`\`\n` +
+                `⚠️ **Maximal 5 Gewinner pro Woche.** Danach keine Auszahlung bis zur nächsten Woche.\n` +
+                `📩 Gewinner werden per **DM** benachrichtigt.`
+              )
+              .setFooter({ text: 'Paradise City Roleplay  •  Lotto  •  Viel Glück! 🍀' });
+            const lottoBtn = new ButtonBuilder()
+              .setCustomId('lotto_play')
+              .setLabel('🎰 Lotto spielen')
+              .setStyle(ButtonStyle.Primary);
+            const lottoRow = new ActionRowBuilder().addComponents(lottoBtn);
+            await lottoCh.send({ embeds: [lottoEmbed], components: [lottoRow] });
+            console.log('✅ Lotto-Embed gesendet.');
+          }
         }
-      }
+      } catch (e) { console.error('Lotto-Embed Fehler:', e.message); }
     });
 
 
