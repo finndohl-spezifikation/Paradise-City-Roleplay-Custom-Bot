@@ -40,6 +40,37 @@ if (!fs.existsSync(PLAYER_WARN_FILE)) fs.writeFileSync(PLAYER_WARN_FILE, '{}', '
 if (!fs.existsSync(INVITES_FILE)) fs.writeFileSync(INVITES_FILE, '{}', 'utf8');
 if (!fs.existsSync(SETUP_FILE))   fs.writeFileSync(SETUP_FILE,   '{}', 'utf8');
 
+// ─── LOTTO DATA ───────────────────────────────────────────────────────────────
+const LOTTO_CH        = '1492636063817138216';
+const LOTTO_FILE      = path.join(DATA_DIR, 'lotto_tickets.json');
+const LOTTO_DRAW_FILE = path.join(DATA_DIR, 'lotto_draws.json');
+const LOTTO_WEEK_FILE = path.join(DATA_DIR, 'lotto_week.json');
+if (!fs.existsSync(LOTTO_FILE))      fs.writeFileSync(LOTTO_FILE,      '{}', 'utf8');
+if (!fs.existsSync(LOTTO_DRAW_FILE)) fs.writeFileSync(LOTTO_DRAW_FILE, '{}', 'utf8');
+if (!fs.existsSync(LOTTO_WEEK_FILE)) fs.writeFileSync(LOTTO_WEEK_FILE, JSON.stringify({ winners: 0, weekStart: 0, lastDraw: '' }), 'utf8');
+function loadLottoTickets()  { try { return JSON.parse(fs.readFileSync(LOTTO_FILE, 'utf8')); } catch { return {}; } }
+function saveLottoTickets(d) { fs.writeFileSync(LOTTO_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+function loadLottoDraw()     { try { return JSON.parse(fs.readFileSync(LOTTO_DRAW_FILE, 'utf8')); } catch { return {}; } }
+function saveLottoDraw(d)    { fs.writeFileSync(LOTTO_DRAW_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+function loadLottoWeek()     { try { return JSON.parse(fs.readFileSync(LOTTO_WEEK_FILE, 'utf8')); } catch { return { winners: 0, weekStart: 0, lastDraw: '' }; } }
+function saveLottoWeek(d)    { fs.writeFileSync(LOTTO_WEEK_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+function getWeekStart(now) {
+  const d = new Date(now);
+  d.setUTCHours(0, 0, 0, 0);
+  const day = d.getUTCDay();
+  d.setUTCDate(d.getUTCDate() - (day === 0 ? 6 : day - 1));
+  return d.getTime();
+}
+const LOTTO_PRIZES = [
+  { richtig: 0, superzahl: true,  label: '🌟 Superzahl',    betrag: 3000000 },
+  { richtig: 6, superzahl: false, label: '🎯 6 Richtige',   betrag: 1000000 },
+  { richtig: 5, superzahl: false, label: '🎯 5 Richtige',   betrag: 800000  },
+  { richtig: 4, superzahl: false, label: '🎯 4 Richtige',   betrag: 400000  },
+  { richtig: 3, superzahl: false, label: '🎯 3 Richtige',   betrag: 200000  },
+  { richtig: 2, superzahl: false, label: '🎯 2 Richtige',   betrag: 100000  },
+  { richtig: 1, superzahl: false, label: '🎯 1 Richtige',   betrag: 50000   },
+];
+
 const AUSWEIS_FILE = path.join(DATA_DIR, 'ausweis.json');
 const CODES_FILE   = path.join(DATA_DIR, 'einreise_codes.json');
 if (!fs.existsSync(AUSWEIS_FILE)) fs.writeFileSync(AUSWEIS_FILE, '{}', 'utf8');
@@ -1117,6 +1148,16 @@ async function buildInviteCache(guild) {
     new SlashCommandBuilder()
         .setName('rubbellos-setup')
         .setDescription('Postet das Rubbellos-Embed in den Rubbellos-Kanal')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName('lotto-setup')
+        .setDescription('Postet das Lotto-Embed in den Lotto-Kanal')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName('lotto-ziehung')
+        .setDescription('Führt die Lotto-Ziehung manuell durch (Admin)')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .toJSON(),
     ];
@@ -3976,6 +4017,49 @@ Link: ${link}`, ephemeral: true });
 
 
         // ── /rubbellos-setup ────────────────────────────────────────────────────
+        // ── /lotto-setup ─────────────────────────────────────────────────────────
+        if (commandName === 'lotto-setup') {
+          const ch = await client.channels.fetch(LOTTO_CH).catch(() => null);
+          if (!ch) return interaction.reply({ content: '❌ Lotto-Kanal nicht gefunden.', ephemeral: true });
+          const lottoEmbed = new EmbedBuilder()
+            .setColor(0xFFD700)
+            .setTitle('🎰 Paradise City Lotto')
+            .setDescription(
+              `**Täglich um 12:00 Uhr werden die Gewinner gezogen!**\n\n` +
+              `**So funktioniert es:**\n` +
+              `Wähle **6 Zahlen** (1–100) und eine **Superzahl** (1–10).\n` +
+              `Du brauchst einen 🎟️ **Lottoschein** aus dem Shop **(2.800 $)**.\n\n` +
+              `**Gewinntabelle:**\n` +
+              `🎯 1 Richtige → **50.000 $**\n` +
+              `🎯 2 Richtige → **100.000 $**\n` +
+              `🎯 3 Richtige → **200.000 $**\n` +
+              `🎯 4 Richtige → **400.000 $**\n` +
+              `🎯 5 Richtige → **800.000 $**\n` +
+              `🎯 6 Richtige → **1.000.000 $**\n` +
+              `🌟 Superzahl → **3.000.000 $** *(extrem selten!)*\n\n` +
+              `Du kannst mehrere Scheine pro Tag kaufen & abgeben.\n` +
+              `⚠️ **Maximal 5 Gewinner pro Woche** — danach keine weiteren Gewinne bis nächste Woche.\n` +
+              `Gewinner werden per DM benachrichtigt.\n\n` +
+              `**Paradise City Roleplay — Viel Glück!**`
+            )
+            .setFooter({ text: 'Paradise City Roleplay  •  Lotto' })
+            .setTimestamp();
+          const lottoBtn = new ButtonBuilder()
+            .setCustomId('lotto_play')
+            .setLabel('🎰 Lotto spielen')
+            .setStyle(ButtonStyle.Primary);
+          const lottoRow = new ActionRowBuilder().addComponents(lottoBtn);
+          await ch.send({ embeds: [lottoEmbed], components: [lottoRow] });
+          return interaction.reply({ content: '✅ Lotto-Embed wurde gepostet!', ephemeral: true });
+        }
+
+        // ── /lotto-ziehung (manuell) ──────────────────────────────────────────────
+        if (commandName === 'lotto-ziehung') {
+          await interaction.deferReply({ ephemeral: true });
+          await doLottoZiehung(client);
+          return interaction.editReply({ content: '✅ Lotto-Ziehung wurde manuell durchgeführt!' });
+        }
+
         if (commandName === 'rubbellos-setup') {
           const RUBBELLOS_CH = '1490889784753782784';
           const ch = await client.channels.fetch(RUBBELLOS_CH).catch(() => null);
@@ -4141,6 +4225,97 @@ client.on('interactionCreate', async (interaction) => {
         ephemeral: true
       });
     }
+
+  // ── Lotto: "Lotto spielen" Button ────────────────────────────────────────────
+  if (interaction.isButton() && interaction.customId === 'lotto_play') {
+    const inv = getUserInv(uid);
+    const lottoKey = Object.keys(inv).find(k => k.toLowerCase().includes('lottoschein'));
+    if (!lottoKey || inv[lottoKey] < 1) {
+      return interaction.reply({
+        content: '❌ Du hast keinen **Lottoschein** im Inventar!\n🛒 Kaufe einen im **Kwik-E-Markt** für **2.800 $**.',
+        ephemeral: true
+      });
+    }
+    const modal = new ModalBuilder()
+      .setCustomId('lotto_submit')
+      .setTitle('🎰 Paradise City Lotto');
+    const zahlenInput = new TextInputBuilder()
+      .setCustomId('lotto_zahlen')
+      .setLabel('Deine 6 Zahlen (1–100, Komma getrennt)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('z.B. 5, 17, 23, 42, 67, 89')
+      .setMinLength(5)
+      .setMaxLength(30)
+      .setRequired(true);
+    const superzahlInput = new TextInputBuilder()
+      .setCustomId('lotto_superzahl')
+      .setLabel('Superzahl (1–10)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('z.B. 7')
+      .setMinLength(1)
+      .setMaxLength(2)
+      .setRequired(true);
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(zahlenInput),
+      new ActionRowBuilder().addComponents(superzahlInput)
+    );
+    return interaction.showModal(modal);
+  }
+
+  // ── Lotto: Modal Submit ───────────────────────────────────────────────────────
+  if (interaction.isModalSubmit() && interaction.customId === 'lotto_submit') {
+    await interaction.deferReply({ ephemeral: true });
+    const inv = getUserInv(uid);
+    const lottoKey = Object.keys(inv).find(k => k.toLowerCase().includes('lottoschein'));
+    if (!lottoKey || inv[lottoKey] < 1) {
+      return interaction.editReply({ content: '❌ Du hast keinen **Lottoschein** mehr im Inventar.' });
+    }
+    const zahlenRaw   = interaction.fields.getTextInputValue('lotto_zahlen');
+    const superzahlRaw = interaction.fields.getTextInputValue('lotto_superzahl').trim();
+
+    // Parse und validiere 6 Zahlen
+    const zahlen = zahlenRaw.split(/[,\s]+/).map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+    if (zahlen.length !== 6) {
+      return interaction.editReply({ content: '❌ Bitte gib genau **6 Zahlen** ein, getrennt durch Komma.\nBeispiel: `5, 17, 23, 42, 67, 89`' });
+    }
+    if (zahlen.some(n => n < 1 || n > 100)) {
+      return interaction.editReply({ content: '❌ Alle Zahlen müssen zwischen **1 und 100** liegen.' });
+    }
+    if (new Set(zahlen).size !== 6) {
+      return interaction.editReply({ content: '❌ Die 6 Zahlen müssen **alle unterschiedlich** sein.' });
+    }
+    const superzahl = parseInt(superzahlRaw, 10);
+    if (isNaN(superzahl) || superzahl < 1 || superzahl > 10) {
+      return interaction.editReply({ content: '❌ Die **Superzahl** muss zwischen **1 und 10** liegen.' });
+    }
+
+    // Lottoschein aus Inventar entfernen
+    inv[lottoKey] -= 1;
+    if (inv[lottoKey] <= 0) delete inv[lottoKey];
+    setUserInv(uid, inv);
+
+    // Ticket speichern
+    const tickets = loadLottoTickets();
+    if (!tickets[uid]) tickets[uid] = [];
+    const drawKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    tickets[uid].push({ zahlen: zahlen.sort((a,b)=>a-b), superzahl, ts: Date.now(), drawKey, tag: interaction.user.tag });
+    saveLottoTickets(tickets);
+
+    const zahlenStr = zahlen.sort((a,b)=>a-b).map(n => `\`${String(n).padStart(2,'0')}\``).join(' ');
+    const confirmEmbed = new EmbedBuilder()
+      .setColor(0xFFD700)
+      .setTitle('🎟️ Lottoschein eingereicht!')
+      .setDescription(
+        `Deine Zahlen wurden gespeichert. Viel Glück!\n\n` +
+        `**Deine Zahlen:** ${zahlenStr}\n` +
+        `**Superzahl:** \`${superzahl}\`\n\n` +
+        `🕛 Die Ziehung findet **täglich um 12:00 Uhr** statt.\n` +
+        `📩 Gewinner werden per **DM** benachrichtigt.`
+      )
+      .setFooter({ text: 'Paradise City Roleplay  •  Lotto' })
+      .setTimestamp();
+    return interaction.editReply({ embeds: [confirmEmbed] });
+  }
 
   // Team Shop: pagination & take
   if (interaction.isButton() && interaction.customId.startsWith('ts_')) {
@@ -4603,6 +4778,142 @@ ${transText}`;
   return interaction.update({ content: null, embeds: [receipt], components: [] });
   }
 });
+
+// ─── LOTTO ZIEHUNG FUNKTION ───────────────────────────────────────────────────
+async function doLottoZiehung(client) {
+  try {
+    const now = Date.now();
+    const today = new Date(now).toISOString().split('T')[0];
+    let week = loadLottoWeek();
+    const currentWeekStart = getWeekStart(now);
+
+    // Wochenzähler zurücksetzen wenn neue Woche
+    if (week.weekStart < currentWeekStart) {
+      week = { winners: 0, weekStart: currentWeekStart, lastDraw: week.lastDraw };
+    }
+
+    // Schon heute gezogen?
+    if (week.lastDraw === today) return;
+
+    // 6 einmalige Zahlen 1-100 ziehen
+    const pool = Array.from({ length: 100 }, (_, i) => i + 1);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const gezogeneZahlen = pool.slice(0, 6).sort((a, b) => a - b);
+    const gezogeneSuperzahl = Math.floor(Math.random() * 10) + 1;
+
+    // Alle Tickets von heute auswerten
+    const tickets = loadLottoTickets();
+    const winners = [];
+    const MAX_WINNERS_PER_WEEK = 5;
+
+    for (const [userId, userTickets] of Object.entries(tickets)) {
+      const todayTickets = userTickets.filter(t => t.drawKey === today);
+      for (const ticket of todayTickets) {
+        if (week.winners >= MAX_WINNERS_PER_WEEK) break;
+        const richtige = ticket.zahlen.filter(z => gezogeneZahlen.includes(z)).length;
+        const superzahlTreffer = ticket.superzahl === gezogeneSuperzahl;
+
+        // Superzahl-Jackpot hat Vorrang (alle 6 richtig + Superzahl)
+        let gewinnPrize = null;
+        if (richtige === 6 && superzahlTreffer) {
+          gewinnPrize = LOTTO_PRIZES.find(p => p.superzahl);
+        } else {
+          gewinnPrize = LOTTO_PRIZES.find(p => !p.superzahl && p.richtig === richtige);
+        }
+
+        if (gewinnPrize && gewinnPrize.betrag > 0) {
+          winners.push({ userId, richtige, superzahlTreffer, betrag: gewinnPrize.betrag, label: gewinnPrize.label, ticket });
+          week.winners++;
+        }
+      }
+    }
+
+    // Gewinne auszahlen + DMs senden
+    for (const w of winners) {
+      const k = getKonto(w.userId);
+      k.konto += w.betrag;
+      setKonto(w.userId, k);
+      addTrans(w.userId, { ts: now, text: `+${w.betrag.toLocaleString('de-CH')} $ Lotto-Gewinn (${w.label})`, betrag: w.betrag });
+
+      // DM an Gewinner
+      try {
+        const user = await client.users.fetch(w.userId);
+        const dmEmbed = new EmbedBuilder()
+          .setColor(0xFFD700)
+          .setTitle('🏆 Du hast im Lotto gewonnen!')
+          .setDescription(
+            `**Herzlichen Glückwunsch!** 🎉\n\n` +
+            `**Deine Zahlen:** ${w.ticket.zahlen.map(n => `\`${String(n).padStart(2,'0')}\``).join(' ')}\n` +
+            `**Superzahl:** \`${w.ticket.superzahl}\`\n\n` +
+            `**Gezogene Zahlen:** ${gezogeneZahlen.map(n => `\`${String(n).padStart(2,'0')}\``).join(' ')}\n` +
+            `**Gezogene Superzahl:** \`${gezogeneSuperzahl}\`\n\n` +
+            `**Ergebnis:** ${w.label}\n` +
+            `**Gewinn:** 💰 **${w.betrag.toLocaleString('de-CH')} $**\n\n` +
+            `Der Betrag wurde direkt auf dein Konto überwiesen!`
+          )
+          .setFooter({ text: 'Paradise City Roleplay  •  Lotto' })
+          .setTimestamp();
+        await user.send({ embeds: [dmEmbed] }).catch(() => {});
+      } catch (_) {}
+    }
+
+    // Ziehungs-Ergebnis im Lotto-Kanal posten
+    const lottoCh = await client.channels.fetch(LOTTO_CH).catch(() => null);
+    if (lottoCh) {
+      const zahlenStr = gezogeneZahlen.map(n => `\`${String(n).padStart(2,'0')}\``).join('  ');
+      let winnersText = winners.length > 0
+        ? winners.map(w => `<@${w.userId}> — ${w.label} — **${w.betrag.toLocaleString('de-CH')} $**`).join('\n')
+        : '_Heute keine Gewinner — versuche es morgen!_ 🍀';
+      if (week.winners >= MAX_WINNERS_PER_WEEK && winners.length === 0) {
+        winnersText = '⚠️ **Wochenlimit erreicht** — keine weiteren Gewinne bis nächste Woche!';
+      }
+
+      const resultEmbed = new EmbedBuilder()
+        .setColor(0xFFD700)
+        .setTitle('🎰 Paradise City Lotto — Tagesziehung')
+        .setDescription(
+          `**📅 Datum:** ${today}\n\n` +
+          `**🎱 Gezogene Zahlen:**\n${zahlenStr}\n\n` +
+          `**🌟 Superzahl:** \`${gezogeneSuperzahl}\`\n\n` +
+          `**🏆 Gewinner:**\n${winnersText}\n\n` +
+          `*Gewinne werden automatisch aufs Konto überwiesen.*\n` +
+          `*Die nächste Ziehung findet morgen um 12:00 Uhr statt.*`
+        )
+        .setFooter({ text: `Paradise City Roleplay  •  Lotto  •  ${week.winners}/${MAX_WINNERS_PER_WEEK} Wochengewinner` })
+        .setTimestamp();
+
+      const playBtn = new ButtonBuilder()
+        .setCustomId('lotto_play')
+        .setLabel('🎰 Lotto spielen')
+        .setStyle(ButtonStyle.Primary);
+      await lottoCh.send({ embeds: [resultEmbed], components: [new ActionRowBuilder().addComponents(playBtn)] });
+    }
+
+    // Alle heutigen Tickets löschen, Woche speichern
+    for (const userId of Object.keys(tickets)) {
+      tickets[userId] = (tickets[userId] || []).filter(t => t.drawKey !== today);
+      if (tickets[userId].length === 0) delete tickets[userId];
+    }
+    saveLottoTickets(tickets);
+    week.lastDraw = today;
+    saveLottoWeek(week);
+  } catch (err) {
+    console.error('[LOTTO ZIEHUNG FEHLER]', err);
+  }
+}
+
+// ─── LOTTO TÄGLICHE ZIEHUNG (12:00 Uhr CET = 10:00 UTC) ─────────────────────
+setInterval(async () => {
+  const now = new Date();
+  const hour = now.getUTCHours();
+  const min  = now.getUTCMinutes();
+  if (hour === 10 && min === 0) {
+    await doLottoZiehung(client);
+  }
+}, 60 * 1000);
 
 // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
