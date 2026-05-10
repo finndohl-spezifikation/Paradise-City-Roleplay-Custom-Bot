@@ -4970,7 +4970,14 @@ client.on('interactionCreate', async (interaction) => {
   function _getUserInv(id) { return _loadInv()[id] || {}; }
   function _setUserInv(id, items) { const d = _loadInv(); d[id] = items; _fs.writeFileSync(INV_FILE_H, JSON.stringify(d, null, 2), 'utf8'); }
 
-  function hatHandy(m)   { return m.roles.cache.has(ROLE_HANDY_AN) || m.roles.cache.has(ROLE_HANDY_AUS); }
+  // hatHandy: prüft Inventar (Item enthält "handy") ODER hat schon eine Handy-Rolle
+  function hatHandy(uid, m) {
+    // Rolle gesetzt = Handy vorhanden (Rückwärtskompatibilität)
+    if (m && (m.roles.cache.has(ROLE_HANDY_AN) || m.roles.cache.has(ROLE_HANDY_AUS))) return true;
+    // Inventar prüfen: irgendein Item dessen Name "handy" enthält
+    const inv = _getUserInv(uid);
+    return Object.keys(inv).some(n => n.toLowerCase().includes('handy'));
+  }
   function hatHandyAn(m) { return m.roles.cache.has(ROLE_HANDY_AN); }
 
   // Antwort-Helfer: ephemeral reply für Select-Menu und Button
@@ -4993,7 +5000,7 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── HANDY AN ──────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_an') {
-    if (!hatHandy(member)) {
+    if (!hatHandy(uid, member)) {
       return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     }
     if (hatHandyAn(member)) {
@@ -5006,7 +5013,7 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── HANDY AUS ─────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_aus') {
-    if (!hatHandy(member)) {
+    if (!hatHandy(uid, member)) {
       return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     }
     if (!hatHandyAn(member)) {
@@ -5019,7 +5026,7 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── APPS ──────────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_apps') {
-    if (!hatHandy(member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandy(uid, member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     if (!hatHandyAn(member)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
     const appSelect = new StringSelectMenuBuilder()
       .setCustomId('app_select')
@@ -5056,7 +5063,7 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── SPIELE ────────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_spiele') {
-    if (!hatHandy(member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandy(uid, member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     if (!hatHandyAn(member)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
     return sendReply({
       embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('🎮 Handy-Spiele').setDescription('Wähle ein Spiel — es öffnet sich im Browser.')],
@@ -5082,7 +5089,7 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── DISPATCH ──────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_dispatch') {
-    if (!hatHandy(member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandy(uid, member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     if (!hatHandyAn(member)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
     return sendReply({
       embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('🚨 Dispatch').setDescription('Diese Funktion wird bald aktiviert. Wähle eine Einsatzzentrale:')],
@@ -5101,7 +5108,7 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── WHATSAPP ──────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_whatsapp') {
-    if (!hatHandy(member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandy(uid, member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     if (!hatHandyAn(member)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
     const modal = new ModalBuilder().setCustomId('whatsapp_modal').setTitle('💬 WhatsApp Nachricht senden');
     modal.addComponents(
