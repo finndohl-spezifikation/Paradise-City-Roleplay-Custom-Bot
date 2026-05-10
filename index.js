@@ -1294,11 +1294,11 @@ async function buildInviteCache(guild) {
         .setPlaceholder('📱 Was möchtest du tun?')
         .addOptions(
           new StringSelectMenuOptionBuilder().setLabel('Handy Einschalten').setValue('handy_an').setEmoji('📱').setDescription('Schalte dein Handy ein'),
-          new StringSelectMenuOptionBuilder().setLabel('Handy Ausschalten').setValue('handy_aus').setEmoji('🔴').setDescription('Schalte dein Handy aus'),
+          new StringSelectMenuOptionBuilder().setLabel('Handy Ausschalten').setValue('handy_aus').setEmoji('📵').setDescription('Schalte dein Handy aus'),
           new StringSelectMenuOptionBuilder().setLabel('Apps').setValue('handy_apps').setEmoji('📲').setDescription('Apps installieren & verwalten'),
           new StringSelectMenuOptionBuilder().setLabel('Spiele').setValue('handy_spiele').setEmoji('🎮').setDescription('Handy-Spiele im Browser spielen'),
-          new StringSelectMenuOptionBuilder().setLabel('Dispatch').setValue('handy_dispatch').setEmoji('📡').setDescription('Erreichbarkeit für Einsatzkräfte'),
-          new StringSelectMenuOptionBuilder().setLabel('WhatsApp').setValue('handy_whatsapp').setEmoji('💬').setDescription('Nachrichten an Spieler senden'),
+          new StringSelectMenuOptionBuilder().setLabel('WhatsApp').setValue('handy_whatsapp').setEmoji({ id: '1502984875387392011', name: 'emoji_24' }).setDescription('Nachrichten an Spieler senden'),
+          new StringSelectMenuOptionBuilder().setLabel('Dispatch').setValue('handy_dispatch').setEmoji('🚨').setDescription('Erreichbarkeit für Einsatzkräfte'),
         );
       const handyMenuRow = new ActionRowBuilder().addComponents(handyMenu);
       await handyCh.send({ embeds: [handyEmbed], components: [handyMenuRow] });
@@ -4944,159 +4944,193 @@ setInterval(async () => {
 
 // ─── HANDY INTERACTIONS ───────────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isButton() && !interaction.isStringSelectMenu() && !interaction.isModalSubmit()) return;
-  const cid = interaction.isStringSelectMenu() ? interaction.customId : interaction.customId;
-  const selectedVal = interaction.isStringSelectMenu() && interaction.customId === 'handy_menu' ? interaction.values[0] : null;
-  const effectiveId = selectedVal || cid;
-  if (!cid.startsWith('handy_') && !cid.startsWith('app_') && !cid.startsWith('spiel_') && !cid.startsWith('dispatch_') && !cid.startsWith('whatsapp_') && cid !== 'handy_menu') return;
+  // Nur Handy-relevante Interaktionen
+  if (!interaction.isStringSelectMenu() && !interaction.isButton() && !interaction.isModalSubmit()) return;
 
-  const uid = interaction.user.id;
+  const cid = interaction.customId;
+
+  // Select-Menu: effectiveId = gewählter Wert, sonst = customId
+  const effectiveId = (interaction.isStringSelectMenu() && cid === 'handy_menu')
+    ? interaction.values[0]
+    : cid;
+
+  // Nur weiterverarbeiten wenn es ein Handy-Befehl ist
+  const handyIds = ['handy_an','handy_aus','handy_apps','handy_spiele','handy_dispatch','handy_whatsapp'];
+  const subIds   = ['app_select','spiel_snake','spiel_tetris','dispatch_lapd','dispatch_lamd','dispatch_lacs','whatsapp_modal'];
+  if (cid !== 'handy_menu' && !handyIds.includes(cid) && !subIds.includes(cid)) return;
+
+  const uid    = interaction.user.id;
   const member = interaction.member;
 
-  // Bei Select-Menu: zuerst defer, damit kein Timeout
-  async function replyOrUpdate(opts) {
-    if (interaction.isStringSelectMenu()) {
-      if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate().catch(() => {});
-      return interaction.followUp({ ...opts, ephemeral: true });
-    }
-    return replyOrUpdate({ ...opts, ephemeral: true });
-  }
+  // Inventar-Helfer (eigene Kopie damit kein Scope-Problem)
+  const _path = require('path');
+  const _fs   = require('fs');
+  const INV_FILE_H = _path.join(__dirname, 'data', 'inventar.json');
+  function _loadInv() { try { return JSON.parse(_fs.readFileSync(INV_FILE_H, 'utf8')); } catch { return {}; } }
+  function _getUserInv(id) { return _loadInv()[id] || {}; }
+  function _setUserInv(id, items) { const d = _loadInv(); d[id] = items; _fs.writeFileSync(INV_FILE_H, JSON.stringify(d, null, 2), 'utf8'); }
 
-  // Inventar-Helfer
-  const INV_FILE_H = require('path').join(__dirname, 'data', 'inventar.json');
-  function loadInvH() { try { return JSON.parse(require('fs').readFileSync(INV_FILE_H, 'utf8')); } catch { return {}; } }
-  function getUserInvH(id) { return loadInvH()[id] || {}; }
-  function saveUserInvH(id, items) { const d = loadInvH(); d[id] = items; require('fs').writeFileSync(INV_FILE_H, JSON.stringify(d, null, 2), 'utf8'); }
-
-  function hatHandy(m) { return m.roles.cache.has(ROLE_HANDY_AN) || m.roles.cache.has(ROLE_HANDY_AUS); }
+  function hatHandy(m)   { return m.roles.cache.has(ROLE_HANDY_AN) || m.roles.cache.has(ROLE_HANDY_AUS); }
   function hatHandyAn(m) { return m.roles.cache.has(ROLE_HANDY_AN); }
 
-  // ── Handy AN ────────────────────────────────────────────────────────────────
-  if (cid === 'handy_an') {
+  // Antwort-Helfer: ephemeral reply für Select-Menu und Button
+  async function sendReply(opts) {
+    try {
+      if (interaction.isStringSelectMenu()) {
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply({ ephemeral: true });
+        }
+        return await interaction.editReply(opts);
+      }
+      if (!interaction.deferred && !interaction.replied) {
+        return await interaction.reply({ ...opts, ephemeral: true });
+      }
+      return await interaction.editReply(opts);
+    } catch (e) {
+      console.error('[HANDY] Reply-Fehler:', e.message);
+    }
+  }
+
+  // ── HANDY AN ──────────────────────────────────────────────────────────────
+  if (effectiveId === 'handy_an') {
     if (!hatHandy(member)) {
-      return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')], ephemeral: true });
+      return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     }
     if (hatHandyAn(member)) {
-      return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xffa500).setDescription('📱 Dein Handy ist bereits **eingeschaltet**!')], ephemeral: true });
+      return sendReply({ embeds: [new EmbedBuilder().setColor(0xffa500).setDescription('📱 Dein Handy ist bereits **eingeschaltet**!')] });
     }
     await member.roles.add(ROLE_HANDY_AN).catch(() => {});
     await member.roles.remove(ROLE_HANDY_AUS).catch(() => {});
-    return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0x00ff00).setDescription('✅ Dein Handy wurde **eingeschaltet**!')], ephemeral: true });
+    return sendReply({ embeds: [new EmbedBuilder().setColor(0x57f287).setDescription('📱 Dein Handy wurde **eingeschaltet**!')] });
   }
 
-  // ── Handy AUS ───────────────────────────────────────────────────────────────
-  if (cid === 'handy_aus') {
+  // ── HANDY AUS ─────────────────────────────────────────────────────────────
+  if (effectiveId === 'handy_aus') {
     if (!hatHandy(member)) {
-      return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')], ephemeral: true });
+      return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     }
     if (!hatHandyAn(member)) {
-      return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xffa500).setDescription('🔴 Dein Handy ist bereits **ausgeschaltet**!')], ephemeral: true });
+      return sendReply({ embeds: [new EmbedBuilder().setColor(0xffa500).setDescription('📵 Dein Handy ist bereits **ausgeschaltet**!')] });
     }
     await member.roles.remove(ROLE_HANDY_AN).catch(() => {});
     await member.roles.add(ROLE_HANDY_AUS).catch(() => {});
-    return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('🔴 Dein Handy wurde **ausgeschaltet**!')], ephemeral: true });
+    return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('📵 Dein Handy wurde **ausgeschaltet**!')] });
   }
 
-  // ── APPS ────────────────────────────────────────────────────────────────────
-  if (cid === 'handy_apps') {
-    if (!hatHandy(member)) return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')], ephemeral: true });
-    if (!hatHandyAn(member)) return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')], ephemeral: true });
+  // ── APPS ──────────────────────────────────────────────────────────────────
+  if (effectiveId === 'handy_apps') {
+    if (!hatHandy(member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandyAn(member)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
     const appSelect = new StringSelectMenuBuilder()
       .setCustomId('app_select')
-      .setPlaceholder('Wähle eine App...')
+      .setPlaceholder('App auswählen...')
       .addOptions(
         new StringSelectMenuOptionBuilder().setLabel('Instagram').setValue('instagram').setEmoji('📸').setDescription('Instagram-Rolle'),
         new StringSelectMenuOptionBuilder().setLabel('eBay').setValue('ebay').setEmoji('🛒').setDescription('eBay-Rolle'),
         new StringSelectMenuOptionBuilder().setLabel('Parship').setValue('parship').setEmoji('💕').setDescription('Parship-Rolle'),
       );
-    return replyOrUpdate({
-      embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('📲 Apps').setDescription('Wähle eine App. Ein erneuter Klick deinstalliert sie.')],
+    return sendReply({
+      embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('📲 Apps').setDescription('Wähle eine App. Ein erneuter Klick deinstalliert sie.')],
       components: [new ActionRowBuilder().addComponents(appSelect)],
-      ephemeral: true,
     });
   }
 
+  // ── APP AUSWAHL ───────────────────────────────────────────────────────────
   if (cid === 'app_select') {
-    const val = interaction.values[0];
-    const appMap = { instagram: { role: ROLE_APP_INSTA, name: 'Instagram', emoji: '📸' }, ebay: { role: ROLE_APP_EBAY, name: 'eBay', emoji: '🛒' }, parship: { role: ROLE_APP_PARSHIP, name: 'Parship', emoji: '💕' } };
+    const val    = interaction.values[0];
+    const appMap = {
+      instagram: { role: ROLE_APP_INSTA,   name: 'Instagram', emoji: '📸' },
+      ebay:      { role: ROLE_APP_EBAY,    name: 'eBay',      emoji: '🛒' },
+      parship:   { role: ROLE_APP_PARSHIP, name: 'Parship',   emoji: '💕' },
+    };
     const app = appMap[val];
     if (!app) return interaction.update({ content: 'Unbekannte App.', components: [] });
+    if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate().catch(() => {});
     if (member.roles.cache.has(app.role)) {
       await member.roles.remove(app.role).catch(() => {});
-      return interaction.update({ embeds: [new EmbedBuilder().setColor(0xff9900).setDescription(app.emoji + ' **' + app.name + '** wurde deinstalliert.')], components: [] });
+      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff9900).setDescription(app.emoji + ' **' + app.name + '** wurde deinstalliert.')], components: [] });
     }
     await member.roles.add(app.role).catch(() => {});
-    return interaction.update({ embeds: [new EmbedBuilder().setColor(0x00ff00).setDescription(app.emoji + ' **' + app.name + '** wurde installiert!')], components: [] });
+    return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x57f287).setDescription(app.emoji + ' **' + app.name + '** wurde installiert!')], components: [] });
   }
 
-  // ── SPIELE ──────────────────────────────────────────────────────────────────
-  if (cid === 'handy_spiele') {
-    if (!hatHandy(member)) return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')], ephemeral: true });
-    if (!hatHandyAn(member)) return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')], ephemeral: true });
-    return replyOrUpdate({
-      embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('🎮 Handy-Spiele').setDescription('Wähle ein Spiel — es öffnet sich im Browser.')],
+  // ── SPIELE ────────────────────────────────────────────────────────────────
+  if (effectiveId === 'handy_spiele') {
+    if (!hatHandy(member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandyAn(member)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
+    return sendReply({
+      embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('🎮 Handy-Spiele').setDescription('Wähle ein Spiel — es öffnet sich im Browser.')],
       components: [new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('spiel_snake').setLabel('Snake').setStyle(ButtonStyle.Secondary).setEmoji('🐍'),
         new ButtonBuilder().setCustomId('spiel_tetris').setLabel('Tetris').setStyle(ButtonStyle.Secondary).setEmoji('🟦'),
       )],
-      ephemeral: true,
     });
   }
 
   if (cid === 'spiel_snake') {
-    return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0x57f287).setTitle('🐍 Snake').setDescription('Klicke um Snake im Browser zu spielen!')],
-      components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('🐍 Snake spielen').setStyle(ButtonStyle.Link).setURL('https://playsnake.org/'))], ephemeral: true });
+    return sendReply({
+      embeds: [new EmbedBuilder().setColor(0x57f287).setTitle('🐍 Snake').setDescription('Klicke um Snake im Browser zu spielen!')],
+      components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('🐍 Snake spielen').setStyle(ButtonStyle.Link).setURL('https://playsnake.org/'))],
+    });
   }
   if (cid === 'spiel_tetris') {
-    return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('🟦 Tetris').setDescription('Klicke um Tetris im Browser zu spielen!')],
-      components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('🟦 Tetris spielen').setStyle(ButtonStyle.Link).setURL('https://tetris.com/play-tetris'))], ephemeral: true });
+    return sendReply({
+      embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('🟦 Tetris').setDescription('Klicke um Tetris im Browser zu spielen!')],
+      components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('🟦 Tetris spielen').setStyle(ButtonStyle.Link).setURL('https://tetris.com/play-tetris'))],
+    });
   }
 
-  // ── DISPATCH ────────────────────────────────────────────────────────────────
-  if (cid === 'handy_dispatch') {
-    if (!hatHandy(member)) return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')], ephemeral: true });
-    if (!hatHandyAn(member)) return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')], ephemeral: true });
-    return replyOrUpdate({
-      embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('📡 Dispatch').setDescription('Diese Funktion wird bald aktiviert.')],
+  // ── DISPATCH ──────────────────────────────────────────────────────────────
+  if (effectiveId === 'handy_dispatch') {
+    if (!hatHandy(member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandyAn(member)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
+    return sendReply({
+      embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('🚨 Dispatch').setDescription('Diese Funktion wird bald aktiviert. Wähle eine Einsatzzentrale:')],
       components: [new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('dispatch_lapd').setLabel('Dispatch LAPD').setStyle(ButtonStyle.Primary).setEmoji('🚓'),
         new ButtonBuilder().setCustomId('dispatch_lamd').setLabel('Dispatch LAMD').setStyle(ButtonStyle.Danger).setEmoji('🚑'),
         new ButtonBuilder().setCustomId('dispatch_lacs').setLabel('Dispatch LACS').setStyle(ButtonStyle.Secondary).setEmoji('🚒'),
       )],
-      ephemeral: true,
     });
   }
 
   if (cid === 'dispatch_lapd' || cid === 'dispatch_lamd' || cid === 'dispatch_lacs') {
-    const n = { dispatch_lapd: 'LAPD', dispatch_lamd: 'LAMD', dispatch_lacs: 'LACS' };
-    return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xffa500).setDescription('📡 **Dispatch ' + n[cid] + '** — Kommt bald!')], ephemeral: true });
+    const labels = { dispatch_lapd: 'LAPD', dispatch_lamd: 'LAMD', dispatch_lacs: 'LACS' };
+    return sendReply({ embeds: [new EmbedBuilder().setColor(0xffa500).setDescription('🚨 **Dispatch ' + labels[cid] + '** — Kommt bald!')] });
   }
 
-  // ── WHATSAPP ────────────────────────────────────────────────────────────────
-  if (cid === 'handy_whatsapp') {
-    if (!hatHandy(member)) return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')], ephemeral: true });
-    if (!hatHandyAn(member)) return replyOrUpdate({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')], ephemeral: true });
+  // ── WHATSAPP ──────────────────────────────────────────────────────────────
+  if (effectiveId === 'handy_whatsapp') {
+    if (!hatHandy(member))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandyAn(member)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
     const modal = new ModalBuilder().setCustomId('whatsapp_modal').setTitle('💬 WhatsApp Nachricht senden');
     modal.addComponents(
-      new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('wa_empfaenger').setLabel('Empfänger (Discord User-ID)').setStyle(TextInputStyle.Short).setPlaceholder('z.B. 123456789012345678').setRequired(true)),
-      new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('wa_nachricht').setLabel('Nachricht').setStyle(TextInputStyle.Paragraph).setPlaceholder('Schreibe deine Nachricht...').setRequired(true).setMaxLength(1000)),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('wa_empfaenger').setLabel('Empfänger (Discord User-ID)').setStyle(TextInputStyle.Short).setPlaceholder('z.B. 123456789012345678').setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('wa_nachricht').setLabel('Nachricht').setStyle(TextInputStyle.Paragraph).setPlaceholder('Schreibe deine Nachricht...').setRequired(true).setMaxLength(1000)
+      ),
     );
     return interaction.showModal(modal);
   }
 
+  // ── WHATSAPP MODAL SUBMIT ─────────────────────────────────────────────────
   if (cid === 'whatsapp_modal') {
     await interaction.deferReply({ ephemeral: true });
     const empfaengerRaw = interaction.fields.getTextInputValue('wa_empfaenger').trim().replace(/[<@!>]/g, '');
-    const nachricht = interaction.fields.getTextInputValue('wa_nachricht').trim();
+    const nachricht     = interaction.fields.getTextInputValue('wa_nachricht').trim();
     let empfaenger;
-    try { empfaenger = await interaction.client.users.fetch(empfaengerRaw); } catch {
-      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Empfänger nicht gefunden. Bitte prüfe die User-ID.')] });
-    }
+    try { empfaenger = await interaction.client.users.fetch(empfaengerRaw); }
+    catch { return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Empfänger nicht gefunden. Bitte prüfe die User-ID.')] }); }
     if (empfaenger.bot) return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du kannst keine Nachrichten an Bots senden.')] });
-    const dmEmbed = new EmbedBuilder().setColor(0x25d366).setTitle('💬 WhatsApp Nachricht')
+    const dmEmbed = new EmbedBuilder()
+      .setColor(0x25d366)
+      .setTitle('💬 WhatsApp Nachricht')
       .setDescription(nachricht)
       .setAuthor({ name: 'Von: ' + interaction.user.username, iconURL: interaction.user.displayAvatarURL() })
-      .setFooter({ text: 'Paradise City Roleplay • WhatsApp' }).setTimestamp();
+      .setFooter({ text: 'Paradise City Roleplay • WhatsApp' })
+      .setTimestamp();
     try {
       await empfaenger.send({ embeds: [dmEmbed] });
       return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x25d366).setDescription('✅ Nachricht wurde an **' + empfaenger.username + '** gesendet!')] });
@@ -5105,7 +5139,6 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 });
-
 // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
   console.error('[UNHANDLED REJECTION]', reason);
