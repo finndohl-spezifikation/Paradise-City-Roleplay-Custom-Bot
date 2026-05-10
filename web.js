@@ -246,7 +246,42 @@ function charFields(prefix, idx, vals) {
   </div>`;
 }
 
-function buildScratchPage(token, entry) {
+
+function buildInvalidPage(title, msg) {
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{background:#0d1117;color:#e0e0e0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px}</style></head><body><div style="font-size:3em">❌</div><h2 style="color:#f85149">'+title+'</h2><p style="color:#8b949e">'+msg+'</p></body></html>';
+}
+
+function buildClaimedPage(entry) {
+  const p = entry.prize;
+  const grid = entry.grid;
+  let h = '', msg = '', ico = p.sym || '🎁';
+  if (p.type === 'cash')   { h = '🎉 Bereits eingelöst!'; msg = p.amount.toLocaleString('de-DE') + ' $ wurden deinem Bargeld gutgeschrieben.'; }
+  else if (p.type === 'item')   { h = '🎉 Bereits eingelöst!'; msg = (p.menge||1) + '× ' + p.item + ' wurde deinem Inventar hinzugefügt.'; }
+  else if (p.type === 'ticket') { h = '🏆 Hauptgewinn eingelöst!'; ico = '🏎️'; msg = 'Sportwagen-Gewinn! Bitte ein Support-Ticket in Discord erstellen.'; }
+  else { h = '😢 Leider Niete'; msg = 'Kein Gewinn diesmal — viel Glück beim nächsten Mal!'; }
+  const cells = (entry.scratchedCells||[]).map((v,i) => {
+    const sym = grid[i];
+    return '<div style="width:80px;height:80px;background:#161b22;border:2px solid #3fb950;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.8em;">'+sym+'</div>';
+  }).join('');
+  return `<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rubbellos — Paradise City Roleplay</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px;text-align:center}h1{color:#ffd180;font-size:1.3em;letter-spacing:2px;text-transform:uppercase;margin:12px 0 6px}.card{background:#161b22;border:2px solid #3fb950;border-radius:18px;padding:28px 24px;max-width:400px;width:100%;margin-top:20px}.ico{font-size:3em;margin-bottom:10px}.grid{display:grid;grid-template-columns:repeat(3,80px);gap:6px;margin:16px auto;width:fit-content}.prize{font-size:1.1em;font-weight:700;color:#3fb950;margin:12px 0 6px}.note{color:#8b949e;font-size:.8em;margin-top:16px}</style></head>
+<body>
+<div style="font-size:2.8em;margin-bottom:8px">🎟️</div>
+<h1>Paradise City Rubbellos</h1>
+<div class="card">
+  <div class="ico">${ico}</div>
+  <h2 style="color:#ffd180;font-size:1.1em;margin-bottom:8px">${h}</h2>
+  <p style="color:#c9d1d9;font-size:.9em">${msg}</p>
+  <div class="grid">${cells}</div>
+  <p class="note">Dieses Rubbellos wurde bereits eingelöst.</p>
+</div>
+</body></html>`;
+}
+
+function buildScratchPage(token, entry, scratchedCells) {
+    if (!scratchedCells) scratchedCells = new Array(9).fill(0);
     const grid  = entry.grid;
     const cells = grid.map((sym, i) => '<div class="cell" id="c'+i+'" data-i="'+i+'"><span class="sym">'+sym+'</span><canvas class="cv" width="104" height="104"></canvas></div>').join('');
     const gridJ = JSON.stringify(grid);
@@ -315,8 +350,9 @@ function buildScratchPage(token, entry) {
   const GRID=${gridJ};
   const PRIZE=${JSON.stringify(entry.prize)};
   const SYM_MAP={'\u274C':'Niete','\uD83D\uDCB5':"1'000 \u0024",'\uD83D\uDCB4':"2'500 \u0024",'\uD83D\uDCB6':"5'000 \u0024",'\uD83D\uDCB0':"25'000 \u0024",'\uD83D\uDEAC':'10\u00D7 Marlboro Rot','\uD83D\uDEB2':'Elektro Fahrrad','\uD83C\uDFC3\u200D\u2642\uFE0F':'Golfschl\u00E4ger','\uD83C\uDF9F\uFE0F':'Lottoschein','\uD83C\uDFAB':'20% Rabatt beim Autohaus'};
+  const SCRATCH_STATE=${JSON.stringify(scratchedCells)};
   const CASH_SYMS=new Set(['\uD83D\uDCB5','\uD83D\uDCB4','\uD83D\uDCB6','\uD83D\uDCB0']);
-  const scratched=new Array(9).fill(0);
+  const scratched=[...SCRATCH_STATE];
   const GSIZE=14;const GCELLS=GSIZE*GSIZE;
   const covered=Array.from({length:9},()=>new Uint8Array(GCELLS));
   const lastPos=new Array(9).fill(null);
@@ -324,6 +360,7 @@ function buildScratchPage(token, entry) {
 
   // ── Paint metallic silver coating ───────────────────────────────────────────
   document.querySelectorAll('.cv').forEach((cv,i)=>{
+    if(SCRATCH_STATE[i]>=100){cv.style.display='none';return;} // already done
     const ctx=cv.getContext('2d');
     const w=cv.width,h=cv.height;
     ctx.globalCompositeOperation='source-over';
@@ -387,6 +424,16 @@ function buildScratchPage(token, entry) {
 
   // Reveal symbols under the coating
   document.querySelectorAll('.sym').forEach(s=>s.style.visibility='visible');
+  // Restore server-persisted scratch state on page load
+  (function restoreState(){
+    SCRATCH_STATE.forEach((v,i)=>{
+      if(v>=100){
+        scratched[i]=100;
+        finalise(i,false);
+      }
+    });
+    upd();
+  })();
 
   // ── Particle system ──────────────────────────────────────────────────────────
   function spawnParticles(clientX,clientY){
@@ -461,13 +508,15 @@ function buildScratchPage(token, entry) {
     };
     requestAnimationFrame(fadeOut);
   }
-  function finalise(i){
+  function saveProgress(){try{fetch('/api/rubbellos/progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,cells:scratched})});}catch(e){}}
+  function finalise(i,doSave){if(doSave===undefined)doSave=true;
     const cell=document.getElementById('c'+i);cell.classList.add('done');
     const sym=GRID[i];
     const spanEl=cell.querySelector('.sym');
     if(CASH_SYMS.has(sym)){spanEl.textContent=SYM_MAP[sym]||sym;spanEl.classList.add('txt');}
     spanEl.style.visibility='visible';
     upd();
+    if(doSave)saveProgress();
   }
 
   // ── Scratch at position ──────────────────────────────────────────────────────
@@ -1666,10 +1715,14 @@ module.exports = function startWebServer(client, DATA_DIR) {
     // GET /rubbellos?token=XXX  — serves the scratch card page
     app.get('/rubbellos', (req, res) => {
       const entry = rubbellosTokens.get(req.query.token||'');
-      if (!entry || entry.usedAt || entry.expiresAt < Date.now()) {
-        return res.send('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ungültig</title><style>body{background:#0d1117;color:#e0e0e0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px}</style></head><body><div style="font-size:3em">❌</div><h2 style="color:#f85149">Link ungültig oder abgelaufen</h2><p style="color:#8b949e">Bitte löse das Rubbellos erneut über Discord ein.</p></body></html>');
+      if (!entry || entry.expiresAt < Date.now()) {
+        return res.send(buildInvalidPage('Link ungültig oder abgelaufen', 'Bitte löse das Rubbellos erneut über Discord ein.'));
       }
-      res.send(buildScratchPage(req.query.token, entry));
+      if (!entry.scratchedCells) entry.scratchedCells = new Array(9).fill(0);
+      if (entry.usedAt) {
+        return res.send(buildClaimedPage(entry));
+      }
+      res.send(buildScratchPage(req.query.token, entry, entry.scratchedCells));
     });
 
     // POST /api/rubbellos/claim  — validates token and credits prize
@@ -1696,6 +1749,18 @@ module.exports = function startWebServer(client, DATA_DIR) {
         return res.json({ ok: false, error: 'Serverfehler beim Gutschreiben.' });
       }
       res.json({ ok: true, prize });
+    });
+
+    // POST /api/rubbellos/progress  — saves scratch progress server-side
+    app.post('/api/rubbellos/progress', express.json(), (req, res) => {
+      const token = (req.body||{}).token||'';
+      const cells = (req.body||{}).cells;
+      const entry = rubbellosTokens.get(token);
+      if (!entry || entry.usedAt || entry.expiresAt < Date.now()) return res.json({ok:false});
+      if (Array.isArray(cells) && cells.length === 9) {
+        entry.scratchedCells = cells.map(v => Math.min(100, Math.max(0, Number(v)||0)));
+      }
+      res.json({ok:true});
     });
 
     // ── Start ────────────────────────────────────────────────────────────────
