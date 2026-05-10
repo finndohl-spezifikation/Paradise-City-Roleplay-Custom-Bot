@@ -1868,27 +1868,30 @@ async function buildInviteCache(guild) {
         const setupL = loadSetup();
         if (!setupL.lottoEmbedSent) {
           const lottoEmbed = new EmbedBuilder()
-            .setColor(0xFFD700)
-            .setTitle('🎰 Paradise City Lotto')
+            .setColor(0x1A0040)
+            .setTitle('🎰  P A R A D I S E   C I T Y   L O T T O')
             .setDescription(
-              `**Täglich um 12:00 Uhr werden die Gewinner gezogen!**\n\n` +
-              `**So funktioniert es:**\n` +
-              `Wähle **6 Zahlen** (1–100) und eine **Superzahl** (1–10).\n` +
-              `Du brauchst einen 🎟️ **Lottoschein** aus dem Shop **(2.800 $)**.\n\n` +
-              `**Gewinntabelle:**\n` +
-              `🎯 1 Richtige → **50.000 $**\n` +
-              `🎯 2 Richtige → **100.000 $**\n` +
-              `🎯 3 Richtige → **200.000 $**\n` +
-              `🎯 4 Richtige → **400.000 $**\n` +
-              `🎯 5 Richtige → **800.000 $**\n` +
-              `🎯 6 Richtige → **1.000.000 $**\n` +
-              `🌟 Superzahl → **3.000.000 $** *(extrem selten!)*\n\n` +
-              `Du kannst mehrere Scheine pro Tag kaufen & abgeben.\n` +
-              `⚠️ **Maximal 5 Gewinner pro Woche** — danach keine weiteren Gewinne bis nächste Woche.\n` +
-              `Gewinner werden per DM benachrichtigt.\n\n` +
-              `**Paradise City Roleplay — Viel Glück!**`
+              `> *Täglich um **12:00 Uhr** dreht sich das Rad des Schicksals…*\n` +
+              `\u200B\n` +
+              `**▸ SO FUNKTIONIERT ES**\n` +
+              `Wähle **6 Zahlen** \`(1–100)\` und eine **Superzahl** \`(1–10)\`.\n` +
+              `Du benötigst einen 🎟️ **Lottoschein** aus dem Shop für **2.800 $**.\n` +
+              `Du kannst mehrere Scheine kaufen & pro Tag abgeben.\n` +
+              `\u200B\n` +
+              `**▸ GEWINNTABELLE**\n` +
+              `\`\`\`\n` +
+              `  1 Richtige  →      50.000 $\n` +
+              `  2 Richtige  →     100.000 $\n` +
+              `  3 Richtige  →     200.000 $\n` +
+              `  4 Richtige  →     400.000 $\n` +
+              `  5 Richtige  →     800.000 $\n` +
+              `  6 Richtige  →   1.000.000 $\n` +
+              `  ★ Superzahl  →   3.000.000 $\n` +
+              `\`\`\`\n` +
+              `⚠️ **Maximal 5 Gewinner pro Woche.** Danach keine Auszahlung bis zur nächsten Woche.\n` +
+              `📩 Gewinner werden per **DM** benachrichtigt.`
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Lotto' });
+            .setFooter({ text: 'Paradise City Roleplay  •  Lotto  •  Viel Glück! 🍀' });
           const lottoBtn = new ButtonBuilder()
             .setCustomId('lotto_play')
             .setLabel('🎰 Lotto spielen')
