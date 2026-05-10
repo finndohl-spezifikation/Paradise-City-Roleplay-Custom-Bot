@@ -5060,8 +5060,7 @@ client.on('interactionCreate', async (interaction) => {
       embeds: [new EmbedBuilder()
         .setColor(DARK_ORANGE)
         .setTitle('📲 Apps')
-        .setDescription('Wähle eine App zum Installieren oder Deinstallieren.
-✅ = bereits installiert')
+        .setDescription('Wähle eine App zum Installieren oder Deinstallieren.\n✅ = bereits installiert')
         .setFooter({ text: installedCount + ' von 3 Apps installiert' })],
       components: [new ActionRowBuilder().addComponents(appSelect)],
     });
@@ -5118,8 +5117,7 @@ client.on('interactionCreate', async (interaction) => {
       embeds: [new EmbedBuilder()
         .setColor(hatApp ? 0xff9900 : 0x57f287)
         .setTitle('📲 Apps')
-        .setDescription(statusMsg + '\n\nWähle eine weitere App oder schließe das Menü.
-✅ = bereits installiert')
+        .setDescription(statusMsg + '\n\nWähle eine weitere App oder schließe das Menü.\n✅ = bereits installiert')
         .setFooter({ text: installedCount2 + ' von 3 Apps installiert' })],
       components: [new ActionRowBuilder().addComponents(appSelect2)],
     });
