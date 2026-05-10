@@ -1195,45 +1195,6 @@ async function buildInviteCache(guild) {
     const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
     const LINE2 = '─────────────────────────────────────────';
     const einreiseEmbed = new EmbedBuilder()
-
-  // ── Handy-Embed senden ────────────────────────────────────────────────────
-  {
-    const handyCh = await client.channels.fetch(HANDY_CH).catch(() => null);
-    if (handyCh) {
-      const msgs = await handyCh.messages.fetch({ limit: 20 }).catch(() => null);
-      if (msgs) {
-        for (const m of msgs.values()) {
-          if (m.author.id === client.user.id) await m.delete().catch(() => {});
-        }
-      }
-      const handyEmbed = new EmbedBuilder()
-        .setTitle('📱 Handy-Verwaltung')
-        .setDescription(
-          'Willkommen bei deiner Handy-Verwaltung!\n\n' +
-          '> 📱 **Handy An/Aus** — Schalte dein Handy ein oder aus\n' +
-          '> 📲 **Apps** — Verwalte deine installierten Apps\n' +
-          '> 🎮 **Spiele** — Spiele Handy-Spiele direkt im Browser\n' +
-          '> 📡 **Dispatch** — Erreichbarkeit für Einsatzkräfte\n' +
-          '> 💬 **WhatsApp** — Sende Nachrichten an andere Spieler\n\n' +
-          '⚠️ Du benötigst ein **Handy** aus dem Kwil E Markt und es muss **eingeschaltet** sein.'
-        )
-        .setColor(0x2b2d31)
-        .setFooter({ text: 'Paradise City Roleplay • Handy-System' });
-      const handyRow1 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('handy_an').setLabel('Handy An').setStyle(ButtonStyle.Success).setEmoji('📱'),
-        new ButtonBuilder().setCustomId('handy_aus').setLabel('Handy Aus').setStyle(ButtonStyle.Danger).setEmoji('🔴'),
-      );
-      const handyRow2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('handy_apps').setLabel('Apps').setStyle(ButtonStyle.Primary).setEmoji('📲'),
-        new ButtonBuilder().setCustomId('handy_spiele').setLabel('Spiele').setStyle(ButtonStyle.Primary).setEmoji('🎮'),
-      );
-      const handyRow3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('handy_dispatch').setLabel('Dispatch').setStyle(ButtonStyle.Secondary).setEmoji('📡'),
-        new ButtonBuilder().setCustomId('handy_whatsapp').setLabel('WhatsApp').setStyle(ButtonStyle.Success).setEmoji('💬'),
-      );
-      await handyCh.send({ embeds: [handyEmbed], components: [handyRow1, handyRow2, handyRow3] });
-    }
-  }
       .setColor(DARK_ORANGE)
       .setTitle('🛂  Einreise — Paradise City Roleplay')
       .setDescription(
@@ -1298,6 +1259,45 @@ async function buildInviteCache(guild) {
         console.log('✅ Einreise-Embed v2 (mit Button) einmalig gesendet.');
       }
     } catch (e) { console.error('Einreise-Embed Fehler:', e.message); }
+  }
+
+  // ── Handy-Embed senden ────────────────────────────────────────────────────
+  {
+    const handyCh = await client.channels.fetch(HANDY_CH).catch(() => null);
+    if (handyCh) {
+      const msgs = await handyCh.messages.fetch({ limit: 20 }).catch(() => null);
+      if (msgs) {
+        for (const m of msgs.values()) {
+          if (m.author.id === client.user.id) await m.delete().catch(() => {});
+        }
+      }
+      const handyEmbed = new EmbedBuilder()
+        .setTitle('📱 Handy-Verwaltung')
+        .setDescription(
+          'Willkommen bei deiner Handy-Verwaltung!\n\n' +
+          '> 📱 **Handy An/Aus** — Schalte dein Handy ein oder aus\n' +
+          '> 📲 **Apps** — Verwalte deine installierten Apps\n' +
+          '> 🎮 **Spiele** — Spiele Handy-Spiele direkt im Browser\n' +
+          '> 📡 **Dispatch** — Erreichbarkeit für Einsatzkräfte\n' +
+          '> 💬 **WhatsApp** — Sende Nachrichten an andere Spieler\n\n' +
+          '⚠️ Du benötigst ein **Handy** aus dem Kwil E Markt und es muss **eingeschaltet** sein.'
+        )
+        .setColor(0x2b2d31)
+        .setFooter({ text: 'Paradise City Roleplay • Handy-System' });
+      const handyRow1 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('handy_an').setLabel('Handy An').setStyle(ButtonStyle.Success).setEmoji('📱'),
+        new ButtonBuilder().setCustomId('handy_aus').setLabel('Handy Aus').setStyle(ButtonStyle.Danger).setEmoji('🔴'),
+      );
+      const handyRow2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('handy_apps').setLabel('Apps').setStyle(ButtonStyle.Primary).setEmoji('📲'),
+        new ButtonBuilder().setCustomId('handy_spiele').setLabel('Spiele').setStyle(ButtonStyle.Primary).setEmoji('🎮'),
+      );
+      const handyRow3 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('handy_dispatch').setLabel('Dispatch').setStyle(ButtonStyle.Secondary).setEmoji('📡'),
+        new ButtonBuilder().setCustomId('handy_whatsapp').setLabel('WhatsApp').setStyle(ButtonStyle.Success).setEmoji('💬'),
+      );
+      await handyCh.send({ embeds: [handyEmbed], components: [handyRow1, handyRow2, handyRow3] });
+    }
   }
 
 
