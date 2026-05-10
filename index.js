@@ -4943,12 +4943,9 @@ setInterval(async () => {
 
 
 // ─── HANDY INTERACTIONS ───────────────────────────────────────────────────────
-// Zwischenspeicher: Empfänger-ID für WhatsApp (uid → targetId)
-const waTargets = new Map();
-
 client.on('interactionCreate', async (interaction) => {
   // Nur Handy-relevante Interaktionen
-  if (!interaction.isStringSelectMenu() && !interaction.isButton() && !interaction.isModalSubmit() && !interaction.isUserSelectMenu()) return;
+  if (!interaction.isStringSelectMenu() && !interaction.isButton() && !interaction.isModalSubmit()) return;
 
   const cid = interaction.customId;
 
@@ -4959,7 +4956,7 @@ client.on('interactionCreate', async (interaction) => {
 
   // Nur weiterverarbeiten wenn es ein Handy-Befehl ist
   const handyIds = ['handy_an','handy_aus','handy_apps','handy_spiele','handy_dispatch','handy_whatsapp'];
-  const subIds   = ['app_select','spiel_snake','spiel_tetris','dispatch_lapd','dispatch_lamd','dispatch_lacs','whatsapp_modal','wa_user_sel'];
+  const subIds   = ['app_select','spiel_snake','spiel_tetris','dispatch_lapd','dispatch_lamd','dispatch_lacs','whatsapp_modal'];
   if (cid !== 'handy_menu' && !handyIds.includes(cid) && !subIds.includes(cid)) return;
 
   const uid    = interaction.user.id;
@@ -5081,15 +5078,17 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   if (cid === 'spiel_snake') {
+    const GAME_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
     return sendReply({
-      embeds: [new EmbedBuilder().setColor(0x57f287).setTitle('🐍 Snake').setDescription('Klicke um Snake im Browser zu spielen!')],
-      components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('🐍 Snake spielen').setStyle(ButtonStyle.Link).setURL('https://playsnake.org/'))],
+      embeds: [new EmbedBuilder().setColor(0x57f287).setTitle('🐍 Snake').setDescription('Klicke auf den Button und spiele Snake direkt im Browser!')],
+      components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('🐍 Snake spielen').setStyle(ButtonStyle.Link).setURL(GAME_URL + '/snake'))],
     });
   }
   if (cid === 'spiel_tetris') {
+    const GAME_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
     return sendReply({
-      embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('🟦 Tetris').setDescription('Klicke um Tetris im Browser zu spielen!')],
-      components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('🟦 Tetris spielen').setStyle(ButtonStyle.Link).setURL('https://tetris.com/play-tetris'))],
+      embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('🟦 Tetris').setDescription('Klicke auf den Button und spiele Tetris direkt im Browser!')],
+      components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('🟦 Tetris spielen').setStyle(ButtonStyle.Link).setURL(GAME_URL + '/tetris'))],
     });
   }
 
@@ -5114,45 +5113,15 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── WHATSAPP ──────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_whatsapp') {
-    if (!hatHandy(uid))        return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandy(uid))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     if (!hatHandyAn(member, uid)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
-    // Schritt 1: Empfänger per UserSelectMenu auswählen
-    const userSel = new UserSelectMenuBuilder()
-      .setCustomId('wa_user_sel')
-      .setPlaceholder('👤 Empfänger auswählen...')
-      .setMinValues(1)
-      .setMaxValues(1);
-    return sendReply({
-      embeds: [new EmbedBuilder()
-        .setColor(0x25d366)
-        .setTitle('<:emoji_24:1502984875387392011> WhatsApp')
-        .setDescription('Wähle den Empfänger deiner Nachricht aus.')],
-      components: [new ActionRowBuilder().addComponents(userSel)],
-    });
-  }
-
-  // ── WHATSAPP: Empfänger ausgewählt → Modal mit Nachrichtenfeld ────────────
-  if (interaction.isUserSelectMenu() && cid === 'wa_user_sel') {
-    const targetId = interaction.values[0];
-    const targetUser = await interaction.client.users.fetch(targetId).catch(() => null);
-    if (!targetUser || targetUser.bot) {
-      await interaction.deferUpdate().catch(() => {});
-      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Ungültiger Empfänger.')], components: [] });
-    }
-    // Empfänger zwischenspeichern, dann Modal zeigen
-    waTargets.set(uid, targetId);
-    const modal = new ModalBuilder()
-      .setCustomId('whatsapp_modal')
-      .setTitle('💬 Nachricht an ' + targetUser.username);
+    const modal = new ModalBuilder().setCustomId('whatsapp_modal').setTitle('💬 WhatsApp Nachricht senden');
     modal.addComponents(
       new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('wa_nachricht')
-          .setLabel('Nachricht')
-          .setStyle(TextInputStyle.Paragraph)
-          .setPlaceholder('Schreibe deine Nachricht...')
-          .setRequired(true)
-          .setMaxLength(1000)
+        new TextInputBuilder().setCustomId('wa_empfaenger').setLabel('Empfänger (Discord User-ID)').setStyle(TextInputStyle.Short).setPlaceholder('z.B. 123456789012345678').setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('wa_nachricht').setLabel('Nachricht').setStyle(TextInputStyle.Paragraph).setPlaceholder('Schreibe deine Nachricht...').setRequired(true).setMaxLength(1000)
       ),
     );
     return interaction.showModal(modal);
@@ -5161,13 +5130,11 @@ client.on('interactionCreate', async (interaction) => {
   // ── WHATSAPP MODAL SUBMIT ─────────────────────────────────────────────────
   if (cid === 'whatsapp_modal') {
     await interaction.deferReply({ ephemeral: true });
-    const targetId = waTargets.get(uid);
-    if (!targetId) return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Sitzung abgelaufen. Bitte erneut versuchen.')] });
-    waTargets.delete(uid);
-    const nachricht = interaction.fields.getTextInputValue('wa_nachricht').trim();
+    const empfaengerRaw = interaction.fields.getTextInputValue('wa_empfaenger').trim().replace(/[<@!>]/g, '');
+    const nachricht     = interaction.fields.getTextInputValue('wa_nachricht').trim();
     let empfaenger;
-    try { empfaenger = await interaction.client.users.fetch(targetId); }
-    catch { return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Empfänger nicht gefunden.')] }); }
+    try { empfaenger = await interaction.client.users.fetch(empfaengerRaw); }
+    catch { return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Empfänger nicht gefunden. Bitte prüfe die User-ID.')] }); }
     if (empfaenger.bot) return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du kannst keine Nachrichten an Bots senden.')] });
     const dmEmbed = new EmbedBuilder()
       .setColor(0x25d366)
@@ -5178,7 +5145,7 @@ client.on('interactionCreate', async (interaction) => {
       .setTimestamp();
     try {
       await empfaenger.send({ embeds: [dmEmbed] });
-      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x25d366).setDescription('✅ Nachricht an **' + empfaenger.username + '** gesendet!')] });
+      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x25d366).setDescription('✅ Nachricht wurde an **' + empfaenger.username + '** gesendet!')] });
     } catch {
       return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Nachricht konnte nicht gesendet werden. Der Nutzer hat DMs möglicherweise deaktiviert.')] });
     }
