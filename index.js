@@ -4228,7 +4228,7 @@ client.on('interactionCreate', async (interaction) => {
       });
     }
 
-  // ── Lotto: "Lotto spielen" Button ────────────────────────────────────────────
+  // ── Lotto: "Lotto spielen" Button → Browser-Seite öffnen ────────────────────
   if (interaction.isButton() && interaction.customId === 'lotto_play') {
     const inv = getUserInv(uid);
     const lottoKey = Object.keys(inv).find(k => k.toLowerCase().includes('lottoschein'));
@@ -4238,85 +4238,25 @@ client.on('interactionCreate', async (interaction) => {
         ephemeral: true
       });
     }
-    const modal = new ModalBuilder()
-      .setCustomId('lotto_submit')
-      .setTitle('🎰 Paradise City Lotto');
-    const zahlenInput = new TextInputBuilder()
-      .setCustomId('lotto_zahlen')
-      .setLabel('Deine 6 Zahlen (1–100, Komma getrennt)')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('z.B. 5, 17, 23, 42, 67, 89')
-      .setMinLength(5)
-      .setMaxLength(30)
-      .setRequired(true);
-    const superzahlInput = new TextInputBuilder()
-      .setCustomId('lotto_superzahl')
-      .setLabel('Superzahl (1–10)')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('z.B. 7')
-      .setMinLength(1)
-      .setMaxLength(2)
-      .setRequired(true);
-    modal.addComponents(
-      new ActionRowBuilder().addComponents(zahlenInput),
-      new ActionRowBuilder().addComponents(superzahlInput)
-    );
-    return interaction.showModal(modal);
-  }
-
-  // ── Lotto: Modal Submit ───────────────────────────────────────────────────────
-  if (interaction.isModalSubmit() && interaction.customId === 'lotto_submit') {
-    await interaction.deferReply({ ephemeral: true });
-    const inv = getUserInv(uid);
-    const lottoKey = Object.keys(inv).find(k => k.toLowerCase().includes('lottoschein'));
-    if (!lottoKey || inv[lottoKey] < 1) {
-      return interaction.editReply({ content: '❌ Du hast keinen **Lottoschein** mehr im Inventar.' });
-    }
-    const zahlenRaw   = interaction.fields.getTextInputValue('lotto_zahlen');
-    const superzahlRaw = interaction.fields.getTextInputValue('lotto_superzahl').trim();
-
-    // Parse und validiere 6 Zahlen
-    const zahlen = zahlenRaw.split(/[,\s]+/).map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
-    if (zahlen.length !== 6) {
-      return interaction.editReply({ content: '❌ Bitte gib genau **6 Zahlen** ein, getrennt durch Komma.\nBeispiel: `5, 17, 23, 42, 67, 89`' });
-    }
-    if (zahlen.some(n => n < 1 || n > 100)) {
-      return interaction.editReply({ content: '❌ Alle Zahlen müssen zwischen **1 und 100** liegen.' });
-    }
-    if (new Set(zahlen).size !== 6) {
-      return interaction.editReply({ content: '❌ Die 6 Zahlen müssen **alle unterschiedlich** sein.' });
-    }
-    const superzahl = parseInt(superzahlRaw, 10);
-    if (isNaN(superzahl) || superzahl < 1 || superzahl > 10) {
-      return interaction.editReply({ content: '❌ Die **Superzahl** muss zwischen **1 und 10** liegen.' });
-    }
-
-    // Lottoschein aus Inventar entfernen
-    inv[lottoKey] -= 1;
-    if (inv[lottoKey] <= 0) delete inv[lottoKey];
-    setUserInv(uid, inv);
-
-    // Ticket speichern
-    const tickets = loadLottoTickets();
-    if (!tickets[uid]) tickets[uid] = [];
-    const drawKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    tickets[uid].push({ zahlen: zahlen.sort((a,b)=>a-b), superzahl, ts: Date.now(), drawKey, tag: interaction.user.tag });
-    saveLottoTickets(tickets);
-
-    const zahlenStr = zahlen.sort((a,b)=>a-b).map(n => `\`${String(n).padStart(2,'0')}\``).join(' ');
-    const confirmEmbed = new EmbedBuilder()
-      .setColor(0xFFD700)
-      .setTitle('🎟️ Lottoschein eingereicht!')
-      .setDescription(
-        `Deine Zahlen wurden gespeichert. Viel Glück!\n\n` +
-        `**Deine Zahlen:** ${zahlenStr}\n` +
-        `**Superzahl:** \`${superzahl}\`\n\n` +
-        `🕛 Die Ziehung findet **täglich um 12:00 Uhr** statt.\n` +
-        `📩 Gewinner werden per **DM** benachrichtigt.`
-      )
-      .setFooter({ text: 'Paradise City Roleplay  •  Lotto' })
-      .setTimestamp();
-    return interaction.editReply({ embeds: [confirmEmbed] });
+    // Token generieren (30 Min gültig)
+    const lottoToken = crypto.randomBytes(16).toString('hex');
+    _webMod.lottoTokens.set(lottoToken, {
+      uid,
+      userTag: interaction.user.tag,
+      expiresAt: Date.now() + 30 * 60 * 1000,
+      submitted: false
+    });
+    const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
+    const lottoUrl = WEBAPP_URL + '/lotto?token=' + lottoToken;
+    const lottoBtn = new ButtonBuilder()
+      .setLabel('🎰 Lotto-Schein ausfüllen')
+      .setStyle(ButtonStyle.Link)
+      .setURL(lottoUrl);
+    return interaction.reply({
+      content: '🎰 Dein Lotto-Schein ist bereit! Klicke den Button und wähle deine Zahlen im Browser.\n⏰ Der Link ist **30 Minuten** gültig.',
+      components: [new ActionRowBuilder().addComponents(lottoBtn)],
+      ephemeral: true
+    });
   }
 
   // Team Shop: pagination & take
