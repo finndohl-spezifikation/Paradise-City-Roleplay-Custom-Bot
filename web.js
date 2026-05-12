@@ -2234,9 +2234,12 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   const LFOOT  = '<div class="foot">LAPD INTERNES SYSTEM • UNBEFUGTER ZUGRIFF VERBOTEN</div></body></html>';
 
   // ── GET /lapd ────────────────────────────────────────────────────────────
+  const LAPD_GATE_PAGE = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LAPD Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}.card{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:14px;padding:40px 36px;max-width:400px;width:90%;text-align:center}.ico{font-size:3rem;margin-bottom:16px}.h{font-size:1.1rem;font-weight:800;color:#ffd700;letter-spacing:2px;margin-bottom:10px}.p{font-size:.84rem;color:#6b7280;line-height:1.6}</style></head><body><div class="card"><div class="ico">🛡️</div><div class="h">LAPD DASHBOARD</div><div class="p">Bitte klicke auf den <strong style="color:#90caf9">Login-Button</strong> in Discord,<br>um dich anzumelden.</div></div></body></html>`;
+
   app.get('/lapd', (req,res)=>{
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
-    return res.status(403).end();
+    res.setHeader('Content-Type','text/html; charset=utf-8');
+    return res.send(LAPD_GATE_PAGE);
   });
 
   // ── GET /lapd/auth/:token ────────────────────────────────────────────────
@@ -2285,7 +2288,9 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   app.post('/lapd/login', (req,res)=>res.redirect('/lapd'));
 
   // ── POST /lapd/logout ────────────────────────────────────────────────────
-  app.post('/lapd/logout',(req,res)=>{ req.session.lapd=null; res.redirect('/lapd'); });
+  app.post('/lapd/logout',(req,res)=>{
+    req.session.destroy(()=>{ res.clearCookie('connect.sid'); res.redirect('/lapd'); });
+  });
 
   // ── POST /lapd/api/duty/toggle ───────────────────────────────────────────
   app.post('/lapd/api/duty/toggle', async (req,res)=>{
@@ -2443,7 +2448,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   });
 
   // ── GET /lapd/dashboard ─────────────────────────────────────────────────
-  const LAPD_CSS = "*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:\"Segoe UI\",sans-serif;min-height:100vh;display:flex;flex-direction:column}header{background:#0d1b2e;border-bottom:2px solid #1a3a6b;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}.hl{display:flex;align-items:center;gap:10px}.hl .ico{font-size:1.8rem}.hl h2{font-size:.95rem;font-weight:800;color:#ffd700;letter-spacing:2px}.hl p{font-size:.75rem;color:#90caf9}.hr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rbadge{padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:700;border:1px solid}.lbtn{background:transparent;border:1px solid #1a3a6b;color:#90caf9;padding:7px 13px;border-radius:7px;font-size:.78rem;cursor:pointer;transition:.2s}.lbtn:hover{border-color:#42a5f5;color:#42a5f5}nav{background:#0a1525;border-bottom:1px solid #1a3a6b;display:flex;overflow-x:auto}.nb{background:transparent;border:none;color:#6b7280;padding:13px 18px;font-size:.82rem;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}.nb:hover{color:#90caf9}.nb.act{color:#1e90ff;border-bottom-color:#1e90ff}main{flex:1;padding:20px;max-width:1000px;width:100%;margin:0 auto}.sec{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:10px;margin-bottom:16px;overflow:hidden}.sh{padding:12px 18px;border-bottom:1px solid #1a3a6b;display:flex;align-items:center;justify-content:space-between;gap:8px}.sh h3{font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.sb{padding:16px 18px}table{width:100%;border-collapse:collapse;font-size:.84rem}th{color:#6b7280;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;padding:8px 10px;text-align:left;border-bottom:1px solid #1a3a6b}td{padding:8px 10px;border-bottom:1px solid #0a0f1e}tr:last-child td{border-bottom:none}tr:hover td{background:#060c1a}.muted{color:#374151;font-size:.84rem;padding:8px 0}.fg{margin-bottom:12px}.fg label{display:block;font-size:.72rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}.fg input,.fg select,.fg textarea{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:9px 12px;border-radius:7px;font-size:.88rem;outline:none;transition:.2s;font-family:inherit}.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1565c0}.fg select option{background:#060c1a}.fg textarea{resize:vertical;min-height:80px}.row{display:flex;gap:10px;flex-wrap:wrap}.row .fg{flex:1;min-width:140px}.btn{background:#1565c0;color:#fff;border:none;padding:9px 18px;border-radius:7px;font-size:.84rem;font-weight:700;cursor:pointer;transition:.2s}.btn:hover{background:#1976d2}.btn.red{background:#7f1d1d}.btn.red:hover{background:#991b1b}.btn.grn{background:#14532d}.btn.grn:hover{background:#166534}.btn.sm{padding:5px 11px;font-size:.75rem}.btn.ghost{background:transparent;border:1px solid #1a3a6b;color:#90caf9}.btn.ghost:hover{border-color:#42a5f5;color:#42a5f5}.pin-badge{color:#ffd700;font-size:.7rem;font-weight:700;margin-left:6px}.ann-card{border:1px solid #1a3a6b;border-radius:8px;padding:14px;margin-bottom:10px;background:#060c1a}.ann-card.pinned{border-color:#ffd700}.ann-card h4{font-size:.9rem;font-weight:700;margin-bottom:6px}.ann-card .meta{font-size:.72rem;color:#6b7280;margin-bottom:8px}.ann-card .body{font-size:.85rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}.ann-acts{display:flex;gap:6px;margin-top:10px}.vac-badge{padding:3px 10px;border-radius:10px;font-size:.7rem;font-weight:700}.vac-badge.pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid #ffc107}.vac-badge.approved{background:rgba(76,175,80,.15);color:#66bb6a;border:1px solid #66bb6a}.vac-badge.rejected{background:rgba(183,28,28,.15);color:#ef9a9a;border:1px solid #b71c1c}.flash{padding:10px 14px;border-radius:7px;margin-bottom:12px;font-size:.84rem}.flash.ok{background:rgba(76,175,80,.15);border:1px solid #388e3c;color:#a5d6a7}.flash.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;color:#ef9a9a}@media(max-width:600px){header{padding:10px 14px}main{padding:12px}}";
+  const LAPD_CSS = "*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:\"Segoe UI\",sans-serif;min-height:100vh;display:flex}.sidebar{width:220px;min-height:100vh;background:#0a1525;border-right:1px solid #1a3a6b;display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}.sb-logo{padding:18px 16px 14px;border-bottom:1px solid #1a3a6b;display:flex;align-items:center;gap:10px}.sb-logo .ico{font-size:2rem;line-height:1}.sb-logo h2{font-size:.82rem;font-weight:800;color:#ffd700;letter-spacing:2px;line-height:1.3}.sb-logo p{font-size:.66rem;color:#90caf9;margin-top:2px}.sb-nav{flex:1;padding:10px 0;overflow-y:auto}.nb{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:none;border-left:3px solid transparent;color:#6b7280;padding:11px 16px;font-size:.82rem;font-weight:600;cursor:pointer;text-align:left;transition:.15s}.nb .ni{font-size:1rem;width:22px;text-align:center;flex-shrink:0}.nb:hover{color:#90caf9;background:#0d1b2e}.nb.act{color:#1e90ff;border-left-color:#1e90ff;background:#0d1b2e}.sb-user{padding:14px 16px;border-top:1px solid #1a3a6b}.sb-user .uname{font-size:.78rem;font-weight:700;color:#e0e0e0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sb-user .urank{font-size:.69rem;font-weight:600;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbtn{display:block;width:100%;background:transparent;border:1px solid #1a3a6b;color:#6b7280;padding:7px 12px;border-radius:7px;font-size:.78rem;cursor:pointer;transition:.2s;text-align:center}.lbtn:hover{border-color:#ef5350;color:#ef5350}.main-wrap{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}main{flex:1;padding:22px 24px;max-width:1020px;width:100%}.sec{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:10px;margin-bottom:16px;overflow:hidden}.sh{padding:12px 18px;border-bottom:1px solid #1a3a6b;display:flex;align-items:center;justify-content:space-between;gap:8px}.sh h3{font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.sb{padding:16px 18px}table{width:100%;border-collapse:collapse;font-size:.84rem}th{color:#6b7280;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;padding:8px 10px;text-align:left;border-bottom:1px solid #1a3a6b}td{padding:8px 10px;border-bottom:1px solid #0a0f1e}tr:last-child td{border-bottom:none}tr:hover td{background:#060c1a}.muted{color:#374151;font-size:.84rem;padding:8px 0}.fg{margin-bottom:12px}.fg label{display:block;font-size:.72rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}.fg input,.fg select,.fg textarea{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:9px 12px;border-radius:7px;font-size:.88rem;outline:none;transition:.2s;font-family:inherit}.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1565c0}.fg select option{background:#060c1a}.fg textarea{resize:vertical;min-height:80px}.row{display:flex;gap:10px;flex-wrap:wrap}.row .fg{flex:1;min-width:140px}.btn{background:#1565c0;color:#fff;border:none;padding:9px 18px;border-radius:7px;font-size:.84rem;font-weight:700;cursor:pointer;transition:.2s}.btn:hover{background:#1976d2}.btn.red{background:#7f1d1d}.btn.red:hover{background:#991b1b}.btn.grn{background:#14532d}.btn.grn:hover{background:#166534}.btn.sm{padding:5px 11px;font-size:.75rem}.btn.ghost{background:transparent;border:1px solid #1a3a6b;color:#90caf9}.btn.ghost:hover{border-color:#42a5f5;color:#42a5f5}.pin-badge{color:#ffd700;font-size:.7rem;font-weight:700;margin-left:6px}.ann-card{border:1px solid #1a3a6b;border-radius:8px;padding:14px;margin-bottom:10px;background:#060c1a}.ann-card.pinned{border-color:#ffd700}.ann-card h4{font-size:.9rem;font-weight:700;margin-bottom:6px}.ann-card .meta{font-size:.72rem;color:#6b7280;margin-bottom:8px}.ann-card .body{font-size:.85rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}.ann-acts{display:flex;gap:6px;margin-top:10px}.vac-badge{padding:3px 10px;border-radius:10px;font-size:.7rem;font-weight:700}.vac-badge.pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid #ffc107}.vac-badge.approved{background:rgba(76,175,80,.15);color:#66bb6a;border:1px solid #66bb6a}.vac-badge.rejected{background:rgba(183,28,28,.15);color:#ef9a9a;border:1px solid #b71c1c}.flash{padding:10px 14px;border-radius:7px;margin-bottom:12px;font-size:.84rem}.flash.ok{background:rgba(76,175,80,.15);border:1px solid #388e3c;color:#a5d6a7}.flash.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;color:#ef9a9a}@media(max-width:600px){header{padding:10px 14px}main{padding:12px}}";
 
   app.get('/lapd/dashboard', (req,res)=>{
     if (!isLapdAuth(req)) return res.redirect('/lapd');
@@ -2634,24 +2639,25 @@ document.addEventListener("DOMContentLoaded",()=>showTab("board"));
 
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.send(
-      '<!DOCTYPE html><html lang="en"><head>'+
+      '<!DOCTYPE html><html lang="de"><head>'+
       '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">'+
       '<title>LAPD Dashboard</title><style>'+LAPD_CSS+'</style></head><body>'+
-      '<header>'+
-      '<div class="hl"><div class="ico">🛡️</div><div>'+
-      '<h2>LAPD DASHBOARD</h2><p>'+esc(s.displayName)+' &mdash; <span style="color:'+eInfo.color+'">'+esc(s.rankName)+'</span></p>'+
-      '</div></div>'+
-      '<div class="hr">'+
-      '<span class="rbadge" style="border-color:'+eInfo.color+';color:'+eInfo.color+'">'+esc(eInfo.label)+'</span>'+
-      '<form method="POST" action="/lapd/logout" style="display:inline"><button class="lbtn" type="submit">Logout</button></form>'+
-      '</div></header>'+
-      '<nav>'+
-      '<button class="nb act" data-t="board" onclick="showTab(\'board\')">📋 Schwarzes Brett</button>'+
-      '<button class="nb" data-t="duty" onclick="showTab(\'duty\')">🕐 Dienst</button>'+
-      '<button class="nb" data-t="vacation" onclick="showTab(\'vacation\')">✈️ Urlaub</button>'+
-      '<button class="nb" data-t="warnings" onclick="showTab(\'warnings\')">⚠️ Verwarnungen</button>'+
+      // ── Sidebar ──
+      '<aside class="sidebar">'+
+      '<div class="sb-logo"><div class="ico">🛡️</div><div><h2>LAPD</h2><p>Dashboard</p></div></div>'+
+      '<nav class="sb-nav">'+
+      '<button class="nb act" data-t="board" onclick="showTab(\'board\')"><span class="ni">📋</span>Schwarzes Brett</button>'+
+      '<button class="nb" data-t="duty" onclick="showTab(\'duty\')"><span class="ni">🕐</span>Dienst</button>'+
+      '<button class="nb" data-t="vacation" onclick="showTab(\'vacation\')"><span class="ni">✈️</span>Urlaub</button>'+
+      '<button class="nb" data-t="warnings" onclick="showTab(\'warnings\')"><span class="ni">⚠️</span>Verwarnungen</button>'+
       '</nav>'+
-      '<main>'+
+      '<div class="sb-user">'+
+      '<div class="uname">'+esc(s.displayName)+'</div>'+
+      '<div class="urank" style="color:'+eInfo.color+'">'+esc(s.rankName)+'</div>'+
+      '<form method="POST" action="/lapd/logout"><button class="lbtn" type="submit">🚪 Ausloggen</button></form>'+
+      '</div></aside>'+
+      // ── Main content ──
+      '<div class="main-wrap"><main>'+
       '<div class="tsec" id="t-board">'+postForm+
       '<div class="sec"><div class="sh" style="border-left:3px solid #1e90ff"><h3 style="color:#1e90ff">📋 Ankündigungen</h3></div>'+
       '<div class="sb"><div id="board-content"><p class="muted">Lädt...</p></div></div></div>'+
@@ -2676,7 +2682,8 @@ document.addEventListener("DOMContentLoaded",()=>showTab("board"));
       '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">⚠️ Verwarnungen</h3></div>'+
       '<div class="sb"><div id="warn-content"></div></div></div>'+
       '</div>'+
-      '</main><script>'+clientJs+'</script></body></html>'
+      '</main></div>'+
+      '<script>'+clientJs+'</script></body></html>'
     );
   });
 
