@@ -1948,14 +1948,21 @@ async function buildInviteCache(guild) {
       const lapdUrl = 'https://' + domain + '/lapd';
       const lapdLine = '━'.repeat(40);
       const lapdEmbed = new EmbedBuilder()
-        .setColor(0x1565c0)
+        .setColor(0x0d1b46)
         .setTitle('🛡️  LAPD Internal Dashboard')
+        .setThumbnail('https://' + domain + '/lapd/logo.png')
         .setDescription(
           lapdLine + '\n\n' +
-          '> 🔐 **Login** mit deinem Discord Benutzernamen\n' +
-          '> 📋 **Übersicht** aller aktiven Beamten\n' +
-          '> 🟢 **Dienst anmelden** & abmelden\n' +
-          '> 🛡️ **Rangliste** nach Einheit\n\n' +
+          '> 🔐 **Login** mit deinem Discord Account\n' +
+          '> 🕐 **Dienst** anmelden & abmelden\n' +
+          '> 📅 **Dienstplan** — Einheiten einteilen\n' +
+          '> 📋 **Einsatzberichte** schreiben & suchen\n' +
+          '> 🪪 **Personenakten** — A–Z sortiert\n' +
+          '> 🚗 **Fahrzeugakten** erfassen\n' +
+          '> 📁 **Strafakten** anlegen\n' +
+          '> 📜 **Bußgeldkatalog** Los Angeles\n' +
+          '> 🔴 **Fahndungen** mit Foto\n' +
+          '> 🚨 **Panic Button** — Notfall-Alert\n\n' +
           lapdLine + '\n\n' +
           '⚠️ Nur für autorisierte LAPD Mitglieder.'
         )
