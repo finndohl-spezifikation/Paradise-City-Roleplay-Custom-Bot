@@ -3060,19 +3060,14 @@ client.on('interactionCreate', async (interaction) => {
         setTimeout(() => lapdTokens.delete(token), 10 * 60 * 1000);
         const domain  = (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.REPLIT_DOMAINS || 'localhost:8080').split(',')[0].trim();
         const authUrl = 'https://' + domain + '/lapd/auth/' + token;
-        const LAPD_PW_B = { leitung:'LAPD_Chief_2025', befehl:'LAPD_Command_2025', detective:'LAPD_Detective_2025', officer:'LAPD_Officer_2025' };
-        const LAPD_EBENE_B = { leitung:'Leitungsebene', befehl:'Befehlsebene', detective:'Detective Division', officer:'Officer Division' };
-        const uniqueEbenen = [...new Set(memberRanks.map(r => r.ebene))];
-        const pwLines = uniqueEbenen.map(e => '`' + LAPD_PW_B[e] + '`  —  ' + LAPD_EBENE_B[e]).join('\n');
+        const rankLine = memberRanks[0] ? memberRanks[0].name : 'Unbekannter Rang';
         const replyEmbed = new EmbedBuilder()
           .setColor(0x1565c0)
-          .setTitle('🛡️ LAPD Dashboard – Dein Login')
+          .setTitle('🛡️ LAPD Dashboard')
           .setDescription(
-            '**Klicke den Button** um das Dashboard zu öffnen.\n' +
-            'Der Link ist **10 Minuten** gültig.\n\n' +
-            '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-            '🔑 **Dein Passwort:**\n' + pwLines + '\n' +
-            '━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+            '👤 **' + member.displayName + '** — ' + rankLine + '\n\n' +
+            'Klicke den Button um direkt ins Dashboard zu kommen.\n' +
+            'Der Link ist **10 Minuten** gültig.'
           )
           .setFooter({ text: 'Nur für dich sichtbar • Nicht weitergeben' });
         const authBtn = new ButtonBuilder().setLabel('🛡️ Dashboard öffnen').setURL(authUrl).setStyle(ButtonStyle.Link);
@@ -3085,6 +3080,7 @@ client.on('interactionCreate', async (interaction) => {
         console.error('LAPD Button Fehler:', e.message);
         return interaction.editReply({ content: '❌ Fehler beim Generieren des Login-Links.' });
       }
+    } // end lapd_dashboard
 
     // ── Vacation Approve ─────────────────────────────────────────────────────
     if (interaction.isButton() && interaction.customId.startsWith('lapd_vac_approve_')) {
@@ -3176,8 +3172,6 @@ client.on('interactionCreate', async (interaction) => {
         }
       } catch (e) { console.error('vac reject DM:', e.message); }
       return;
-    }
-
     }
 
     // ── Autocomplete: Fraktionsnamen ──────────────────────────────────────────
