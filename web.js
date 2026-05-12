@@ -960,7 +960,6 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      maxAge: 60 * 60 * 1000,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_PUBLIC_DOMAIN
     }
