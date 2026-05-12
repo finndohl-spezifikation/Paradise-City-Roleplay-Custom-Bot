@@ -3060,7 +3060,7 @@ client.on('interactionCreate', async (interaction) => {
         setTimeout(() => lapdTokens.delete(token), 10 * 60 * 1000);
         const domain  = (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.REPLIT_DOMAINS || 'localhost:8080').split(',')[0].trim();
         const authUrl = 'https://' + domain + '/lapd/auth/' + token;
-        const LAPD_PW_B = { leitung:'LAPD_Chef_2025', befehl:'LAPD_Befehl_2025', detective:'LAPD_Detective_2025', officer:'LAPD_Officer_2025' };
+        const LAPD_PW_B = { leitung:'LAPD_Chief_2025', befehl:'LAPD_Command_2025', detective:'LAPD_Detective_2025', officer:'LAPD_Officer_2025' };
         const LAPD_EBENE_B = { leitung:'Leitungsebene', befehl:'Befehlsebene', detective:'Detective Division', officer:'Officer Division' };
         const uniqueEbenen = [...new Set(memberRanks.map(r => r.ebene))];
         const pwLines = uniqueEbenen.map(e => '`' + LAPD_PW_B[e] + '`  —  ' + LAPD_EBENE_B[e]).join('\n');
@@ -3085,6 +3085,99 @@ client.on('interactionCreate', async (interaction) => {
         console.error('LAPD Button Fehler:', e.message);
         return interaction.editReply({ content: '❌ Fehler beim Generieren des Login-Links.' });
       }
+
+    // ── Vacation Approve ─────────────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId.startsWith('lapd_vac_approve_')) {
+      const vacId = interaction.customId.replace('lapd_vac_approve_', '');
+      const vacFile = require('path').join(DATA_DIR, 'lapd_vacations.json');
+      let vacs = [];
+      try { vacs = JSON.parse(require('fs').readFileSync(vacFile,'utf8')); } catch {}
+      const vac = vacs.find(v => v.id === vacId);
+      if (!vac) return interaction.reply({ content: '❌ Vacation request not found.', ephemeral: true });
+      if (vac.status !== 'pending') return interaction.reply({ content: '⚠️ This request has already been reviewed.', ephemeral: true });
+      vac.status = 'approved';
+      vac.reviewerName = interaction.user.username;
+      vac.reviewedAt = Date.now();
+      require('fs').writeFileSync(vacFile, JSON.stringify(vacs, null, 2), 'utf8');
+      await interaction.update({ components: [] }).catch(() => {});
+      await interaction.followUp({ content: '✅ Vacation request **approved** by '+interaction.user.username+'.', ephemeral: false }).catch(() => {});
+      // DM requester
+      try {
+        const reqUser = await client.users.fetch(vac.userId).catch(() => null);
+        if (reqUser) {
+          const { EmbedBuilder: _AVEB } = require('discord.js');
+          const aEmbed = new _AVEB()
+            .setColor(0x66bb6a)
+            .setTitle('✅ Vacation Request — Approved')
+            .setDescription('Your vacation request has been approved.')
+            .addFields(
+              { name: 'Period', value: vac.from + ' — ' + vac.to, inline: true },
+              { name: 'Approved by', value: interaction.user.username, inline: true }
+            )
+            .setFooter({ text: 'With kind regards, LAPD Command Staff' })
+            .setTimestamp();
+          await reqUser.send({ embeds: [aEmbed] }).catch(() => {});
+        }
+      } catch (e) { console.error('vac approve DM:', e.message); }
+      return;
+    }
+
+    // ── Vacation Reject (show modal) ─────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId.startsWith('lapd_vac_reject_')) {
+      const vacId = interaction.customId.replace('lapd_vac_reject_', '');
+      const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder: _MRAB } = require('discord.js');
+      const modal = new ModalBuilder()
+        .setCustomId('lapd_vac_reject_modal_' + vacId)
+        .setTitle('Reject Vacation Request');
+      const input = new TextInputBuilder()
+        .setCustomId('reason')
+        .setLabel('Reason for rejection')
+        .setStyle(TextInputStyle.Paragraph)
+        .setMinLength(5)
+        .setMaxLength(500)
+        .setRequired(true);
+      modal.addComponents(new _MRAB().addComponents(input));
+      return interaction.showModal(modal);
+    }
+
+    // ── Vacation Reject Modal Submit ─────────────────────────────────────────
+    if (interaction.isModalSubmit() && interaction.customId.startsWith('lapd_vac_reject_modal_')) {
+      const vacId = interaction.customId.replace('lapd_vac_reject_modal_', '');
+      const reason = interaction.fields.getTextInputValue('reason');
+      const vacFile = require('path').join(DATA_DIR, 'lapd_vacations.json');
+      let vacs = [];
+      try { vacs = JSON.parse(require('fs').readFileSync(vacFile,'utf8')); } catch {}
+      const vac = vacs.find(v => v.id === vacId);
+      if (!vac) return interaction.reply({ content: '❌ Vacation request not found.', ephemeral: true });
+      if (vac.status !== 'pending') return interaction.reply({ content: '⚠️ Already reviewed.', ephemeral: true });
+      vac.status = 'rejected';
+      vac.rejectReason = reason;
+      vac.reviewerName = interaction.user.username;
+      vac.reviewedAt = Date.now();
+      require('fs').writeFileSync(vacFile, JSON.stringify(vacs, null, 2), 'utf8');
+      await interaction.reply({ content: '❌ Vacation request **rejected**.', ephemeral: false }).catch(() => {});
+      // DM requester
+      try {
+        const reqUser = await client.users.fetch(vac.userId).catch(() => null);
+        if (reqUser) {
+          const { EmbedBuilder: _RVEB } = require('discord.js');
+          const rEmbed = new _RVEB()
+            .setColor(0xb71c1c)
+            .setTitle('❌ Vacation Request — Rejected')
+            .setDescription('Your vacation request has been rejected.')
+            .addFields(
+              { name: 'Period', value: vac.from + ' — ' + vac.to, inline: true },
+              { name: 'Rejected by', value: interaction.user.username, inline: true },
+              { name: 'Reason', value: reason }
+            )
+            .setFooter({ text: 'LAPD Command Staff' })
+            .setTimestamp();
+          await reqUser.send({ embeds: [rEmbed] }).catch(() => {});
+        }
+      } catch (e) { console.error('vac reject DM:', e.message); }
+      return;
+    }
+
     }
 
     // ── Autocomplete: Fraktionsnamen ──────────────────────────────────────────
