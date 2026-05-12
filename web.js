@@ -2759,13 +2759,13 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   app.get('/lapd/dashboard', (req,res)=>{
     if (!isLapdAuth(req)) return res.redirect('/lapd');
     const s       = req.session.lapd;
-    const eInfo   = LAPD_EBENE[s.ebene];
+    const eInfo   = LAPD_EBENE[s.ebene] || { label:'Officer', color:'#66bb6a' };
     const canPost      = s.ebene==='leitung';
     const canWarn      = s.ebene==='leitung'||s.ebene==='befehl';
     const canSchedule  = s.ebene==='leitung'||s.ebene==='befehl';
     const clientJs = (function buildClientJs(userId, ebene, displayName, rankName, canPost, canWarn, canSchedule) {
   return `
-const ME={userId:${JSON.stringify(userId)},ebene:${JSON.stringify(ebene)},displayName:${JSON.stringify(displayName)},rankName:${JSON.stringify(rankName)},canPost:${canPost},canWarn:${canWarn},canSchedule:${canSchedule},loginTime:${Date.now()}};
+const ME={userId:${JSON.stringify(userId).replace(/</g,"\\u003c").replace(/>/g,"\\u003e")},ebene:${JSON.stringify(ebene).replace(/</g,"\\u003c")},displayName:${JSON.stringify(displayName).replace(/</g,"\\u003c").replace(/>/g,"\\u003e")},rankName:${JSON.stringify(rankName).replace(/</g,"\\u003c").replace(/>/g,"\\u003e")},canPost:${canPost},canWarn:${canWarn},canSchedule:${canSchedule},loginTime:${Date.now()}};
 const ECOLOR={leitung:"#ffd700",befehl:"#42a5f5",detective:"#ab47bc",officer:"#66bb6a"};
 const ELABEL={leitung:"Command Staff",befehl:"Supervisory Staff",detective:"Detective Division",officer:"Officer Division"};
 
@@ -2977,15 +2977,6 @@ const BKAT=[
   ["Waffenbesitz ohne Erlaubnis","Felony 16 Monate-3 Jahre"],["Flucht vor Polizei im Fahrzeug","$10.000 + Felony"]]}
 ];
 
-// ── INTRO ANIMATION ────────────────────────────────────────────────────────
-(function(){
-  const ov=document.getElementById("introOverlay");
-  if(!ov)return;
-  setTimeout(function(){
-    ov.classList.add("fade-out");
-    setTimeout(function(){ ov.style.display="none"; },700);
-  },2400);
-})();
 
 // ── PANIC BUTTON ──────────────────────────────────────────────────────────
 let _panicCd=false;
