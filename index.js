@@ -1146,6 +1146,14 @@ async function buildInviteCache(guild) {
         .setDescription('Führt die Lotto-Ziehung manuell durch (Admin)')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('ban')
+      .setDescription('Bannt einen Nutzer permanent vom Server (inkl. Mod-Log-Eintrag)')
+      .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+      .addUserOption(opt => opt.setName('nutzer').setDescription('Welcher Nutzer soll gebannt werden?').setRequired(true))
+      .addStringOption(opt => opt.setName('grund').setDescription('Grund für den permanenten Ban').setRequired(true))
+      .toJSON(),
     ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -3158,6 +3166,49 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // /teamwarn
+
+  // ── /ban ─────────────────────────────────────────────────────────────────
+  if (commandName === 'ban') {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers) &&
+        !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      return interaction.reply({ content: '\u274C Keine Berechtigung f\u00fcr permanente Bans.', ephemeral: true });
+    }
+    const target  = interaction.options.getUser('nutzer');
+    const grund   = interaction.options.getString('grund');
+    if (target.id === interaction.user.id)
+      return interaction.reply({ content: '\u274C Du kannst dich nicht selbst bannen.', ephemeral: true });
+    try {
+      await interaction.guild.members.ban(target.id, { reason: grund, deleteMessageSeconds: 0 });
+      const logCh = await client.channels.fetch(CH.MOD_LOG).catch(() => null);
+      if (logCh) {
+        await logCh.send({ embeds: [new EmbedBuilder()
+          .setColor(0x7f1d1d)
+          .setTitle('\u{1F528} Permanenter Ban')
+          .addFields(
+            { name: 'Nutzer',     value: target.tag + ' (`' + target.id + '`)', inline: true },
+            { name: 'Moderator',  value: interaction.user.tag + ' (`' + interaction.user.id + '`)', inline: true },
+            { name: 'Grund',      value: grund },
+            { name: 'Hinweis',    value: '\u26A0\uFE0F Discord-Bots haben keinen Zugriff auf IP-Adressen. Der Discord-Account ist dauerhaft gebannt.' }
+          )
+          .setTimestamp()
+          .setFooter({ text: 'Paradise City Roleplay \u2022 Mod Log' })
+        ] });
+      }
+      return interaction.reply({
+        embeds: [new EmbedBuilder()
+          .setColor(0x7f1d1d)
+          .setTitle('\u{1F528} Nutzer gebannt')
+          .setDescription('**' + target.tag + '** wurde permanent vom Server entfernt.')
+          .addFields({ name: 'Grund', value: grund })
+          .setTimestamp()
+        ],
+        ephemeral: true
+      });
+    } catch (e) {
+      return interaction.reply({ content: '\u274C Ban fehlgeschlagen: ' + e.message, ephemeral: true });
+    }
+  }
+
   if (commandName === 'teamwarn') {
     const target     = interaction.options.getUser('nutzer');
     const grund      = interaction.options.getString('grund');
