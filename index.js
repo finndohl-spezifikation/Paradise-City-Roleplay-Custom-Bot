@@ -1967,6 +1967,44 @@ async function buildInviteCache(guild) {
           }
         }
       } catch (e) { console.error('Lotto-Embed Fehler:', e.message); }
+
+    // ── LAPD Dashboard Link senden ────────────────────────────────────────
+    try {
+      const lapdCh = await client.channels.fetch('1491789518603419825').catch(() => null);
+      if (lapdCh) {
+        const domain = (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.REPLIT_DOMAINS || 'localhost:8080').split(',')[0].trim();
+        const lapdUrl = 'https://' + domain + '/lapd';
+        const recent = await lapdCh.messages.fetch({ limit: 20 }).catch(() => null);
+        if (recent) {
+          for (const m of recent.values()) {
+            if (m.author.id === client.user.id) await m.delete().catch(() => {});
+          }
+        }
+        const lapdLine = '━'.repeat(40);
+        const lapdEmbed = new EmbedBuilder()
+          .setColor(0x1565c0)
+          .setTitle('🛡️  LAPD Internal Dashboard')
+          .setDescription(
+            lapdLine + '\n\n' +
+            '> 🔐 **Login** mit deinem Discord Benutzernamen\n' +
+            '> 📋 **Übersicht** aller aktiven Beamten\n' +
+            '> 🟢 **Dienst anmelden** & abmelden\n' +
+            '> 🛡️ **Rangliste** nach Einheit\n\n' +
+            lapdLine + '\n\n' +
+            '⚠️ Nur für autorisierte LAPD Mitglieder.'
+          )
+          .setFooter({ text: 'Los Angeles Police Department  •  Paradise City Roleplay' })
+          .setTimestamp();
+        const lapdBtn = new ButtonBuilder()
+          .setLabel('🛡️ Dashboard öffnen')
+          .setURL(lapdUrl)
+          .setStyle(ButtonStyle.Link);
+        const lapdRow = new ActionRowBuilder().addComponents(lapdBtn);
+        await lapdCh.send({ embeds: [lapdEmbed], components: [lapdRow] });
+        console.log('✅ LAPD Dashboard Link gesendet:', lapdUrl);
+      }
+    } catch (e) { console.error('LAPD Dashboard Embed Fehler:', e.message); }
+
     });
 
 
