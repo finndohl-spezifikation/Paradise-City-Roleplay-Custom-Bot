@@ -2073,7 +2073,27 @@ async function buildInviteCache(guild) {
         }
 
       // ── Modal: Bewertung abgeben ──────────────────────────────────────────────
-        if (interaction.isModalSubmit() && interaction.customId.startsWith('ticket_rating_modal_')) {
+        // ── Modal: LAPD Dispatch Notruf ───────────────────────────────────────────
+      if (interaction.isModalSubmit() && interaction.customId === 'dispatch_lapd_modal') {
+        const location    = interaction.fields.getTextInputValue('dispatch_location');
+        let   description = '';
+        try { description = interaction.fields.getTextInputValue('dispatch_desc'); } catch {}
+        const caller = interaction.member?.displayName || interaction.user.username;
+        try {
+          const _wm = require('./web');
+          if (typeof _wm.addNotruf === 'function') {
+            _wm.addNotruf({ caller, callerId: interaction.user.id, location, description });
+          }
+        } catch(e) { console.error('Notruf addNotruf:', e.message); }
+        return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
+          .setColor(0xef4444).setTitle('\u{1F6A8} Notruf abgesendet — LAPD')
+          .setDescription('Dein Notruf wurde weitergeleitet.\n\n\u{1F4CD} **Standort:** ' + location
+            + (description ? '\n\u{1F4DD} **Beschreibung:** ' + description : ''))
+          .setFooter({text:'LAPD wird benachrichtigt  •  Paradise City Roleplay'})
+        ]});
+      }
+
+            if (interaction.isModalSubmit() && interaction.customId.startsWith('ticket_rating_modal_')) {
           const parts    = interaction.customId.split('_');
           const stars    = parseInt(parts[3]);
           const ticketId = parts.slice(4).join('_');
@@ -5214,9 +5234,25 @@ client.on('interactionCreate', async (interaction) => {
     });
   }
 
-  if (cid === 'dispatch_lapd' || cid === 'dispatch_lamd' || cid === 'dispatch_lacs') {
-    const labels = { dispatch_lapd: 'LAPD', dispatch_lamd: 'LAMD', dispatch_lacs: 'LACS' };
-    return sendReply({ embeds: [new EmbedBuilder().setColor(0xffa500).setDescription('🚨 **Dispatch ' + labels[cid] + '** — Kommt bald!')] });
+  if (cid === 'dispatch_lapd') {
+    const modal = new ModalBuilder().setCustomId('dispatch_lapd_modal').setTitle('\u{1F6A8} Notruf — LAPD');
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('dispatch_location')
+          .setLabel('Standort / Ort des Vorfalls').setStyle(TextInputStyle.Short)
+          .setRequired(true).setMaxLength(200).setPlaceholder('z.B. Alta Street, Los Santos')
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder().setCustomId('dispatch_desc')
+          .setLabel('Was ist passiert?').setStyle(TextInputStyle.Paragraph)
+          .setRequired(false).setMaxLength(500).setPlaceholder('Beschreibung des Vorfalls (optional)')
+      )
+    );
+    return interaction.showModal(modal);
+  }
+  if (cid === 'dispatch_lamd' || cid === 'dispatch_lacs') {
+    const labels = { dispatch_lamd: 'LAMD', dispatch_lacs: 'LACS' };
+    return sendReply({ embeds: [new EmbedBuilder().setColor(0xffa500).setDescription('\u{1F6A8} **Dispatch ' + labels[cid] + '** — Kommt bald!')] });
   }
 
   // ── WHATSAPP ──────────────────────────────────────────────────────────────
