@@ -2216,12 +2216,10 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       const stored = lj(LAPD_EMBED_FILE,{});
       const ch = await client.channels.fetch(LAPD_DUTY_CHANNEL).catch(()=>null);
       if (!ch) return;
-      if (stored.messageId) {
-        const msg = await ch.messages.fetch(stored.messageId).catch(()=>null);
-        if (msg){ await msg.edit({ embeds:[embed] }); return; }
-      }
-      const m = await ch.send({ embeds:[embed] });
-      sj(LAPD_EMBED_FILE, { messageId:m.id });
+      if (!stored.messageId) return;
+      const msg = await ch.messages.fetch(stored.messageId).catch(()=>null);
+      if (!msg) return;
+      await msg.edit({ embeds:[embed] });
     } catch(e){ console.error('updateDutyEmbed:',e.message); }
   }
   setTimeout(()=>updateDutyEmbed(), 7000);
