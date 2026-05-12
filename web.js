@@ -2184,6 +2184,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   if(!fs.existsSync(LAPD_WARRANT_PHOTOS)) fs.mkdirSync(LAPD_WARRANT_PHOTOS,{recursive:true});
   const LAPD_CONFISCATIONS_FILE = path.join(DATA_DIR, 'lapd_confiscations.json');
   const LAPD_NOTRUFE_FILE       = path.join(DATA_DIR, 'lapd_notrufe.json');
+  const LAPD_GPS_FILE           = path.join(DATA_DIR, 'lapd_gps.json');
 
   function lj(f,d){ try{ return JSON.parse(fs.readFileSync(f,'utf8')); }catch{ return d; } }
   function sj(f,d){ try{ fs.writeFileSync(f,JSON.stringify(d,null,2),'utf8'); }catch(e){ console.error('sj',e.message); } }
@@ -2224,6 +2225,8 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   function saveConfiscations(d){ sj(LAPD_CONFISCATIONS_FILE,d); }
   function loadNotrufe(){ return lj(LAPD_NOTRUFE_FILE,[]); }
   function saveNotrufe(d){ sj(LAPD_NOTRUFE_FILE,d); }
+  function loadGps(){    return lj(LAPD_GPS_FILE,{});   }
+  function saveGps(d){   sj(LAPD_GPS_FILE,d);           }
 
   // ── Duty Embed ───────────────────────────────────────────────────────────
   const { EmbedBuilder: _DEB } = require('discord.js');
@@ -2550,6 +2553,38 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       await ch.send({content:String(content).slice(0,2000)});
       res.json({ok:true});
     }catch(e){res.json({ok:false,msg:e.message});}
+  });
+
+
+  // ── GPS TRACKER API ──────────────────────────────────────────────────────
+  app.get('/lapd/api/gps', (req,res) => {
+    if (!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const gps = loadGps();
+    const now = Date.now();
+    let changed = false;
+    Object.keys(gps).forEach(k=>{ if(now-gps[k].ts>2*60*60*1000){delete gps[k];changed=true;} });
+    if (changed) saveGps(gps);
+    res.json({ ok:true, positions: Object.values(gps) });
+  });
+
+  app.post('/lapd/api/gps', express.json(), (req,res) => {
+    if (!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s = req.session.lapd;
+    const { x, y } = req.body;
+    if (typeof x !== 'number' || typeof y !== 'number' || x<0 || x>100 || y<0 || y>100)
+      return res.json({ok:false, msg:'Ungültige Koordinaten'});
+    const gps = loadGps();
+    gps[s.userId] = { userId:s.userId, displayName:s.displayName, rankName:s.rankName, ebene:s.ebene, x, y, ts:Date.now() };
+    saveGps(gps);
+    res.json({ok:true});
+  });
+
+  app.delete('/lapd/api/gps', (req,res) => {
+    if (!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const gps = loadGps();
+    delete gps[req.session.lapd.userId];
+    saveGps(gps);
+    res.json({ok:true});
   });
 
   // ── PANIC BUTTON ──────────────────────────────────────────────────────────
@@ -2964,6 +2999,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +nav('warrants','🔴','Fahndungen')
       +nav('beschlagnahme','🚔','Beschlagnahmungen')
       +nav('notrufe','🚨','Notrufe')
+      +nav('gps','\u{1F4E1}','GPS Tracker')
       +'</nav>'
       +'<div class="sb-user">'
       +'<div class="uname">'+esc(s.displayName)+'</div>'
@@ -2982,6 +3018,89 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +_buildPollingScript()
       +_buildPanicScript()
       +'</body></html>';
+  }
+
+  function _buildGpsScript(myId, myName, myRank, myEbene){
+    const colors = JSON.stringify({leitung:'#ffd700',befehl:'#60a5fa',detective:'#c084fc',officer:'#86efac'});
+    return `<script>(function(){`
+      +`var COLORS=`+colors+`;`
+      +`var myId='`+myId+`';`
+      +`function getDistrict(x,y){`
+      +`if(y<20&&x<42)return'Paleto Bay';`
+      +`if(y<22)return'Blaine County Nord';`
+      +`if(y<47&&x>64)return'Sandy Shores';`
+      +`if(y<38&&x<50)return'Rockford Hills';`
+      +`if(y<41&&x>=50)return'Vinewood Hills';`
+      +`if(y<54&&x>=42&&x<57)return'Downtown LS';`
+      +`if(y>=42&&y<55&&x<40)return'Del Perro/Vespucci';`
+      +`if(y>=54&&x<45)return'LSIA';`
+      +`if(y>=54&&y<63&&x>=43&&x<53)return'Little Seoul';`
+      +`if(y>=54&&y<63&&x>=53&&x<63)return'Strawberry';`
+      +`if(y>=63&&x<60)return'Davis';`
+      +`if(y>=45&&y<56&&x>=57)return'La Mesa/East LS';`
+      +`if(y>=56&&x>=57)return'Rancho/Cypress Flats';`
+      +`return'Los Santos';}`
+      +`function mkDot(p){`
+      +`var col=COLORS[p.ebene]||'#e0e0e0';`
+      +`var d=document.createElement('div');`
+      +`var isMine=p.userId===myId;`
+      +`d.style.cssText='position:absolute;left:'+p.x+'%;top:'+p.y+'%;width:'+(isMine?18:14)+'px;height:'+(isMine?18:14)+'px;`
+      +`background:'+col+';border:'+(isMine?'2px solid #fff':'1.5px solid rgba(255,255,255,.5)')+';`
+      +`border-radius:50%;transform:translate(-50%,-50%);z-index:10;cursor:pointer;`
+      +`box-shadow:0 0 '+(isMine?'10':'6')+'px '+col+',0 0 '+(isMine?'20':'10')+'px '+col+'44;`
+      +`transition:transform .15s';`
+      +`var dist=getDistrict(p.x,p.y);`
+      +`var tip=document.createElement('div');`
+      +`tip.style.cssText='position:absolute;bottom:22px;left:50%;transform:translateX(-50%);`
+      +`background:rgba(4,9,31,.95);border:1px solid #1a3a78;border-radius:6px;padding:5px 10px;`
+      +`font-size:.7rem;white-space:nowrap;display:none;z-index:20;min-width:130px;text-align:center;color:#e0e0e0;pointer-events:none';`
+      +`tip.innerHTML='<strong style=color:'+col+'>'+p.displayName+'</strong><br>'`
+      +`+'<span style=color:#6aa3ff>'+p.rankName+'</span><br>'`
+      +`+'<span style=color:#4a6080;font-size:.65rem>'+dist+'</span>';`
+      +`d.appendChild(tip);`
+      +`d.onmouseenter=function(){tip.style.display='block';d.style.transform='translate(-50%,-50%) scale(1.3)';};`
+      +`d.onmouseleave=function(){tip.style.display='none';d.style.transform='translate(-50%,-50%) scale(1)';};`
+      +`return d;}`
+      +`function renderAll(positions){`
+      +`var m=document.getElementById('gps-markers');`
+      +`var l=document.getElementById('gps-list');`
+      +`if(!m)return;`
+      +`m.innerHTML='';`
+      +`positions.forEach(function(p){m.appendChild(mkDot(p));});`
+      +`if(!l)return;`
+      +`var now=Date.now();`
+      +`if(!positions.length){l.innerHTML='<p class=\\"muted\\">Keine Officers auf dem Radar.</p>';return;}`
+      +`l.innerHTML=positions.map(function(p){`
+      +`var col=COLORS[p.ebene]||'#e0e0e0';`
+      +`var min=Math.round((now-p.ts)/60000);`
+      +`var ago=min<1?'gerade eben':min<60?min+'m':Math.round(min/60)+'h';`
+      +`var dist=getDistrict(p.x,p.y);`
+      +`return'<div class=\\"info-row\\">'`
+      +`+'<div style=\\"display:flex;align-items:center;gap:8px\\">'`
+      +`+'<div style=\\"width:10px;height:10px;border-radius:50%;background:'+col+';box-shadow:0 0 6px '+col+'\\">'`
+      +`+'</div><div>'`
+      +`+'<div style=\\"font-size:.78rem;font-weight:700;color:'+col+'\\">'+p.displayName+'</div>'`
+      +`+'<div style=\\"font-size:.66rem;color:#4a6080\\">'+p.rankName+' &bull; '+dist+'</div>'`
+      +`+'</div></div>'`
+      +`+'<div style=\\"font-size:.67rem;color:#4a6080\\">vor '+ago+'</div></div>';`
+      +`}).join('');}`
+      +`function poll(){fetch('/lapd/api/gps').then(function(r){return r.json();}).then(function(j){if(j.ok)renderAll(j.positions);}).catch(function(){});setTimeout(poll,5000);}`
+      +`poll();`
+      +`var mapEl=document.getElementById('gps-map');`
+      +`if(mapEl){mapEl.addEventListener('click',function(e){`
+      +`var r=mapEl.getBoundingClientRect();`
+      +`var x=Math.round(((e.clientX-r.left)/r.width)*1000)/10;`
+      +`var y=Math.round(((e.clientY-r.top)/r.height)*1000)/10;`
+      +`if(x<0||x>100||y<0||y>100)return;`
+      +`var st=document.getElementById('gps-status');`
+      +`if(st)st.textContent='Position wird gesetzt...';`
+      +`fetch('/lapd/api/gps',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:x,y:y})})`
+      +`.then(function(r){return r.json();})`
+      +`.then(function(j){`
+      +`if(st)st.textContent=j.ok?'\u2705 Position gesetzt (\u2192 '+getDistrict(x,y)+')':'\u274C '+(j.msg||'Fehler');`
+      +`setTimeout(function(){if(st)st.textContent='';},4000);`
+      +`});});}`
+      +`window._gpsRemove=function(){`+`fetch('/lapd/api/gps',{method:'DELETE'})`+`.then(function(r){return r.json();})`+`.then(function(){window.location.reload();}).catch(function(){});};`+`})();</script>`;
   }
 
   function _buildPanicScript(){
@@ -3417,6 +3536,66 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         : '<p class="muted">Keine Notrufe vorhanden.</p>';
       content = '<div class="sec"><div class="sh" style="border-left:3px solid #ef4444"><h3 style="color:#ef4444">&#x1F6A8; Notrufe</h3></div>'
         +'<div class="sb">'+nHtml+'</div></div>';
+
+    } else if (tab === 'gps') {
+      const gpsData = loadGps();
+      const now = Date.now();
+      Object.keys(gpsData).forEach(k=>{ if(now-gpsData[k].ts>2*60*60*1000) delete gpsData[k]; });
+      const positions = Object.values(gpsData);
+      const isOnMap = !!gpsData[s.userId];
+      const ebeneColors = {leitung:'#ffd700',befehl:'#60a5fa',detective:'#c084fc',officer:'#86efac'};
+      function getDistrict(x,y){
+        if(y<20&&x<42) return 'Paleto Bay';
+        if(y<22) return 'Blaine County Nord';
+        if(y<47&&x>64) return 'Sandy Shores';
+        if(y<38&&x<50) return 'Rockford Hills';
+        if(y<41&&x>=50) return 'Vinewood Hills';
+        if(y<54&&x>=42&&x<57) return 'Downtown Los Santos';
+        if(y>=42&&y<55&&x<40) return 'Del Perro / Vespucci';
+        if(y>=54&&x<45) return 'LSIA';
+        if(y>=54&&y<63&&x>=43&&x<53) return 'Little Seoul';
+        if(y>=54&&y<63&&x>=53&&x<63) return 'Strawberry';
+        if(y>=63&&x<60) return 'Davis';
+        if(y>=45&&y<56&&x>=57) return 'La Mesa / East LS';
+        if(y>=56&&x>=57) return 'Rancho / Cypress Flats';
+        return 'Los Santos';
+      }
+      const listHtml = positions.length
+        ? positions.map(p=>{
+          const col = ebeneColors[p.ebene]||'#e0e0e0';
+          const dist = getDistrict(p.x,p.y);
+          const min = Math.round((now-p.ts)/60000);
+          const ago = min<1?'gerade eben':min<60?min+'m':Math.round(min/60)+'h';
+          return '<div class="info-row">'
+            +'<div style="display:flex;align-items:center;gap:8px">'
+            +'<div style="width:10px;height:10px;border-radius:50%;background:'+col+';flex-shrink:0;box-shadow:0 0 6px '+col+'"></div>'
+            +'<div><div style="font-size:.78rem;font-weight:700">'+(p.userId===s.userId?'<span style="color:#ffd700">&#x2605;</span> ':'')+esc(p.displayName)+'</div>'
+            +'<div style="font-size:.66rem;color:#4a6080">'+esc(p.rankName)+' &bull; '+dist+'</div>'
+            +'</div></div>'
+            +'<div style="font-size:.67rem;color:#4a6080;text-align:right">vor '+ago+'</div>'
+            +'</div>';
+          }).join('')
+        : '<p class="muted">Keine Officers auf dem Radar.</p>';
+      content = '<div class="sec"><div class="sh" style="border-left:3px solid #22c55e">'
+        +'<h3 style="color:#22c55e">&#x1F4E1; GPS Tracker</h3>'
+        +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+        +'<span id="gps-status" style="font-size:.72rem;color:#86efac"></span>'
+        +(isOnMap?'<button class="btn sm red" onclick="_gpsRemove()">Vom Radar nehmen</button>':'')
+        +'</div></div>'
+        +'<div style="position:relative;width:100%;background:#030b1a;overflow:hidden" id="gps-wrap">'
+        +'<div id="gps-map" style="position:relative;width:100%;padding-top:100%;cursor:crosshair;overflow:hidden;'
+        +'background-color:#04091f;background-image:url(https://i.imgur.com/kEDHYTl.jpg);background-size:cover;background-position:center">'
+        +'<div style="position:absolute;inset:0;pointer-events:none;z-index:1;background:linear-gradient(rgba(3,11,26,.08),rgba(3,11,26,.08))">'
+        +'</div>'
+        +'<div id="gps-markers" style="position:absolute;inset:0;z-index:5"></div>'
+        +'<div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:.62rem;color:rgba(255,255,255,.45);pointer-events:none;white-space:nowrap;background:rgba(0,0,0,.4);padding:2px 8px;border-radius:4px">Klicke auf die Karte um deine Position zu markieren</div>'
+        +'</div></div>'
+        +'<div style="padding:14px 16px">'
+        +'<div style="font-size:.7rem;color:#4a6080;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">&#x1F6E1; Officers auf dem Radar ('+positions.length+')</div>'
+        +'<div id="gps-list">'+listHtml+'</div>'
+        +'</div></div>'
+        +_buildGpsScript(s.userId, s.displayName, s.rankName, s.ebene);
+
     }
 
     res.setHeader('Content-Type','text/html; charset=utf-8');
