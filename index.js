@@ -20,6 +20,7 @@ const {
   TextInputStyle,
   ChannelType,
   AttachmentBuilder,
+  ActivityType,
 } = require('discord.js');
 const fs   = require('fs');
 const path   = require('path');
@@ -857,6 +858,7 @@ async function buildInviteCache(guild) {
 
   client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
+  client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
 
   for (const guild of client.guilds.cache.values()) {
     await buildInviteCache(guild);
