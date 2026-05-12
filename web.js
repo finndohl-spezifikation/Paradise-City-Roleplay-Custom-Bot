@@ -2261,23 +2261,8 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   const LHEAD  = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>LAPD</title><style>'+LCSS+'</style></head><body>';
   const LBADGE = '<div class="badge"><img src="/lapd/logo.png" alt="LAPD" style="width:100px;height:100px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 14px;box-shadow:0 0 28px #1a4fa8aa"><h1>LAPD</h1><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><div class="sub">Paradise City Roleplay</div></div><hr>';
   const LFOOT  = '<div class="foot">LAPD INTERNES SYSTEM • UNBEFUGTER ZUGRIFF VERBOTEN</div></body></html>';
-  const LAPD_INTRO_CSS = '<style>.lapd-intro{position:fixed;inset:0;background:#04091f;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity .7s}.lapd-intro.hide{opacity:0;pointer-events:none}' +
-    '.lapd-intro img{width:160px;height:160px;border-radius:50%;object-fit:cover;box-shadow:0 0 60px #1a4fa8aa;animation:lpulse .9s cubic-bezier(.34,1.56,.64,1) forwards}' +
-    '.lapd-intro .ltxt{color:#90caf9;font-size:.78rem;font-weight:700;letter-spacing:4px;text-transform:uppercase;opacity:0;animation:lfadein .7s .4s forwards}' +
-    '.lapd-intro .lsub{color:#2a4a8a;font-size:.62rem;letter-spacing:2px;opacity:0;animation:lfadein .7s .7s forwards}' +
-    '@keyframes lpulse{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.07)}100%{transform:scale(1);opacity:1}}' +
-    '@keyframes lfadein{to{opacity:1}}</style>';
-  const LAPD_INTRO_HTML = '<div id="lintro" class="lapd-intro">' +
-    '<img src="/lapd/logo.png" alt="LAPD" onerror="this.style.display=\"none\"">' +
-    '<div class="ltxt">LOS ANGELES POLICE DEPARTMENT</div>' +
-    '<div class="lsub">PARADISE CITY ROLEPLAY</div>' +
-    '</div>' +
-    '<script>' +
-    'setTimeout(function(){' +
-    'var o=document.getElementById("lintro");' +
-    'if(o){o.classList.add("hide");setTimeout(function(){o.remove();},750);}' +
-    '},1800);' +
-    '</script>';
+  const LAPD_INTRO_CSS = '';
+  const LAPD_INTRO_HTML = '';
 
   // ── GET /lapd ────────────────────────────────────────────────────────────
   const LAPD_GATE_PAGE = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LAPD Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#050c26;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}.card{background:#0c1b45;border:1px solid #1e4080;border-radius:14px;padding:40px 36px;max-width:400px;width:90%;text-align:center}.ico{font-size:3rem;margin-bottom:16px}.h{font-size:1.1rem;font-weight:800;color:#ffd700;letter-spacing:2px;margin-bottom:10px}.p{font-size:.84rem;color:#6b7280;line-height:1.6}</style></head><body><div class="card"><div class="ico">🛡️</div><div class="h">LAPD DASHBOARD</div><div class="p">Bitte klicke auf den <strong style="color:#90caf9">Login-Button</strong> in Discord,<br>um dich anzumelden.</div></div></body></html>`;
