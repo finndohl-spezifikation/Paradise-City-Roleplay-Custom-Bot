@@ -1948,7 +1948,7 @@ async function buildInviteCache(guild) {
       const lapdUrl = 'https://' + domain + '/lapd';
       const lapdLine = '━'.repeat(40);
       const lapdEmbed = new EmbedBuilder()
-        .setColor(0x0d1b46)
+        .setColor(0x0e1f52)
         .setTitle('🛡️  LAPD Internal Dashboard')
         .setThumbnail('https://' + domain + '/lapd/logo.png')
         .setDescription(
@@ -3051,7 +3051,7 @@ client.on('interactionCreate', async (interaction) => {
         const ebene     = memberRanks[0] ? memberRanks[0].ebene : 'officer';
         const pw        = LAPD_PW_B[ebene] || '—';
         const replyEmbed = new EmbedBuilder()
-          .setColor(0x1565c0)
+          .setColor(0x0e1f52)
           .setTitle('🛡️ LAPD Dashboard')
           .setDescription(
             '👤 **' + member.displayName + '**\n' +
