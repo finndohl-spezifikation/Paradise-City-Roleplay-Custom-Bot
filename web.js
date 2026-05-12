@@ -2235,8 +2235,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   // ── GET /lapd ────────────────────────────────────────────────────────────
   app.get('/lapd', (req,res)=>{
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
-    res.setHeader('Content-Type','text/html; charset=utf-8');
-    res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="info">📱 Nutze den <strong>🛡️ Dashboard öffnen</strong>-Button in Discord um dich einzuloggen.</div></div>'+LFOOT);
+    return res.status(403).end();
   });
 
   // ── GET /lapd/auth/:token ────────────────────────────────────────────────
