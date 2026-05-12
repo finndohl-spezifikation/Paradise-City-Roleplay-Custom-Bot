@@ -2216,34 +2216,36 @@ module.exports = function startWebServer(client, DATA_DIR) {
   app.get('/lapd/reset',  (req, res) => { req.session.lapdPending = null; res.redirect('/lapd'); });
 
   // ── Hilfsfunktion: Schritt 2 HTML rendern (sessionfrei) ────────────────
-  function lapdStep2Html(uname, ranksB64, sig, err) {
+  function lapdStep2Html(memberId, uname, ranksB64, sig, err) {
     let ranks = [];
     try { ranks = JSON.parse(Buffer.from(ranksB64, 'base64').toString()); } catch {}
     const opts = ranks.map((r, i) =>
-      '<option value="' + i + '">' + r.name + ' — ' + LAPD_EBENE[r.ebene].label + '</option>'
+      '<option value="' + i + '">' + r.name + ' \u2014 ' + LAPD_EBENE[r.ebene].label + '</option>'
     ).join('');
     return (
       '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">' +
       '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">' +
-      '<title>LAPD – Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:\\"Segoe UI\\",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}.badge{text-align:center;margin-bottom:24px}.badge .icon{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}hr{border:none;border-top:1px solid #1a3a6b;margin:20px 0}.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.fg input,.fg select{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}.fg select option{background:#060c1a}.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}.btn:hover{background:#1976d2}.back{display:block;text-align:center;margin-top:14px;color:#90caf9;font-size:.85rem;text-decoration:none}.back:hover{color:#42a5f5}.foot{margin-top:28px;color:#1a3a6b;font-size:.7rem;letter-spacing:1px;text-align:center}</style></head><body>' +
+      '<title>LAPD \u2013 Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}.badge{text-align:center;margin-bottom:24px}.badge .icon{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}hr{border:none;border-top:1px solid #1a3a6b;margin:20px 0}.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.fg input,.fg select{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}.fg select option{background:#060c1a}.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}.btn:hover{background:#1976d2}.back{display:block;text-align:center;margin-top:14px;color:#90caf9;font-size:.85rem;text-decoration:none}.back:hover{color:#42a5f5}.foot{margin-top:28px;color:#1a3a6b;font-size:.7rem;letter-spacing:1px;text-align:center}</style></head><body>' +
       '<div class="card">' +
-      '<div class="badge"><div class="icon">🛡️</div><h1>LAPD</h1>' +
+      '<div class="badge"><div class="icon">\uD83D\uDEE1\uFE0F</div><h1>LAPD</h1>' +
       '<div class="sub">LOS ANGELES POLICE DEPARTMENT</div>' +
       '<div class="sub">Paradise City Roleplay</div></div><hr>' +
-      (err ? '<div class="err">⚠️ ' + err + '</div>' : '') +
+      (err ? '<div class="err">\u26A0\uFE0F ' + err + '</div>' : '') +
       '<form method="POST" action="/lapd/login">' +
       '<input type="hidden" name="_d" value="' + ranksB64 + '">' +
       '<input type="hidden" name="_s" value="' + sig + '">' +
-      '<p class="u-hint">👤 Angemeldet als <strong>' + uname + '</strong></p>' +
-      '<div class="fg"><label>Rang auswählen</label>' +
+      '<input type="hidden" name="_m" value="' + memberId + '">' +
+      '<input type="hidden" name="_u" value="' + uname + '">' +
+      '<p class="u-hint">\uD83D\uDC64 Angemeldet als <strong>' + uname + '</strong></p>' +
+      '<div class="fg"><label>Rang ausw\u00e4hlen</label>' +
       '<select name="rankIdx" required>' + opts + '</select></div>' +
       '<div class="fg"><label>Passwort</label>' +
-      '<input type="password" name="password" placeholder="••••••••" required autocomplete="current-password"></div>' +
-      '<button class="btn" type="submit">🔓 Einloggen</button>' +
+      '<input type="password" name="password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" required autocomplete="current-password"></div>' +
+      '<button class="btn" type="submit">\uD83D\uDD13 Einloggen</button>' +
       '</form>' +
-      '<a class="back" href="/lapd">← Anderen Nutzer wählen</a>' +
+      '<a class="back" href="/lapd">\u2190 Anderen Nutzer w\u00e4hlen</a>' +
       '</div>' +
-      '<div class="foot">LAPD INTERNAL SYSTEM • UNAUTHORIZED ACCESS PROHIBITED</div>' +
+      '<div class="foot">LAPD INTERNAL SYSTEM \u2022 UNAUTHORIZED ACCESS PROHIBITED</div>' +
       '</body></html>'
     );
   }
@@ -2277,16 +2279,13 @@ module.exports = function startWebServer(client, DATA_DIR) {
         req.session.lapdError = 'Du hast keine LAPD-Rolle auf dem Server.';
         return res.redirect('/lapd');
       }
-      // Daten als Base64 kodieren + HMAC signieren — kein Session-Redirect nötig
+      // Daten als Base64 + HMAC — komplett sessionfrei
       const ranksB64 = Buffer.from(JSON.stringify(memberRanks)).toString('base64');
       const hmacKey  = process.env.SESSION_SECRET || 'paradise-city-2024';
       const sig      = require('crypto').createHmac('sha256', hmacKey)
                          .update(member.id + ':' + ranksB64).digest('hex');
-      // memberId in Session speichern (nur eine kleine Zahl, funktioniert sicher)
-      req.session.lapdPending = { memberId: member.id, uname: member.user.username };
-      req.session.save(() => {});
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.send(lapdStep2Html(member.user.username, ranksB64, sig, ''));
+      return res.send(lapdStep2Html(member.id, member.user.username, ranksB64, sig, ''));
     } catch (e) {
       req.session.lapdError = 'Fehler beim Abrufen der Mitgliederdaten.';
       return res.redirect('/lapd');
@@ -2295,19 +2294,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
 
   // ── POST /lapd/login — Schritt 2: Rang + Passwort prüfen ────────────────
   app.post('/lapd/login', async (req, res) => {
-    const { _d: ranksB64, _s: sig, rankIdx, password } = req.body;
-    if (!ranksB64 || !sig) {
+    const { _d: ranksB64, _s: sig, _m: memberId, _u: uname, rankIdx, password } = req.body;
+    if (!ranksB64 || !sig || !memberId) {
       req.session.lapdError = 'Sitzung abgelaufen. Bitte neu einloggen.';
       return res.redirect('/lapd');
     }
-    const pending  = req.session.lapdPending || {};
-    const memberId = pending.memberId;
-    const uname    = pending.uname || '';
-    if (!memberId) {
-      req.session.lapdError = 'Sitzung abgelaufen. Bitte neu einloggen.';
-      return res.redirect('/lapd');
-    }
-    // HMAC prüfen
+    // HMAC prüfen — alles aus dem Formular, keine Session nötig
     const hmacKey     = process.env.SESSION_SECRET || 'paradise-city-2024';
     const expectedSig = require('crypto').createHmac('sha256', hmacKey)
                           .update(memberId + ':' + ranksB64).digest('hex');
@@ -2324,12 +2316,12 @@ module.exports = function startWebServer(client, DATA_DIR) {
     const rank = ranks[isNaN(idx) ? -1 : idx];
     if (!rank) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.send(lapdStep2Html(uname, ranksB64, sig, 'Ungültiger Rang.'));
+      return res.send(lapdStep2Html(memberId, uname || '', ranksB64, sig, 'Ung\u00fcltiger Rang.'));
     }
     if ((password || '').trim() !== LAPD_PW[rank.ebene]) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.send(lapdStep2Html(uname, ranksB64, sig,
-        'Falsches Passwort für die ' + LAPD_EBENE[rank.ebene].label + '.'));
+      return res.send(lapdStep2Html(memberId, uname || '', ranksB64, sig,
+        'Falsches Passwort f\u00fcr die ' + LAPD_EBENE[rank.ebene].label + '.'));
     }
     try {
       let guild = client.guilds.cache.get(LAPD_GUILD_ID);
@@ -2344,7 +2336,6 @@ module.exports = function startWebServer(client, DATA_DIR) {
         displayName: member.displayName, rankId: rank.id,
         rankName: rank.name, ebene: rank.ebene, loginTime: Date.now(),
       };
-      req.session.lapdPending = null;
       return res.redirect('/lapd/dashboard');
     } catch {
       req.session.lapdError = 'Login fehlgeschlagen. Bitte erneut versuchen.';
