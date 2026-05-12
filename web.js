@@ -2235,8 +2235,43 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   // ── GET /lapd ────────────────────────────────────────────────────────────
   app.get('/lapd', (req,res)=>{
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
+    const errMap = { pw:'Falsches Passwort. Bitte erneut versuchen.', notfound:'Kein LAPD-Mitglied mit diesem Namen gefunden.', norank:'Du hast keinen LAPD-Rang auf dem Server.', fail:'Anmeldefehler. Bitte versuche es erneut.' };
+    const errHtml = req.query.err ? '<div class="err">⚠️ '+(errMap[req.query.err]||'Fehler')+'</div>' : '';
     res.setHeader('Content-Type','text/html; charset=utf-8');
-    res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="info">📱 Nutze den <strong>🛡️ Dashboard öffnen</strong>-Button in Discord.<br>Der Bot schickt dir einen persönlichen Link — kein Benutzername erforderlich.</div></div>'+LFOOT);
+    res.send(LHEAD+'<div class="card">'+LBADGE+errHtml+
+      '<form method="POST" action="/lapd">'+
+      '<div class="fg"><label>Discord-Name</label><input type="text" name="uname" placeholder="Dein Discord-Anzeigename" required autocomplete="username" autofocus></div>'+
+      '<div class="fg"><label>Passwort</label><input type="password" name="password" placeholder="••••••••" required autocomplete="current-password"></div>'+
+      '<button class="btn" type="submit">🔓 Einloggen</button></form></div>'+LFOOT);
+  });
+
+  // ── POST /lapd ────────────────────────────────────────────────────────────
+  app.post('/lapd', async (req,res)=>{
+    if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
+    const uname = (req.body.uname||'').trim();
+    const pw    = (req.body.password||'').trim();
+    if (!uname || !pw) return res.redirect('/lapd?err=pw');
+    // Passwort → Ebene
+    const ebene = Object.keys(LAPD_PW).find(e=>LAPD_PW[e]===pw);
+    if (!ebene) return res.redirect('/lapd?err=pw');
+    try {
+      let guild = client.guilds.cache.get(LAPD_GUILD_ID);
+      if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(()=>null);
+      if (!guild) return res.redirect('/lapd?err=fail');
+      await guild.members.fetch().catch(()=>{});
+      // Mitglied per Displayname oder Username finden (case-insensitive)
+      const lower = uname.toLowerCase();
+      const member = guild.members.cache.find(m=>
+        m.displayName.toLowerCase()===lower || m.user.username.toLowerCase()===lower
+      );
+      if (!member) return res.redirect('/lapd?err=notfound');
+      // Rang des Mitglieds in der gesuchten Ebene finden
+      const rank = LAPD_RANKS.find(r=>r.ebene===ebene && member.roles.cache.has(r.id));
+      if (!rank) return res.redirect('/lapd?err=norank');
+      req.session.lapd = { userId:member.user.id, username:member.user.username, displayName:member.displayName,
+        rankId:rank.id, rankName:rank.name, ebene:rank.ebene, loginTime:Date.now() };
+      return res.redirect('/lapd/dashboard');
+    } catch { return res.redirect('/lapd?err=fail'); }
   });
 
   // ── GET /lapd/auth/:token ────────────────────────────────────────────────
