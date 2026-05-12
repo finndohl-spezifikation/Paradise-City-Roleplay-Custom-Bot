@@ -2153,19 +2153,10 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
 
   const LAPD_GUILD_ID = '1498482541751963698';
   const LAPD_RANKS = [
-    { id:'1498483674667028543', name:'Chief of Police',  ebene:'leitung'   },
-    { id:'1498483758532395008', name:'Deputy Chief',     ebene:'leitung'   },
-    { id:'1498483802740363357', name:'Captain',          ebene:'befehl'    },
-    { id:'1498484140935217172', name:'Lieutenant',       ebene:'befehl'    },
-    { id:'1498484185491312690', name:'Staff Sergeant',   ebene:'befehl'    },
-    { id:'1498484299329179658', name:'Sergeant',         ebene:'befehl'    },
-    { id:'1498484388428779550', name:'Detective III',    ebene:'detective' },
-    { id:'1498484584017559773', name:'Detective II',     ebene:'detective' },
-    { id:'1498484636211482685', name:'Detective I',      ebene:'detective' },
-    { id:'1498484724824408214', name:'Senior Officer',   ebene:'officer'   },
-    { id:'1498484934720098365', name:'Officer',          ebene:'officer'   },
-    { id:'1498485048565960754', name:'Officer Trainee',  ebene:'officer'   },
-    { id:'1498485086071554169', name:'Rookie',           ebene:'officer'   },
+    { id:'1498483561982984212', name:'Leitungsebene',  ebene:'leitung'   },
+    { id:'1498484038363648121', name:'Befehlsebene',   ebene:'befehl'    },
+    { id:'1498484537368510504', name:'Detectives',     ebene:'detective' },
+    { id:'1498484869863444660', name:'Officer',        ebene:'officer'   },
   ];
   const LAPD_DUTY_CHANNEL = '1492939533895860504';
   const LAPD_PW    = { leitung:'LAPD_Chief_2025', befehl:'LAPD_Command_2025', detective:'LAPD_Detective_2025', officer:'LAPD_Officer_2025' };
@@ -2176,7 +2167,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     officer:   { label:'Officer Division',   color:'#66bb6a' },
   };
   const LAPD_ERANK      = { leitung:3, befehl:2, detective:1, officer:0 };
-  const LAPD_VAC_NOTIFY = ['1498483674667028543','1498483758532395008','1498483802740363357'];
+  const LAPD_VAC_NOTIFY = ['1498483561982984212','1498484038363648121'];
 
   const LAPD_DUTY_FILE  = path.join(DATA_DIR, 'lapd_duty.json');
   const LAPD_EMBED_FILE = path.join(DATA_DIR, 'lapd_duty_embed.json');
@@ -2739,17 +2730,161 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   });
 
   // ── Dashboard (vollständig server-seitig, kein JavaScript nötig) ─────────
-  const LAPD_CSS = "*{box-sizing:border-box;margin:0;padding:0}body{background:#0c1840;color:#e0e0e0;font-family:\"Segoe UI\",sans-serif;min-height:100vh;display:flex}@keyframes panicGlow{0%,100%{box-shadow:0 0 8px #ff0000,0 0 22px #ff000077}50%{box-shadow:0 0 20px #ff0000,0 0 45px #ff0000bb}}@keyframes panicPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}.sidebar{width:222px;min-height:100vh;background:#091535;border-right:1px solid #1a3a78;display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}.sb-logo{padding:12px 12px 10px;border-bottom:1px solid #1a3a78;display:flex;align-items:center;gap:10px}.sb-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #1e6fff55}.sb-logo div{flex:1;min-width:0}.sb-logo h2{font-size:.78rem;font-weight:800;color:#ffd700;letter-spacing:2px;line-height:1.3}.sb-logo p{font-size:.62rem;color:#90caf9;margin-top:1px}.sb-nav{flex:1;padding:6px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}.nb{display:flex;align-items:center;gap:10px;width:100%;text-decoration:none;background:transparent;border:none;border-left:4px solid transparent;border-radius:0 8px 8px 0;color:#5a6a80;padding:8px 11px;font-size:.78rem;font-weight:600;cursor:pointer;transition:.15s}.nb .ni{font-size:.95rem;width:22px;text-align:center;flex-shrink:0}.nb:hover{color:#c0d8ff;background:#0f1f4a;border-left-color:#2a4a8a}.nb.act{color:#60a5fa;background:#0f2255;border-left-color:#1e90ff;font-weight:700}.sb-user{padding:11px 14px;border-top:1px solid #1a3a78}.sb-user .uname{font-size:.76rem;font-weight:700;color:#e0e0e0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sb-user .urank{font-size:.67rem;font-weight:600;margin-bottom:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbtn{display:block;width:100%;background:transparent;border:1px solid #1a3a78;color:#6b7280;padding:7px 12px;border-radius:7px;font-size:.76rem;cursor:pointer;transition:.2s;text-align:center}.lbtn:hover{border-color:#ef5350;color:#ef5350}.main-wrap{margin-left:222px;flex:1;display:flex;flex-direction:column;min-height:100vh}main{flex:1;padding:20px 22px;max-width:1060px;width:100%}.sec{background:#0f2050;border:1px solid #1a3a78;border-radius:10px;margin-bottom:14px;overflow:hidden}.sh{padding:11px 16px;border-bottom:1px solid #1a3a78;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.sh h3{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.sb{padding:14px 16px}table{width:100%;border-collapse:collapse;font-size:.82rem}th{color:#6b7280;font-size:.67rem;text-transform:uppercase;letter-spacing:1px;padding:7px 10px;text-align:left;border-bottom:1px solid #1a3a78}td{padding:7px 10px;border-bottom:1px solid #091535}tr:last-child td{border-bottom:none}tr:hover td{background:#070f2b}.muted{color:#6b7280;font-size:.82rem;padding:8px 0}.fg{margin-bottom:11px}.fg label{display:block;font-size:.7rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.fg input,.fg select,.fg textarea{width:100%;background:#070f2b;border:1px solid #1a3a78;color:#e0e0e0;padding:8px 12px;border-radius:7px;font-size:.86rem;outline:none;transition:.2s;font-family:inherit}.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1e6fff}.fg select option{background:#070f2b}.fg textarea{resize:vertical;min-height:80px}.row{display:flex;gap:10px;flex-wrap:wrap}.row .fg{flex:1;min-width:140px}.btn{background:#1565c0;color:#fff;border:none;padding:8px 16px;border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.2s;text-decoration:none;display:inline-block}.btn:hover{background:#1976d2}.btn.red{background:#7f1d1d}.btn.red:hover{background:#991b1b}.btn.grn{background:#14532d}.btn.grn:hover{background:#166534}.btn.sm{padding:4px 10px;font-size:.72rem}.btn.ghost{background:transparent;border:1px solid #1a3a78;color:#90caf9}.btn.ghost:hover{border-color:#42a5f5;color:#42a5f5}.pin-badge{color:#ffd700;font-size:.68rem;font-weight:700;margin-left:6px}.ann-card{border:1px solid #1a3a78;border-radius:8px;padding:13px;margin-bottom:9px;background:#070f2b}.ann-card.pinned{border-color:#ffd700}.ann-card h4{font-size:.88rem;font-weight:700;margin-bottom:5px}.ann-card .meta{font-size:.7rem;color:#6b7280;margin-bottom:7px}.ann-card .body{font-size:.83rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}.ann-acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}.vac-badge{padding:3px 10px;border-radius:10px;font-size:.68rem;font-weight:700}.vac-badge.pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid #ffc107}.vac-badge.approved{background:rgba(76,175,80,.15);color:#66bb6a;border:1px solid #66bb6a}.vac-badge.rejected{background:rgba(183,28,28,.15);color:#ef9a9a;border:1px solid #b71c1c}.flash{padding:9px 13px;border-radius:7px;margin-bottom:11px;font-size:.82rem}.flash.ok{background:rgba(76,175,80,.15);border:1px solid #388e3c;color:#a5d6a7}.flash.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;color:#ef9a9a}.info-card{display:flex;flex-direction:column}.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #1a3a78}.info-row:last-child{border-bottom:none}.info-l{font-size:.7rem;color:#6b8aba;text-transform:uppercase;letter-spacing:1px}.info-v{font-size:.83rem;font-weight:600}.danger-badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700}.danger-badge.hoch{background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444}.danger-badge.mittel{background:rgba(251,191,36,.2);color:#fcd34d;border:1px solid #f59e0b}.danger-badge.niedrig{background:rgba(74,222,128,.2);color:#86efac;border:1px solid #22c55e}.warrant-photo{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #1a3a78}.status-badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700}.status-badge.aktiv{background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444}.status-badge.gefasst{background:rgba(74,222,128,.2);color:#86efac;border:1px solid #22c55e}.bkat-section{margin-bottom:18px}.bkat-cat{font-size:.72rem;font-weight:800;color:#ffd700;text-transform:uppercase;letter-spacing:2px;padding:9px 0 5px;border-bottom:1px solid #1a3a78;margin-bottom:5px}.bkat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 4px;border-bottom:1px solid #091535;font-size:.8rem}.bkat-row:last-child{border-bottom:none}.bkat-row:hover{background:#070f2b}.bkat-fine{color:#fcd34d;font-weight:700;white-space:nowrap;margin-left:12px}.duty-tag{display:inline-block;padding:2px 8px;background:#0f2255;border:1px solid #1a3a78;border-radius:12px;font-size:.7rem;margin:2px}@media(max-width:720px){.sidebar{width:60px}.sb-logo div,.sb-user .uname,.sb-user .urank,.sb-user form,.nb .nl{display:none}.main-wrap{margin-left:60px}.nb{justify-content:center;padding:10px 0}.nb .ni{width:auto;font-size:1.1rem}}";
+  const LAPD_CSS = "*{box-sizing:border-box;margin:0;padding:0}body{background:#030b1a;color:#e0e0e0;font-family:\"Segoe UI\",sans-serif;min-height:100vh;display:flex}@keyframes panicGlow{0%,100%{box-shadow:0 0 8px #ff0000,0 0 22px #ff000077}50%{box-shadow:0 0 20px #ff0000,0 0 45px #ff0000bb}}@keyframes panicPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}.sidebar{width:222px;min-height:100vh;background:linear-gradient(180deg,#06122a 0%,#040e21 100%);border-right:1px solid #1e50c8;display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100;box-shadow:4px 0 24px rgba(30,111,255,0.18)}.sb-logo{padding:12px 12px 10px;border-bottom:1px solid #1e50c8;display:flex;align-items:center;gap:10px;background:rgba(30,111,255,0.07)}.sb-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #1e6fff;box-shadow:0 0 12px rgba(30,111,255,0.6)}.sb-logo div{flex:1;min-width:0}.sb-logo h2{font-size:.78rem;font-weight:800;color:#ffd700;letter-spacing:2px;line-height:1.3;text-shadow:0 0 8px rgba(255,215,0,0.5)}.sb-logo p{font-size:.62rem;color:#6aa3ff;margin-top:1px}.sb-nav{flex:1;padding:6px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}.nb{display:flex;align-items:center;gap:10px;width:100%;text-decoration:none;background:transparent;border:none;border-left:4px solid transparent;border-radius:0 8px 8px 0;color:#4a6080;padding:8px 11px;font-size:.78rem;font-weight:600;cursor:pointer;transition:.15s}.nb .ni{font-size:.95rem;width:22px;text-align:center;flex-shrink:0}.nb:hover{color:#93c5fd;background:rgba(30,111,255,0.12);border-left-color:#2a5abf}.nb.act{color:#60a5fa;background:rgba(30,111,255,0.2);border-left-color:#1e6fff;font-weight:700;box-shadow:inset 0 0 12px rgba(30,111,255,0.1)}.sb-user{padding:11px 14px;border-top:1px solid #1e50c8;background:rgba(30,111,255,0.05)}.sb-user .uname{font-size:.76rem;font-weight:700;color:#e0e0e0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sb-user .urank{font-size:.67rem;font-weight:600;margin-bottom:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbtn{display:block;width:100%;background:transparent;border:1px solid #1e50c8;color:#4a6080;padding:7px 12px;border-radius:7px;font-size:.76rem;cursor:pointer;transition:.2s;text-align:center}.lbtn:hover{border-color:#ef5350;color:#ef5350}.main-wrap{margin-left:222px;flex:1;display:flex;flex-direction:column;min-height:100vh}main{flex:1;padding:20px 22px;max-width:1060px;width:100%}.sec{background:linear-gradient(180deg,#081632 0%,#060f27 100%);border:1px solid #1a3a78;border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.4)}.sh{padding:11px 16px;border-bottom:1px solid #1a3a78;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:rgba(30,111,255,0.06)}.sh h3{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.sb{padding:14px 16px}table{width:100%;border-collapse:collapse;font-size:.82rem}th{color:#4a6080;font-size:.67rem;text-transform:uppercase;letter-spacing:1px;padding:7px 10px;text-align:left;border-bottom:1px solid #1a3a78}td{padding:7px 10px;border-bottom:1px solid #081530}tr:last-child td{border-bottom:none}tr:hover td{background:rgba(30,111,255,0.06)}.muted{color:#4a6080;font-size:.82rem;padding:8px 0}.fg{margin-bottom:11px}.fg label{display:block;font-size:.7rem;color:#6aa3ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.fg input,.fg select,.fg textarea{width:100%;background:#040c1e;border:1px solid #1a3a78;color:#e0e0e0;padding:8px 12px;border-radius:7px;font-size:.86rem;outline:none;transition:.2s;font-family:inherit}.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1e6fff;box-shadow:0 0 0 2px rgba(30,111,255,0.2)}.fg select option{background:#040c1e}.fg textarea{resize:vertical;min-height:80px}.row{display:flex;gap:10px;flex-wrap:wrap}.row .fg{flex:1;min-width:140px}.btn{background:#1565c0;color:#fff;border:none;padding:8px 16px;border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.2s;text-decoration:none;display:inline-block;box-shadow:0 2px 8px rgba(21,101,192,0.4)}.btn:hover{background:#1976d2;box-shadow:0 2px 12px rgba(21,101,192,0.6)}.btn.red{background:#7f1d1d;box-shadow:0 2px 8px rgba(127,29,29,0.4)}.btn.red:hover{background:#991b1b}.btn.grn{background:#14532d;box-shadow:0 2px 8px rgba(20,83,45,0.4)}.btn.grn:hover{background:#166534}.btn.sm{padding:4px 10px;font-size:.72rem}.btn.ghost{background:transparent;border:1px solid #1a3a78;color:#6aa3ff}.btn.ghost:hover{border-color:#42a5f5;color:#42a5f5}.pin-badge{color:#ffd700;font-size:.68rem;font-weight:700;margin-left:6px}.ann-card{border:1px solid #1a3a78;border-radius:8px;padding:13px;margin-bottom:9px;background:#040c1e}.ann-card.pinned{border-color:#ffd700;box-shadow:0 0 8px rgba(255,215,0,0.15)}.ann-card h4{font-size:.88rem;font-weight:700;margin-bottom:5px}.ann-card .meta{font-size:.7rem;color:#4a6080;margin-bottom:7px}.ann-card .body{font-size:.83rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}.ann-acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}.vac-badge{padding:3px 10px;border-radius:10px;font-size:.68rem;font-weight:700}.vac-badge.pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid #ffc107}.vac-badge.approved{background:rgba(76,175,80,.15);color:#66bb6a;border:1px solid #66bb6a}.vac-badge.rejected{background:rgba(183,28,28,.15);color:#ef9a9a;border:1px solid #b71c1c}.flash{padding:9px 13px;border-radius:7px;margin-bottom:11px;font-size:.82rem}.flash.ok{background:rgba(76,175,80,.12);border:1px solid #388e3c;color:#a5d6a7}.flash.err{background:rgba(183,28,28,.12);border:1px solid #b71c1c;color:#ef9a9a}.info-card{display:flex;flex-direction:column}.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #0d1f44}.info-row:last-child{border-bottom:none}.info-l{font-size:.7rem;color:#4a6a9a;text-transform:uppercase;letter-spacing:1px}.info-v{font-size:.83rem;font-weight:600}.danger-badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700}.danger-badge.hoch{background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444}.danger-badge.mittel{background:rgba(251,191,36,.2);color:#fcd34d;border:1px solid #f59e0b}.danger-badge.niedrig{background:rgba(74,222,128,.2);color:#86efac;border:1px solid #22c55e}.warrant-photo{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #1a3a78}.status-badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700}.status-badge.aktiv{background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444}.status-badge.gefasst{background:rgba(74,222,128,.2);color:#86efac;border:1px solid #22c55e}.bkat-section{margin-bottom:18px}.bkat-cat{font-size:.72rem;font-weight:800;color:#ffd700;text-transform:uppercase;letter-spacing:2px;padding:9px 0 5px;border-bottom:1px solid #1a3a78;margin-bottom:5px;text-shadow:0 0 6px rgba(255,215,0,0.3)}.bkat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 4px;border-bottom:1px solid #0d1f44;font-size:.8rem}.bkat-row:last-child{border-bottom:none}.bkat-row:hover{background:rgba(30,111,255,0.06)}.bkat-fine{color:#fcd34d;font-weight:700;white-space:nowrap;margin-left:12px}.duty-tag{display:inline-block;padding:2px 8px;background:rgba(30,111,255,0.15);border:1px solid #1a3a78;border-radius:12px;font-size:.7rem;margin:2px}@media(max-width:720px){.sidebar{width:60px}.sb-logo div,.sb-user .uname,.sb-user .urank,.sb-user form,.nb .nl{display:none}.main-wrap{margin-left:60px}.nb{justify-content:center;padding:10px 0}.nb .ni{width:auto;font-size:1.1rem}}";
 
   const LAPD_BKAT = [
-    {cat:"Geschwindigkeitsueberschreitungen",items:[["Ueberschreitung 1-10 mph","$35"],["Ueberschreitung 11-15 mph","$70"],["Ueberschreitung 16-25 mph","$100"],["Ueberschreitung 26-40 mph","$200"],["Ueberschreitung 41+ mph / Raserei","$500+"],["Schulzone / Bauzone","$350-$1.000"],["Rekordraserei 100+ mph","$900 + Fuehrerscheinverlust"]]},
-    {cat:"Ampeln & Verkehrsschilder",items:[["Rote Ampel ueberfahren","$490"],["Stoppschild nicht beachtet","$238"],["Vorfahrt nicht gewaehrt","$260"],["Vorfahrt ggue. Fussgaenger missachtet","$220"]]},
-    {cat:"Fahrzeug & Zulassung",items:[["Fahren ohne gueltigen Fuehrerschein","$1.000"],["Fahren mit gesperrtem Fuehrerschein","$1.500"],["Fahrzeug ohne Zulassung / abgelaufen","$200"],["Fahren ohne Haftpflichtversicherung","$1.500-$2.500"],["Fahrzeugkennzeichen manipuliert","$1.000"]]},
-    {cat:"Ablenkung & Sicherheit",items:[["Handy am Steuer (1. Verstoss)","$150"],["Handy am Steuer (Wiederholung)","$250"],["Kein Sicherheitsgurt Fahrer","$162"],["Kind ohne Kindersitz unter 8 J.","$490"],["Kopfhoerer beim Fahren","$160"]]},
-    {cat:"Alkohol & Drogen",items:[["DUI - Fahren unter Einfluss (1. Verstoss)","$1.500-$5.000 + Knast"],["DUI (Wiederholung)","$10.000 + Fuehrerscheinentzug"],["Oeffentlich Alkohol trinken","$250"],["Drogenbesitz Cannabis unter 28g","$500"],["Drogenbesitz staerkere Substanzen","$1.000-$5.000"],["Drogenhandel","Felony bis 5 Jahre"]]},
-    {cat:"Verkehr & Ordnung",items:[["Illegales Ueberholen","$285"],["Unerlaubte U-Wende","$100"],["Falschparken / Halteverbot","$65"],["Parken vor Hydranten","$88"],["Parken auf Behindertenplatz","$250-$1.000"],["Illegales Street Racing","$500 + Fahrzeugbeschlagnahme"],["Unfallflucht","$10.000 + Strafanzeige"]]},
-    {cat:"Straftaten Misdemeanor",items:[["Einfacher Diebstahl unter $950","$1.000 + bis 6 Monate Haft"],["Sachbeschaedigung / Vandalismus","$400 + Schadensersatz"],["Ruhestoerung","$165"],["Hausfriedensbruch","$500"],["Bedrohung / Belaestigung","$1.000"],["Widerstand gegen Vollzugsbeamte","$1.000 + Haft"],["Flucht vor Polizei zu Fuss","$1.000"],["Koerperverletzung leicht","$2.000 + bis 1 Jahr Haft"]]},
-    {cat:"Schwere Straftaten Felony",items:[["Schwerer Diebstahl ueber $950","Felony 1-3 Jahre"],["Einbruch Burglary","Felony 2-6 Jahre"],["Raububerfall Robbery","Felony 3-9 Jahre"],["Koerperverletzung mit Waffe","Felony 2-4 Jahre"],["Waffenbesitz ohne Erlaubnis","Felony 16 Monate-3 Jahre"],["Flucht vor Polizei im Fahrzeug","$10.000 + Felony"]]}
+    {cat:"Geschwindigkeitsverstoeße",items:[
+      ["Ueberschreitung 1-10 mph","$35"],["Ueberschreitung 11-15 mph","$70"],
+      ["Ueberschreitung 16-25 mph","$100"],["Ueberschreitung 26-40 mph","$200"],
+      ["Ueberschreitung 41-55 mph","$350"],["Ueberschreitung 56+ mph / Raserei","$500+"],
+      ["Schulzone jede Ueberschreitung","$350-$1.000"],["Baustellenzone","$500"],
+      ["Rekordraserei 100+ mph","$900 + Fuehrerscheinverlust"],
+      ["Street Racing / Rennen","$1.000 + Fahrzeugbeschlagnahme"],
+      ["Fahren mit nicht angepasster Geschwindigkeit bei Regen/Eis","$160"]]},
+    {cat:"Ampeln & Verkehrszeichen",items:[
+      ["Rote Ampel ueberfahren","$490"],["Gelbe Ampel missachtet","$100"],
+      ["Stoppschild nicht beachtet","$238"],["Vorfahrt nicht gewaehrt","$260"],
+      ["Vorfahrt gegenueber Fussgaenger missachtet","$220"],
+      ["Schulbus-Stoppschild ueberfahren","$695"],
+      ["Umleitung / Sperrzone missachtet","$150"],
+      ["Einbahnstrasse falsch befahren","$250"]]},
+    {cat:"Fahrzeug & Zulassung",items:[
+      ["Fahren ohne gueltigen Fuehrerschein","$1.000"],
+      ["Fahren mit gesperrtem Fuehrerschein","$1.500"],
+      ["Fahren mit widerrufenem Fuehrerschein","$2.000 + Haft"],
+      ["Fahrzeug ohne Zulassung","$200"],["Abgelaufene Zulassung","$100"],
+      ["Fahren ohne Haftpflichtversicherung","$1.500-$2.500"],
+      ["Fahrzeugkennzeichen manipuliert/gefaelscht","$1.000"],
+      ["Kein Kennzeichen am Fahrzeug","$197"],
+      ["Illegale Fahrzeugmodifikationen","$500-$2.000"],
+      ["Zu stark abgedunkelte Scheiben","$197"],
+      ["Defekte Beleuchtung (Scheinwerfer/Bremslicht)","$115"],
+      ["Fahrzeug nicht verkehrstauglich","$300"],
+      ["Ueberladen des Fahrzeugs","$250"]]},
+    {cat:"Fahrverhalten & Sicherheit",items:[
+      ["Handy am Steuer (1. Verstoss)","$150"],["Handy am Steuer (Wiederholung)","$250"],
+      ["Kein Sicherheitsgurt Fahrer","$162"],["Kein Sicherheitsgurt Beifahrer","$162"],
+      ["Kind ohne Kindersitz unter 8 J. / 60 lbs","$490"],
+      ["Kopfhoerer / Noise-Cancelling beim Fahren","$160"],
+      ["Aggressives Fahren / Drangen","$280"],["Tailgating / Auffahren","$200"],
+      ["Unsicheres Ueberholen","$285"],["Unerlaubte U-Wende","$100"],
+      ["Spurwechsel ohne Blinker","$148"],["Nicht ankuendigen beim Abbiegen","$234"],
+      ["Fahren auf Gegenfahrbahn","$285"],["Fahren auf Sperrflaeche","$200"],
+      ["Unerlaubtes Uberholen bei doppelter Mittellinie","$285"],
+      ["Schleichen / Behinderung des Verkehrs","$148"],
+      ["Fahrzeug auf Gehweg / Fussgaengerzone","$250"]]},
+    {cat:"Parken & Halten",items:[
+      ["Falschparken / Halteverbot","$65"],["Parken in zweiter Reihe","$65"],
+      ["Parken vor Hydranten","$88"],["Parken auf Behindertenplatz","$250-$1.000"],
+      ["Parken auf Privatgelaende","$85"],["Parken auf Busstreifen","$75"],
+      ["Parken in Notrufzone","$100"],["Parken auf Gehweg","$65"],
+      ["Parken zu nah an Kreuzung / Kurve","$70"]]},
+    {cat:"Alkohol & Drogen im Verkehr",items:[
+      ["DUI Alkohol (1. Verstoss) BAC 0.08-0.14%","$1.500-$5.000 + bis 6 Monate"],
+      ["DUI Alkohol (1. Verstoss) BAC 0.15%+","$2.000-$5.000 + bis 1 Jahr"],
+      ["DUI (2. Verstoss innerhalb 10 J.)","$2.500-$10.000 + bis 1 Jahr"],
+      ["DUI (3+ Verstoss)","Felony + 16 Monate-3 Jahre"],
+      ["DUI mit Koerperverletzung","Felony + 3-10 Jahre"],
+      ["DUI mit Todesfolge","Felony Mord / Watson Murder"],
+      ["Fahren unter Drogeneinfluss","$1.000-$5.000 + Haft"],
+      ["Oeffentlich Alkohol trinken","$250"],["Open Container im Fahrzeug","$250"],
+      ["Minderjaehriger faehrt unter Einfluss BAC 0.01%+","$1.000 + Fuehrerscheinentzug"]]},
+    {cat:"Eigentumsdelikte",items:[
+      ["Einfacher Diebstahl (Petty Theft) unter $950","$1.000 + bis 6 Monate"],
+      ["Schwerer Diebstahl (Grand Theft) ueber $950","Felony 1-3 Jahre"],
+      ["Grand Theft Auto / Fahrzeugdiebstahl","Felony 1.5-3 Jahre"],
+      ["Einbruch (Burglary) Wohnhaus","Felony 2-6 Jahre"],
+      ["Einbruch (Burglary) Gewerbe","Felony 1.5-3 Jahre"],
+      ["Einbruch mit Vandalismus","Felony + Schadensersatz"],
+      ["Hehlerei (Receiving Stolen Property)","$1.000-$5.000 + bis 3 Jahre"],
+      ["Sachwbeschaedigung / Vandalismus unter $400","$1.000 + Schadensersatz"],
+      ["Sachbeschaedigung ueber $400","Felony + Schadensersatz"],
+      ["Bankraub / Raub mit Waffe","Felony 3-9 Jahre"],
+      ["Raub (Robbery)","Felony 3-9 Jahre"],["Bewaffneter Raub","Felony 5-9 Jahre"],
+      ["Erpressung / Extortion","Felony 2-4 Jahre"],
+      ["Betrug / Fraud","$500-$5.000 + bis 3 Jahre"],
+      ["Identitaetsdiebstahl","Felony 1.5-3 Jahre"],
+      ["Geldwaesche / Money Laundering","Felony 2-4 Jahre"],
+      ["Fahrzeug-Aufbruch","$500 + Schadensersatz"]]},
+    {cat:"Koerperdelikte & Gewalt",items:[
+      ["Drohung / Bedrohung (Criminal Threat)","$1.000-$5.000 + bis 3 Jahre"],
+      ["Koerperverletzung (Simple Battery)","$2.000 + bis 6 Monate"],
+      ["Koerperverletzung (Simple Assault)","$1.000 + bis 6 Monate"],
+      ["Schwere Koerperverletzung (Aggravated Assault)","Felony 2-4 Jahre"],
+      ["Gefaehrliche KV mit Waffe (Assault with Deadly Weapon)","Felony 2-4 Jahre"],
+      ["KV an Beamten (Battery on Officer)","Felony 1-3 Jahre"],
+      ["Haessliche Koerperverletzung (Great Bodily Injury)","Felony +3-5 J. Extra"],
+      ["Haeusliche Gewalt (Domestic Violence)","$6.000 + bis 4 Jahre"],
+      ["Entfuehrung (Kidnapping)","Felony 3-8 Jahre"],
+      ["Geisselnahme / Geiselnahme","Felony 5-11 Jahre"],
+      ["Mord 1. Grades (First Degree Murder)","Leben in Haft"],
+      ["Mord 2. Grades (Second Degree Murder)","15 Jahre bis Leben"],
+      ["Totschlag (Voluntary Manslaughter)","Felony 3-11 Jahre"],
+      ["Fahrlaeßige Toetung (Involuntary Manslaughter)","Felony 2-4 Jahre"],
+      ["Toetung durch Fahren (Vehicular Manslaughter)","Felony 4-10 Jahre"],
+      ["Stalking","$1.000-$2.000 + bis 5 Jahre"]]},
+    {cat:"Waffen",items:[
+      ["Tragen verdeckter Waffe ohne CCW-Erlaubnis","$1.000 + bis 1 Jahr"],
+      ["Unerlaubter Waffenbesitz (Felon in Possession)","Felony 1.5-3 Jahre"],
+      ["Illegale Waffenmodifikation (Auto/Suppressor)","Felony 4-8 Jahre"],
+      ["Waffenbesitz unter Drogeneinfluss","$1.000 + bis 1 Jahr"],
+      ["Waffe sichtbar in der Oeffentlichkeit","$1.000 + bis 1 Jahr"],
+      ["Schiessen in bewohntem Gebiet","Felony 3-7 Jahre"],
+      ["Waffenhandel ohne Lizenz","Felony 1.5-3 Jahre"],
+      ["Explosivstoffbesitz","Felony 3-6 Jahre"],
+      ["Molotow / Brandbombe","Felony 4-8 Jahre"],
+      ["Schusswaffe fuer Minderjaeahrige","Felony 2-5 Jahre"]]},
+    {cat:"Drogendelikte",items:[
+      ["Besitz Cannabis bis 28.5g","$100"],
+      ["Besitz Cannabis ueber 28.5g","$500 + bis 6 Monate"],
+      ["Besitz Methamphetamin (unter 1g)","$1.000 + bis 1 Jahr"],
+      ["Besitz Methamphetamin (groessere Mengen)","Felony 1.5-3 Jahre"],
+      ["Besitz Kokain / Crack","Felony 1.5-3 Jahre"],
+      ["Besitz Heroin / Fentanyl","Felony 2-4 Jahre"],
+      ["Besitz Ecstasy / MDMA","$1.000 + bis 1 Jahr"],
+      ["Besitz verschreibungspflichtiger Medikamente","$1.000 + bis 1 Jahr"],
+      ["Handel mit Cannabis","Felony 2-4 Jahre"],
+      ["Handel mit Methamphetamin","Felony 3-7 Jahre"],
+      ["Handel mit Heroin / Fentanyl","Felony 5-9 Jahre"],
+      ["Drogenkurier","Felony 3-5 Jahre"],
+      ["Drogenproduktion / Labor","Felony 3-7 Jahre"],
+      ["Besitz Drogenutensilien","$500"]]},
+    {cat:"Oeffentliche Ordnung & Verhalten",items:[
+      ["Ruhestoerung / Laerm","$165"],["Hausfriedensbruch","$500"],
+      ["Unerlaubter Aufenthalt (Loitering)","$165"],["Obdachlosenlagern verbot","$165"],
+      ["Oeffentliches Urinieren","$250"],["Unflaetiges Verhalten","$250"],
+      ["Versammlung ohne Genehmigung","$500"],["Landfriebensbruch (Riot)","$1.000 + bis 1 Jahr"],
+      ["Beleidigung eines Beamten","$500"],["Falsche Angaben gegenueber Beamten","$1.000"],
+      ["Falschanzeige","$1.500 + Schadensersatz"]]},
+    {cat:"Polizei & Justiz-Widerstand",items:[
+      ["Widerstand gegen Vollstreckungsbeamte","$1.000 + bis 1 Jahr"],
+      ["Aktiver Widerstand mit Gewalt","Felony 1.5-3 Jahre"],
+      ["Behinderung der Justiz (Obstruction)","$1.000 + bis 1 Jahr"],
+      ["Flucht vor Polizei zu Fuss","$1.000 + bis 6 Monate"],
+      ["Flucht im Fahrzeug (Evading Arrest)","$2.000 + bis 1 Jahr"],
+      ["Flucht mit Gefaehrdung (Felony Evading)","Felony 1.5-4 Jahre"],
+      ["Flucht + Unfall mit Verletzten","Felony 3-7 Jahre"],
+      ["Polizeisperre durchbrechen","$2.000 + Felony"],
+      ["Gefangenenbefreiung","Felony 2-4 Jahre"],
+      ["Ausbruch aus Haft","Felony 1.5-3 Jahre + Zusatzstrafe"],
+      ["Beamtenbestechung","Felony 2-4 Jahre"],
+      ["Falsche Polizeiidentitaet","Felony 1-3 Jahre"]]},
+    {cat:"Terrorismus & Organisierte Kriminalitaet",items:[
+      ["Terroristischer Akt / Bombendrohung","Felony 10-20 Jahre"],
+      ["Mitgliedschaft in krimineller Organisation","Felony 2-4 Jahre"],
+      ["Gang-Aktivitaet (Gang Enhancement)","+2-4 Jahre Extra"],
+      ["Anschlag auf oeffentliche Einrichtung","Felony 10-25 Jahre"],
+      ["Brandstiftung an Gebaeude","Felony 2-6 Jahre"],
+      ["Brandstiftung mit Verletzten","Felony 5-9 Jahre"],
+      ["Menschenhandel","Felony 5-12 Jahre"],
+      ["Korruption im Amt","Felony 2-5 Jahre"]]},
+    {cat:"Sonderregelungen (Los Santos RP)",items:[
+      ["NLR-Verletzung (bekannte Leichen-RP Regel)","Verwarnung + RP-Reset"],
+      ["Cop-Baiting / Polizei provozieren","$500 + RP-Massnahme"],
+      ["Steuerhinterziehung / Schwarzmarkt","$2.000-$10.000"],
+      ["Illegaler Waffenhandel (RP)","Felony 5-8 Jahre"],
+      ["Drogenroute blockieren (Turf War)","Felony 2-5 Jahre"],
+      ["Schmuggel ueber Grenze (Grenzposten RP)","Felony 3-7 Jahre"]]}
   ];
 
   const ECOLOR_DB = {leitung:'#ffd700',befehl:'#42a5f5',detective:'#ab47bc',officer:'#66bb6a'};
@@ -3179,6 +3314,14 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     ann.push({id:genId(),title:String(title).slice(0,100),content:String(content).slice(0,2000),
       authorId:s.userId,authorName:s.displayName,rankName:s.rankName,ts:Date.now(),pinned:false});
     saveAnn(ann);
+    if (annTarget === 'residents') {
+      (async()=>{
+        try {
+          const ch = await client.channels.fetch('1492939424441569542').catch(()=>null);
+          if (ch) await ch.send({content:'**[LAPD] '+String(title).slice(0,100)+'**\n'+String(content).slice(0,1900)}).catch(()=>{});
+        } catch(e){}
+      })();
+    }
     dashRedir(res, tab, 'Ankuendigung gepostet.', true);
   });
 
@@ -3212,15 +3355,28 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       from:String(from),to:String(to),note:String(note||'').slice(0,500),status:'pending',ts:Date.now()});
     saveVac(vac);
     try {
-      const guild = client.guilds.cache.get('1498482541751963698')
+      const guild2 = client.guilds.cache.get('1498482541751963698')
         || await client.guilds.fetch('1498482541751963698').catch(()=>null);
-      if (guild) {
-        for (const rid of LAPD_VAC_NOTIFY) {
-          const m = await guild.members.fetch(rid).catch(()=>null);
-          if (m) await m.send('Urlaubsantrag von **'+s.displayName+'** ('+s.rankName+')\nVon: '+from+' | Bis: '+to+(note?'\nNotiz: '+note:'')).catch(()=>{});
-        }
+      if (guild2) {
+        await guild2.members.fetch().catch(()=>{});
+        const toNotify = new Set();
+        for (const roleId of LAPD_VAC_NOTIFY)
+          guild2.members.cache.filter(m=>m.roles.cache.has(roleId)&&m.id!==s.userId).forEach(m=>toNotify.add(m));
+        const {EmbedBuilder:_VEB2,ActionRowBuilder:_ARB2,ButtonBuilder:_BB2,ButtonStyle:_BS2}=require('discord.js');
+        const vEmbed2=new _VEB2().setColor(0xffd700).setTitle('Urlaubsantrag LAPD')
+          .addFields(
+            {name:'Officer',value:s.displayName+' ('+s.rankName+')',inline:true},
+            {name:'Von',value:String(from),inline:true},
+            {name:'Bis',value:String(to),inline:true},
+            {name:'Notiz',value:String(note||'—').slice(0,300)||'—'})
+          .setTimestamp().setFooter({text:'LAPD Internal ID: '+id.slice(0,8)});
+        const vRow2=new _ARB2().addComponents(
+          new _BB2().setCustomId('lapd_vac_approve_'+id).setLabel('Genehmigen').setStyle(_BS2.Success),
+          new _BB2().setCustomId('lapd_vac_reject_'+id).setLabel('Ablehnen').setStyle(_BS2.Danger));
+        for (const m of toNotify)
+          m.send({embeds:[vEmbed2],components:[vRow2]}).catch(()=>{});
       }
-    } catch(e) {}
+    } catch(e){ console.error('vac DM:',e.message); }
     dashRedir(res, tab, 'Antrag gestellt.', true);
   });
 
@@ -3369,6 +3525,29 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       offense:String(offense).slice(0,200),danger:String(danger||'mittel').slice(0,20),
       status:'aktiv',hasPhoto,authorId:s.userId,authorName:s.displayName,rankName:s.rankName,ts:Date.now()});
     saveWarrants(list);
+    // Discord Fahndungs-Benachrichtigung
+    (async () => {
+      try {
+        const annCh = await client.channels.fetch('1492939424441569542').catch(() => null);
+        if (annCh) {
+          const dangerColor = danger === 'hoch' ? 0xef4444 : danger === 'mittel' ? 0xf59e0b : 0x22c55e;
+          const dangerLabel = danger === 'hoch' ? '🔴 Hoch' : danger === 'mittel' ? '🟡 Mittel' : '🟢 Niedrig';
+          const { EmbedBuilder } = require('discord.js');
+          const embed = new EmbedBuilder()
+            .setColor(dangerColor)
+            .setTitle('🚨  NEUE FAHNDUNG — ' + String(name).slice(0,100))
+            .addFields(
+              { name: 'Vergehen', value: String(offense).slice(0,200), inline: false },
+              { name: 'Gefährlichkeit', value: dangerLabel, inline: true },
+              { name: 'Ausgestellt von', value: s.displayName + ' (' + s.rankName + ')', inline: true }
+            )
+            .setFooter({ text: 'LAPD  •  Paradise City Roleplay' })
+            .setTimestamp();
+          if (hasPhoto) embed.setThumbnail('https://' + (process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080') + '/lapd/warrant-photo/' + id);
+          await annCh.send({ content: '<@&1490855738644365603>', embeds: [embed] });
+        }
+      } catch(e) { console.error('Fahndung Discord:', e.message); }
+    })();
     dashRedir(res, tab, 'Fahndung erstellt.', true);
   });
 
