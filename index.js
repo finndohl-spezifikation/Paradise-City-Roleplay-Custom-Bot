@@ -28,6 +28,7 @@ const crypto = require('crypto');
 
 // ─── Datenspeicherung ─────────────────────────────────────────────────────────
 const DATA_DIR      = path.join(__dirname, 'data');
+const lapdTokens    = new Map(); // LAPD: token -> { memberId, uname, ranks, expires }
 const LOG_SHOP_CH  = '1490878131240829028';
 const LOG_MONEY_CH = '1490878138429997087';
 const WARN_FILE     = path.join(DATA_DIR, 'teamwarns.json');
@@ -1989,8 +1990,8 @@ async function buildInviteCache(guild) {
         .setTimestamp();
       const lapdBtn = new ButtonBuilder()
         .setLabel('🛡️ Dashboard öffnen')
-        .setURL(lapdUrl)
-        .setStyle(ButtonStyle.Link);
+        .setCustomId('lapd_dashboard')
+        .setStyle(ButtonStyle.Secondary);
       const lapdRow = new ActionRowBuilder().addComponents(lapdBtn);
 
       // Beide Kanäle: Hauptserver + LAPD-Server
@@ -3018,6 +3019,58 @@ client.on('guildAuditLogEntryCreate', async (entry, guild) => {
 
 // ─── INTERACTIONS ─────────────────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
+
+    // ── LAPD Dashboard Button ──────────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'lapd_dashboard') {
+      await interaction.deferReply({ ephemeral: true });
+      try {
+        const LAPD_GUILD_ID_B = '1498482541751963698';
+        const LAPD_RANKS_B = [
+      {id:'1498483674667028543',name:'Chief of Police',ebene:'leitung'},
+      {id:'1498483758532395008',name:'Deputy Chief',ebene:'leitung'},
+      {id:'1498483802740363357',name:'Captain',ebene:'befehl'},
+      {id:'1498484140935217172',name:'Lieutenant',ebene:'befehl'},
+      {id:'1498484185491312690',name:'Staff Sergeant',ebene:'befehl'},
+      {id:'1498484299329179658',name:'Sergeant',ebene:'befehl'},
+      {id:'1498484388428779550',name:'Detective III',ebene:'detective'},
+      {id:'1498484584017559773',name:'Detective II',ebene:'detective'},
+      {id:'1498484636211482685',name:'Detective I',ebene:'detective'},
+      {id:'1498484724824408214',name:'Senior Officer',ebene:'officer'},
+      {id:'1498484934720098365',name:'Officer',ebene:'officer'},
+      {id:'1498485048565960754',name:'Trainee',ebene:'officer'},
+      {id:'1498485086071554169',name:'Rookie',ebene:'officer'},
+    ];
+        let guild = client.guilds.cache.get(LAPD_GUILD_ID_B);
+        if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID_B).catch(() => null);
+        if (!guild) {
+          return interaction.editReply({ content: '❌ LAPD-Server nicht erreichbar.' });
+        }
+        const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+        if (!member) {
+          return interaction.editReply({ content: '❌ Du bist kein Mitglied des LAPD-Servers.' });
+        }
+        const memberRanks = LAPD_RANKS_B.filter(r => member.roles.cache.has(r.id));
+        if (memberRanks.length === 0) {
+          return interaction.editReply({ content: '❌ Du hast keine LAPD-Rolle auf dem Server.' });
+        }
+        const token   = require('crypto').randomBytes(32).toString('hex');
+        const expires = Date.now() + 10 * 60 * 1000; // 10 Minuten
+        lapdTokens.set(token, { memberId: member.id, uname: member.user.username, displayName: member.displayName, ranks: memberRanks, expires });
+        // Token nach Ablauf aufräumen
+        setTimeout(() => lapdTokens.delete(token), 10 * 60 * 1000);
+        const domain  = (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.REPLIT_DOMAINS || 'localhost:8080').split(',')[0].trim();
+        const authUrl = 'https://' + domain + '/lapd/auth/' + token;
+        const authBtn = new ButtonBuilder().setLabel('🛡️ Dashboard öffnen').setURL(authUrl).setStyle(ButtonStyle.Link);
+        const authRow = new ActionRowBuilder().addComponents(authBtn);
+        return interaction.editReply({
+          content: '✅ Dein persönlicher Login-Link (gültig 10 Minuten):',
+          components: [authRow]
+        });
+      } catch (e) {
+        console.error('LAPD Button Fehler:', e.message);
+        return interaction.editReply({ content: '❌ Fehler beim Generieren des Login-Links.' });
+      }
+    }
 
     // ── Autocomplete: Fraktionsnamen ──────────────────────────────────────────
     if (interaction.isAutocomplete()) {
@@ -5303,7 +5356,7 @@ process.on('uncaughtException', (err) => {
 
 // ─── WEB SERVER ───────────────────────────────────────────────────────────────
 const _webMod = require('./web');
-_webMod(client, DATA_DIR);
+_webMod(client, DATA_DIR, lapdTokens);
 
 // ─── LOGIN (mit Retry) ───────────────────────────────────────────────────────
 if (!process.env.DISCORD_TOKEN) {
