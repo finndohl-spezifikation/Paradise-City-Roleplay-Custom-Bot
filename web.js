@@ -2362,56 +2362,116 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   app.post('/lapd/lookup',(req,res)=>res.redirect('/lapd'));
   app.post('/lapd/login', (req,res)=>res.redirect('/lapd'));
 
-  // ── GET /lapd/weblogin — Web-Anmeldeseite ──────────────────────────────
+  // ── GET /lapd/weblogin — Web-Anmeldeseite (Rang → PW) ────────────────────
   app.get('/lapd/weblogin', (req, res) => {
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
-    const err = req.query.err || '';
-    const errHtml = err === 'pw' ? '<div class="wl-err">&#x26A0;&#xFE0F; Falsches Passwort.</div>' : '';
+    const err     = req.query.err  || '';
+    const errRank = req.query.rank || '';
+    const errHtml = err === 'pw' ? '<p class="wl-err">&#x26A0;&#xFE0F; Falsches Passwort f\u00FCr diesen Rang.</p>' : '';
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send('<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">'
-      +'<meta name="viewport" content="width=device-width,initial-scale=1"><title>LAPD Anmelden</title>'
-      +'<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#050c26;color:#e0e0e0;'
-      +'font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}'
-      +'.card{background:#0c1b45;border:1px solid #1e4080;border-radius:16px;padding:36px 32px;'
-      +'max-width:380px;width:92%;text-align:center;box-shadow:0 0 40px rgba(31,81,255,.25)}'
-      +'.logo{width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #1F51FF;'
-      +'box-shadow:0 0 16px rgba(31,81,255,.5);margin-bottom:14px}'
-      +'.h{font-size:1rem;font-weight:800;color:#ffd700;letter-spacing:2px;margin-bottom:4px}'
-      +'.sub{font-size:.67rem;color:#4a6a9a;letter-spacing:1px;margin-bottom:22px}'
-      +'.fg{margin-bottom:13px;text-align:left}.fg label{display:block;font-size:.68rem;'
-      +'color:#6aa3ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}'
-      +'.fg input{width:100%;background:#040c1e;border:1px solid #1a3a78;color:#e0e0e0;'
-      +'padding:9px 12px;border-radius:7px;font-size:.86rem;outline:none;font-family:inherit}'
-      +'.fg input:focus{border-color:#1F51FF;box-shadow:0 0 0 2px rgba(31,81,255,.2)}'
-      +'.btn{width:100%;background:#1F51FF;color:#fff;border:none;padding:11px;border-radius:8px;'
-      +'font-size:.9rem;font-weight:800;letter-spacing:1px;cursor:pointer;margin-top:6px;'
-      +'box-shadow:0 2px 12px rgba(31,81,255,.4)}.btn:hover{background:#3a6bff}'
-      +'.wl-err{background:rgba(239,68,68,.12);border:1px solid #7f1d1d;color:#fca5a5;'
-      +'padding:9px 12px;border-radius:7px;font-size:.78rem;margin-bottom:14px;text-align:left}'
-      +'.back{display:block;margin-top:14px;font-size:.72rem;color:#4a6a9a;text-decoration:none}'
-      +'.back:hover{color:#93c5fd}</style></head><body>'
-      +'<div class="card">'
-      +'<img src="/lapd/logo.png" alt="LAPD" class="logo" onerror="this.style.display=\'none\'">'
-      +'<div class="h">LAPD SYSTEM</div>'
-      +'<div class="sub">Bitte anmelden um fortzufahren</div>'
-      +errHtml
-      +'<form method="POST" action="/lapd/weblogin">'
-      +'<div class="fg"><label>Passwort</label>'
-      +'<input type="password" name="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" required autofocus></div>'
-      +'<button class="btn" type="submit">Anmelden</button>'
-      +'</form>'
-      +'<a href="/lapd" class="back">&#x2190; Zur\xFCck</a>'
-      +'</div></body></html>');
+    const autoSel = errRank ? `sel('${errRank}');` : '';
+    res.send(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>LAPD Anmelden</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#050c26;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#0c1b45;border:1px solid #1e4080;border-radius:16px;padding:30px 26px;max-width:400px;width:92%;text-align:center;box-shadow:0 0 40px rgba(31,81,255,.25)}
+.logo{width:88px;height:88px;border-radius:50%;object-fit:cover;border:2px solid #1F51FF;box-shadow:0 0 18px rgba(31,81,255,.5);margin-bottom:12px}
+.h{font-size:1rem;font-weight:800;color:#ffd700;letter-spacing:2px;margin-bottom:3px}
+.sub{font-size:.65rem;color:#4a6a9a;letter-spacing:1px;margin-bottom:18px}
+.step{display:none}.step.active{display:block}
+.ranks{display:flex;flex-direction:column;gap:8px;margin-bottom:2px}
+.rank-card{display:flex;align-items:center;gap:12px;padding:11px 14px;background:#040c1e;border:1px solid #1a3a78;border-radius:9px;cursor:pointer;transition:.18s;text-align:left;width:100%;color:inherit;font-family:inherit}
+.rank-card:hover{border-color:#1F51FF;background:rgba(31,81,255,.1)}
+.ri{font-size:1.15rem;flex-shrink:0;width:22px;text-align:center}
+.rl{flex:1}.rn{font-size:.84rem;font-weight:700;color:#e0e0e0}.rs{font-size:.65rem;color:#4a6a9a;margin-top:2px}
+.rc{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.wl-err{background:rgba(239,68,68,.12);border:1px solid #7f1d1d;color:#fca5a5;padding:8px 12px;border-radius:7px;font-size:.76rem;margin-bottom:12px;text-align:left}
+.pw-back{display:block;margin-top:10px;font-size:.7rem;color:#4a6a9a;cursor:pointer;background:none;border:none;font-family:inherit}
+.pw-back:hover{color:#93c5fd}
+.sel-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:1px;margin-bottom:14px;background:rgba(0,0,0,.3)}
+.pw-label{font-size:.68rem;color:#6aa3ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;text-align:left;display:block}
+.pw-in{width:100%;background:#040c1e;border:1px solid #1a3a78;color:#e0e0e0;padding:10px 12px;border-radius:7px;font-size:.88rem;outline:none;font-family:inherit;margin-bottom:12px}
+.pw-in:focus{border-color:#1F51FF;box-shadow:0 0 0 2px rgba(31,81,255,.2)}
+.btn{width:100%;background:#1F51FF;color:#fff;border:none;padding:11px;border-radius:8px;font-size:.9rem;font-weight:800;letter-spacing:1px;cursor:pointer;box-shadow:0 2px 12px rgba(31,81,255,.4);font-family:inherit}
+.btn:hover{background:#3a6bff}
+.back-a{display:block;margin-top:12px;font-size:.7rem;color:#4a6a9a;text-decoration:none}
+.back-a:hover{color:#93c5fd}
+</style></head><body>
+<div class="card">
+  <img src="/lapd/logo.png" alt="LAPD" class="logo" onerror="this.style.display='none'">
+  <div class="h">LAPD SYSTEM</div><div class="sub">ANMELDUNG</div>
+  <form method="POST" action="/lapd/weblogin" id="lf">
+    <input type="hidden" name="rank" id="rInp" value="">
+    <div class="step active" id="s1">
+      <div class="ranks">
+        <button type="button" class="rank-card" onclick="sel('leitung')">
+          <span class="ri">&#x1F451;</span>
+          <div class="rl"><div class="rn">Leitungsebene</div><div class="rs">Command Staff</div></div>
+          <span class="rc" style="background:#ffd700;box-shadow:0 0 6px #ffd700"></span>
+        </button>
+        <button type="button" class="rank-card" onclick="sel('befehl')">
+          <span class="ri">&#x1F4CB;</span>
+          <div class="rl"><div class="rn">Befehlsebene</div><div class="rs">Supervisory Staff</div></div>
+          <span class="rc" style="background:#42a5f5;box-shadow:0 0 6px #42a5f5"></span>
+        </button>
+        <button type="button" class="rank-card" onclick="sel('detective')">
+          <span class="ri">&#x1F50D;</span>
+          <div class="rl"><div class="rn">Detectives</div><div class="rs">Detective Division</div></div>
+          <span class="rc" style="background:#ab47bc;box-shadow:0 0 6px #ab47bc"></span>
+        </button>
+        <button type="button" class="rank-card" onclick="sel('officer')">
+          <span class="ri">&#x1F46E;</span>
+          <div class="rl"><div class="rn">Officer</div><div class="rs">Officer Division</div></div>
+          <span class="rc" style="background:#66bb6a;box-shadow:0 0 6px #66bb6a"></span>
+        </button>
+      </div>
+    </div>
+    <div class="step" id="s2">
+      ${errHtml}
+      <div id="sBadge" class="sel-badge"></div>
+      <label class="pw-label">Passwort</label>
+      <input type="password" name="password" id="pInp" class="pw-in" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" autocomplete="current-password">
+      <button class="btn" type="submit">Anmelden</button>
+      <button type="button" class="pw-back" onclick="back()">&#x2190; Rang wechseln</button>
+    </div>
+  </form>
+  <a href="/lapd" class="back-a">&#x2190; Zur&uuml;ck</a>
+</div>
+<script>
+var RN={leitung:'Leitungsebene',befehl:'Befehlsebene',detective:'Detectives',officer:'Officer'};
+var RS={leitung:'Command Staff',befehl:'Supervisory Staff',detective:'Detective Division',officer:'Officer Division'};
+var RC={leitung:'#ffd700',befehl:'#42a5f5',detective:'#ab47bc',officer:'#66bb6a'};
+function sel(id){
+  document.getElementById('rInp').value=id;
+  var b=document.getElementById('sBadge');
+  var c=RC[id]||'#1F51FF';
+  b.textContent=(RN[id]||id)+' — '+(RS[id]||'');
+  b.style.border='1px solid '+c; b.style.color=c;
+  document.getElementById('s1').classList.remove('active');
+  document.getElementById('s2').classList.add('active');
+  setTimeout(function(){document.getElementById('pInp').focus();},60);
+}
+function back(){
+  document.getElementById('s2').classList.remove('active');
+  document.getElementById('s1').classList.add('active');
+  document.getElementById('pInp').value='';
+  document.getElementById('rInp').value='';
+}
+${autoSel}
+</script>
+</body></html>`);
   });
 
-  // ── POST /lapd/weblogin — Web-Login verarbeiten ────────────────────────
+
+  // ── POST /lapd/weblogin — Web-Login (Rang + PW) ──────────────────────────
   app.post('/lapd/weblogin', (req, res) => {
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
+    const ebene    = (req.body.rank     || '').trim();
     const password = (req.body.password || '').trim();
-    const matched  = Object.entries(LAPD_PW).find(([, pw]) => pw === password);
-    if (!matched) return res.redirect('/lapd/weblogin?err=pw');
-    const ebene = matched[0];
-    const rank  = LAPD_RANKS.find(r => r.ebene === ebene) || { name: ebene };
+    if (!['leitung','befehl','detective','officer'].includes(ebene) || !LAPD_PW[ebene] || password !== LAPD_PW[ebene])
+      return res.redirect('/lapd/weblogin?err=pw&rank=' + encodeURIComponent(ebene));
+    const rank = LAPD_RANKS.find(r => r.ebene === ebene) || { name: ebene };
     req.session.lapd = {
       userId:      'web-' + ebene,
       displayName: rank.name,
@@ -2420,7 +2480,75 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       ebene:       ebene,
       loggedInAt:  Date.now(),
     };
-    return res.redirect('/lapd/dashboard?tab=start');
+    return res.redirect('/lapd/splash');
+  });
+
+
+  // ── GET /lapd/splash — Login-Animationsseite ─────────────────────────────
+  app.get('/lapd/splash', (req, res) => {
+    if (!isLapdAuth(req)) return res.redirect('/lapd/weblogin');
+    const s = req.session.lapd;
+    const eInfo = (typeof LAPD_EBENE !== 'undefined' && LAPD_EBENE[s.ebene]) || { label: s.rankName, color: '#1F51FF' };
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>LAPD System</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.splash{text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px;
+  animation:fadeInUp .7s cubic-bezier(.16,1,.3,1) both}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.logo-ring{position:relative;width:140px;height:140px}
+.logo-ring img{width:140px;height:140px;border-radius:50%;object-fit:cover;
+  animation:logoIn .8s cubic-bezier(.34,1.56,.64,1) .1s both}
+@keyframes logoIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+.ring{position:absolute;inset:-6px;border-radius:50%;border:2px solid transparent;
+  border-top-color:#1F51FF;border-right-color:#1F51FF;
+  animation:spin 1.2s linear .1s 3,ringFade 0s 3.7s both forwards}
+.ring2{position:absolute;inset:-12px;border-radius:50%;border:1px solid transparent;
+  border-bottom-color:#ffd700;border-left-color:#ffd700;
+  animation:spinR 1.6s linear .1s 2,ringFade 0s 3.3s both forwards}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinR{to{transform:rotate(-360deg)}}
+@keyframes ringFade{to{opacity:0}}
+.glow{position:absolute;inset:0;border-radius:50%;
+  animation:glowPulse 1.5s ease-in-out .8s 2}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(31,81,255,0)}
+  50%{box-shadow:0 0 0 18px rgba(31,81,255,.25),0 0 40px rgba(31,81,255,.4)}}
+.dept{font-size:.65rem;letter-spacing:4px;color:#4a6a9a;text-transform:uppercase;
+  animation:fadeInUp .5s .5s both}
+.welcome{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:2px;
+  animation:fadeInUp .5s .7s both;text-shadow:0 0 20px rgba(255,215,0,.4)}
+.rank-badge{display:inline-block;padding:5px 18px;border-radius:20px;font-size:.78rem;
+  font-weight:700;letter-spacing:1px;animation:fadeInUp .5s .9s both;
+  background:rgba(0,0,0,.4);border:1px solid ${eInfo.color};color:${eInfo.color}}
+.line{width:160px;height:1px;background:linear-gradient(90deg,transparent,#1F51FF,transparent);
+  animation:fadeInUp .5s 1.1s both}
+.msg{font-size:.75rem;color:#4a6a9a;letter-spacing:.05em;animation:fadeInUp .5s 1.3s both}
+.bar-wrap{width:220px;height:3px;background:#0a1a3a;border-radius:2px;overflow:hidden;
+  animation:fadeInUp .3s 1.5s both}
+.bar{height:100%;width:0;background:linear-gradient(90deg,#1F51FF,#ffd700);border-radius:2px;
+  animation:barFill 2s 1.6s cubic-bezier(.4,0,.2,1) both}
+@keyframes barFill{from{width:0}to{width:100%}}
+</style>
+</head><body>
+<div class="splash">
+  <div class="logo-ring">
+    <div class="ring"></div>
+    <div class="ring2"></div>
+    <div class="glow"></div>
+    <img src="/lapd/logo.png" alt="LAPD">
+  </div>
+  <div class="dept">LOS ANGELES POLICE DEPARTMENT</div>
+  <div class="welcome">Willkommen</div>
+  <div class="rank-badge">${eInfo.label}</div>
+  <div class="line"></div>
+  <div class="msg">System wird geladen&hellip;</div>
+  <div class="bar-wrap"><div class="bar"></div></div>
+</div>
+<script>setTimeout(function(){window.location='/lapd/dashboard?tab=start';},3200);</script>
+</body></html>`);
   });
 
   // ── POST /lapd/logout ────────────────────────────────────────────────────
@@ -3353,11 +3481,11 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         : '<p class="muted">Keine Abmahnungen vorhanden.</p>';
 
       const warnForm = canWarn
-        ? '<div class="sec" style="margin-top:14px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">Verwarnung ausstellen</h3></div>'
+        ? '<div class="sec" style="margin-top:14px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">Abmahnung ausstellen</h3></div>'
           +'<div class="sb"><form method="POST" action="/lapd/dashboard/warning?tab=warnings">'
-          +'<div class="fg"><label>Officer (Name oder Discord-ID)</label><input type="text" name="target" required maxlength="200" placeholder="Anzeigename des Officers"></div>'
-          +'<div class="fg"><label>Grund</label><textarea name="reason" maxlength="1000" required placeholder="Grund der Verwarnung..."></textarea></div>'
-          +'<button class="btn red" type="submit">Verwarnung ausstellen</button>'
+          +'<div class="fg"><label>Officer (Name)</label><input type="text" name="target" required maxlength="200" placeholder="Name des Officers"></div>'
+          +'<div class="fg"><label>Begründung</label><textarea name="reason" maxlength="1000" required placeholder="Begründung der Abmahnung..."></textarea></div>'
+          +'<button class="btn red" type="submit">Abmahnung ausstellen</button>'
           +'</form></div></div>' : '';
 
       content = '<div class="sec"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">Abmahnungen</h3></div>'
