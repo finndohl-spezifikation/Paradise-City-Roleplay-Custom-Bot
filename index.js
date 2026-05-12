@@ -3060,13 +3060,18 @@ client.on('interactionCreate', async (interaction) => {
         setTimeout(() => lapdTokens.delete(token), 10 * 60 * 1000);
         const domain  = (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.REPLIT_DOMAINS || 'localhost:8080').split(',')[0].trim();
         const authUrl = 'https://' + domain + '/lapd/auth/' + token;
-        const rankLine = memberRanks[0] ? memberRanks[0].name : 'Unbekannter Rang';
+        const LAPD_PW_B = { leitung:'LAPD_Chief_2025', befehl:'LAPD_Command_2025', detective:'LAPD_Detective_2025', officer:'LAPD_Officer_2025' };
+        const rankLine  = memberRanks[0] ? memberRanks[0].name : 'Unbekannter Rang';
+        const ebene     = memberRanks[0] ? memberRanks[0].ebene : 'officer';
+        const pw        = LAPD_PW_B[ebene] || '—';
         const replyEmbed = new EmbedBuilder()
           .setColor(0x1565c0)
           .setTitle('🛡️ LAPD Dashboard')
           .setDescription(
-            '👤 **' + member.displayName + '** — ' + rankLine + '\n\n' +
-            'Klicke den Button um direkt ins Dashboard zu kommen.\n' +
+            '👤 **' + member.displayName + '**\n' +
+            '🎖️ **Rang:** ' + rankLine + '\n' +
+            '🔑 **Passwort:** `' + pw + '`\n\n' +
+            'Klicke den Button, gib das Passwort ein und du bist drin.\n' +
             'Der Link ist **10 Minuten** gültig.'
           )
           .setFooter({ text: 'Nur für dich sichtbar • Nicht weitergeben' });
