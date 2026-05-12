@@ -2146,287 +2146,546 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     });
 
   
+
   // ── LAPD DASHBOARD ──────────────────────────────────────────────────────────
 
   const LAPD_GUILD_ID = '1498482541751963698';
-
   const LAPD_RANKS = [
-    { id: '1498483674667028543', name: 'Chief of Police',  ebene: 'leitung'   },
-    { id: '1498483758532395008', name: 'Deputy Chief',      ebene: 'leitung'   },
-    { id: '1498483802740363357', name: 'Captain',           ebene: 'befehl'    },
-    { id: '1498484140935217172', name: 'Lieutenant',        ebene: 'befehl'    },
-    { id: '1498484185491312690', name: 'Staff Sergeant',    ebene: 'befehl'    },
-    { id: '1498484299329179658', name: 'Sergeant',          ebene: 'befehl'    },
-    { id: '1498484388428779550', name: 'Detective III',     ebene: 'detective' },
-    { id: '1498484584017559773', name: 'Detective II',      ebene: 'detective' },
-    { id: '1498484636211482685', name: 'Detective I',       ebene: 'detective' },
-    { id: '1498484724824408214', name: 'Senior Officer',    ebene: 'officer'   },
-    { id: '1498484934720098365', name: 'Officer',           ebene: 'officer'   },
-    { id: '1498485048565960754', name: 'Officer Trainee',   ebene: 'officer'   },
-    { id: '1498485086071554169', name: 'Rookie',            ebene: 'officer'   },
+    { id:'1498483674667028543', name:'Chief of Police',  ebene:'leitung'   },
+    { id:'1498483758532395008', name:'Deputy Chief',     ebene:'leitung'   },
+    { id:'1498483802740363357', name:'Captain',          ebene:'befehl'    },
+    { id:'1498484140935217172', name:'Lieutenant',       ebene:'befehl'    },
+    { id:'1498484185491312690', name:'Staff Sergeant',   ebene:'befehl'    },
+    { id:'1498484299329179658', name:'Sergeant',         ebene:'befehl'    },
+    { id:'1498484388428779550', name:'Detective III',    ebene:'detective' },
+    { id:'1498484584017559773', name:'Detective II',     ebene:'detective' },
+    { id:'1498484636211482685', name:'Detective I',      ebene:'detective' },
+    { id:'1498484724824408214', name:'Senior Officer',   ebene:'officer'   },
+    { id:'1498484934720098365', name:'Officer',          ebene:'officer'   },
+    { id:'1498485048565960754', name:'Officer Trainee',  ebene:'officer'   },
+    { id:'1498485086071554169', name:'Rookie',           ebene:'officer'   },
   ];
-
-  const LAPD_PW = {
-    leitung:   'LAPD_Chef_2025',
-    befehl:    'LAPD_Befehl_2025',
-    detective: 'LAPD_Detective_2025',
-    officer:   'LAPD_Officer_2025',
-  };
-
+  const LAPD_DUTY_CHANNEL = '1492939533895860504';
+  const LAPD_PW    = { leitung:'LAPD_Chief_2025', befehl:'LAPD_Command_2025', detective:'LAPD_Detective_2025', officer:'LAPD_Officer_2025' };
   const LAPD_EBENE = {
-    leitung:   { label: 'Leitungsebene',      color: '#ffd700' },
-    befehl:    { label: 'Befehlsebene',       color: '#42a5f5' },
-    detective: { label: 'Detective Division',  color: '#ab47bc' },
-    officer:   { label: 'Officer Division',    color: '#66bb6a' },
+    leitung:   { label:'Command Staff',      color:'#ffd700' },
+    befehl:    { label:'Supervisory Staff',  color:'#42a5f5' },
+    detective: { label:'Detective Division', color:'#ab47bc' },
+    officer:   { label:'Officer Division',   color:'#66bb6a' },
   };
+  const LAPD_ERANK      = { leitung:3, befehl:2, detective:1, officer:0 };
+  const LAPD_VAC_NOTIFY = ['1498483674667028543','1498483758532395008','1498483802740363357'];
 
-  const LAPD_DUTY_FILE = path.join(DATA_DIR, 'lapd_duty.json');
-  function loadLapdDuty() { try { return JSON.parse(fs.readFileSync(LAPD_DUTY_FILE, 'utf8')); } catch { return {}; } }
-  function saveLapdDuty(d) { fs.writeFileSync(LAPD_DUTY_FILE, JSON.stringify(d, null, 2), 'utf8'); }
-  function isLapdAuth(req) { return !!(req.session && req.session.lapd && req.session.lapd.userId); }
+  const LAPD_DUTY_FILE  = path.join(DATA_DIR, 'lapd_duty.json');
+  const LAPD_EMBED_FILE = path.join(DATA_DIR, 'lapd_duty_embed.json');
+  const LAPD_ANN_FILE   = path.join(DATA_DIR, 'lapd_announcements.json');
+  const LAPD_VAC_FILE   = path.join(DATA_DIR, 'lapd_vacations.json');
+  const LAPD_WARN_FILE  = path.join(DATA_DIR, 'lapd_warnings.json');
 
-  // ── GET /lapd — Info-Seite (Login via Discord Button) ─────────────────────
-  app.get('/lapd', (req, res) => {
+  function lj(f,d){ try{ return JSON.parse(fs.readFileSync(f,'utf8')); }catch{ return d; } }
+  function sj(f,d){ try{ fs.writeFileSync(f,JSON.stringify(d,null,2),'utf8'); }catch(e){ console.error('sj',e.message); } }
+  function loadDuty(){ return lj(LAPD_DUTY_FILE,{}); }
+  function saveDuty(d){ sj(LAPD_DUTY_FILE,d); }
+  function loadAnn(){ return lj(LAPD_ANN_FILE,[]); }
+  function saveAnn(d){ sj(LAPD_ANN_FILE,d); }
+  function loadVac(){ return lj(LAPD_VAC_FILE,[]); }
+  function saveVac(d){ sj(LAPD_VAC_FILE,d); }
+  function loadWarn(){ return lj(LAPD_WARN_FILE,[]); }
+  function saveWarn(d){ sj(LAPD_WARN_FILE,d); }
+  function isLapdAuth(req){ return !!(req.session && req.session.lapd && req.session.lapd.userId); }
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function genId(){ return require('crypto').randomBytes(10).toString('hex'); }
+
+  // ── Duty Embed ───────────────────────────────────────────────────────────
+  const { EmbedBuilder: _DEB } = require('discord.js');
+  async function updateDutyEmbed(){
+    try {
+      const duty = loadDuty();
+      const list = Object.values(duty).filter(d=>d.onDuty)
+        .sort((a,b)=>(LAPD_ERANK[b.ebene]||0)-(LAPD_ERANK[a.ebene]||0));
+      const emojis = { leitung:'🟡', befehl:'🔵', detective:'🟣', officer:'🟢' };
+      const embed = new _DEB()
+        .setColor(0x1565c0)
+        .setTitle('🛡️ LAPD — Officers On Duty')
+        .setDescription(list.length===0
+          ? '⚫  **No officers currently on duty.**'
+          : list.map(d=>(emojis[d.ebene]||'🟢')+' **'+d.displayName+'** — '+d.rankName).join('\n'))
+        .setTimestamp()
+        .setFooter({ text:'Los Angeles Police Department • Paradise City Roleplay' });
+      const stored = lj(LAPD_EMBED_FILE,{});
+      const ch = await client.channels.fetch(LAPD_DUTY_CHANNEL).catch(()=>null);
+      if (!ch) return;
+      if (stored.messageId) {
+        const msg = await ch.messages.fetch(stored.messageId).catch(()=>null);
+        if (msg){ await msg.edit({ embeds:[embed] }); return; }
+      }
+      const m = await ch.send({ embeds:[embed] });
+      sj(LAPD_EMBED_FILE, { messageId:m.id });
+    } catch(e){ console.error('updateDutyEmbed:',e.message); }
+  }
+  setTimeout(()=>updateDutyEmbed(), 7000);
+  module.exports.updateLapdDutyEmbed = updateDutyEmbed;
+
+  // ── Login CSS / helpers ──────────────────────────────────────────────────
+  const LCSS = '*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}.badge{text-align:center;margin-bottom:24px}.badge .ico{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}hr{border:none;border-top:1px solid #1a3a6b;margin:20px 0}.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}.info{background:rgba(21,101,192,.15);border:1px solid #1565c0;border-radius:8px;padding:14px;margin-bottom:16px;color:#90caf9;font-size:.88rem;line-height:1.6}.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.fg input,.fg select{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}.fg select option{background:#060c1a}.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}.btn:hover{background:#1976d2}.foot{margin-top:28px;color:#1a3a6b;font-size:.7rem;letter-spacing:1px;text-align:center}';
+  const LHEAD  = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>LAPD</title><style>'+LCSS+'</style></head><body>';
+  const LBADGE = '<div class="badge"><div class="ico">🛡️</div><h1>LAPD</h1><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><div class="sub">Paradise City Roleplay</div></div><hr>';
+  const LFOOT  = '<div class="foot">LAPD INTERNAL SYSTEM • UNAUTHORIZED ACCESS PROHIBITED</div></body></html>';
+
+  // ── GET /lapd ────────────────────────────────────────────────────────────
+  app.get('/lapd', (req,res)=>{
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(
-      '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">' +
-      '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">' +
-      '<title>LAPD – Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}.badge{text-align:center;margin-bottom:24px}.badge .icon{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}hr{border:none;border-top:1px solid #1a3a6b;margin:20px 0}.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}.info{background:rgba(21,101,192,.15);border:1px solid #1565c0;border-radius:8px;padding:14px;margin-bottom:16px;color:#90caf9;font-size:.88rem;line-height:1.6}.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.fg input,.fg select{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}.fg select option{background:#060c1a}.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}.btn:hover{background:#1976d2}.foot{margin-top:28px;color:#1a3a6b;font-size:.7rem;letter-spacing:1px;text-align:center}</style></head><body>' +
-      '<div class="card">' +
-      '<div class="badge"><div class="icon">🛡️</div><h1>LAPD</h1><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><div class="sub">Paradise City Roleplay</div></div><hr>' +
-      '<div class="info">' +
-      '📱 Nutze den <strong>🛡️ Dashboard öffnen</strong> Button in Discord.<br>' +
-      'Der Bot schickt dir einen persönlichen Link — kein Passwort-Eingabe nötig zum Aufrufen.' +
-      '</div>' +
-      '</div>' +
-      '<div class="foot">LAPD INTERNAL SYSTEM • UNAUTHORIZED ACCESS PROHIBITED</div>' +
-      '</body></html>'
-    );
+    res.setHeader('Content-Type','text/html; charset=utf-8');
+    res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="info">📱 Use the <strong>🛡️ Open Dashboard</strong> button in Discord.<br>The bot sends you a personal link — no username entry needed.</div></div>'+LFOOT);
   });
 
-  // ── GET /lapd/auth/:token — Token validieren + Rang/PW Formular ──────────
-  app.get('/lapd/auth/:token', (req, res) => {
+  // ── GET /lapd/auth/:token ────────────────────────────────────────────────
+  app.get('/lapd/auth/:token', (req,res)=>{
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
     const entry = lapdTokens.get(req.params.token);
-    if (!entry || Date.now() > entry.expires) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.send(
-        '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">' +
-        '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">' +
-        '<title>LAPD – Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}.badge{text-align:center;margin-bottom:24px}.badge .icon{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}hr{border:none;border-top:1px solid #1a3a6b;margin:20px 0}.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}.info{background:rgba(21,101,192,.15);border:1px solid #1565c0;border-radius:8px;padding:14px;margin-bottom:16px;color:#90caf9;font-size:.88rem;line-height:1.6}.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.fg input,.fg select{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}.fg select option{background:#060c1a}.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}.btn:hover{background:#1976d2}.foot{margin-top:28px;color:#1a3a6b;font-size:.7rem;letter-spacing:1px;text-align:center}</style></head><body>' +
-        '<div class="card">' +
-        '<div class="badge"><div class="icon">🛡️</div><h1>LAPD</h1><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><div class="sub">Paradise City Roleplay</div></div><hr>' +
-        '<div class="err">⚠️ Dieser Link ist abgelaufen oder ungültig.<br>Bitte klicke den Button in Discord erneut.</div>' +
-        '</div><div class="foot">LAPD INTERNAL SYSTEM • UNAUTHORIZED ACCESS PROHIBITED</div></body></html>'
-      );
+    if (!entry || Date.now()>entry.expires) {
+      res.setHeader('Content-Type','text/html; charset=utf-8');
+      return res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="err">⚠️ This link has expired. Please click the button in Discord again.</div></div>'+LFOOT);
     }
-    const { uname, ranks } = entry;
-    const opts = ranks.map((r, i) =>
-      '<option value="' + i + '">' + r.name + ' — ' + LAPD_EBENE[r.ebene].label + '</option>'
+    const opts = entry.ranks.map((r,i)=>
+      '<option value="'+i+'">'+esc(r.name)+' — '+LAPD_EBENE[r.ebene].label+'</option>'
     ).join('');
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(
-      '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">' +
-      '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">' +
-      '<title>LAPD – Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}.badge{text-align:center;margin-bottom:24px}.badge .icon{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}hr{border:none;border-top:1px solid #1a3a6b;margin:20px 0}.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}.info{background:rgba(21,101,192,.15);border:1px solid #1565c0;border-radius:8px;padding:14px;margin-bottom:16px;color:#90caf9;font-size:.88rem;line-height:1.6}.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.fg input,.fg select{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}.fg select option{background:#060c1a}.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}.btn:hover{background:#1976d2}.foot{margin-top:28px;color:#1a3a6b;font-size:.7rem;letter-spacing:1px;text-align:center}</style></head><body>' +
-      '<div class="card">' +
-      '<div class="badge"><div class="icon">🛡️</div><h1>LAPD</h1><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><div class="sub">Paradise City Roleplay</div></div><hr>' +
-      '<p class="u-hint">👤 Eingeloggt als <strong>' + uname + '</strong></p>' +
-      '<form method="POST" action="/lapd/auth/' + req.params.token + '">' +
-      '<div class="fg"><label>Rang auswählen</label>' +
-      '<select name="rankIdx" required>' + opts + '</select></div>' +
-      '<div class="fg"><label>Passwort</label>' +
-      '<input type="password" name="password" placeholder="••••••••" required autocomplete="current-password"></div>' +
-      '<button class="btn" type="submit">🔓 Einloggen</button>' +
-      '</form>' +
-      '</div><div class="foot">LAPD INTERNAL SYSTEM • UNAUTHORIZED ACCESS PROHIBITED</div>' +
-      '</body></html>'
-    );
+    const errHtml = req.query.err==='pw' ? '<div class="err">⚠️ Incorrect password. Please try again.</div>' : '';
+    res.setHeader('Content-Type','text/html; charset=utf-8');
+    res.send(LHEAD+'<div class="card">'+LBADGE+errHtml+
+      '<p class="u-hint">👤 Logged in as <strong>'+esc(entry.uname)+'</strong></p>'+
+      '<form method="POST" action="/lapd/auth/'+req.params.token+'">'+
+      '<div class="fg"><label>Select Rank</label><select name="rankIdx" required>'+opts+'</select></div>'+
+      '<div class="fg"><label>Password</label><input type="password" name="password" placeholder="••••••••" required autocomplete="current-password"></div>'+
+      '<button class="btn" type="submit">🔓 Login</button></form></div>'+LFOOT);
   });
 
-  // ── POST /lapd/auth/:token — Login abschließen ───────────────────────────
-  app.post('/lapd/auth/:token', async (req, res) => {
+  // ── POST /lapd/auth/:token ───────────────────────────────────────────────
+  app.post('/lapd/auth/:token', async (req,res)=>{
     const entry = lapdTokens.get(req.params.token);
-    if (!entry || Date.now() > entry.expires) {
-      req.session.lapdError = 'Link abgelaufen. Bitte in Discord erneut auf den Button klicken.';
-      return res.redirect('/lapd');
-    }
-    const { memberId, uname, displayName, ranks } = entry;
-    const { rankIdx, password } = req.body;
-    const idx  = parseInt(rankIdx, 10);
-    const rank = ranks[isNaN(idx) ? -1 : idx];
-    if (!rank) {
-      return res.redirect('/lapd/auth/' + req.params.token + '?err=rang');
-    }
-    if ((password || '').trim() !== LAPD_PW[rank.ebene]) {
-      const opts = ranks.map((r, i) =>
-        '<option value="' + i + '"' + (i === idx ? ' selected' : '') + '>' + r.name + ' — ' + LAPD_EBENE[r.ebene].label + '</option>'
-      ).join('');
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.send(
-        '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">' +
-        '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">' +
-        '<title>LAPD – Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}.badge{text-align:center;margin-bottom:24px}.badge .icon{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}hr{border:none;border-top:1px solid #1a3a6b;margin:20px 0}.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}.info{background:rgba(21,101,192,.15);border:1px solid #1565c0;border-radius:8px;padding:14px;margin-bottom:16px;color:#90caf9;font-size:.88rem;line-height:1.6}.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.fg input,.fg select{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}.fg select option{background:#060c1a}.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}.btn:hover{background:#1976d2}.foot{margin-top:28px;color:#1a3a6b;font-size:.7rem;letter-spacing:1px;text-align:center}</style></head><body>' +
-        '<div class="card">' +
-        '<div class="badge"><div class="icon">🛡️</div><h1>LAPD</h1><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><div class="sub">Paradise City Roleplay</div></div><hr>' +
-        '<div class="err">⚠️ Falsches Passwort für die ' + LAPD_EBENE[rank.ebene].label + '.</div>' +
-        '<p class="u-hint">👤 <strong>' + uname + '</strong></p>' +
-        '<form method="POST" action="/lapd/auth/' + req.params.token + '">' +
-        '<div class="fg"><label>Rang auswählen</label>' +
-        '<select name="rankIdx" required>' + opts + '</select></div>' +
-        '<div class="fg"><label>Passwort</label>' +
-        '<input type="password" name="password" placeholder="••••••••" required autocomplete="current-password" autofocus></div>' +
-        '<button class="btn" type="submit">🔓 Einloggen</button>' +
-        '</form>' +
-        '</div><div class="foot">LAPD INTERNAL SYSTEM • UNAUTHORIZED ACCESS PROHIBITED</div></body></html>'
-      );
-    }
+    if (!entry || Date.now()>entry.expires) { req.session.lapdError='expired'; return res.redirect('/lapd'); }
+    const idx  = parseInt(req.body.rankIdx,10);
+    const rank = entry.ranks[isNaN(idx)?-1:idx];
+    if (!rank) return res.redirect('/lapd/auth/'+req.params.token);
+    if ((req.body.password||'').trim() !== LAPD_PW[rank.ebene])
+      return res.redirect('/lapd/auth/'+req.params.token+'?err=pw');
     try {
       let guild = client.guilds.cache.get(LAPD_GUILD_ID);
-      if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(() => null);
-      const member = guild ? await guild.members.fetch(memberId).catch(() => null) : null;
-      if (!member || !member.roles.cache.has(rank.id)) {
-        req.session.lapdError = 'Rolle konnte nicht verifiziert werden. Bitte Button erneut klicken.';
-        return res.redirect('/lapd');
-      }
-      req.session.lapd = {
-        userId: memberId, username: member.user.username,
-        displayName: member.displayName, rankId: rank.id,
-        rankName: rank.name, ebene: rank.ebene, loginTime: Date.now(),
-      };
-      lapdTokens.delete(req.params.token); // Token einmalig verbrauchen
+      if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(()=>null);
+      const member = guild ? await guild.members.fetch(entry.memberId).catch(()=>null) : null;
+      if (!member||!member.roles.cache.has(rank.id)) { req.session.lapdError='role'; return res.redirect('/lapd'); }
+      req.session.lapd = { userId:entry.memberId, username:member.user.username, displayName:member.displayName,
+        rankId:rank.id, rankName:rank.name, ebene:rank.ebene, loginTime:Date.now() };
+      lapdTokens.delete(req.params.token);
       return res.redirect('/lapd/dashboard');
-    } catch {
-      req.session.lapdError = 'Login fehlgeschlagen. Bitte erneut versuchen.';
-      return res.redirect('/lapd');
-    }
+    } catch { req.session.lapdError='fail'; return res.redirect('/lapd'); }
   });
 
-  // ── Alte Routen als Redirect ─────────────────────────────────────────────
-  app.get('/lapd/lookup', (req, res) => res.redirect('/lapd'));
-  app.get('/lapd/login',  (req, res) => res.redirect('/lapd'));
-  app.get('/lapd/reset',  (req, res) => res.redirect('/lapd'));
-  app.post('/lapd/lookup', (req, res) => res.redirect('/lapd'));
-  app.post('/lapd/login',  (req, res) => res.redirect('/lapd'));
+  app.get('/lapd/lookup',(req,res)=>res.redirect('/lapd'));
+  app.get('/lapd/login', (req,res)=>res.redirect('/lapd'));
+  app.get('/lapd/reset', (req,res)=>res.redirect('/lapd'));
+  app.post('/lapd/lookup',(req,res)=>res.redirect('/lapd'));
+  app.post('/lapd/login', (req,res)=>res.redirect('/lapd'));
+
+  // ── POST /lapd/logout ────────────────────────────────────────────────────
+  app.post('/lapd/logout',(req,res)=>{ req.session.lapd=null; res.redirect('/lapd'); });
+
+  // ── POST /lapd/api/duty/toggle ───────────────────────────────────────────
+  app.post('/lapd/api/duty/toggle', async (req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    const s = req.session.lapd;
+    const duty = loadDuty();
+    const cur = !!(duty[s.userId] && duty[s.userId].onDuty);
+    if (cur) { if (duty[s.userId]) duty[s.userId].onDuty=false; }
+    else duty[s.userId] = { onDuty:true, userId:s.userId, displayName:s.displayName, rankName:s.rankName, ebene:s.ebene, since:Date.now() };
+    saveDuty(duty);
+    updateDutyEmbed().catch(()=>{});
+    res.json({ ok:true, onDuty:!cur });
+  });
+
+  // ── GET /lapd/api/duty ───────────────────────────────────────────────────
+  app.get('/lapd/api/duty',(req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    const duty = loadDuty();
+    const s = req.session.lapd;
+    const list = Object.values(duty).filter(d=>d.onDuty)
+      .sort((a,b)=>(LAPD_ERANK[b.ebene]||0)-(LAPD_ERANK[a.ebene]||0));
+    res.json({ ok:true, list, onDuty:!!(duty[s.userId]&&duty[s.userId].onDuty) });
+  });
+
+  // ── GET/POST/DELETE /lapd/api/announcements ──────────────────────────────
+  app.get('/lapd/api/announcements',(req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    const ann = loadAnn().sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||b.ts-a.ts);
+    res.json({ ok:true, items:ann });
+  });
+  app.post('/lapd/api/announcements',(req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    const s = req.session.lapd;
+    if (s.ebene!=='leitung') return res.status(403).json({ ok:false, msg:'Command Staff only' });
+    const { title, content } = req.body;
+    if (!title||!content) return res.json({ ok:false, msg:'Title and content required' });
+    const ann = loadAnn();
+    ann.push({ id:genId(), title:String(title).slice(0,100), content:String(content).slice(0,2000),
+      authorId:s.userId, authorName:s.displayName, rankName:s.rankName, ts:Date.now(), pinned:false });
+    saveAnn(ann);
+    res.json({ ok:true });
+  });
+  app.post('/lapd/api/announcements/:id/pin',(req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    if (req.session.lapd.ebene!=='leitung') return res.status(403).json({ ok:false });
+    const ann = loadAnn();
+    const item = ann.find(a=>a.id===req.params.id);
+    if (!item) return res.json({ ok:false });
+    item.pinned=!item.pinned; saveAnn(ann);
+    res.json({ ok:true, pinned:item.pinned });
+  });
+  app.delete('/lapd/api/announcements/:id',(req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    if (req.session.lapd.ebene!=='leitung') return res.status(403).json({ ok:false });
+    saveAnn(loadAnn().filter(a=>a.id!==req.params.id));
+    res.json({ ok:true });
+  });
+
+  // ── GET/POST /lapd/api/vacations ─────────────────────────────────────────
+  app.get('/lapd/api/vacations',(req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    const mine = loadVac().filter(v=>v.userId===req.session.lapd.userId).sort((a,b)=>b.ts-a.ts);
+    res.json({ ok:true, items:mine });
+  });
+  app.post('/lapd/api/vacations', async (req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    const s = req.session.lapd;
+    const { from, to, note } = req.body;
+    if (!from||!to) return res.json({ ok:false, msg:'From and to dates required' });
+    if (new Date(to)<new Date(from)) return res.json({ ok:false, msg:'End date must be after start date' });
+    const id = genId();
+    const vac = loadVac();
+    vac.push({ id, userId:s.userId, displayName:s.displayName, rankName:s.rankName, ebene:s.ebene,
+      from, to, note:String(note||'').slice(0,500), status:'pending', ts:Date.now() });
+    saveVac(vac);
+    try {
+      let guild = client.guilds.cache.get(LAPD_GUILD_ID);
+      if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(()=>null);
+      if (guild) {
+        await guild.members.fetch().catch(()=>{});
+        const notifyMembers = new Set();
+        for (const roleId of LAPD_VAC_NOTIFY)
+          guild.members.cache.filter(m=>m.roles.cache.has(roleId)).forEach(m=>notifyMembers.add(m));
+        const { EmbedBuilder:_VEB, ActionRowBuilder:_VARB, ButtonBuilder:_VBB, ButtonStyle:_VBS } = require('discord.js');
+        const vEmbed = new _VEB()
+          .setColor(0xffd700).setTitle('✈️ Vacation Request — LAPD')
+          .addFields(
+            { name:'Officer', value:s.displayName+' ('+s.rankName+')', inline:true },
+            { name:'Division', value:LAPD_EBENE[s.ebene].label, inline:true },
+            { name:'From', value:from, inline:true },
+            { name:'To', value:to, inline:true },
+            { name:'Note', value:String(note||'—').slice(0,300)||'—' }
+          )
+          .setTimestamp().setFooter({ text:'LAPD Internal • ID: '+id.slice(0,8) });
+        const vRow = new _VARB().addComponents(
+          new _VBB().setCustomId('lapd_vac_approve_'+id).setLabel('✅ Approve').setStyle(_VBS.Success),
+          new _VBB().setCustomId('lapd_vac_reject_'+id).setLabel('❌ Reject').setStyle(_VBS.Danger),
+        );
+        for (const m of notifyMembers)
+          if (m.id!==s.userId) m.send({ embeds:[vEmbed], components:[vRow] }).catch(()=>{});
+      }
+    } catch(e){ console.error('vac DM:',e.message); }
+    res.json({ ok:true });
+  });
+
+  // ── GET/POST/DELETE /lapd/api/warnings ───────────────────────────────────
+  app.get('/lapd/api/warnings',(req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    const s = req.session.lapd; const all = loadWarn();
+    let items;
+    if (s.ebene==='leitung') items=all;
+    else if (s.ebene==='befehl') items=all.filter(w=>w.targetId===s.userId||w.authorId===s.userId||(LAPD_ERANK[w.targetEbene]||0)<2);
+    else items=all.filter(w=>w.targetId===s.userId);
+    res.json({ ok:true, items:items.sort((a,b)=>b.ts-a.ts) });
+  });
+  app.get('/lapd/api/members',(req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    const s = req.session.lapd;
+    if (s.ebene!=='leitung'&&s.ebene!=='befehl') return res.status(403).json({ ok:false });
+    const guild = client.guilds.cache.get(LAPD_GUILD_ID);
+    if (!guild) return res.json({ ok:true, items:[] });
+    const seen = new Map();
+    for (const rank of LAPD_RANKS) {
+      if (s.ebene==='befehl' && rank.ebene==='leitung') continue;
+      guild.members.cache.filter(m=>m.roles.cache.has(rank.id)).forEach(m=>{
+        if (!seen.has(m.id)) seen.set(m.id,{ id:m.id, name:m.displayName||m.user.username, rankName:rank.name, ebene:rank.ebene });
+      });
+    }
+    res.json({ ok:true, items:[...seen.values()] });
+  });
+  app.post('/lapd/api/warnings',(req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    const s = req.session.lapd;
+    if (s.ebene!=='leitung'&&s.ebene!=='befehl') return res.status(403).json({ ok:false, msg:'No permission' });
+    const { targetId, targetName, targetRank, targetEbene, reason } = req.body;
+    if (!targetId||!reason) return res.json({ ok:false, msg:'Target and reason required' });
+    if (s.ebene==='befehl' && targetEbene==='leitung') return res.json({ ok:false, msg:'Supervisory Staff cannot warn Command Staff' });
+    const warn = loadWarn();
+    warn.push({ id:genId(), targetId, targetName:String(targetName), targetRank:String(targetRank), targetEbene:String(targetEbene),
+      authorId:s.userId, authorName:s.displayName, authorRank:s.rankName, authorEbene:s.ebene,
+      reason:String(reason).slice(0,1000), ts:Date.now() });
+    saveWarn(warn);
+    res.json({ ok:true });
+  });
+  app.delete('/lapd/api/warnings/:id',(req,res)=>{
+    if (!isLapdAuth(req)) return res.status(401).json({ ok:false });
+    const s = req.session.lapd;
+    if (s.ebene!=='leitung'&&s.ebene!=='befehl') return res.status(403).json({ ok:false });
+    const warn = loadWarn(); const item = warn.find(w=>w.id===req.params.id);
+    if (!item) return res.json({ ok:false, msg:'Not found' });
+    if (s.ebene==='befehl' && (item.targetEbene==='leitung'||item.targetEbene==='befehl') && item.authorId!==s.userId)
+      return res.json({ ok:false, msg:'No permission to delete this warning' });
+    saveWarn(warn.filter(w=>w.id!==req.params.id));
+    res.json({ ok:true });
+  });
 
   // ── GET /lapd/dashboard ─────────────────────────────────────────────────
-  app.get('/lapd/dashboard', async (req, res) => {
+  const LAPD_CSS = "*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:\"Segoe UI\",sans-serif;min-height:100vh;display:flex;flex-direction:column}header{background:#0d1b2e;border-bottom:2px solid #1a3a6b;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}.hl{display:flex;align-items:center;gap:10px}.hl .ico{font-size:1.8rem}.hl h2{font-size:.95rem;font-weight:800;color:#ffd700;letter-spacing:2px}.hl p{font-size:.75rem;color:#90caf9}.hr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rbadge{padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:700;border:1px solid}.lbtn{background:transparent;border:1px solid #1a3a6b;color:#90caf9;padding:7px 13px;border-radius:7px;font-size:.78rem;cursor:pointer;transition:.2s}.lbtn:hover{border-color:#42a5f5;color:#42a5f5}nav{background:#0a1525;border-bottom:1px solid #1a3a6b;display:flex;overflow-x:auto}.nb{background:transparent;border:none;color:#6b7280;padding:13px 18px;font-size:.82rem;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}.nb:hover{color:#90caf9}.nb.act{color:#1e90ff;border-bottom-color:#1e90ff}main{flex:1;padding:20px;max-width:1000px;width:100%;margin:0 auto}.sec{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:10px;margin-bottom:16px;overflow:hidden}.sh{padding:12px 18px;border-bottom:1px solid #1a3a6b;display:flex;align-items:center;justify-content:space-between;gap:8px}.sh h3{font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.sb{padding:16px 18px}table{width:100%;border-collapse:collapse;font-size:.84rem}th{color:#6b7280;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;padding:8px 10px;text-align:left;border-bottom:1px solid #1a3a6b}td{padding:8px 10px;border-bottom:1px solid #0a0f1e}tr:last-child td{border-bottom:none}tr:hover td{background:#060c1a}.muted{color:#374151;font-size:.84rem;padding:8px 0}.fg{margin-bottom:12px}.fg label{display:block;font-size:.72rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}.fg input,.fg select,.fg textarea{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:9px 12px;border-radius:7px;font-size:.88rem;outline:none;transition:.2s;font-family:inherit}.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1565c0}.fg select option{background:#060c1a}.fg textarea{resize:vertical;min-height:80px}.row{display:flex;gap:10px;flex-wrap:wrap}.row .fg{flex:1;min-width:140px}.btn{background:#1565c0;color:#fff;border:none;padding:9px 18px;border-radius:7px;font-size:.84rem;font-weight:700;cursor:pointer;transition:.2s}.btn:hover{background:#1976d2}.btn.red{background:#7f1d1d}.btn.red:hover{background:#991b1b}.btn.grn{background:#14532d}.btn.grn:hover{background:#166534}.btn.sm{padding:5px 11px;font-size:.75rem}.btn.ghost{background:transparent;border:1px solid #1a3a6b;color:#90caf9}.btn.ghost:hover{border-color:#42a5f5;color:#42a5f5}.pin-badge{color:#ffd700;font-size:.7rem;font-weight:700;margin-left:6px}.ann-card{border:1px solid #1a3a6b;border-radius:8px;padding:14px;margin-bottom:10px;background:#060c1a}.ann-card.pinned{border-color:#ffd700}.ann-card h4{font-size:.9rem;font-weight:700;margin-bottom:6px}.ann-card .meta{font-size:.72rem;color:#6b7280;margin-bottom:8px}.ann-card .body{font-size:.85rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}.ann-acts{display:flex;gap:6px;margin-top:10px}.vac-badge{padding:3px 10px;border-radius:10px;font-size:.7rem;font-weight:700}.vac-badge.pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid #ffc107}.vac-badge.approved{background:rgba(76,175,80,.15);color:#66bb6a;border:1px solid #66bb6a}.vac-badge.rejected{background:rgba(183,28,28,.15);color:#ef9a9a;border:1px solid #b71c1c}.flash{padding:10px 14px;border-radius:7px;margin-bottom:12px;font-size:.84rem}.flash.ok{background:rgba(76,175,80,.15);border:1px solid #388e3c;color:#a5d6a7}.flash.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;color:#ef9a9a}@media(max-width:600px){header{padding:10px 14px}main{padding:12px}}";
+
+  app.get('/lapd/dashboard', (req,res)=>{
     if (!isLapdAuth(req)) return res.redirect('/lapd');
-    const s        = req.session.lapd;
-    const eInfo    = LAPD_EBENE[s.ebene];
-    const duty     = loadLapdDuty();
-    const onDuty   = !!(duty[s.userId] && duty[s.userId].onDuty);
+    const s       = req.session.lapd;
+    const eInfo   = LAPD_EBENE[s.ebene];
+    const canPost  = s.ebene==='leitung';
+    const canWarn  = s.ebene==='leitung'||s.ebene==='befehl';
+    const clientJs = (function buildClientJs(userId, ebene, displayName, rankName, canPost, canWarn) {
+  return `
+const ME={userId:${JSON.stringify(userId)},ebene:${JSON.stringify(ebene)},displayName:${JSON.stringify(displayName)},rankName:${JSON.stringify(rankName)},canPost:${canPost},canWarn:${canWarn}};
+const ECOLOR={leitung:"#ffd700",befehl:"#42a5f5",detective:"#ab47bc",officer:"#66bb6a"};
+const ELABEL={leitung:"Command Staff",befehl:"Supervisory Staff",detective:"Detective Division",officer:"Officer Division"};
 
-    const ebeneColors = { leitung:'#ffd700', befehl:'#42a5f5', detective:'#ab47bc', officer:'#66bb6a' };
-    const ebeneLabels = { leitung:'Leitungsebene', befehl:'Befehlsebene', detective:'Detective Division', officer:'Officer Division' };
+function showTab(t){
+  document.querySelectorAll(".nb").forEach(b=>b.classList.toggle("act",b.dataset.t===t));
+  document.querySelectorAll(".tsec").forEach(s=>s.style.display="none");
+  const el=document.getElementById("t-"+t);
+  if(el){el.style.display="";loadTab(t);}
+}
+function loadTab(t){
+  if(t==="board")loadBoard();
+  else if(t==="duty")loadDuty();
+  else if(t==="vacation")loadVacation();
+  else if(t==="warnings")loadWarnings();
+}
+function flash(el,msg,ok){
+  el.innerHTML='<div class="flash '+(ok?"ok":"err")+'">'+escH(msg)+'</div>';
+  setTimeout(()=>{el.innerHTML="";},4000);
+}
+function escH(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function fdate(ts){return new Date(ts).toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit",year:"numeric"});}
+function ftime(ts){const d=new Date(ts);return d.toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});}
 
-    const membersByEbene = { leitung:[], befehl:[], detective:[], officer:[] };
-    try {
-      let guild = client.guilds.cache.get(LAPD_GUILD_ID);
-      if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(() => null);
-      if (guild) {
-        await guild.members.fetch().catch(() => {});
-        for (const rank of LAPD_RANKS) {
-          guild.members.cache.filter(m => m.roles.cache.has(rank.id)).forEach(m => {
-            if (!membersByEbene[rank.ebene].find(x => x.id === m.id)) {
-              membersByEbene[rank.ebene].push({
-                id: m.id, name: m.displayName || m.user.username,
-                rank: rank.name, onDuty: !!(duty[m.id] && duty[m.id].onDuty),
-              });
-            }
-          });
-        }
-      }
-    } catch {}
+// ── BOARD ──────────────────────────────────────────────────────────────────
+async function loadBoard(){
+  const el=document.getElementById("board-content");
+  el.innerHTML='<p class="muted">Loading...</p>';
+  const r=await fetch("/lapd/api/announcements").then(x=>x.json()).catch(()=>({ok:false}));
+  if(!r.ok){el.innerHTML='<p class="muted">Failed to load.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">No announcements yet.</p>';return;}
+  el.innerHTML=r.items.map(a=>{
+    const cls="ann-card"+(a.pinned?" pinned":"");
+    const pinLabel=a.pinned?"Unpin":"📌 Pin";
+    const acts=ME.canPost?('<div class="ann-acts"><button class="btn sm ghost pin-btn">'+pinLabel+'</button><button class="btn sm red del-btn">🗑️ Delete</button></div>'):"";
+    const pinBadge=a.pinned?'<span class="pin-badge">📌 PINNED</span>':"";
+    return '<div class="'+cls+'" data-id="'+a.id+'"><h4>'+escH(a.title)+pinBadge+'</h4><div class="meta">'+escH(a.authorName)+' ('+escH(a.rankName)+') &bull; '+fdate(a.ts)+'</div><div class="body">'+escH(a.content)+'</div>'+acts+'</div>';
+  }).join("");
+  el.querySelectorAll(".pin-btn").forEach(b=>b.addEventListener("click",()=>togglePin(b.closest(".ann-card").dataset.id)));
+  el.querySelectorAll(".del-btn").forEach(b=>b.addEventListener("click",()=>delAnn(b.closest(".ann-card").dataset.id)));
+}
+async function postAnn(e){
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  const r=await fetch("/lapd/api/announcements",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:fd.get("title"),content:fd.get("content")})}).then(x=>x.json()).catch(()=>({ok:false}));
+  flash(document.getElementById("ann-flash"),r.ok?"Announcement posted!":r.msg||"Error",r.ok);
+  if(r.ok){e.target.reset();loadBoard();}
+}
+async function togglePin(id){
+  await fetch("/lapd/api/announcements/"+id+"/pin",{method:"POST"}).catch(()=>{});
+  loadBoard();
+}
+async function delAnn(id){
+  if(!confirm("Delete this announcement?"))return;
+  await fetch("/lapd/api/announcements/"+id,{method:"DELETE"}).catch(()=>{});
+  loadBoard();
+}
 
-    const onDutyList = Object.values(duty).filter(d => d.onDuty);
-    const totalMembers = Object.values(membersByEbene).reduce((a,b) => a + b.length, 0);
+// ── DUTY ───────────────────────────────────────────────────────────────────
+async function loadDuty(){
+  const el=document.getElementById("duty-content");
+  el.innerHTML='<p class="muted">Loading...</p>';
+  const r=await fetch("/lapd/api/duty").then(x=>x.json()).catch(()=>({ok:false}));
+  if(!r.ok){el.innerHTML='<p class="muted">Failed to load.</p>';return;}
+  const btn=document.getElementById("duty-btn");
+  if(btn){
+    btn.textContent=r.onDuty?"🔴 Sign Off Duty":"🟢 Sign On Duty";
+    btn.className="btn "+(r.onDuty?"red":"grn");
+  }
+  if(!r.list.length){el.innerHTML='<p class="muted">No officers currently on duty.</p>';return;}
+  el.innerHTML='<table><thead><tr><th>Name</th><th>Rank</th><th>Division</th><th>Since</th></tr></thead><tbody>'+
+    r.list.map(d=>'<tr><td>'+escH(d.displayName)+'</td><td>'+escH(d.rankName)+'</td>'+
+      '<td style="color:'+(ECOLOR[d.ebene]||"#e0e0e0")+'">'+(ELABEL[d.ebene]||d.ebene)+'</td>'+
+      '<td>'+ftime(d.since)+'</td></tr>').join("")+
+    '</tbody></table>';
+}
+async function toggleDuty(){
+  const btn=document.getElementById("duty-btn");
+  btn.disabled=true;
+  const r=await fetch("/lapd/api/duty/toggle",{method:"POST"}).then(x=>x.json()).catch(()=>({ok:false}));
+  btn.disabled=false;
+  if(r.ok)loadDuty();
+}
 
-    function tbl(arr) {
-      if (!arr.length) return '<p style="color:#374151;font-size:.85rem;padding:6px 0">— Keine Mitglieder —</p>';
-      return '<table><thead><tr><th>Name</th><th>Rang</th><th>Status</th></tr></thead><tbody>' +
-        arr.map(m => '<tr><td>' + m.name + '</td><td>' + m.rank + '</td>' +
-          '<td style="color:' + (m.onDuty ? '#66bb6a' : '#374151') + '">' +
-          (m.onDuty ? '🟢 Im Dienst' : '⚫ Frei') + '</td></tr>').join('') +
-        '</tbody></table>';
-    }
+// ── VACATION ───────────────────────────────────────────────────────────────
+async function loadVacation(){
+  const el=document.getElementById("vac-list");
+  el.innerHTML='<p class="muted">Loading...</p>';
+  const r=await fetch("/lapd/api/vacations").then(x=>x.json()).catch(()=>({ok:false}));
+  if(!r.ok){el.innerHTML='<p class="muted">Failed to load.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">No vacation requests yet.</p>';return;}
+  el.innerHTML='<table><thead><tr><th>From</th><th>To</th><th>Note</th><th>Status</th></tr></thead><tbody>'+
+    r.items.map(v=>{
+      const badge='<span class="vac-badge '+v.status+'">'+v.status.toUpperCase()+'</span>';
+      const rej=v.rejectReason?('<br><small style="color:#ef9a9a">'+escH(v.rejectReason)+'</small>'):"";
+      return '<tr><td>'+escH(v.from)+'</td><td>'+escH(v.to)+'</td><td>'+escH(v.note||"—")+'</td><td>'+badge+rej+'</td></tr>';
+    }).join("")+
+    '</tbody></table>';
+}
+async function submitVac(e){
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  const r=await fetch("/lapd/api/vacations",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({from:fd.get("from"),to:fd.get("to"),note:fd.get("note")})}).then(x=>x.json()).catch(()=>({ok:false}));
+  flash(document.getElementById("vac-flash"),r.ok?"Request submitted! Command Staff will review it.":r.msg||"Error",r.ok);
+  if(r.ok){e.target.reset();loadVacation();}
+}
 
-    const CSS = '*{box-sizing:border-box;margin:0;padding:0}' +
-      'body{background:#080d1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh}' +
-      'header{background:#0d1b2e;border-bottom:2px solid #1a3a6b;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100}' +
-      '.hl{display:flex;align-items:center;gap:12px}' +
-      '.hl .ico{font-size:2rem}.hl h2{font-size:1rem;font-weight:800;color:#ffd700;letter-spacing:2px}.hl p{font-size:.78rem;color:#90caf9}' +
-      '.hr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}' +
-      '.rbadge{padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;border:1px solid;background:transparent}' +
-      '.dbtn{border:none;padding:9px 18px;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.2s;touch-action:manipulation}' +
-      '.dbtn.on{background:#7f1d1d;color:#fca5a5}.dbtn.on:hover{background:#991b1b}' +
-      '.dbtn.off{background:#14532d;color:#86efac}.dbtn.off:hover{background:#166534}' +
-      '.lbtn{background:transparent;border:1px solid #1a3a6b;color:#90caf9;padding:8px 14px;border-radius:8px;font-size:.8rem;cursor:pointer;transition:.2s;touch-action:manipulation}' +
-      '.lbtn:hover{border-color:#42a5f5;color:#42a5f5}' +
-      'main{max-width:1100px;margin:0 auto;padding:28px 20px}' +
-      '.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px}' +
-      '.sc{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:10px;padding:20px;text-align:center}' +
-      '.sc .n{font-size:2.2rem;font-weight:800;margin-bottom:4px}.sc .l{font-size:.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:1px}' +
-      '.sec{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:10px;margin-bottom:18px;overflow:hidden}' +
-      '.sh{padding:13px 20px;border-bottom:1px solid #1a3a6b;display:flex;align-items:center;gap:10px}' +
-      '.sh h3{font-size:.88rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}' +
-      '.sb{padding:16px 20px}' +
-      'table{width:100%;border-collapse:collapse;font-size:.86rem}' +
-      'th{color:#6b7280;font-size:.7rem;text-transform:uppercase;letter-spacing:1px;padding:8px 12px;text-align:left;border-bottom:1px solid #1a3a6b}' +
-      'td{padding:9px 12px;border-bottom:1px solid #0a0f1e}tr:last-child td{border-bottom:none}tr:hover td{background:#060c1a}' +
-      '@media(max-width:600px){header{padding:10px 14px}.hl .ico{font-size:1.5rem}main{padding:14px 12px}}';
+// ── WARNINGS ───────────────────────────────────────────────────────────────
+let allMembers=[];
+async function loadWarnings(){
+  const el=document.getElementById("warn-content");
+  el.innerHTML='<p class="muted">Loading...</p>';
+  const r=await fetch("/lapd/api/warnings").then(x=>x.json()).catch(()=>({ok:false}));
+  if(!r.ok){el.innerHTML='<p class="muted">Failed to load.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">No warnings found.</p>';return;}
+  const canWarn=ME.canWarn;
+  el.innerHTML='<table><thead><tr><th>Date</th><th>Officer</th><th>Reason</th><th>Issued By</th>'+(canWarn?'<th></th>':'')+
+    '</tr></thead><tbody>'+
+    r.items.map(w=>{
+      const delBtn=canWarn?('<td><button class="btn sm red dw-btn">🗑️</button></td>'):"";
+      return '<tr data-id="'+w.id+'"><td>'+fdate(w.ts)+'</td>'+
+        '<td><strong>'+escH(w.targetName)+'</strong><br><small style="color:#6b7280">'+escH(w.targetRank)+'</small></td>'+
+        '<td style="white-space:pre-wrap">'+escH(w.reason)+'</td>'+
+        '<td>'+escH(w.authorName)+'<br><small style="color:#6b7280">'+escH(w.authorRank)+'</small></td>'+delBtn+'</tr>';
+    }).join("")+
+    '</tbody></table>';
+  el.querySelectorAll(".dw-btn").forEach(b=>b.addEventListener("click",()=>delWarn(b.closest("tr").dataset.id)));
+}
+async function loadMembersForWarn(){
+  if(allMembers.length)return;
+  const r=await fetch("/lapd/api/members").then(x=>x.json()).catch(()=>({ok:false,items:[]}));
+  allMembers=r.items||[];
+  const sel=document.getElementById("warn-target");
+  if(sel){
+    sel.innerHTML='<option value="">— Select Officer —</option>'+
+      allMembers.map(m=>{
+        const val=m.id+"||"+m.name+"||"+m.rankName+"||"+m.ebene;
+        return '<option value="'+escH(val)+'">'+escH(m.name)+' — '+escH(m.rankName)+'</option>';
+      }).join("");
+  }
+}
+async function submitWarn(e){
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  const tv=fd.get("target")||"";
+  const parts=tv.split("||");
+  if(parts.length<4){flash(document.getElementById("warn-flash"),"Please select an officer",false);return;}
+  const r=await fetch("/lapd/api/warnings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({targetId:parts[0],targetName:parts[1],targetRank:parts[2],targetEbene:parts[3],reason:fd.get("reason")})}).then(x=>x.json()).catch(()=>({ok:false}));
+  flash(document.getElementById("warn-flash"),r.ok?"Warning issued.":r.msg||"Error",r.ok);
+  if(r.ok){e.target.reset();loadWarnings();}
+}
+async function delWarn(id){
+  if(!confirm("Delete this warning?"))return;
+  const r=await fetch("/lapd/api/warnings/"+id,{method:"DELETE"}).then(x=>x.json()).catch(()=>({ok:false}));
+  flash(document.getElementById("warn-flash"),r.ok?"Warning deleted.":r.msg||"Error",r.ok);
+  if(r.ok)loadWarnings();
+}
 
-    const onDutySection = onDutyList.length === 0
-      ? '<p style="color:#374151;font-size:.85rem">— Aktuell niemand im Dienst —</p>'
-      : '<table><thead><tr><th>Name</th><th>Rang</th><th>Einheit</th><th>Seit</th></tr></thead><tbody>' +
-        onDutyList.map(d =>
-          '<tr><td>' + d.displayName + '</td><td>' + d.rankName + '</td>' +
-          '<td style="color:' + ebeneColors[d.ebene] + '">' + ebeneLabels[d.ebene] + '</td>' +
-          '<td>' + new Date(d.since).toLocaleString('de-DE', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + '</td></tr>'
-        ).join('') + '</tbody></table>';
+document.addEventListener("DOMContentLoaded",()=>showTab("board"));
+`.trim();
+})(s.userId, s.ebene, s.displayName, s.rankName, canPost, canWarn);
 
-    const memberSections = ['leitung','befehl','detective','officer'].map(e =>
-      '<div class="sec"><div class="sh" style="border-left:3px solid ' + ebeneColors[e] + '">' +
-      '<h3 style="color:' + ebeneColors[e] + '">' + ebeneLabels[e] + ' (' + membersByEbene[e].length + ')</h3></div>' +
-      '<div class="sb">' + tbl(membersByEbene[e]) + '</div></div>'
-    ).join('');
+    const postForm = canPost ?
+      '<div class="sec"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">📝 New Announcement</h3></div>'+
+      '<div class="sb"><div id="ann-flash"></div>'+
+      '<form onsubmit="postAnn(event)">'+
+      '<div class="fg"><label>Title</label><input type="text" name="title" maxlength="100" required placeholder="Announcement title"></div>'+
+      '<div class="fg"><label>Content</label><textarea name="content" maxlength="2000" required placeholder="Write your announcement..."></textarea></div>'+
+      '<button class="btn" type="submit">📌 Post Announcement</button></form></div></div>' : '';
 
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send('<!DOCTYPE html><html lang="de"><head>' +
-      '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">' +
-      '<title>LAPD Dashboard</title><style>' + CSS + '</style></head><body>' +
-      '<header>' +
-      '<div class="hl"><div class="ico">🛡️</div><div>' +
-      '<h2>LAPD DASHBOARD</h2>' +
-      '<p>' + s.displayName + ' &mdash; <span style="color:' + eInfo.color + '">' + s.rankName + '</span></p>' +
-      '</div></div>' +
-      '<div class="hr">' +
-      '<span class="rbadge" style="border-color:' + eInfo.color + ';color:' + eInfo.color + '">' + eInfo.label + '</span>' +
-      '<form method="POST" action="/lapd/duty" style="display:inline">' +
-      '<button class="dbtn ' + (onDuty ? 'on' : 'off') + '" type="submit">' +
-      (onDuty ? '🔴 Dienst beenden' : '🟢 Dienst anmelden') + '</button></form>' +
-      '<form method="POST" action="/lapd/logout" style="display:inline">' +
-      '<button class="lbtn" type="submit">Ausloggen</button></form>' +
-      '</div></header>' +
-      '<main>' +
-      '<div class="grid">' +
-      '<div class="sc"><div class="n" style="color:#66bb6a">' + onDutyList.length + '</div><div class="l">Im Dienst</div></div>' +
-      '<div class="sc"><div class="n" style="color:#42a5f5">' + totalMembers + '</div><div class="l">Mitglieder gesamt</div></div>' +
-      '<div class="sc"><div class="n" style="color:#ffd700">' + membersByEbene.leitung.length + '</div><div class="l">Leitungsebene</div></div>' +
-      '<div class="sc"><div class="n" style="color:#ab47bc">' + membersByEbene.detective.length + '</div><div class="l">Detectives</div></div>' +
-      '</div>' +
-      '<div class="sec"><div class="sh" style="border-left:3px solid #66bb6a">' +
-      '<h3 style="color:#66bb6a">🟢 Aktuell im Dienst (' + onDutyList.length + ')</h3></div>' +
-      '<div class="sb">' + onDutySection + '</div></div>' +
-      memberSections +
-      '</main></body></html>');
+    const warnForm = canWarn ?
+      '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">⚠️ Issue Warning</h3></div>'+
+      '<div class="sb"><div id="warn-flash"></div>'+
+      '<form onsubmit="submitWarn(event)">'+
+      '<div class="fg"><label>Officer</label><select id="warn-target" name="target" required onclick="loadMembersForWarn()"><option value="">— Select Officer —</option></select></div>'+
+      '<div class="fg"><label>Reason</label><textarea name="reason" maxlength="1000" required placeholder="Reason for the warning..."></textarea></div>'+
+      '<button class="btn red" type="submit">⚠️ Issue Warning</button></form></div></div>' : '';
+
+    res.setHeader('Content-Type','text/html; charset=utf-8');
+    res.send(
+      '<!DOCTYPE html><html lang="en"><head>'+
+      '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">'+
+      '<title>LAPD Dashboard</title><style>'+LAPD_CSS+'</style></head><body>'+
+      '<header>'+
+      '<div class="hl"><div class="ico">🛡️</div><div>'+
+      '<h2>LAPD DASHBOARD</h2><p>'+esc(s.displayName)+' &mdash; <span style="color:'+eInfo.color+'">'+esc(s.rankName)+'</span></p>'+
+      '</div></div>'+
+      '<div class="hr">'+
+      '<span class="rbadge" style="border-color:'+eInfo.color+';color:'+eInfo.color+'">'+esc(eInfo.label)+'</span>'+
+      '<form method="POST" action="/lapd/logout" style="display:inline"><button class="lbtn" type="submit">Logout</button></form>'+
+      '</div></header>'+
+      '<nav>'+
+      '<button class="nb act" data-t="board" onclick="showTab(\'board\')">📋 Information Board</button>'+
+      '<button class="nb" data-t="duty" onclick="showTab(\'duty\')">🕐 Duty</button>'+
+      '<button class="nb" data-t="vacation" onclick="showTab(\'vacation\')">✈️ Vacation</button>'+
+      '<button class="nb" data-t="warnings" onclick="showTab(\'warnings\')">⚠️ Warnings</button>'+
+      '</nav>'+
+      '<main>'+
+      '<div class="tsec" id="t-board">'+postForm+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #1e90ff"><h3 style="color:#1e90ff">📋 Announcements</h3></div>'+
+      '<div class="sb"><div id="board-content"><p class="muted">Loading...</p></div></div></div>'+
+      '</div>'+
+      '<div class="tsec" id="t-duty" style="display:none">'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #66bb6a"><h3 style="color:#66bb6a">🕐 Duty Status</h3>'+
+      '<button id="duty-btn" class="btn grn" onclick="toggleDuty()">🟢 Sign On Duty</button></div>'+
+      '<div class="sb"><div id="duty-content"><p class="muted">Loading...</p></div></div></div>'+
+      '</div>'+
+      '<div class="tsec" id="t-vacation" style="display:none">'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">✈️ Request Vacation</h3></div>'+
+      '<div class="sb"><div id="vac-flash"></div>'+
+      '<form onsubmit="submitVac(event)">'+
+      '<div class="row"><div class="fg"><label>From</label><input type="date" name="from" required></div>'+
+      '<div class="fg"><label>To</label><input type="date" name="to" required></div></div>'+
+      '<div class="fg"><label>Note (optional)</label><input type="text" name="note" maxlength="500" placeholder="Reason or note..."></div>'+
+      '<button class="btn" type="submit">📨 Submit Request</button></form></div></div>'+
+      '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">📄 My Vacation Requests</h3></div>'+
+      '<div class="sb"><div id="vac-list"></div></div></div>'+
+      '</div>'+
+      '<div class="tsec" id="t-warnings" style="display:none">'+warnForm+
+      '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">⚠️ Warnings</h3></div>'+
+      '<div class="sb"><div id="warn-content"></div></div></div>'+
+      '</div>'+
+      '</main><script>'+clientJs+'</script></body></html>'
+    );
   });
-
 
   // ── Start ────────────────────────────────────────────────────────────────
   const PORT = process.env.PORT || 8080;
-  app.listen(PORT, '0.0.0.0', () => console.log(`🌐 Web-Server läuft auf Port ${PORT}`));
+  app.listen(PORT, '0.0.0.0', () => console.log('Web-Server running on port '+PORT));
+
 };
 module.exports.tokens      = rubbellosTokens;
 module.exports.lottoTokens = lottoTokens;
