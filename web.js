@@ -2980,7 +2980,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +'</head><body>'
       +'<div class="top-banner">Programmiert und Bereitgestellt durch Inhaber von Paradise City Roleplay</div>'
       +'<div class="mob-bar">'
-      +'<span class="mob-bar-title">&#x26A1; LAPD System</span>'
+      +'<span class="mob-bar-title">LAPD System</span>'
       +'<div style="display:flex;align-items:center;gap:7px">'
       +'<form method="POST" action="/lapd/logout" style="margin:0"><button type="submit" style="background:transparent;border:1px solid #ef535066;color:#ef9a9a;padding:5px 10px;border-radius:7px;font-size:.72rem;font-weight:700;cursor:pointer">Abmelden</button></form>'
       +'<button class="mob-menu-btn" onclick="_toggleMobMenu()">&#x22EF;</button>'
@@ -3183,22 +3183,44 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
           +'<div class="meta">'+esc(a.authorName)+' ('+esc(a.rankName)+') &bull; '+dbFmtDate(a.ts)+'</div>'
           +'<div class="body">'+esc(a.content)+'</div>'
           +acts+'</div>';
-      }).join('') : '<p class="muted">Noch keine Ankuendigungen.</p>';
+      }).join('') : '<p class="muted">Noch keine Ankündigungen.</p>';
 
       const postForm = canPost
-        ? '<div class="sec"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">Neue Ankuendigung</h3></div>'
+        ? '<div class="sec"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">Neue Ankündigung</h3></div>'
           +'<div class="sb"><form method="POST" action="/lapd/dashboard/post-ann?tab=board">'
-          +'<div class="fg"><label>Empfaenger</label><select name="annTarget">'
+          +'<div class="fg"><label>Empfänger</label><select name="annTarget">'
           +'<option value="intern">LAPD Intern (Dashboard)</option>'
           +'<option value="residents">Alle Bewohner</option>'
           +'</select></div>'
-          +'<div class="fg"><label>Titel</label><input type="text" name="title" maxlength="100" required placeholder="Titel der Ankuendigung"></div>'
-          +'<div class="fg"><label>Inhalt</label><textarea name="content" maxlength="2000" required placeholder="Ankuendigung verfassen..."></textarea></div>'
+          +'<div class="fg"><label>Titel</label><input type="text" name="title" maxlength="100" required placeholder="Titel der Ankündigung"></div>'
+          +'<div class="fg"><label>Inhalt</label><textarea name="content" maxlength="2000" required placeholder="Ankündigung verfassen..."></textarea></div>'
           +'<button class="btn" type="submit">Senden</button>'
           +'</form></div></div>' : '';
 
-      content = postForm
-        +'<div class="sec"><div class="sh" style="border-left:3px solid #90caf9"><h3 style="color:#90caf9">Informationen</h3></div>'
+      const welcomeCard = '<div class="sec" style="border-left:4px solid #1F51FF;background:linear-gradient(135deg,#060f27 0%,#0a1a3a 100%)">'
+        +'<div class="sh" style="border-left:none">'
+        +'<h3 style="color:#ffd700;font-size:.88rem;letter-spacing:2px">&#x1F46E; LAPD System &mdash; Willkommen, '+esc(s.displayName)+'</h3>'
+        +'</div>'
+        +'<div class="sb" style="padding:20px 22px">'
+        +'<div style="display:flex;flex-direction:column;gap:14px">'
+        +'<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(31,81,255,0.08);border:1px solid #1a3a78;border-radius:9px">'
+        +'<span style="font-size:1.3rem;flex-shrink:0">&#x1F3DB;&#xFE0F;</span>'
+        +'<div><div style="font-size:.72rem;color:#6aa3ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">System</div>'
+        +'<div style="font-size:.88rem;color:#e0e0e0;font-weight:600">Offizielles Betriebssystem des Los Angeles Police Department</div></div></div>'
+        +'<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(239,68,68,0.08);border:1px solid #7f1d1d;border-radius:9px">'
+        +'<span style="font-size:1.3rem;flex-shrink:0">&#x1F6A8;</span>'
+        +'<div><div style="font-size:.72rem;color:#f87171;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Wichtiger Hinweis</div>'
+        +'<div style="font-size:.88rem;color:#fca5a5;font-weight:600">Missbrauch des Panic Buttons f&uuml;hrt zu einer sofortigen Suspendierung</div></div></div>'
+        +'<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(74,222,128,0.07);border:1px solid #14532d;border-radius:9px">'
+        +'<span style="font-size:1.3rem;flex-shrink:0">&#x2705;</span>'
+        +'<div><div style="font-size:.72rem;color:#86efac;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Dienst</div>'
+        +'<div style="font-size:.88rem;color:#bbf7d0;font-weight:600">Wir w&uuml;nschen Ihnen einen angenehmen Dienst</div></div></div>'
+        +'</div>'
+        +'<div style="margin-top:18px;padding-top:14px;border-top:1px solid #1a3a78;text-align:center;font-size:.67rem;color:#4a6a9a;letter-spacing:.08em">LAPD System &mdash; Programmiert und Bereitgestellt durch Inhaber von Paradise City Roleplay</div>'
+        +'</div></div>';
+      content = welcomeCard
+        +postForm
+        +'<div class="sec"><div class="sh" style="border-left:3px solid #90caf9"><h3 style="color:#90caf9">Ankündigungen</h3></div>'
         +'<div class="sb">'+annHtml+'</div></div>';
 
     } else if (tab === 'duty') {
@@ -3651,7 +3673,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         } catch(e){}
       })();
     }
-    dashRedir(res, tab, 'Ankuendigung gepostet.', true);
+    dashRedir(res, tab, 'Ankündigung gepostet.', true);
   });
 
   app.post('/lapd/dashboard/pin-ann/:id', (req,res) => {
