@@ -2325,11 +2325,36 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       const isSecure = !!(process.env.NODE_ENV==='production'||process.env.RAILWAY_PUBLIC_DOMAIN);
       res.cookie('lapd_sid',persToken,{maxAge:24*60*60*1000,httpOnly:true,sameSite:'lax',secure:isSecure});
       lapdTokens.delete(req.params.token);
-      return res.redirect('/lapd/dashboard');
+      return res.redirect('/lapd/welcome');
     } catch { return res.redirect('/lapd'); }
   });
 
   app.get('/lapd/lookup',(req,res)=>res.redirect('/lapd'));
+
+  // ── Welcome Splash ───────────────────────────────────────────────────────
+  app.get('/lapd/welcome', (req,res) => {
+    if (!isLapdAuth(req)) return res.redirect('/lapd');
+    const s = req.session.lapd;
+    const css = `*{box-sizing:border-box;margin:0;padding:0}body{background:#00000f;color:#e0e0e0;font-family:"Segoe UI",sans-serif;height:100vh;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-direction:column}.scan-wrap{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}.scan-line{position:absolute;left:0;right:0;height:1px;background:rgba(31,81,255,.18);animation:scanDown 3.2s linear infinite}.scan-line:nth-child(1){animation-delay:0s}.scan-line:nth-child(2){animation-delay:.8s}.scan-line:nth-child(3){animation-delay:1.6s}.scan-line:nth-child(4){animation-delay:2.4s}@keyframes scanDown{from{top:-2px;opacity:0}10%{opacity:1}90%{opacity:1}to{top:100vh;opacity:0}}.gl{position:absolute;left:0;right:0;height:2px;background:rgba(31,81,255,.65);box-shadow:0 0 14px rgba(31,81,255,.9);animation:glide 4.5s ease-in-out infinite}.gl:nth-child(5){animation-delay:1.2s}.gl:nth-child(6){animation-delay:2.8s}@keyframes glide{0%{top:10%;opacity:0}20%{opacity:1}80%{opacity:1}100%{top:90%;opacity:0}}.vg{position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(31,81,255,.04) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(31,81,255,.04) 40px);pointer-events:none;z-index:0}.wrap{position:relative;z-index:1;text-align:center;padding:20px}.badge{width:112px;height:112px;border-radius:50%;border:3px solid #1F51FF;box-shadow:0 0 40px rgba(31,81,255,.7),0 0 80px rgba(31,81,255,.3);background:linear-gradient(135deg,#060f27,#0c1f50);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;animation:badgeIn .9s ease forwards,badgePulse 2.5s ease-in-out 1s infinite}@keyframes badgeIn{from{transform:scale(.2);opacity:0;box-shadow:none}to{transform:scale(1);opacity:1}}@keyframes badgePulse{0%,100%{box-shadow:0 0 40px rgba(31,81,255,.7),0 0 80px rgba(31,81,255,.3)}50%{box-shadow:0 0 70px rgba(31,81,255,.95),0 0 130px rgba(31,81,255,.55)}}.lbl{font-size:.6rem;font-weight:900;letter-spacing:3px;color:#1F51FF;text-shadow:0 0 8px rgba(31,81,255,.9);margin-bottom:5px;opacity:0;animation:fi .4s ease .6s forwards}.div{width:160px;height:1px;background:linear-gradient(90deg,transparent,#1F51FF,transparent);margin:0 auto 18px;opacity:0;animation:fi .4s ease .9s forwards}.nm{font-size:1.1rem;font-weight:700;color:#e0e0e0;letter-spacing:1px;opacity:0;animation:fi .5s ease 1.1s forwards}.rk{font-size:.76rem;color:#6aa3ff;margin-top:5px;letter-spacing:2px;opacity:0;animation:fi .5s ease 1.3s forwards}.msg{font-size:.93rem;font-weight:600;color:#ffd700;text-shadow:0 0 14px rgba(255,215,0,.55);margin-top:28px;line-height:1.65;opacity:0;animation:fi .6s ease 1.7s forwards}.sub{font-size:.76rem;color:#4a6080;margin-top:8px;opacity:0;animation:fi .6s ease 2s forwards}.bw{width:240px;height:2px;background:#0d1a36;border-radius:2px;margin:26px auto 0;overflow:hidden;opacity:0;animation:fi .4s ease 2.3s forwards}.bf{height:100%;width:0%;background:#1F51FF;box-shadow:0 0 10px rgba(31,81,255,.8);border-radius:2px;animation:bg 2.4s ease 2.4s forwards}@keyframes bg{to{width:100%}}@keyframes fi{to{opacity:1}}`;
+    const svgBadge = `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="32,4 58,18 58,46 32,60 6,46 6,18" fill="none" stroke="#1F51FF" stroke-width="2.5" stroke-linejoin="round"/><polygon points="32,12 50,22 50,42 32,52 14,42 14,22" fill="none" stroke="#1F51FF" stroke-width="1.2" opacity=".45"/><text x="32" y="33" text-anchor="middle" font-size="10" font-weight="900" fill="#1F51FF" font-family="Segoe UI,sans-serif" letter-spacing="2">LAPD</text><text x="32" y="43" text-anchor="middle" font-size="5.5" fill="#6aa3ff" font-family="Segoe UI,sans-serif" letter-spacing="1">POLICE DEPT</text></svg>`;
+    res.setHeader('Content-Type','text/html; charset=utf-8');
+    res.send('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Willkommen</title><style>'+css+'</style></head><body>'
+      +'<div class="vg"></div>'
+      +'<div class="scan-wrap"><div class="scan-line"></div><div class="scan-line"></div><div class="scan-line"></div><div class="scan-line"></div><div class="gl"></div><div class="gl"></div></div>'
+      +'<div class="wrap">'
+      +'<div class="badge">'+svgBadge+'</div>'
+      +'<div class="lbl">LAPD DASHBOARD</div>'
+      +'<div class="div"></div>'
+      +'<div class="nm">'+s.displayName+'</div>'
+      +'<div class="rk">'+s.rankName+'</div>'
+      +'<div class="msg">Wir wünschen Ihnen einen angenehmen Dienst.<br>Passen Sie auf sich auf!</div>'
+      +'<div class="sub">Paradise City Roleplay • Los Santos Police Department</div>'
+      +'<div class="bw"><div class="bf"></div></div>'
+      +'</div>'
+      +'<script>setTimeout(function(){window.location.href=\'/lapd/dashboard\';},4300);</script>'
+      +'</body></html>');
+  });
+
   app.get('/lapd/login', (req,res)=>res.redirect('/lapd'));
   app.get('/lapd/reset', (req,res)=>res.redirect('/lapd'));
   app.post('/lapd/lookup',(req,res)=>res.redirect('/lapd'));
@@ -2935,7 +2960,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +nav('persons','🪪','Personenakten')
       +nav('vehicles','🚗','Fahrzeugakten')
       +nav('crimes','📁','Strafakten')
-      +nav('bkat','📜','Bussgeldkatalog')
+      +nav('bkat','📜','Bußgeldkatalog')
       +nav('warrants','🔴','Fahndungen')
       +nav('beschlagnahme','🚔','Beschlagnahmungen')
       +nav('notrufe','🚨','Notrufe')
@@ -2943,6 +2968,8 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +'<div class="sb-user">'
       +'<div class="uname">'+esc(s.displayName)+'</div>'
       +'<div class="urank" style="color:'+eInfo.color+'">'+esc(s.rankName)+'</div>'
+      +'<div style="padding:8px 14px 4px">'
+      +'<button id="panic-btn" onclick="_triggerPanic()" style="width:100%;padding:8px 12px;background:#7f1d1d;border:1px solid #ef4444;border-radius:7px;color:#fca5a5;font-size:.76rem;font-weight:800;cursor:pointer;letter-spacing:1px;animation:panicGlow 2s infinite,panicPulse 2s infinite">&#x1F6A8; PANIC</button></div>'
       +'<form method="POST" action="/lapd/logout">'
       +'<button class="lbtn" type="submit">Ausloggen</button>'
       +'</form>'
@@ -2953,7 +2980,21 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +content
       +'</main></div>'
       +_buildPollingScript()
+      +_buildPanicScript()
       +'</body></html>';
+  }
+
+  function _buildPanicScript(){
+    return `<script>function _triggerPanic(){`
+      +`if(!confirm('` + '\u{1F6A8}' + ` PANIC BUTTON ausl\u00f6sen? Alle Officers werden sofort benachrichtigt.'))return;`
+      +`var b=document.getElementById('panic-btn');`
+      +`if(b){b.disabled=true;b.textContent='Wird gesendet...'}`
+      +`fetch('/lapd/api/panic',{method:'POST',headers:{'Content-Type':'application/json'}})`
+      +`.then(r=>r.json()).then(j=>{`
+      +`if(b){b.disabled=false;b.innerHTML='&#x1F6A8; PANIC';}`
+      +`alert(j.ok?'\u2705 Panic ausgel\u00f6st! '+j.notified+' Officers benachrichtigt.':'\u274C '+(j.msg||'Fehler'));`
+      +`}).catch(e=>{if(b){b.disabled=false;b.innerHTML='&#x1F6A8; PANIC';}alert('\u274C Netzwerkfehler');});`
+      +`}</script>`;
   }
 
   function _buildPollingScript(){
@@ -3269,7 +3310,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         const rows = section.items.map(row=>'<div class="bkat-row"><span>'+esc(row[0])+'</span><span class="bkat-fine">'+esc(row[1])+'</span></div>').join('');
         return '<div class="bkat-section"><div class="bkat-cat">'+esc(section.cat)+'</div>'+rows+'</div>';
       }).join('');
-      content = '<div class="sec"><div class="sh" style="border-left:3px solid #fcd34d"><h3 style="color:#fcd34d">Bussgeldkatalog</h3></div>'
+      content = '<div class="sec"><div class="sh" style="border-left:3px solid #fcd34d"><h3 style="color:#fcd34d">Bußgeldkatalog</h3></div>'
         +'<div class="sb">'+bkatHtml+'</div></div>';
 
     } else if (tab === 'warrants') {
@@ -3365,11 +3406,11 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
           +(n.status!=='geschlossen'?'<form method="POST" action="/lapd/dashboard/close-notruf/'+esc(n.id)+'?tab=notrufe" style="display:inline"><button class="btn sm red" type="submit">Schliessen</button></form>':'')
           +(canMod?'<form method="POST" action="/lapd/dashboard/del-notruf/'+esc(n.id)+'?tab=notrufe" style="display:inline"><button class="btn sm" style="background:#1a2a4a" type="submit">Loeschen</button></form>':'')
           +'</div></div>'
-          +(n.assignedTo?'<div style="margin-top:8px;padding:6px 10px;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.25);border-radius:6px;font-size:.76rem;color:#86efac">&#x2705; <strong>Uebernommen von:</strong> '+esc(n.assignedTo)+'</div>':'')
+          +(n.assignedTo?'<div style="margin-top:8px;padding:6px 10px;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.25);border-radius:6px;font-size:.76rem;color:#86efac">&#x2705; <strong>Übernommen von:</strong> '+esc(n.assignedTo)+'</div>':'')
           +(n.status==='offen'
             ?'<div style="margin-top:9px"><form method="POST" action="/lapd/dashboard/accept-notruf/'+esc(n.id)+'?tab=notrufe" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">'
               +'<div class="fg" style="flex:1;min-width:160px;margin:0"><label>Streife / Officer-Namen</label>'
-              +'<input type="text" name="officers" required maxlength="200" placeholder="z.B. Officer Mueller, Detective Smith"></div>'
+              +'<input type="text" name="officers" required maxlength="200" placeholder="z.B. Officer Müller, Detective Smith"></div>'
               +'<button class="btn grn" type="submit" style="height:36px;margin-bottom:0">Annehmen</button></form></div>':'')
           +'<div style="font-size:.68rem;color:#6b7280;margin-top:6px">'+dbFmtTime(n.ts)+'</div>'
           +'</div>').join('')
@@ -3438,7 +3479,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     const tab = req.query.tab||'board';
     if (req.session.lapd.ebene!=='leitung') return dashRedir(res, tab, 'Nur Command Staff.');
     saveAnn(loadAnn().filter(a=>a.id!==req.params.id));
-    dashRedir(res, tab, 'Geloescht.', true);
+    dashRedir(res, tab, 'Gelöscht.', true);
   });
 
   app.post('/lapd/dashboard/vacation', async (req,res) => {
@@ -3497,7 +3538,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     const tab = req.query.tab||'warnings';
     if (req.session.lapd.ebene!=='leitung'&&req.session.lapd.ebene!=='befehl') return dashRedir(res, tab, 'Keine Berechtigung.');
     saveWarn(loadWarn().filter(w=>w.id!==req.params.id));
-    dashRedir(res, tab, 'Geloescht.', true);
+    dashRedir(res, tab, 'Gelöscht.', true);
   });
 
   app.post('/lapd/dashboard/schedule', (req,res) => {
@@ -3518,7 +3559,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     if (!isLapdAuth(req)) return res.redirect('/lapd');
     const tab = req.query.tab||'schedule';
     saveSchedule(loadSchedule().filter(x=>x.id!==req.params.id));
-    dashRedir(res, tab, 'Geloescht.', true);
+    dashRedir(res, tab, 'Gelöscht.', true);
   });
 
   app.post('/lapd/dashboard/report', (req,res) => {
@@ -3555,7 +3596,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     const tab = req.query.tab||'persons';
     if (req.session.lapd.ebene!=='leitung'&&req.session.lapd.ebene!=='befehl') return dashRedir(res, tab, 'Keine Berechtigung.');
     savePersons(loadPersons().filter(x=>x.id!==req.params.id));
-    dashRedir(res, tab, 'Geloescht.', true);
+    dashRedir(res, tab, 'Gelöscht.', true);
   });
 
   app.post('/lapd/dashboard/vehicle', (req,res) => {
@@ -3578,7 +3619,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     const tab = req.query.tab||'vehicles';
     if (req.session.lapd.ebene!=='leitung'&&req.session.lapd.ebene!=='befehl') return dashRedir(res, tab, 'Keine Berechtigung.');
     saveVehicles(loadVehicles().filter(x=>x.id!==req.params.id));
-    dashRedir(res, tab, 'Geloescht.', true);
+    dashRedir(res, tab, 'Gelöscht.', true);
   });
 
   app.post('/lapd/dashboard/crime', (req,res) => {
@@ -3600,7 +3641,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     const tab = req.query.tab||'crimes';
     if (req.session.lapd.ebene!=='leitung'&&req.session.lapd.ebene!=='befehl') return dashRedir(res, tab, 'Keine Berechtigung.');
     saveCrimes(loadCrimes().filter(x=>x.id!==req.params.id));
-    dashRedir(res, tab, 'Geloescht.', true);
+    dashRedir(res, tab, 'Gelöscht.', true);
   });
 
   app.post('/lapd/dashboard/warrant', upload.single('photo'), (req,res) => {
@@ -3666,7 +3707,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     const s = req.session.lapd;
     if (s.ebene!=='leitung'&&s.ebene!=='befehl') return dashRedir(res, tab, 'Keine Berechtigung.');
     saveWarrants(loadWarrants().filter(x=>x.id!==req.params.id));
-    dashRedir(res, tab, 'Geloescht.', true);
+    dashRedir(res, tab, 'Gelöscht.', true);
   });
 
 
@@ -3713,7 +3754,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       const ch = await client.channels.fetch('1492316049922592990').catch(()=>null);
       if(ch){
         const {EmbedBuilder}=require('discord.js');
-        await ch.send({embeds:[new EmbedBuilder().setColor(0x22c55e)
+        await ch.send({content:'<@&1490855738644365603>',embeds:[new EmbedBuilder().setColor(0x22c55e)
           .setTitle('\u{1F513}  Beschlagnahmung aufgehoben')
           .addFields(
             {name:'Besitzer',value:item.besitzer,inline:true},
@@ -3730,7 +3771,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     const tab = req.query.tab||'beschlagnahme';
     if (req.session.lapd.ebene!=='leitung'&&req.session.lapd.ebene!=='befehl') return dashRedir(res, tab, 'Keine Berechtigung.');
     saveConfiscations(loadConfiscations().filter(x=>x.id!==req.params.id));
-    dashRedir(res, tab, 'Geloescht.', true);
+    dashRedir(res, tab, 'Gelöscht.', true);
   });
 
   // ── Notrufe ───────────────────────────────────────────────────────────────
@@ -3763,7 +3804,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     item.status='angenommen'; item.assignedTo=String(officers).slice(0,200);
     item.acceptedBy=s.displayName; item.acceptedAt=Date.now();
     saveNotrufe(list);
-    dashRedir(res, tab, 'Notruf uebernommen.', true);
+    dashRedir(res, tab, 'Notruf übernommen.', true);
   });
 
   app.post('/lapd/dashboard/close-notruf/:id', (req,res) => {
@@ -3780,7 +3821,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     const tab = req.query.tab||'notrufe';
     if (req.session.lapd.ebene!=='leitung'&&req.session.lapd.ebene!=='befehl') return dashRedir(res, tab, 'Keine Berechtigung.');
     saveNotrufe(loadNotrufe().filter(x=>x.id!==req.params.id));
-    dashRedir(res, tab, 'Geloescht.', true);
+    dashRedir(res, tab, 'Gelöscht.', true);
   });
 
   // ── Start ────────────────────────────────────────────────────────────────
