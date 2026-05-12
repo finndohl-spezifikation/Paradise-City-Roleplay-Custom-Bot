@@ -5181,9 +5181,7 @@ client.on('interactionCreate', async (interaction) => {
       m.roles.cache.has(ROLE_HANDY_AN) && m.id !== uid && !m.user.bot
     );
     if (online.size === 0) {
-      return sendReply({ embeds: [new EmbedBuilder().setColor(0xff5500).setTitle('💬 WhatsApp').setDescription('📵 Gerade hat **niemand anderes** sein Handy eingeschaltet.
-
-Bitte versuche es später erneut.')] });
+      return sendReply({ embeds: [new EmbedBuilder().setColor(0xff5500).setTitle('💬 WhatsApp').setDescription('📵 Gerade hat **niemand anderes** sein Handy eingeschaltet.\nBitte versuche es später erneut.')] });
     }
     const options = [...online.values()].slice(0, 25).map(m =>
       new StringSelectMenuOptionBuilder()
@@ -5197,9 +5195,7 @@ Bitte versuche es später erneut.')] });
       .addOptions(options);
     const row = new ActionRowBuilder().addComponents(menu);
     return sendReply({
-      embeds: [new EmbedBuilder().setColor(0x25d366).setTitle('💬 WhatsApp').setDescription('Wähle einen Spieler aus, dem du schreiben möchtest.
-
-*Nur Spieler mit eingeschaltetem Handy werden angezeigt.*')],
+      embeds: [new EmbedBuilder().setColor(0x25d366).setTitle('💬 WhatsApp').setDescription('Wähle einen Spieler aus, dem du schreiben möchtest.\n\n*Nur Spieler mit eingeschaltetem Handy werden angezeigt.*')],
       components: [row]
     });
   }
