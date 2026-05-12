@@ -2366,9 +2366,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   app.get('/lapd/weblogin', (req, res) => {
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
     const err = req.query.err || '';
-    const errHtml = err === 'id' ? '<div class="wl-err">&#x26A0;&#xFE0F; Discord ID nicht gefunden oder keine LAPD-Rolle.</div>'
-                  : err === 'pw' ? '<div class="wl-err">&#x26A0;&#xFE0F; Falsches Passwort.</div>'
-                  : '';
+    const errHtml = err === 'pw' ? '<div class="wl-err">&#x26A0;&#xFE0F; Falsches Passwort.</div>' : '';
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send('<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">'
       +'<meta name="viewport" content="width=device-width,initial-scale=1"><title>LAPD Anmelden</title>'
@@ -2398,11 +2396,8 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +'<div class="sub">Bitte anmelden um fortzufahren</div>'
       +errHtml
       +'<form method="POST" action="/lapd/weblogin">'
-      +'<div class="fg"><label>Discord User ID</label>'
-      +'<input type="text" name="discordId" placeholder="z.B. 123456789012345678"'
-      +' required autofocus inputmode="numeric" maxlength="20"></div>'
       +'<div class="fg"><label>Passwort</label>'
-      +'<input type="password" name="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" required></div>'
+      +'<input type="password" name="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" required autofocus></div>'
       +'<button class="btn" type="submit">Anmelden</button>'
       +'</form>'
       +'<a href="/lapd" class="back">&#x2190; Zur\xFCck</a>'
@@ -2410,35 +2405,22 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   });
 
   // ── POST /lapd/weblogin — Web-Login verarbeiten ────────────────────────
-  app.post('/lapd/weblogin', async (req, res) => {
+  app.post('/lapd/weblogin', (req, res) => {
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
-    const discordId = (req.body.discordId || '').trim();
-    const password  = (req.body.password  || '').trim();
-    if (!/^\d{17,20}$/.test(discordId)) return res.redirect('/lapd/weblogin?err=id');
-    try {
-      const LAPD_GUILD_ID_W = '1498482541751963698';
-      let lapdGuild = client.guilds.cache.get(LAPD_GUILD_ID_W);
-      if (!lapdGuild) lapdGuild = await client.guilds.fetch(LAPD_GUILD_ID_W).catch(() => null);
-      if (!lapdGuild) return res.redirect('/lapd/weblogin?err=id');
-      const member = await lapdGuild.members.fetch(discordId).catch(() => null);
-      if (!member) return res.redirect('/lapd/weblogin?err=id');
-      const memberRanks = LAPD_RANKS.filter(r => member.roles.cache.has(r.id));
-      if (!memberRanks.length) return res.redirect('/lapd/weblogin?err=id');
-      const rank = memberRanks.sort((a,b) => (LAPD_ERANK[b.ebene]||0)-(LAPD_ERANK[a.ebene]||0))[0];
-      if (password !== LAPD_PW[rank.ebene]) return res.redirect('/lapd/weblogin?err=pw');
-      req.session.lapd = {
-        userId:      member.id,
-        displayName: member.displayName || member.user.username,
-        uname:       member.user.username,
-        rankName:    rank.name,
-        ebene:       rank.ebene,
-        loggedInAt:  Date.now(),
-      };
-      return res.redirect('/lapd/dashboard?tab=start');
-    } catch (e) {
-      console.error('WebLogin Fehler:', e.message);
-      return res.redirect('/lapd/weblogin?err=id');
-    }
+    const password = (req.body.password || '').trim();
+    const matched  = Object.entries(LAPD_PW).find(([, pw]) => pw === password);
+    if (!matched) return res.redirect('/lapd/weblogin?err=pw');
+    const ebene = matched[0];
+    const rank  = LAPD_RANKS.find(r => r.ebene === ebene) || { name: ebene };
+    req.session.lapd = {
+      userId:      'web-' + ebene,
+      displayName: rank.name,
+      uname:       rank.name,
+      rankName:    rank.name,
+      ebene:       ebene,
+      loggedInAt:  Date.now(),
+    };
+    return res.redirect('/lapd/dashboard?tab=start');
   });
 
   // ── POST /lapd/logout ────────────────────────────────────────────────────
