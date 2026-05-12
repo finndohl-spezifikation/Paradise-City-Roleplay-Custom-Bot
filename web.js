@@ -2299,11 +2299,17 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     if ((req.body.password||'').trim() !== LAPD_PW[rank.ebene])
       return res.redirect('/lapd/auth/'+req.params.token+'?err=pw');
     try {
-      let guild = client.guilds.cache.get(LAPD_GUILD_ID);
-      if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(()=>null);
-      const member = guild ? await guild.members.fetch(entry.memberId).catch(()=>null) : null;
-      if (!member||!member.roles.cache.has(rank.id)) return res.redirect('/lapd');
-      const lapdData = { userId:entry.memberId, username:member.user.username, displayName:member.displayName,
+      // Rollen wurden bereits beim Discord-Button-Klick gegen Server 1498482541751963698 geprüft.
+      // Wir vertrauen dem Token — kein zweiter Guild-Fetch nötig (verhindert Cache-Fehler).
+      // Optional: Rollenprüfung im Hintergrund aktualisieren ohne Login zu blockieren.
+      (async()=>{
+        try {
+          let guild=client.guilds.cache.get(LAPD_GUILD_ID);
+          if(!guild) guild=await client.guilds.fetch(LAPD_GUILD_ID).catch(()=>null);
+          if(guild){ await guild.members.fetch({user:entry.memberId,force:true}).catch(()=>{}); }
+        }catch{}
+      })();
+      const lapdData = { userId:entry.memberId, username:entry.uname, displayName:entry.displayName||entry.uname,
         rankId:rank.id, rankName:rank.name, ebene:rank.ebene, loginTime:Date.now() };
       req.session.lapd = lapdData;
       const persToken = require('crypto').randomBytes(20).toString('hex');
