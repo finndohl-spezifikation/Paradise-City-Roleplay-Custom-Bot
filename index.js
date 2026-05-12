@@ -601,6 +601,23 @@ const LINK_EXEMPT_ROLES = ['1490855702225485936', '1490855703370534965'];
 const TICKET_TRANSCRIPT_CH = '1490878139306606743';
 const TICKET_RATING_CH     = '1491788506404491336';
 const TICKET_PANEL_CH      = '1490885002030874775';
+
+// ─── LAPD-System Konstanten ───────────────────────────────────────────────────
+const LAPD_GUILD_ID        = '1498482541751963698';
+const LAPD_JOIN_CH         = '1498488683962040431';
+const LAPD_LEAVE_CH        = '1498488790212284556';
+const LAPD_TICKET_PANEL_CH = '1498489823386669117';
+const LAPD_TICKET_OPEN_CAT = '1498487711827234968';
+const LAPD_TEAM_CH         = '1498489577386545182';
+const LAPD_ROLE_IDS        = ['1498483561982984212','1498484038363648121','1498484537368510504','1498484869863444660'];
+const LAPD_ROLE_NAMES      = { '1498483561982984212':'Command Staff (Leitung)', '1498484038363648121':'Supervisory Staff', '1498484537368510504':'Detective Division', '1498484869863444660':'Officer Division' };
+const LAPD_TICKET_TYPES    = {
+  email:      { label: '✉️ E-Mail Schreiben',       roles: ['1498483561982984212','1498484038363648121','1498484537368510504','1498484869863444660'] },
+  anzeige:    { label: '📋 Anzeige Erstatten',      roles: ['1498483561982984212','1498484038363648121','1498484537368510504','1498484869863444660'] },
+  beschwerde: { label: '⚠️ Beschwerde Einreichen', roles: ['1498483561982984212','1498484038363648121'] },
+  bewerbung:  { label: '📝 Bewerbung',              roles: ['1498483561982984212','1498484038363648121'] },
+};
+
 const TICKETS_FILE         = path.join(DATA_DIR, 'tickets.json');
 if (!fs.existsSync(TICKETS_FILE)) fs.writeFileSync(TICKETS_FILE, '{}', 'utf8');
 function loadTickets()  { try { return JSON.parse(fs.readFileSync(TICKETS_FILE, 'utf8')); } catch { return {}; } }
@@ -832,7 +849,57 @@ async function buildInviteCache(guild) {
     } catch (e) { console.error('[Team-Embed] Fehler:', e.message); }
   }
 
-  client.once('ready', async () => {
+  // ─── LAPD Team-Übersicht aktualisieren ──────────────────────────────────────
+async function updateLapdTeamOverview() {
+  try {
+    const guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(() => null);
+    if (!guild) return;
+    await guild.members.fetch();
+    const fields = [];
+    for (const roleId of LAPD_ROLE_IDS) {
+      const role = guild.roles.cache.get(roleId);
+      if (!role) continue;
+      const members = role.members.filter(m => !m.user.bot)
+        .sort((a,b) => (a.displayName||a.user.username).localeCompare(b.displayName||b.user.username));
+      if (!members.size) continue;
+      const list = members.map(m => `• ${m.displayName || m.user.username}`).join('\n');
+      const chunks = [];
+      let cur = '';
+      for (const line of list.split('\n')) {
+        if ((cur + '\n' + line).length > 1000) { chunks.push(cur); cur = line; }
+        else cur = cur ? cur + '\n' + line : line;
+      }
+      if (cur) chunks.push(cur);
+      chunks.forEach((chunk, ci) => {
+        fields.push({ name: ci === 0 ? `${LAPD_ROLE_NAMES[roleId] || role.name} [${members.size}]` : '​', value: chunk, inline: false });
+      });
+    }
+    const total = [...new Set(LAPD_ROLE_IDS.flatMap(id => (guild.roles.cache.get(id)?.members.filter(m=>!m.user.bot).map(m=>m.id) ?? [])))].length;
+    const embed = new EmbedBuilder()
+      .setColor(0x1F51FF)
+      .setTitle('👮 LAPD Team — Übersicht')
+      .setDescription(
+        'Alle aktuellen Mitglieder des **Los Angeles Police Department**\n'
+        + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+        + `👤 **Mitglieder gesamt:** ${total}`
+      )
+      .addFields(fields.length ? fields : [{ name: 'Keine Einträge', value: 'Noch keine LAPD-Mitglieder mit Rolle.' }])
+      .setFooter({ text: 'LAPD System  •  Paradise City Roleplay  •  Echtzeit-Aktualisierung' })
+      .setTimestamp();
+    const setup = loadSetup();
+    const ch = await client.channels.fetch(LAPD_TEAM_CH).catch(() => null);
+    if (!ch) return;
+    if (setup.lapdTeamMsgId) {
+      const msg = await ch.messages.fetch(setup.lapdTeamMsgId).catch(() => null);
+      if (msg) { await msg.edit({ embeds: [embed] }); return; }
+    }
+    const sent = await ch.send({ embeds: [embed] });
+    setup.lapdTeamMsgId = sent.id;
+    saveSetup(setup);
+  } catch (e) { console.error('[LAPD Team-Embed] Fehler:', e.message); }
+}
+
+client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
   client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
 
@@ -1860,6 +1927,50 @@ async function buildInviteCache(guild) {
         }
       }
 
+      // ── LAPD: Ticket-Panel senden (einmalig) ─────────────────────────────────
+      {
+        const setupLapdT = loadSetup();
+        if (!setupLapdT.lapdTicketPanelSent) {
+          const lapdPanelEmbed = new EmbedBuilder()
+            .setColor(0x1F51FF)
+            .setTitle('🏛️ LAPD — Kontakt')
+            .setDescription(
+              'Willkommen beim **LAPD Kontaktsystem** von Paradise City Roleplay.\n'
+              + 'Wähle eine Kategorie um fortzufahren.\n\n'
+              + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+              + '✉️ **E-Mail Schreiben** — Offizielle Anfrage an das LAPD\n'
+              + '⚠️ **Beschwerde Einreichen** — Beschwerde gegen LAPD-Mitglieder\n'
+              + '📋 **Anzeige Erstatten** — Strafanzeige erstatten\n'
+              + '📝 **Bewerbung** — Bewerbung beim LAPD einreichen\n'
+              + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+            )
+            .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' })
+            .setTimestamp();
+          const lapdSelect = new StringSelectMenuBuilder()
+            .setCustomId('lapd_ticket_select')
+            .setPlaceholder('📂 Kategorie auswählen...')
+            .addOptions(
+              new StringSelectMenuOptionBuilder().setLabel('✉️ E-Mail Schreiben').setValue('email').setDescription('Offizielle Anfrage an das LAPD senden'),
+              new StringSelectMenuOptionBuilder().setLabel('⚠️ Beschwerde Einreichen').setValue('beschwerde').setDescription('Beschwerde gegen ein LAPD-Mitglied'),
+              new StringSelectMenuOptionBuilder().setLabel('📋 Anzeige Erstatten').setValue('anzeige').setDescription('Strafanzeige erstatten'),
+              new StringSelectMenuOptionBuilder().setLabel('📝 Bewerbung').setValue('bewerbung').setDescription('Beim LAPD bewerben'),
+            );
+          const lapdPanelRow = new ActionRowBuilder().addComponents(lapdSelect);
+          try {
+            const lapdPanelCh = await client.channels.fetch(LAPD_TICKET_PANEL_CH);
+            if (lapdPanelCh) {
+              await lapdPanelCh.send({ embeds: [lapdPanelEmbed], components: [lapdPanelRow] });
+              setupLapdT.lapdTicketPanelSent = true;
+              saveSetup(setupLapdT);
+              console.log('✅ LAPD Ticket-Panel einmalig gesendet.');
+            }
+          } catch (e) { console.error('LAPD Ticket-Panel Fehler:', e.message); }
+        }
+      }
+
+      // ── LAPD: Team-Übersicht initialisieren ──────────────────────────────────
+      await updateLapdTeamOverview();
+
 
 
 
@@ -1869,6 +1980,80 @@ async function buildInviteCache(guild) {
     // ─── TICKET INTERAKTIONEN ─────────────────────────────────────────────────────
   client.on('interactionCreate', async (interaction) => {
     try {
+
+      // ── LAPD: Select Menu — Ticket erstellen ─────────────────────────────────
+      if (interaction.isStringSelectMenu() && interaction.customId === 'lapd_ticket_select') {
+        const type = interaction.values[0];
+        const cfg  = LAPD_TICKET_TYPES[type];
+        if (!cfg) return interaction.reply({ content: '❌ Ungültige Kategorie.', ephemeral: true });
+        await interaction.deferReply({ ephemeral: true });
+        const guild  = interaction.guild;
+        const member = interaction.member;
+        // Prüfen ob bereits ein offenes Ticket vorhanden
+        const allTickets = loadTickets();
+        const existingLapd = Object.values(allTickets).find(t => t.openerId === member.id && t.type === 'lapd_'+type && !t.closed);
+        if (existingLapd && guild.channels.cache.get(existingLapd.channelId)) {
+          return interaction.editReply({ content: `❌ Du hast bereits ein offenes Ticket: <#${existingLapd.channelId}>` });
+        }
+        const ticketId = generateId();
+        const name = `lapd-${type}-${member.user.username.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,10)}-${ticketId.slice(-4)}`;
+        const permOverwrites = [
+          { id: guild.roles.everyone, deny: [PermissionFlagsBits.ViewChannel] },
+          { id: member.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
+        ];
+        for (const roleId of cfg.roles) {
+          permOverwrites.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageMessages, PermissionFlagsBits.AttachFiles] });
+        }
+        const ticketCh = await guild.channels.create({
+          name, type: ChannelType.GuildText, parent: LAPD_TICKET_OPEN_CAT, topic: `${ticketId}|lapd_${type}|${member.id}`,
+          permissionOverwrites: permOverwrites,
+        });
+        allTickets[ticketCh.id] = { id: ticketId, channelId: ticketCh.id, openerId: member.id, openerTag: member.user.tag, type: 'lapd_'+type, label: cfg.label, createdAt: new Date().toISOString(), closed: false };
+        saveTickets(allTickets);
+        const welcomeEmbed2 = new EmbedBuilder()
+          .setColor(0x1F51FF)
+          .setTitle(cfg.label)
+          .setDescription(`Hallo <@${member.id}>!\n\nBitte schildere dein Anliegen so detailliert wie möglich.\nEin Mitarbeiter wird sich in Kürze bei dir melden.`)
+          .addFields(
+            { name: '👤 Geöffnet von', value: `<@${member.id}>`, inline: true },
+            { name: '🕐 Erstellt am',  value: `<t:${ts()}:F>`,  inline: true },
+            { name: '🔖 Ticket-ID',    value: `\`${ticketId}\``, inline: true },
+          )
+          .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' }).setTimestamp();
+        const closeBtnL  = new ButtonBuilder().setCustomId('lapd_ticket_close').setLabel('Ticket schließen').setEmoji('🔒').setStyle(ButtonStyle.Danger);
+        const rowL = new ActionRowBuilder().addComponents(closeBtnL);
+        const pings = cfg.roles.map(r => `<@&${r}>`).join(' ');
+        await ticketCh.send({ content: pings, embeds: [welcomeEmbed2], components: [rowL] });
+        return interaction.editReply({ content: `✅ Ticket erstellt: <#${ticketCh.id}>` });
+      }
+
+      // ── LAPD: Button — Ticket schließen ──────────────────────────────────────
+      if (interaction.isButton() && interaction.customId === 'lapd_ticket_close') {
+        const allT2 = loadTickets();
+        const tkt = allT2[interaction.channel?.id];
+        if (!tkt || tkt.closed) return interaction.reply({ content: '❌ Kein offenes Ticket gefunden.', ephemeral: true });
+        const canClose = LAPD_TICKET_TYPES[tkt.type.replace('lapd_','')]?.roles.some(r => interaction.member.roles.cache.has(r)) || interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+        if (!canClose) return interaction.reply({ content: '❌ Du hast keine Berechtigung dieses Ticket zu schließen.', ephemeral: true });
+        const confirmRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('lapd_ticket_close_confirm').setLabel('✅ Ja, schließen').setStyle(ButtonStyle.Danger),
+          new ButtonBuilder().setCustomId('lapd_ticket_close_cancel').setLabel('❌ Abbrechen').setStyle(ButtonStyle.Secondary),
+        );
+        return interaction.reply({ content: '⚠️ Soll dieses Ticket wirklich geschlossen werden?', components: [confirmRow], ephemeral: true });
+      }
+      if (interaction.isButton() && interaction.customId === 'lapd_ticket_close_cancel') {
+        return interaction.update({ content: '✅ Schließen abgebrochen.', components: [] });
+      }
+      if (interaction.isButton() && interaction.customId === 'lapd_ticket_close_confirm') {
+        const allT3 = loadTickets();
+        const tkt3 = allT3[interaction.channel?.id];
+        if (!tkt3 || tkt3.closed) return interaction.reply({ content: '❌ Ticket bereits geschlossen.', ephemeral: true });
+        await interaction.deferUpdate();
+        tkt3.closed = true; tkt3.closedAt = new Date().toISOString(); tkt3.closedBy = interaction.user.tag;
+        saveTickets(allT3);
+        try { await interaction.channel.send('🔒 Ticket wird in 5 Sekunden geschlossen und gelöscht...'); } catch {}
+        setTimeout(async () => { try { await interaction.channel.delete(); } catch {} }, 5000);
+        return;
+      }
 
       // ── Select Menu: Ticket erstellen ─────────────────────────────────────────
       if (interaction.isStringSelectMenu() && interaction.customId === 'ticket_select') {
@@ -2155,7 +2340,29 @@ client.on('guildCreate',  async (guild)  => { await buildInviteCache(guild); });
 
 // ─── MEMBER ADD ───────────────────────────────────────────────────────────────
 client.on('guildMemberAdd', async (member) => {
-  if (member.guild.id === '1498482541751963698') return;
+  // ── LAPD-Server: Beitrittsnachricht ────────────────────────────────────────
+  if (member.guild.id === LAPD_GUILD_ID) {
+    if (member.user.bot) return;
+    try {
+      const ch = await client.channels.fetch(LAPD_JOIN_CH);
+      if (ch) await ch.send({ embeds: [new EmbedBuilder()
+        .setColor(0x1F51FF)
+        .setTitle('👮 Neues Mitglied — LAPD')
+        .setDescription(`<@${member.id}> hat den LAPD-Server betreten.`)
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .addFields(
+          { name: '👤 Nutzer', value: `${member.user.tag}`, inline: true },
+          { name: '📅 Beigetreten', value: `<t:${ts()}:F>`, inline: true },
+          { name: '🏠 Mitglieder gesamt', value: `${member.guild.memberCount}`, inline: true },
+        )
+        .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' })
+        .setTimestamp()
+      ]});
+    } catch (e) { console.error('LAPD Join Fehler:', e.message); }
+    await updateLapdTeamOverview();
+    return;
+  }
+
   if (!member.user.bot) {
     // Auto-Rolle
     try { await member.roles.add('1490855725516460234'); }
@@ -2304,7 +2511,27 @@ client.on('guildMemberAdd', async (member) => {
 // ─── MEMBER REMOVE ────────────────────────────────────────────────────────────
 client.on('guildMemberRemove', async (member) => {
   if (member.user.bot) return;
-  if (member.guild.id === '1498482541751963698') return;
+  // ── LAPD-Server: Verlassensnachricht ────────────────────────────────────────
+  if (member.guild.id === LAPD_GUILD_ID) {
+    try {
+      const ch = await client.channels.fetch(LAPD_LEAVE_CH);
+      if (ch) await ch.send({ embeds: [new EmbedBuilder()
+        .setColor(0xef4444)
+        .setTitle('👋 Mitglied verlassen — LAPD')
+        .setDescription(`**${member.user.tag}** hat den LAPD-Server verlassen.`)
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .addFields(
+          { name: '👤 Nutzer', value: member.user.tag, inline: true },
+          { name: '📅 Verlassen am', value: `<t:${ts()}:F>`, inline: true },
+        )
+        .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' })
+        .setTimestamp()
+      ]});
+    } catch (e) { console.error('LAPD Leave Fehler:', e.message); }
+    await updateLapdTeamOverview();
+    return;
+  }
+
 
   const invData      = loadInvites();
   const guildData    = invData[member.guild.id] ?? {};
@@ -2378,6 +2605,15 @@ client.on('guildMemberRemove', async (member) => {
 
 // ─── MEMBER UPDATE ────────────────────────────────────────────────────────────
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
+  // LAPD-Server: Rollenänderung → Team-Übersicht aktualisieren
+  if (newMember.guild.id === LAPD_GUILD_ID) {
+    const addedRolesL   = newMember.roles.cache.filter(r => !oldMember.roles.cache.has(r.id));
+    const removedRolesL = oldMember.roles.cache.filter(r => !newMember.roles.cache.has(r.id));
+    const lapdChange = [...addedRolesL.keys(), ...removedRolesL.keys()].some(id => LAPD_ROLE_IDS.includes(id));
+    if (lapdChange) await updateLapdTeamOverview();
+    return;
+  }
+
   if (oldMember.nickname !== newMember.nickname) {
     await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
       .setColor(Colors.Blue).setTitle('✏️ Nickname geändert')
