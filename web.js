@@ -2776,10 +2776,10 @@ function loadTab(t){
   else if(t==="warrants")loadWarrants();
 }
 function flash(el,msg,ok){
-  el.innerHTML='<div class="flash '+(ok?"ok":"err")+'">'+escH(msg)+'</div>';
+  el.innerHTML='<div class="flash '+(ok?"ok":"err")+'">'+escH(msg)+'<\/div>';
   setTimeout(()=>{el.innerHTML="";},4000);
 }
-function escH(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function escH(s){return String(s||"").replace(/&/g,"&amp;").replace(/<\/g,"&lt;").replace(/>/g,"&gt;");}
 function fdate(ts){return new Date(ts).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});}
 function ftime(ts){const d=new Date(ts);return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}
 
@@ -2787,16 +2787,16 @@ function ftime(ts){const d=new Date(ts);return d.toLocaleDateString("de-DE",{day
 // ── BOARD ──────────────────────────────────────────────────────────────────
 async function loadBoard(){
   const el=document.getElementById("board-content");
-  el.innerHTML='<p class="muted">Lädt...</p>';
+  el.innerHTML='<p class="muted">Lädt...<\/p>';
   const r=await fetch("/lapd/api/announcements").then(x=>x.json()).catch(()=>({ok:false}));
-  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">Noch keine Ankündigungen.</p>';return;}
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.<\/p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Noch keine Ankündigungen.<\/p>';return;}
   el.innerHTML=r.items.map(a=>{
     const cls="ann-card"+(a.pinned?" pinned":"");
     const pinLabel=a.pinned?"Anpinnen aufheben":"📌 Anpinnen";
-    const acts=ME.canPost?('<div class="ann-acts"><button class="btn sm ghost pin-btn">'+pinLabel+'</button><button class="btn sm red del-btn">🗑️ Löschen</button></div>'):"";
-    const pinBadge=a.pinned?'<span class="pin-badge">📌 ANGEPINNT</span>':"";
-    return '<div class="'+cls+'" data-id="'+a.id+'"><h4>'+escH(a.title)+pinBadge+'</h4><div class="meta">'+escH(a.authorName)+' ('+escH(a.rankName)+') &bull; '+fdate(a.ts)+'</div><div class="body">'+escH(a.content)+'</div>'+acts+'</div>';
+    const acts=ME.canPost?('<div class="ann-acts"><button class="btn sm ghost pin-btn">'+pinLabel+'<\/button><button class="btn sm red del-btn">🗑️ Löschen<\/button><\/div>'):"";
+    const pinBadge=a.pinned?'<span class="pin-badge">📌 ANGEPINNT<\/span>':"";
+    return '<div class="'+cls+'" data-id="'+a.id+'"><h4>'+escH(a.title)+pinBadge+'<\/h4><div class="meta">'+escH(a.authorName)+' ('+escH(a.rankName)+') &bull; '+fdate(a.ts)+'<\/div><div class="body">'+escH(a.content)+'<\/div>'+acts+'<\/div>';
   }).join("");
   el.querySelectorAll(".pin-btn").forEach(b=>b.addEventListener("click",()=>togglePin(b.closest(".ann-card").dataset.id)));
   el.querySelectorAll(".del-btn").forEach(b=>b.addEventListener("click",()=>delAnn(b.closest(".ann-card").dataset.id)));
@@ -2821,29 +2821,29 @@ function loadDutyInfo(){
   const login=ME.loginTime?ftime(ME.loginTime):"-";
   el.innerHTML=
     '<div class="info-card">'+
-    '<div class="info-row"><span class="info-l">👤 Name</span><span class="info-v">'+escH(ME.displayName)+'</span></div>'+
-    '<div class="info-row"><span class="info-l">🎖️ Rang</span><span class="info-v" style="color:'+color+'">'+escH(ME.rankName)+'</span></div>'+
-    '<div class="info-row"><span class="info-l">🏛️ Abteilung</span><span class="info-v" style="color:'+color+'">'+escH(ELABEL[ME.ebene]||ME.ebene)+'</span></div>'+
-    '<div class="info-row"><span class="info-l">⏰ Angemeldet</span><span class="info-v">'+login+'</span></div>'+
-    '</div>';
+    '<div class="info-row"><span class="info-l">👤 Name<\/span><span class="info-v">'+escH(ME.displayName)+'<\/span><\/div>'+
+    '<div class="info-row"><span class="info-l">🎖️ Rang<\/span><span class="info-v" style="color:'+color+'">'+escH(ME.rankName)+'<\/span><\/div>'+
+    '<div class="info-row"><span class="info-l">🏛️ Abteilung<\/span><span class="info-v" style="color:'+color+'">'+escH(ELABEL[ME.ebene]||ME.ebene)+'<\/span><\/div>'+
+    '<div class="info-row"><span class="info-l">⏰ Angemeldet<\/span><span class="info-v">'+login+'<\/span><\/div>'+
+    '<\/div>';
 }
 async function loadDuty(){
   loadDutyInfo();
   const el=document.getElementById("duty-content");
-  el.innerHTML='<p class="muted">Lädt...</p>';
+  el.innerHTML='<p class="muted">Lädt...<\/p>';
   const r=await fetch("/lapd/api/duty").then(x=>x.json()).catch(()=>({ok:false}));
-  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.<\/p>';return;}
   const btn=document.getElementById("duty-btn");
   if(btn){
     btn.textContent=r.onDuty?"🔴 Dienst beenden":"🟢 Dienst antreten";
     btn.className="btn "+(r.onDuty?"red":"grn");
   }
-  if(!r.list.length){el.innerHTML='<p class="muted">Derzeit kein Officer im Dienst.</p>';return;}
-  el.innerHTML='<table><thead><tr><th>Name</th><th>Rang</th><th>Abteilung</th><th>Seit</th></tr></thead><tbody>'+
-    r.list.map(d=>'<tr><td>'+escH(d.displayName)+'</td><td>'+escH(d.rankName)+'</td>'+
-      '<td style="color:'+(ECOLOR[d.ebene]||"#e0e0e0")+'">'+(ELABEL[d.ebene]||d.ebene)+'</td>'+
-      '<td>'+ftime(d.since)+'</td></tr>').join("")+
-    '</tbody></table>';
+  if(!r.list.length){el.innerHTML='<p class="muted">Derzeit kein Officer im Dienst.<\/p>';return;}
+  el.innerHTML='<table><thead><tr><th>Name<\/th><th>Rang<\/th><th>Abteilung<\/th><th>Seit<\/th><\/tr><\/thead><tbody>'+
+    r.list.map(d=>'<tr><td>'+escH(d.displayName)+'<\/td><td>'+escH(d.rankName)+'<\/td>'+
+      '<td style="color:'+(ECOLOR[d.ebene]||"#e0e0e0")+'">'+(ELABEL[d.ebene]||d.ebene)+'<\/td>'+
+      '<td>'+ftime(d.since)+'<\/td><\/tr>').join("")+
+    '<\/tbody><\/table>';
 }
 async function toggleDuty(){
   const btn=document.getElementById("duty-btn");
@@ -2856,18 +2856,18 @@ async function toggleDuty(){
 // ── VACATION ───────────────────────────────────────────────────────────────
 async function loadVacation(){
   const el=document.getElementById("vac-list");
-  el.innerHTML='<p class="muted">Lädt...</p>';
+  el.innerHTML='<p class="muted">Lädt...<\/p>';
   const r=await fetch("/lapd/api/vacations").then(x=>x.json()).catch(()=>({ok:false}));
-  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">Noch keine Urlaubsanträge.</p>';return;}
-  el.innerHTML='<table><thead><tr><th>Von</th><th>Bis</th><th>Notiz</th><th>Status</th></tr></thead><tbody>'+
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.<\/p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Noch keine Urlaubsanträge.<\/p>';return;}
+  el.innerHTML='<table><thead><tr><th>Von<\/th><th>Bis<\/th><th>Notiz<\/th><th>Status<\/th><\/tr><\/thead><tbody>'+
     r.items.map(v=>{
       const statusDE={pending:"AUSSTEHEND",approved:"GENEHMIGT",rejected:"ABGELEHNT"};
-      const badge='<span class="vac-badge '+v.status+'">'+(statusDE[v.status]||v.status.toUpperCase())+'</span>';
-      const rej=v.rejectReason?('<br><small style="color:#ef9a9a">'+escH(v.rejectReason)+'</small>'):"";
-      return '<tr><td>'+escH(v.from)+'</td><td>'+escH(v.to)+'</td><td>'+escH(v.note||"—")+'</td><td>'+badge+rej+'</td></tr>';
+      const badge='<span class="vac-badge '+v.status+'">'+(statusDE[v.status]||v.status.toUpperCase())+'<\/span>';
+      const rej=v.rejectReason?('<br><small style="color:#ef9a9a">'+escH(v.rejectReason)+'<\/small>'):"";
+      return '<tr><td>'+escH(v.from)+'<\/td><td>'+escH(v.to)+'<\/td><td>'+escH(v.note||"—")+'<\/td><td>'+badge+rej+'<\/td><\/tr>';
     }).join("")+
-    '</tbody></table>';
+    '<\/tbody><\/table>';
 }
 async function submitVac(e){
   e.preventDefault();
@@ -2881,21 +2881,21 @@ async function submitVac(e){
 let allMembers=[];
 async function loadWarnings(){
   const el=document.getElementById("warn-content");
-  el.innerHTML='<p class="muted">Lädt...</p>';
+  el.innerHTML='<p class="muted">Lädt...<\/p>';
   const r=await fetch("/lapd/api/warnings").then(x=>x.json()).catch(()=>({ok:false}));
-  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">Keine Einträge vorhanden.</p>';return;}
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.<\/p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Einträge vorhanden.<\/p>';return;}
   const canWarn=ME.canWarn;
-  el.innerHTML='<table><thead><tr><th>Datum</th><th>Officer</th><th>Grund</th><th>Ausgestellt von</th>'+(canWarn?'<th></th>':'')+
-    '</tr></thead><tbody>'+
+  el.innerHTML='<table><thead><tr><th>Datum<\/th><th>Officer<\/th><th>Grund<\/th><th>Ausgestellt von<\/th>'+(canWarn?'<th><\/th>':'')+
+    '<\/tr><\/thead><tbody>'+
     r.items.map(w=>{
-      const delBtn=canWarn?('<td><button class="btn sm red dw-btn">🗑️</button></td>'):"";
-      return '<tr data-id="'+w.id+'"><td>'+fdate(w.ts)+'</td>'+
-        '<td><strong>'+escH(w.targetName)+'</strong><br><small style="color:#6b7280">'+escH(w.targetRank)+'</small></td>'+
-        '<td style="white-space:pre-wrap">'+escH(w.reason)+'</td>'+
-        '<td>'+escH(w.authorName)+'<br><small style="color:#6b7280">'+escH(w.authorRank)+'</small></td>'+delBtn+'</tr>';
+      const delBtn=canWarn?('<td><button class="btn sm red dw-btn">🗑️<\/button><\/td>'):"";
+      return '<tr data-id="'+w.id+'"><td>'+fdate(w.ts)+'<\/td>'+
+        '<td><strong>'+escH(w.targetName)+'<\/strong><br><small style="color:#6b7280">'+escH(w.targetRank)+'<\/small><\/td>'+
+        '<td style="white-space:pre-wrap">'+escH(w.reason)+'<\/td>'+
+        '<td>'+escH(w.authorName)+'<br><small style="color:#6b7280">'+escH(w.authorRank)+'<\/small><\/td>'+delBtn+'<\/tr>';
     }).join("")+
-    '</tbody></table>';
+    '<\/tbody><\/table>';
   el.querySelectorAll(".dw-btn").forEach(b=>b.addEventListener("click",()=>delWarn(b.closest("tr").dataset.id)));
 }
 async function loadMembersForWarn(){
@@ -2904,10 +2904,10 @@ async function loadMembersForWarn(){
   allMembers=r.items||[];
   const sel=document.getElementById("warn-target");
   if(sel){
-    sel.innerHTML='<option value="">— Officer auswählen —</option>'+
+    sel.innerHTML='<option value="">— Officer auswählen —<\/option>'+
       allMembers.map(m=>{
         const val=m.id+"||"+m.name+"||"+m.rankName+"||"+m.ebene;
-        return '<option value="'+escH(val)+'">'+escH(m.name)+' — '+escH(m.rankName)+'</option>';
+        return '<option value="'+escH(val)+'">'+escH(m.name)+' — '+escH(m.rankName)+'<\/option>';
       }).join("");
   }
 }
@@ -3002,22 +3002,22 @@ async function postAnn(e){
 async function loadSchedule(){
   const el=document.getElementById("sched-content");
   if(!el)return;
-  el.innerHTML='<p class="muted">Laedt...</p>';
+  el.innerHTML='<p class="muted">Laedt...<\/p>';
   const r=await fetch("/lapd/api/schedule").then(function(x){return x.json();}).catch(function(){return {ok:false};});
-  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">Kein Dienstplan eingetragen.</p>';return;}
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.<\/p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Kein Dienstplan eingetragen.<\/p>';return;}
   var SHIFTS={"frueh":"Fruehschicht","spaet":"Spaetschicht","nacht":"Nachtschicht","tag":"Tagschicht"};
   el.innerHTML=r.items.map(function(s){
-    var asgn=s.assignments&&s.assignments.length?'<div style="margin:4px 0">'+s.assignments.map(function(a){return '<span class="duty-tag">'+escH(a)+'</span>';}).join("")+'</div>':"";
-    var delBtn=ME.canSchedule?'<button class="btn sm red" onclick="deleteSchedule(\''+s.id+'\')">Loeschen</button>':"";
+    var asgn=s.assignments&&s.assignments.length?'<div style="margin:4px 0">'+s.assignments.map(function(a){return '<span class="duty-tag">'+escH(a)+'<\/span>';}).join("")+'<\/div>':"";
+    var delBtn=ME.canSchedule?'<button class="btn sm red" onclick="deleteSchedule(\''+s.id+'\')">Loeschen<\/button>':"";
     return '<div class="ann-card">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'+
-      '<h4 style="color:#90caf9">'+(SHIFTS[s.shift]||s.shift||"Allgemein")+' | '+escH(s.date)+'</h4>'+
-      delBtn+'</div>'+
-      '<div style="color:#ffd700;font-weight:700;font-size:.88rem;margin-bottom:5px">'+escH(s.duty)+'</div>'+
-      asgn+(s.notes?'<div class="muted" style="font-size:.78rem">'+escH(s.notes)+'</div>':"")+
-      '<div style="font-size:.68rem;color:#374151;margin-top:5px">Erstellt von '+escH(s.authorName)+' - '+fdate(s.ts)+'</div>'+
-      '</div>';
+      '<h4 style="color:#90caf9">'+(SHIFTS[s.shift]||s.shift||"Allgemein")+' | '+escH(s.date)+'<\/h4>'+
+      delBtn+'<\/div>'+
+      '<div style="color:#ffd700;font-weight:700;font-size:.88rem;margin-bottom:5px">'+escH(s.duty)+'<\/div>'+
+      asgn+(s.notes?'<div class="muted" style="font-size:.78rem">'+escH(s.notes)+'<\/div>':"")+
+      '<div style="font-size:.68rem;color:#374151;margin-top:5px">Erstellt von '+escH(s.authorName)+' - '+fdate(s.ts)+'<\/div>'+
+      '<\/div>';
   }).join("");
 }
 async function submitSchedule(e){
@@ -3042,22 +3042,22 @@ async function loadReports(){
   const el=document.getElementById("reports-content");if(!el)return;
   const df=document.getElementById("reports-date");
   const dateFilter=df?df.value:"";
-  el.innerHTML='<p class="muted">Laedt...</p>';
+  el.innerHTML='<p class="muted">Laedt...<\/p>';
   const url="/lapd/api/reports"+(dateFilter?"?date="+encodeURIComponent(dateFilter):"");
   const r=await fetch(url).then(function(x){return x.json();}).catch(function(){return {ok:false};});
-  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">Keine Berichte gefunden.</p>';return;}
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.<\/p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Berichte gefunden.<\/p>';return;}
   el.innerHTML=r.items.map(function(rep){
     return '<div class="ann-card">'+
       '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'+
-      '<h4>'+escH(rep.date)+(rep.time?" | "+escH(rep.time):"")+'</h4>'+
-      '<span style="color:#90caf9;font-size:.72rem">'+escH(rep.authorName)+' ('+escH(rep.rankName)+')</span>'+
-      '</div>'+
-      (rep.location?'<div style="font-size:.78rem;color:#ffd700;margin-bottom:3px">Ort: '+escH(rep.location)+'</div>':"")+
-      (rep.involved?'<div style="font-size:.78rem;color:#ab47bc;margin-bottom:5px">Beteiligte: '+escH(rep.involved)+'</div>':"")+
-      '<div style="font-size:.83rem;line-height:1.5;white-space:pre-wrap">'+escH(rep.description)+'</div>'+
-      '<div style="font-size:.68rem;color:#374151;margin-top:4px">'+ftime(rep.ts)+'</div>'+
-      '</div>';
+      '<h4>'+escH(rep.date)+(rep.time?" | "+escH(rep.time):"")+'<\/h4>'+
+      '<span style="color:#90caf9;font-size:.72rem">'+escH(rep.authorName)+' ('+escH(rep.rankName)+')<\/span>'+
+      '<\/div>'+
+      (rep.location?'<div style="font-size:.78rem;color:#ffd700;margin-bottom:3px">Ort: '+escH(rep.location)+'<\/div>':"")+
+      (rep.involved?'<div style="font-size:.78rem;color:#ab47bc;margin-bottom:5px">Beteiligte: '+escH(rep.involved)+'<\/div>':"")+
+      '<div style="font-size:.83rem;line-height:1.5;white-space:pre-wrap">'+escH(rep.description)+'<\/div>'+
+      '<div style="font-size:.68rem;color:#374151;margin-top:4px">'+ftime(rep.ts)+'<\/div>'+
+      '<\/div>';
   }).join("");
 }
 async function submitReport(e){
@@ -3075,25 +3075,25 @@ async function submitReport(e){
 async function loadPersons(){
   const el=document.getElementById("persons-content");if(!el)return;
   const qEl=document.getElementById("persons-q");
-  el.innerHTML='<p class="muted">Laedt...</p>';
+  el.innerHTML='<p class="muted">Laedt...<\/p>';
   const url="/lapd/api/persons"+(qEl&&qEl.value?"?q="+encodeURIComponent(qEl.value):"");
   const r=await fetch(url).then(function(x){return x.json();}).catch(function(){return {ok:false};});
-  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">Keine Eintraege gefunden.</p>';return;}
+  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.<\/p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Eintraege gefunden.<\/p>';return;}
   var canDel=ME.ebene==="leitung"||ME.ebene==="befehl";
   el.innerHTML=r.items.map(function(p){
     return '<div class="ann-card">'+
       '<div style="display:flex;justify-content:space-between;align-items:start">'+
-      '<h4>'+escH(p.lastName)+', '+escH(p.firstName)+'</h4>'+
-      (canDel?'<button class="btn sm red" onclick="deletePerson(\''+p.id+'\')">Loeschen</button>':"")+
-      '</div><div class="info-card" style="margin-top:7px">'+
-      (p.dob?'<div class="info-row"><span class="info-l">Geburtsdatum</span><span class="info-v">'+escH(p.dob)+'</span></div>':"")+
-      (p.address?'<div class="info-row"><span class="info-l">Adresse</span><span class="info-v">'+escH(p.address)+'</span></div>':"")+
-      (p.nationality?'<div class="info-row"><span class="info-l">Staatsangeh.</span><span class="info-v">'+escH(p.nationality)+'</span></div>':"")+
-      (p.entryType?'<div class="info-row"><span class="info-l">Einreise</span><span class="info-v">'+escH(p.entryType)+'</span></div>':"")+
-      (p.notes?'<div class="info-row"><span class="info-l">Notizen</span><span class="info-v">'+escH(p.notes)+'</span></div>':"")+
-      '</div><div style="font-size:.68rem;color:#374151;margin-top:5px">Erfasst von '+escH(p.authorName)+' - '+fdate(p.ts)+'</div>'+
-      '</div>';
+      '<h4>'+escH(p.lastName)+', '+escH(p.firstName)+'<\/h4>'+
+      (canDel?'<button class="btn sm red" onclick="deletePerson(\''+p.id+'\')">Loeschen<\/button>':"")+
+      '<\/div><div class="info-card" style="margin-top:7px">'+
+      (p.dob?'<div class="info-row"><span class="info-l">Geburtsdatum<\/span><span class="info-v">'+escH(p.dob)+'<\/span><\/div>':"")+
+      (p.address?'<div class="info-row"><span class="info-l">Adresse<\/span><span class="info-v">'+escH(p.address)+'<\/span><\/div>':"")+
+      (p.nationality?'<div class="info-row"><span class="info-l">Staatsangeh.<\/span><span class="info-v">'+escH(p.nationality)+'<\/span><\/div>':"")+
+      (p.entryType?'<div class="info-row"><span class="info-l">Einreise<\/span><span class="info-v">'+escH(p.entryType)+'<\/span><\/div>':"")+
+      (p.notes?'<div class="info-row"><span class="info-l">Notizen<\/span><span class="info-v">'+escH(p.notes)+'<\/span><\/div>':"")+
+      '<\/div><div style="font-size:.68rem;color:#374151;margin-top:5px">Erfasst von '+escH(p.authorName)+' - '+fdate(p.ts)+'<\/div>'+
+      '<\/div>';
   }).join("");
 }
 async function submitPerson(e){
@@ -3116,19 +3116,19 @@ async function deletePerson(id){
 async function loadVehicles(){
   const el=document.getElementById("vehicles-content");if(!el)return;
   const qEl=document.getElementById("vehicles-q");
-  el.innerHTML='<p class="muted">Laedt...</p>';
+  el.innerHTML='<p class="muted">Laedt...<\/p>';
   const url="/lapd/api/vehicles"+(qEl&&qEl.value?"?q="+encodeURIComponent(qEl.value):"");
   const r=await fetch(url).then(function(x){return x.json();}).catch(function(){return {ok:false};});
-  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">Keine Fahrzeuge eingetragen.</p>';return;}
-  el.innerHTML='<table><thead><tr><th>Kennzeichen</th><th>Marke / Modell</th><th>Farbe</th><th>Eigentuemer</th><th>Status</th><th></th></tr></thead><tbody>'+
+  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.<\/p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Fahrzeuge eingetragen.<\/p>';return;}
+  el.innerHTML='<table><thead><tr><th>Kennzeichen<\/th><th>Marke / Modell<\/th><th>Farbe<\/th><th>Eigentuemer<\/th><th>Status<\/th><th><\/th><\/tr><\/thead><tbody>'+
     r.items.map(function(v){
       var sc=v.status==="gestohlen"?"color:#f87171":v.status==="gesucht"?"color:#fcd34d":"color:#86efac";
-      return '<tr><td><strong>'+escH(v.plate)+'</strong></td><td>'+escH(v.make)+' '+escH(v.model)+'</td>'+
-        '<td>'+escH(v.color)+'</td><td>'+escH(v.owner)+'</td>'+
-        '<td><span style="'+sc+'">'+escH(v.status)+'</span></td>'+
-        '<td><button class="btn sm red" onclick="deleteVehicle(\''+v.id+'\')">X</button></td></tr>';
-    }).join("")+'</tbody></table>';
+      return '<tr><td><strong>'+escH(v.plate)+'<\/strong><\/td><td>'+escH(v.make)+' '+escH(v.model)+'<\/td>'+
+        '<td>'+escH(v.color)+'<\/td><td>'+escH(v.owner)+'<\/td>'+
+        '<td><span style="'+sc+'">'+escH(v.status)+'<\/span><\/td>'+
+        '<td><button class="btn sm red" onclick="deleteVehicle(\''+v.id+'\')">X<\/button><\/td><\/tr>';
+    }).join("")+'<\/tbody><\/table>';
 }
 async function submitVehicle(e){
   e.preventDefault();
@@ -3150,23 +3150,23 @@ async function deleteVehicle(id){
 async function loadCrimes(){
   const el=document.getElementById("crimes-content");if(!el)return;
   const qEl=document.getElementById("crimes-q");
-  el.innerHTML='<p class="muted">Laedt...</p>';
+  el.innerHTML='<p class="muted">Laedt...<\/p>';
   const url="/lapd/api/crimes"+(qEl&&qEl.value?"?q="+encodeURIComponent(qEl.value):"");
   const r=await fetch(url).then(function(x){return x.json();}).catch(function(){return {ok:false};});
-  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">Keine Strafeintraege vorhanden.</p>';return;}
+  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.<\/p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Strafeintraege vorhanden.<\/p>';return;}
   el.innerHTML=r.items.map(function(x){
     return '<div class="ann-card">'+
       '<div style="display:flex;justify-content:space-between">'+
-      '<h4>'+escH(x.personName)+'</h4>'+
-      '<button class="btn sm red" onclick="deleteCrime(\''+x.id+'\')">Loeschen</button>'+
-      '</div><div class="info-card" style="margin-top:5px">'+
-      '<div class="info-row"><span class="info-l">Vergehen</span><span class="info-v">'+escH(x.offense)+'</span></div>'+
-      (x.penalty?'<div class="info-row"><span class="info-l">Strafe</span><span class="info-v" style="color:#fcd34d">'+escH(x.penalty)+'</span></div>':"")+
-      '<div class="info-row"><span class="info-l">Datum</span><span class="info-v">'+escH(x.date)+'</span></div>'+
-      (x.notes?'<div class="info-row"><span class="info-l">Notiz</span><span class="info-v">'+escH(x.notes)+'</span></div>':"")+
-      '</div><div style="font-size:.68rem;color:#374151;margin-top:4px">Erfasst von '+escH(x.authorName)+' ('+escH(x.rankName)+') - '+ftime(x.ts)+'</div>'+
-      '</div>';
+      '<h4>'+escH(x.personName)+'<\/h4>'+
+      '<button class="btn sm red" onclick="deleteCrime(\''+x.id+'\')">Loeschen<\/button>'+
+      '<\/div><div class="info-card" style="margin-top:5px">'+
+      '<div class="info-row"><span class="info-l">Vergehen<\/span><span class="info-v">'+escH(x.offense)+'<\/span><\/div>'+
+      (x.penalty?'<div class="info-row"><span class="info-l">Strafe<\/span><span class="info-v" style="color:#fcd34d">'+escH(x.penalty)+'<\/span><\/div>':"")+
+      '<div class="info-row"><span class="info-l">Datum<\/span><span class="info-v">'+escH(x.date)+'<\/span><\/div>'+
+      (x.notes?'<div class="info-row"><span class="info-l">Notiz<\/span><span class="info-v">'+escH(x.notes)+'<\/span><\/div>':"")+
+      '<\/div><div style="font-size:.68rem;color:#374151;margin-top:4px">Erfasst von '+escH(x.authorName)+' ('+escH(x.rankName)+') - '+ftime(x.ts)+'<\/div>'+
+      '<\/div>';
   }).join("");
 }
 async function submitCrime(e){
@@ -3188,34 +3188,34 @@ async function deleteCrime(id){
 // ── FAHNDUNGEN ────────────────────────────────────────────────────────────
 async function loadWarrants(){
   const el=document.getElementById("warrants-content");if(!el)return;
-  el.innerHTML='<p class="muted">Laedt...</p>';
+  el.innerHTML='<p class="muted">Laedt...<\/p>';
   const r=await fetch("/lapd/api/warrants").then(function(x){return x.json();}).catch(function(){return {ok:false};});
-  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">Keine Fahndungen vorhanden.</p>';return;}
+  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.<\/p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Fahndungen vorhanden.<\/p>';return;}
   var canMod=ME.ebene==="leitung"||ME.ebene==="befehl";
   el.innerHTML=r.items.map(function(w){
     var bc=w.status==="gefasst"?"#22c55e":"#ef4444";
     var dangerCls=w.danger==="hoch"?"hoch":w.danger==="niedrig"?"niedrig":"mittel";
     var photo=w.hasPhoto?'<img class="warrant-photo" src="/lapd/warrant-photo/'+w.id+'" onclick="window.open(this.src)" alt="Foto">'
-      :'<div style="width:56px;height:56px;background:#070f2b;border:1px solid #1a3a78;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.4rem">?</div>';
-    var modBtns=(canMod&&w.status==="aktiv"?'<button class="btn sm grn" onclick="markGefasst(\''+w.id+'\')">Gefasst</button>':"")+
-      (canMod?'<button class="btn sm red" style="margin-left:5px" onclick="deleteWarrant(\''+w.id+'\')">Loeschen</button>':"");
+      :'<div style="width:56px;height:56px;background:#070f2b;border:1px solid #1a3a78;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.4rem">?<\/div>';
+    var modBtns=(canMod&&w.status==="aktiv"?'<button class="btn sm grn" onclick="markGefasst(\''+w.id+'\')">Gefasst<\/button>':"")+
+      (canMod?'<button class="btn sm red" style="margin-left:5px" onclick="deleteWarrant(\''+w.id+'\')">Loeschen<\/button>':"");
     return '<div class="ann-card" style="border-left:3px solid '+bc+'">'+
       '<div style="display:flex;gap:12px;align-items:start">'+
       photo+
       '<div style="flex:1">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
-      '<h4>'+escH(w.name)+'</h4>'+
+      '<h4>'+escH(w.name)+'<\/h4>'+
       '<div style="display:flex;gap:5px">'+
-      '<span class="status-badge '+w.status+'">'+escH(w.status.toUpperCase())+'</span>'+
-      '<span class="danger-badge '+dangerCls+'">'+escH(w.danger)+'</span>'+
-      '</div></div>'+
-      '<div style="font-size:.8rem;color:#fcd34d;margin-bottom:3px">'+escH(w.offense)+'</div>'+
-      (w.description?'<div style="font-size:.8rem;margin-bottom:5px">'+escH(w.description)+'</div>':"")+
+      '<span class="status-badge '+w.status+'">'+escH(w.status.toUpperCase())+'<\/span>'+
+      '<span class="danger-badge '+dangerCls+'">'+escH(w.danger)+'<\/span>'+
+      '<\/div><\/div>'+
+      '<div style="font-size:.8rem;color:#fcd34d;margin-bottom:3px">'+escH(w.offense)+'<\/div>'+
+      (w.description?'<div style="font-size:.8rem;margin-bottom:5px">'+escH(w.description)+'<\/div>':"")+
       modBtns+
-      '</div></div>'+
-      '<div style="font-size:.68rem;color:#374151;margin-top:5px">'+escH(w.authorName)+' ('+escH(w.rankName)+') - '+ftime(w.ts)+'</div>'+
-      '</div>';
+      '<\/div><\/div>'+
+      '<div style="font-size:.68rem;color:#374151;margin-top:5px">'+escH(w.authorName)+' ('+escH(w.rankName)+') - '+ftime(w.ts)+'<\/div>'+
+      '<\/div>';
   }).join("");
 }
 async function submitWarrant(e){
@@ -3250,9 +3250,9 @@ function renderBkat(){
   el.innerHTML=BKAT.map(function(section){
     var rows=section.items.filter(function(r){return !search||r[0].toLowerCase().includes(search);});
     if(!rows.length)return"";
-    return '<div class="bkat-section"><div class="bkat-cat">'+escH(section.cat)+'</div>'+
-      rows.map(function(row){return '<div class="bkat-row"><span>'+escH(row[0])+'</span><span class="bkat-fine">'+escH(row[1])+'</span></div>';}).join("")+
-      '</div>';
+    return '<div class="bkat-section"><div class="bkat-cat">'+escH(section.cat)+'<\/div>'+
+      rows.map(function(row){return '<div class="bkat-row"><span>'+escH(row[0])+'<\/span><span class="bkat-fine">'+escH(row[1])+'<\/span><\/div>';}).join("")+
+      '<\/div>';
   }).join("");
 }
 
