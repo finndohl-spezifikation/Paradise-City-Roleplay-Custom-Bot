@@ -2141,7 +2141,336 @@ module.exports = function startWebServer(client, DATA_DIR) {
       res.send("<!DOCTYPE html>\n<html lang=\"de\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no\">\n<title>🟦 Tetris – Paradise City</title>\n<style>\n  *{box-sizing:border-box;margin:0;padding:0}\n  body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;user-select:none;padding:10px}\n  h1{font-size:1.6rem;margin-bottom:10px;color:#818cf8;text-shadow:0 0 18px #6366f188;letter-spacing:2px}\n  #main{display:flex;gap:18px;align-items:flex-start}\n  canvas{border:2px solid #6366f144;border-radius:8px;background:#111;box-shadow:0 0 30px #6366f122}\n  #side{display:flex;flex-direction:column;gap:14px;min-width:110px}\n  .panel{background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:12px;text-align:center}\n  .panel label{font-size:.7rem;color:#666;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px}\n  .panel span{font-size:1.5rem;font-weight:700;color:#818cf8}\n  #nextCanvas{background:#111;border-radius:6px;display:block;margin:0 auto}\n  #overlay{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#000000cc;border-radius:10px;padding:30px 40px}\n  #overlay h2{font-size:1.5rem;color:#f87171}\n  #overlay .sub{color:#aaa;font-size:.9rem}\n  #overlay .score-final{font-size:2rem;font-weight:700;color:#818cf8}\n  #overlay button{background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s}\n  #overlay button:hover{background:#818cf8;transform:scale(1.05)}\n  #wrap{position:relative;display:inline-block}\n  #controls{margin-top:12px;color:#444;font-size:.75rem;text-align:center;line-height:1.7}\n  .hidden{display:none!important}\n  #dpad{display:none;grid-template-columns:repeat(3,52px);grid-template-rows:52px 52px;gap:4px;margin-top:12px}\n  #dpad button{background:#1a1a1a;border:1px solid #333;color:#fff;font-size:1.2rem;border-radius:8px;cursor:pointer;width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-family:monospace;touch-action:manipulation}\n  #dpad button:active{background:#6366f144}\n  @media(max-width:560px){#dpad{display:grid}#main{gap:10px}}\n</style>\n</head>\n<body>\n<h1>🟦 Tetris</h1>\n<div id=\"main\">\n  <div id=\"wrap\">\n    <canvas id=\"board\" width=\"200\" height=\"400\"></canvas>\n    <div id=\"overlay\">\n      <h2 id=\"oTitle\">Paradise City Tetris</h2>\n      <p class=\"sub\" id=\"oSub\">Baue Reihen und sammle Punkte!</p>\n      <div class=\"score-final hidden\" id=\"oScore\"></div>\n      <button id=\"oBtn\">▶ Spielen</button>\n    </div>\n  </div>\n  <div id=\"side\">\n    <div class=\"panel\">\n      <label>Punkte</label>\n      <span id=\"sc\">0</span>\n    </div>\n    <div class=\"panel\">\n      <label>Level</label>\n      <span id=\"lv\">1</span>\n    </div>\n    <div class=\"panel\">\n      <label>Reihen</label>\n      <span id=\"ln\">0</span>\n    </div>\n    <div class=\"panel\">\n      <label>Nächstes</label>\n      <canvas id=\"nextCanvas\" width=\"80\" height=\"80\"></canvas>\n    </div>\n  </div>\n</div>\n<div id=\"dpad\">\n  <div></div><button data-a=\"rot\">↻</button><div></div>\n  <button data-a=\"left\">◀</button><button data-a=\"down\">▼</button><button data-a=\"right\">▶</button>\n</div>\n<div id=\"controls\">← → Bewegen · ↑ Drehen · ↓ Schneller · Leertaste: Fallen lassen</div>\n<script>\nconst B=document.getElementById('board'), ctx=B.getContext('2d');\nconst NC=document.getElementById('nextCanvas'), nctx=NC.getContext('2d');\nconst TW=20, TH=20, COLS=10, ROWS=20;\nconst COLORS=['','#f87171','#fb923c','#facc15','#4ade80','#38bdf8','#818cf8','#f472b6'];\nconst PIECES=[\n  [],\n  [[1,1,1,1]],                          // I - red\n  [[2,0,0],[2,2,2]],                    // J - orange\n  [[0,0,3],[3,3,3]],                    // L - yellow\n  [[4,4],[4,4]],                        // O - green\n  [[0,5,5],[5,5,0]],                    // S - blue\n  [[0,6,0],[6,6,6]],                    // T - indigo\n  [[7,7,0],[0,7,7]],                    // Z - pink\n];\nlet board,piece,piecePos,nextPiece,score,level,lines,running,loop,dropCounter,lastTime;\n\nfunction rndPiece(){return Math.floor(Math.random()*7)+1;}\nfunction newPiece(t){\n  piece=PIECES[t].map(r=>[...r]);\n  piecePos={x:Math.floor(COLS/2)-Math.ceil(piece[0].length/2),y:0};\n}\nfunction rotate(m){\n  const R=m.length,C2=m[0].length,out=Array.from({length:C2},()=>Array(R).fill(0));\n  for(let r=0;r<R;r++) for(let c=0;c<C2;c++) out[c][R-1-r]=m[r][c];\n  return out;\n}\nfunction valid(p,pos){\n  return p.every((row,r)=>row.every((v,c)=>{\n    if(!v)return true;\n    const bx=pos.x+c,by=pos.y+r;\n    return bx>=0&&bx<COLS&&by<ROWS&&(by<0||!board[by][bx]);\n  }));\n}\nfunction merge(){\n  piece.forEach((row,r)=>row.forEach((v,c)=>{if(v)board[piecePos.y+r][piecePos.x+c]=v;}));\n}\nfunction clearLines(){\n  let cleared=0;\n  for(let r=ROWS-1;r>=0;r--){\n    if(board[r].every(v=>v)){board.splice(r,1);board.unshift(Array(COLS).fill(0));cleared++;r++;}\n  }\n  if(cleared){\n    const pts=[0,100,300,500,800];\n    score+=(pts[cleared]||800)*level;\n    lines+=cleared;\n    level=Math.floor(lines/10)+1;\n    document.getElementById('sc').textContent=score;\n    document.getElementById('lv').textContent=level;\n    document.getElementById('ln').textContent=lines;\n  }\n}\nfunction drawBlock(c,x,y,size,ctx2){\n  if(!c)return;\n  const col=COLORS[c];\n  ctx2.fillStyle=col;\n  ctx2.shadowColor=col; ctx2.shadowBlur=6;\n  ctx2.fillRect(x+1,y+1,size-2,size-2);\n  ctx2.shadowBlur=0;\n  ctx2.fillStyle='rgba(255,255,255,0.15)';\n  ctx2.fillRect(x+1,y+1,size-2,4);\n}\nfunction drawBoard(){\n  ctx.fillStyle='#111'; ctx.fillRect(0,0,COLS*TW,ROWS*TH);\n  // grid\n  ctx.strokeStyle='#1c1c1c'; ctx.lineWidth=0.5;\n  for(let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*TW,0);ctx.lineTo(x*TW,ROWS*TH);ctx.stroke();}\n  for(let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*TH);ctx.lineTo(COLS*TW,y*TH);ctx.stroke();}\n  // board cells\n  board.forEach((row,r)=>row.forEach((v,c)=>drawBlock(v,c*TW,r*TH,TW,ctx)));\n  // ghost piece\n  let ghostY=piecePos.y;\n  while(valid(piece,{x:piecePos.x,y:ghostY+1}))ghostY++;\n  if(ghostY!==piecePos.y){\n    piece.forEach((row,r)=>row.forEach((v,c)=>{\n      if(!v)return;\n      ctx.fillStyle='rgba(255,255,255,0.08)';\n      ctx.fillRect((piecePos.x+c)*TW+1,(ghostY+r)*TH+1,TW-2,TH-2);\n    }));\n  }\n  // active piece\n  piece.forEach((row,r)=>row.forEach((v,c)=>drawBlock(v,(piecePos.x+c)*TW,(piecePos.y+r)*TH,TW,ctx)));\n}\nfunction drawNext(){\n  nctx.fillStyle='#111'; nctx.fillRect(0,0,80,80);\n  const p=PIECES[nextPiece];\n  const ox=Math.floor((4-p[0].length)/2)*16+8;\n  const oy=Math.floor((4-p.length)/2)*16+8;\n  p.forEach((row,r)=>row.forEach((v,c)=>drawBlock(v,ox+c*16,oy+r*16,16,nctx)));\n}\nfunction drop(){\n  piecePos.y++;\n  if(!valid(piece,piecePos)){\n    piecePos.y--;\n    merge();\n    clearLines();\n    const nt=nextPiece; nextPiece=rndPiece();\n    newPiece(nt);\n    drawNext();\n    if(!valid(piece,piecePos)){gameOver();return;}\n  }\n}\nfunction hardDrop(){\n  while(valid(piece,{x:piecePos.x,y:piecePos.y+1}))piecePos.y++;\n  drop();\n}\nfunction gameOver(){\n  clearInterval(loop); running=false;\n  document.getElementById('oTitle').textContent='Game Over!';\n  document.getElementById('oSub').textContent='Dein Ergebnis:';\n  const os=document.getElementById('oScore');\n  os.textContent=score+' Punkte'; os.classList.remove('hidden');\n  document.getElementById('oBtn').textContent='🔄 Nochmal';\n  document.getElementById('overlay').classList.remove('hidden');\n}\nfunction startGame(){\n  document.getElementById('overlay').classList.add('hidden');\n  document.getElementById('oScore').classList.add('hidden');\n  board=Array.from({length:ROWS},()=>Array(COLS).fill(0));\n  score=0;level=1;lines=0;\n  ['sc','lv','ln'].forEach(id=>document.getElementById(id).textContent=id==='sc'||id==='ln'?0:1);\n  nextPiece=rndPiece(); newPiece(rndPiece()); drawNext(); running=true;\n  clearInterval(loop);\n  loop=setInterval(()=>{drop();drawBoard();},Math.max(200,800-level*40));\n}\ndocument.getElementById('oBtn').addEventListener('click',startGame);\ndocument.addEventListener('keydown',e=>{\n  if(!running)return;\n  if(e.key==='ArrowLeft'){const np={x:piecePos.x-1,y:piecePos.y};if(valid(piece,np))piecePos=np;}\n  else if(e.key==='ArrowRight'){const np={x:piecePos.x+1,y:piecePos.y};if(valid(piece,np))piecePos=np;}\n  else if(e.key==='ArrowDown'){drop();}\n  else if(e.key==='ArrowUp'){const r=rotate(piece);if(valid(r,piecePos))piece=r;}\n  else if(e.key===' '){hardDrop();}\n  else return;\n  e.preventDefault();\n  drawBoard();\n});\ndocument.querySelectorAll('#dpad button').forEach(b=>{\n  b.addEventListener('click',()=>{\n    if(!running)return;\n    const a=b.dataset.a;\n    if(a==='left'){const np={x:piecePos.x-1,y:piecePos.y};if(valid(piece,np)){piecePos=np;drawBoard();}}\n    else if(a==='right'){const np={x:piecePos.x+1,y:piecePos.y};if(valid(piece,np)){piecePos=np;drawBoard();}}\n    else if(a==='down'){drop();drawBoard();}\n    else if(a==='rot'){const r=rotate(piece);if(valid(r,piecePos)){piece=r;drawBoard();}}\n  });\n});\n// initial draw\nboard=Array.from({length:ROWS},()=>Array(COLS).fill(0));\npiece=[[0]]; piecePos={x:0,y:0};\nctx.fillStyle='#111'; ctx.fillRect(0,0,COLS*TW,ROWS*TH);\n</script>\n</body>\n</html>");
     });
 
-    // ── Start ────────────────────────────────────────────────────────────────
+  
+  // ── LAPD DASHBOARD ──────────────────────────────────────────────────────────
+
+  const LAPD_GUILD_ID = '1498482541751963698';
+
+  const LAPD_RANKS = [
+    { id: '1498483674667028543', name: 'Chief of Police',  ebene: 'leitung'   },
+    { id: '1498483758532395008', name: 'Deputy Chief',      ebene: 'leitung'   },
+    { id: '1498483802740363357', name: 'Captain',           ebene: 'befehl'    },
+    { id: '1498484140935217172', name: 'Lieutenant',        ebene: 'befehl'    },
+    { id: '1498484185491312690', name: 'Staff Sergeant',    ebene: 'befehl'    },
+    { id: '1498484299329179658', name: 'Sergeant',          ebene: 'befehl'    },
+    { id: '1498484388428779550', name: 'Detective III',     ebene: 'detective' },
+    { id: '1498484584017559773', name: 'Detective II',      ebene: 'detective' },
+    { id: '1498484636211482685', name: 'Detective I',       ebene: 'detective' },
+    { id: '1498484724824408214', name: 'Senior Officer',    ebene: 'officer'   },
+    { id: '1498484934720098365', name: 'Officer',           ebene: 'officer'   },
+    { id: '1498485048565960754', name: 'Officer Trainee',   ebene: 'officer'   },
+    { id: '1498485086071554169', name: 'Rookie',            ebene: 'officer'   },
+  ];
+
+  const LAPD_PW = {
+    leitung:   'LAPD_Chef_2025',
+    befehl:    'LAPD_Befehl_2025',
+    detective: 'LAPD_Detective_2025',
+    officer:   'LAPD_Officer_2025',
+  };
+
+  const LAPD_EBENE = {
+    leitung:   { label: 'Leitungsebene',      color: '#ffd700' },
+    befehl:    { label: 'Befehlsebene',       color: '#42a5f5' },
+    detective: { label: 'Detective Division',  color: '#ab47bc' },
+    officer:   { label: 'Officer Division',    color: '#66bb6a' },
+  };
+
+  const LAPD_DUTY_FILE = path.join(DATA_DIR, 'lapd_duty.json');
+  function loadLapdDuty() { try { return JSON.parse(fs.readFileSync(LAPD_DUTY_FILE, 'utf8')); } catch { return {}; } }
+  function saveLapdDuty(d) { fs.writeFileSync(LAPD_DUTY_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+  function isLapdAuth(req) { return !!(req.session && req.session.lapd && req.session.lapd.userId); }
+
+  // ── GET /lapd — Login-Seite ─────────────────────────────────────────────
+  app.get('/lapd', (req, res) => {
+    if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
+    const err      = req.session.lapdError    || ''; delete req.session.lapdError;
+    const step     = req.session.lapdStep     || 1;
+    const uname    = req.session.lapdUsername || '';
+    const ranks    = req.session.lapdRanks    || [];
+
+    let formHtml = '';
+    if (step === 2 && ranks.length > 0) {
+      const opts = ranks.map(r =>
+        '<option value="' + r.id + '">' + r.name + ' — ' + LAPD_EBENE[r.ebene].label + '</option>'
+      ).join('');
+      formHtml = [
+        '<p class="u-hint">👤 Angemeldet als <strong>' + uname + '</strong></p>',
+        '<div class="fg"><label>Rang auswählen</label>',
+        '<select name="rankId" required>' + opts + '</select></div>',
+        '<div class="fg"><label>Passwort</label>',
+        '<input type="password" name="password" placeholder="••••••••" required autocomplete="current-password"></div>',
+        '<button class="btn" type="submit">🔓 Einloggen</button>',
+        '<a class="back" href="/lapd/reset">← Anderen Nutzer wählen</a>',
+      ].join('');
+    } else {
+      formHtml = [
+        '<div class="fg"><label>Discord Benutzername</label>',
+        '<input type="text" name="username" placeholder="z.B. maxmustermann" autocomplete="off" required></div>',
+        '<button class="btn" type="submit">→ Weiter</button>',
+      ].join('');
+    }
+
+    const action = step === 2 ? '/lapd/login' : '/lapd/lookup';
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send('<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">' +
+      '<title>LAPD Dashboard – Login</title><style>' +
+      '*{box-sizing:border-box;margin:0;padding:0}' +
+      'body{background:#080d1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}' +
+      '.card{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}' +
+      '.badge{text-align:center;margin-bottom:24px}.badge .icon{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}' +
+      '.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}' +
+      'hr{border:none;border-top:1px solid #1a3a6b;margin:20px 0}' +
+      '.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}' +
+      '.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}' +
+      '.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}' +
+      '.fg input,.fg select{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}' +
+      '.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}' +
+      '.fg select option{background:#060c1a}' +
+      '.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}' +
+      '.btn:hover{background:#1976d2}' +
+      '.back{display:block;text-align:center;margin-top:14px;color:#90caf9;font-size:.85rem;text-decoration:none}.back:hover{color:#42a5f5}' +
+      '.foot{margin-top:28px;color:#1a3a6b;font-size:.7rem;letter-spacing:1px;text-align:center}' +
+      '</style></head><body>' +
+      '<div class="card">' +
+      '<div class="badge"><div class="icon">🛡️</div>' +
+      '<h1>LAPD</h1>' +
+      '<div class="sub">LOS ANGELES POLICE DEPARTMENT</div>' +
+      '<div class="sub">Paradise City Roleplay</div></div>' +
+      '<hr>' +
+      (err ? '<div class="err">⚠️ ' + err + '</div>' : '') +
+      '<form method="POST" action="' + action + '">' + formHtml + '</form>' +
+      '</div>' +
+      '<div class="foot">LAPD INTERNAL SYSTEM • UNAUTHORIZED ACCESS PROHIBITED</div>' +
+      '</body></html>');
+  });
+
+  // ── POST /lapd/lookup — Benutzername prüfen ─────────────────────────────
+  app.post('/lapd/lookup', async (req, res) => {
+    const username = (req.body.username || '').trim();
+    if (!username) {
+      req.session.lapdError = 'Bitte gib deinen Discord Benutzernamen ein.';
+      return res.redirect('/lapd');
+    }
+    try {
+      let guild = client.guilds.cache.get(LAPD_GUILD_ID);
+      if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(() => null);
+      if (!guild) {
+        req.session.lapdError = 'LAPD-Server nicht erreichbar. Stelle sicher dass der Bot Mitglied ist.';
+        return res.redirect('/lapd');
+      }
+      await guild.members.fetch().catch(() => {});
+      const member = guild.members.cache.find(m =>
+        m.user.username.toLowerCase() === username.toLowerCase() ||
+        (m.user.globalName || '').toLowerCase() === username.toLowerCase() ||
+        m.displayName.toLowerCase() === username.toLowerCase()
+      );
+      if (!member) {
+        req.session.lapdError = '"' + username + '" ist kein Mitglied des LAPD-Servers.';
+        return res.redirect('/lapd');
+      }
+      const memberRanks = LAPD_RANKS.filter(r => member.roles.cache.has(r.id));
+      if (memberRanks.length === 0) {
+        req.session.lapdError = 'Du hast keine LAPD-Rolle auf dem Server.';
+        return res.redirect('/lapd');
+      }
+      req.session.lapdStep     = 2;
+      req.session.lapdUsername = member.user.username;
+      req.session.lapdMemberId = member.id;
+      req.session.lapdRanks    = memberRanks;
+      return res.redirect('/lapd');
+    } catch (e) {
+      req.session.lapdError = 'Fehler beim Abrufen der Mitgliederdaten.';
+      return res.redirect('/lapd');
+    }
+  });
+
+  // ── POST /lapd/login — Rang + Passwort prüfen ──────────────────────────
+  app.post('/lapd/login', async (req, res) => {
+    const { rankId, password } = req.body;
+    const memberId = req.session.lapdMemberId;
+    const ranks    = req.session.lapdRanks || [];
+    if (!memberId || !ranks.length) {
+      req.session.lapdStep  = 1; req.session.lapdError = 'Sitzung abgelaufen. Bitte neu einloggen.';
+      return res.redirect('/lapd');
+    }
+    const rank = ranks.find(r => r.id === rankId);
+    if (!rank) { req.session.lapdError = 'Ungültiger Rang.'; return res.redirect('/lapd'); }
+    if ((password || '').trim() !== LAPD_PW[rank.ebene]) {
+      req.session.lapdError = 'Falsches Passwort für die ' + LAPD_EBENE[rank.ebene].label + '.';
+      return res.redirect('/lapd');
+    }
+    try {
+      let guild = client.guilds.cache.get(LAPD_GUILD_ID);
+      if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(() => null);
+      const member = guild ? await guild.members.fetch(memberId).catch(() => null) : null;
+      if (!member || !member.roles.cache.has(rankId)) {
+        req.session.lapdError = 'Rolle konnte nicht verifiziert werden.';
+        return res.redirect('/lapd');
+      }
+      req.session.lapd = {
+        userId: memberId, username: member.user.username,
+        displayName: member.displayName, rankId,
+        rankName: rank.name, ebene: rank.ebene, loginTime: Date.now(),
+      };
+      req.session.lapdStep = 1; req.session.lapdRanks = [];
+      req.session.lapdMemberId = null; req.session.lapdUsername = null;
+      return res.redirect('/lapd/dashboard');
+    } catch {
+      req.session.lapdError = 'Login fehlgeschlagen. Bitte erneut versuchen.';
+      return res.redirect('/lapd');
+    }
+  });
+
+  // ── GET /lapd/reset — Schritt zurücksetzen ─────────────────────────────
+  app.get('/lapd/reset', (req, res) => {
+    req.session.lapdStep = 1; req.session.lapdRanks = [];
+    req.session.lapdMemberId = null; req.session.lapdUsername = null;
+    res.redirect('/lapd');
+  });
+
+  // ── POST /lapd/duty — Dienst an/ab ─────────────────────────────────────
+  app.post('/lapd/duty', (req, res) => {
+    if (!isLapdAuth(req)) return res.redirect('/lapd');
+    const duty   = loadLapdDuty();
+    const uid    = req.session.lapd.userId;
+    const active = duty[uid] && duty[uid].onDuty;
+    if (active) {
+      delete duty[uid];
+    } else {
+      duty[uid] = {
+        onDuty: true, since: new Date().toISOString(),
+        displayName: req.session.lapd.displayName,
+        rankName: req.session.lapd.rankName,
+        ebene: req.session.lapd.ebene,
+      };
+    }
+    saveLapdDuty(duty);
+    res.redirect('/lapd/dashboard');
+  });
+
+  // ── POST /lapd/logout ───────────────────────────────────────────────────
+  app.post('/lapd/logout', (req, res) => {
+    req.session.lapd = null;
+    res.redirect('/lapd');
+  });
+
+  // ── GET /lapd/dashboard ─────────────────────────────────────────────────
+  app.get('/lapd/dashboard', async (req, res) => {
+    if (!isLapdAuth(req)) return res.redirect('/lapd');
+    const s        = req.session.lapd;
+    const eInfo    = LAPD_EBENE[s.ebene];
+    const duty     = loadLapdDuty();
+    const onDuty   = !!(duty[s.userId] && duty[s.userId].onDuty);
+
+    const ebeneColors = { leitung:'#ffd700', befehl:'#42a5f5', detective:'#ab47bc', officer:'#66bb6a' };
+    const ebeneLabels = { leitung:'Leitungsebene', befehl:'Befehlsebene', detective:'Detective Division', officer:'Officer Division' };
+
+    const membersByEbene = { leitung:[], befehl:[], detective:[], officer:[] };
+    try {
+      let guild = client.guilds.cache.get(LAPD_GUILD_ID);
+      if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(() => null);
+      if (guild) {
+        await guild.members.fetch().catch(() => {});
+        for (const rank of LAPD_RANKS) {
+          guild.members.cache.filter(m => m.roles.cache.has(rank.id)).forEach(m => {
+            if (!membersByEbene[rank.ebene].find(x => x.id === m.id)) {
+              membersByEbene[rank.ebene].push({
+                id: m.id, name: m.displayName || m.user.username,
+                rank: rank.name, onDuty: !!(duty[m.id] && duty[m.id].onDuty),
+              });
+            }
+          });
+        }
+      }
+    } catch {}
+
+    const onDutyList = Object.values(duty).filter(d => d.onDuty);
+    const totalMembers = Object.values(membersByEbene).reduce((a,b) => a + b.length, 0);
+
+    function tbl(arr) {
+      if (!arr.length) return '<p style="color:#374151;font-size:.85rem;padding:6px 0">— Keine Mitglieder —</p>';
+      return '<table><thead><tr><th>Name</th><th>Rang</th><th>Status</th></tr></thead><tbody>' +
+        arr.map(m => '<tr><td>' + m.name + '</td><td>' + m.rank + '</td>' +
+          '<td style="color:' + (m.onDuty ? '#66bb6a' : '#374151') + '">' +
+          (m.onDuty ? '🟢 Im Dienst' : '⚫ Frei') + '</td></tr>').join('') +
+        '</tbody></table>';
+    }
+
+    const CSS = '*{box-sizing:border-box;margin:0;padding:0}' +
+      'body{background:#080d1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh}' +
+      'header{background:#0d1b2e;border-bottom:2px solid #1a3a6b;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100}' +
+      '.hl{display:flex;align-items:center;gap:12px}' +
+      '.hl .ico{font-size:2rem}.hl h2{font-size:1rem;font-weight:800;color:#ffd700;letter-spacing:2px}.hl p{font-size:.78rem;color:#90caf9}' +
+      '.hr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}' +
+      '.rbadge{padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;border:1px solid;background:transparent}' +
+      '.dbtn{border:none;padding:9px 18px;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.2s;touch-action:manipulation}' +
+      '.dbtn.on{background:#7f1d1d;color:#fca5a5}.dbtn.on:hover{background:#991b1b}' +
+      '.dbtn.off{background:#14532d;color:#86efac}.dbtn.off:hover{background:#166534}' +
+      '.lbtn{background:transparent;border:1px solid #1a3a6b;color:#90caf9;padding:8px 14px;border-radius:8px;font-size:.8rem;cursor:pointer;transition:.2s;touch-action:manipulation}' +
+      '.lbtn:hover{border-color:#42a5f5;color:#42a5f5}' +
+      'main{max-width:1100px;margin:0 auto;padding:28px 20px}' +
+      '.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px}' +
+      '.sc{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:10px;padding:20px;text-align:center}' +
+      '.sc .n{font-size:2.2rem;font-weight:800;margin-bottom:4px}.sc .l{font-size:.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:1px}' +
+      '.sec{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:10px;margin-bottom:18px;overflow:hidden}' +
+      '.sh{padding:13px 20px;border-bottom:1px solid #1a3a6b;display:flex;align-items:center;gap:10px}' +
+      '.sh h3{font-size:.88rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}' +
+      '.sb{padding:16px 20px}' +
+      'table{width:100%;border-collapse:collapse;font-size:.86rem}' +
+      'th{color:#6b7280;font-size:.7rem;text-transform:uppercase;letter-spacing:1px;padding:8px 12px;text-align:left;border-bottom:1px solid #1a3a6b}' +
+      'td{padding:9px 12px;border-bottom:1px solid #0a0f1e}tr:last-child td{border-bottom:none}tr:hover td{background:#060c1a}' +
+      '@media(max-width:600px){header{padding:10px 14px}.hl .ico{font-size:1.5rem}main{padding:14px 12px}}';
+
+    const onDutySection = onDutyList.length === 0
+      ? '<p style="color:#374151;font-size:.85rem">— Aktuell niemand im Dienst —</p>'
+      : '<table><thead><tr><th>Name</th><th>Rang</th><th>Einheit</th><th>Seit</th></tr></thead><tbody>' +
+        onDutyList.map(d =>
+          '<tr><td>' + d.displayName + '</td><td>' + d.rankName + '</td>' +
+          '<td style="color:' + ebeneColors[d.ebene] + '">' + ebeneLabels[d.ebene] + '</td>' +
+          '<td>' + new Date(d.since).toLocaleString('de-DE', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + '</td></tr>'
+        ).join('') + '</tbody></table>';
+
+    const memberSections = ['leitung','befehl','detective','officer'].map(e =>
+      '<div class="sec"><div class="sh" style="border-left:3px solid ' + ebeneColors[e] + '">' +
+      '<h3 style="color:' + ebeneColors[e] + '">' + ebeneLabels[e] + ' (' + membersByEbene[e].length + ')</h3></div>' +
+      '<div class="sb">' + tbl(membersByEbene[e]) + '</div></div>'
+    ).join('');
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send('<!DOCTYPE html><html lang="de"><head>' +
+      '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">' +
+      '<title>LAPD Dashboard</title><style>' + CSS + '</style></head><body>' +
+      '<header>' +
+      '<div class="hl"><div class="ico">🛡️</div><div>' +
+      '<h2>LAPD DASHBOARD</h2>' +
+      '<p>' + s.displayName + ' &mdash; <span style="color:' + eInfo.color + '">' + s.rankName + '</span></p>' +
+      '</div></div>' +
+      '<div class="hr">' +
+      '<span class="rbadge" style="border-color:' + eInfo.color + ';color:' + eInfo.color + '">' + eInfo.label + '</span>' +
+      '<form method="POST" action="/lapd/duty" style="display:inline">' +
+      '<button class="dbtn ' + (onDuty ? 'on' : 'off') + '" type="submit">' +
+      (onDuty ? '🔴 Dienst beenden' : '🟢 Dienst anmelden') + '</button></form>' +
+      '<form method="POST" action="/lapd/logout" style="display:inline">' +
+      '<button class="lbtn" type="submit">Ausloggen</button></form>' +
+      '</div></header>' +
+      '<main>' +
+      '<div class="grid">' +
+      '<div class="sc"><div class="n" style="color:#66bb6a">' + onDutyList.length + '</div><div class="l">Im Dienst</div></div>' +
+      '<div class="sc"><div class="n" style="color:#42a5f5">' + totalMembers + '</div><div class="l">Mitglieder gesamt</div></div>' +
+      '<div class="sc"><div class="n" style="color:#ffd700">' + membersByEbene.leitung.length + '</div><div class="l">Leitungsebene</div></div>' +
+      '<div class="sc"><div class="n" style="color:#ab47bc">' + membersByEbene.detective.length + '</div><div class="l">Detectives</div></div>' +
+      '</div>' +
+      '<div class="sec"><div class="sh" style="border-left:3px solid #66bb6a">' +
+      '<h3 style="color:#66bb6a">🟢 Aktuell im Dienst (' + onDutyList.length + ')</h3></div>' +
+      '<div class="sb">' + onDutySection + '</div></div>' +
+      memberSections +
+      '</main></body></html>');
+  });
+
+
+  // ── Start ────────────────────────────────────────────────────────────────
   const PORT = process.env.PORT || 8080;
   app.listen(PORT, '0.0.0.0', () => console.log(`🌐 Web-Server läuft auf Port ${PORT}`));
 };
