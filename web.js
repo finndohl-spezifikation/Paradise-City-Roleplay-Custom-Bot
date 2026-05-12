@@ -2270,7 +2270,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   const LAPD_INTRO_HTML = '';
 
   // ── GET /lapd ────────────────────────────────────────────────────────────
-  const LAPD_GATE_PAGE = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LAPD Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#050c26;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}.card{background:#0c1b45;border:1px solid #1e4080;border-radius:14px;padding:40px 36px;max-width:400px;width:90%;text-align:center}.ico{font-size:3rem;margin-bottom:16px}.h{font-size:1.1rem;font-weight:800;color:#ffd700;letter-spacing:2px;margin-bottom:10px}.p{font-size:.84rem;color:#6b7280;line-height:1.6}</style></head><body><div class="card"><div class="ico">🛡️</div><div class="h">LAPD DASHBOARD</div><div class="p">Bitte klicke auf den <strong style="color:#90caf9">Login-Button</strong> in Discord,<br>um dich anzumelden.</div></div></body></html>`;
+  const LAPD_GATE_PAGE = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LAPD Dashboard</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#050c26;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}.card{background:#0c1b45;border:1px solid #1e4080;border-radius:16px;padding:40px 36px;max-width:400px;width:90%;text-align:center;box-shadow:0 0 40px rgba(31,81,255,.25)}.logo{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #1F51FF;box-shadow:0 0 24px rgba(31,81,255,.5);margin-bottom:18px}.h{font-size:1.1rem;font-weight:800;color:#ffd700;letter-spacing:2px;margin-bottom:6px}.sub{font-size:.7rem;color:#4a6a9a;letter-spacing:1px;margin-bottom:20px}.anmelden{display:block;width:100%;padding:12px;background:#1F51FF;color:#fff;border:none;border-radius:9px;font-size:.9rem;font-weight:800;letter-spacing:1px;cursor:pointer;text-decoration:none;margin-top:4px;box-shadow:0 2px 12px rgba(31,81,255,.4);transition:.2s}.anmelden:hover{background:#3a6bff}</style></head><body><div class="card"><img src="/lapd/logo.png" alt="LAPD" class="logo" onerror="this.style.display='none'"><div class="h">LAPD DASHBOARD</div><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><a href="/lapd/weblogin" class="anmelden">Anmelden</a></div></body></html>`;
 
   app.get('/lapd', (req,res)=>{
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
@@ -2361,6 +2361,85 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   app.get('/lapd/reset', (req,res)=>res.redirect('/lapd'));
   app.post('/lapd/lookup',(req,res)=>res.redirect('/lapd'));
   app.post('/lapd/login', (req,res)=>res.redirect('/lapd'));
+
+  // ── GET /lapd/weblogin — Web-Anmeldeseite ──────────────────────────────
+  app.get('/lapd/weblogin', (req, res) => {
+    if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
+    const err = req.query.err || '';
+    const errHtml = err === 'id' ? '<div class="wl-err">&#x26A0;&#xFE0F; Discord ID nicht gefunden oder keine LAPD-Rolle.</div>'
+                  : err === 'pw' ? '<div class="wl-err">&#x26A0;&#xFE0F; Falsches Passwort.</div>'
+                  : '';
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send('<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">'
+      +'<meta name="viewport" content="width=device-width,initial-scale=1"><title>LAPD Anmelden</title>'
+      +'<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#050c26;color:#e0e0e0;'
+      +'font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}'
+      +'.card{background:#0c1b45;border:1px solid #1e4080;border-radius:16px;padding:36px 32px;'
+      +'max-width:380px;width:92%;text-align:center;box-shadow:0 0 40px rgba(31,81,255,.25)}'
+      +'.logo{width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #1F51FF;'
+      +'box-shadow:0 0 16px rgba(31,81,255,.5);margin-bottom:14px}'
+      +'.h{font-size:1rem;font-weight:800;color:#ffd700;letter-spacing:2px;margin-bottom:4px}'
+      +'.sub{font-size:.67rem;color:#4a6a9a;letter-spacing:1px;margin-bottom:22px}'
+      +'.fg{margin-bottom:13px;text-align:left}.fg label{display:block;font-size:.68rem;'
+      +'color:#6aa3ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}'
+      +'.fg input{width:100%;background:#040c1e;border:1px solid #1a3a78;color:#e0e0e0;'
+      +'padding:9px 12px;border-radius:7px;font-size:.86rem;outline:none;font-family:inherit}'
+      +'.fg input:focus{border-color:#1F51FF;box-shadow:0 0 0 2px rgba(31,81,255,.2)}'
+      +'.btn{width:100%;background:#1F51FF;color:#fff;border:none;padding:11px;border-radius:8px;'
+      +'font-size:.9rem;font-weight:800;letter-spacing:1px;cursor:pointer;margin-top:6px;'
+      +'box-shadow:0 2px 12px rgba(31,81,255,.4)}.btn:hover{background:#3a6bff}'
+      +'.wl-err{background:rgba(239,68,68,.12);border:1px solid #7f1d1d;color:#fca5a5;'
+      +'padding:9px 12px;border-radius:7px;font-size:.78rem;margin-bottom:14px;text-align:left}'
+      +'.back{display:block;margin-top:14px;font-size:.72rem;color:#4a6a9a;text-decoration:none}'
+      +'.back:hover{color:#93c5fd}</style></head><body>'
+      +'<div class="card">'
+      +'<img src="/lapd/logo.png" alt="LAPD" class="logo" onerror="this.style.display=\'none\'">'
+      +'<div class="h">LAPD SYSTEM</div>'
+      +'<div class="sub">Bitte anmelden um fortzufahren</div>'
+      +errHtml
+      +'<form method="POST" action="/lapd/weblogin">'
+      +'<div class="fg"><label>Discord User ID</label>'
+      +'<input type="text" name="discordId" placeholder="z.B. 123456789012345678"'
+      +' required autofocus inputmode="numeric" maxlength="20"></div>'
+      +'<div class="fg"><label>Passwort</label>'
+      +'<input type="password" name="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" required></div>'
+      +'<button class="btn" type="submit">Anmelden</button>'
+      +'</form>'
+      +'<a href="/lapd" class="back">&#x2190; Zur\xFCck</a>'
+      +'</div></body></html>');
+  });
+
+  // ── POST /lapd/weblogin — Web-Login verarbeiten ────────────────────────
+  app.post('/lapd/weblogin', async (req, res) => {
+    if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
+    const discordId = (req.body.discordId || '').trim();
+    const password  = (req.body.password  || '').trim();
+    if (!/^\d{17,20}$/.test(discordId)) return res.redirect('/lapd/weblogin?err=id');
+    try {
+      const LAPD_GUILD_ID_W = '1498482541751963698';
+      let lapdGuild = client.guilds.cache.get(LAPD_GUILD_ID_W);
+      if (!lapdGuild) lapdGuild = await client.guilds.fetch(LAPD_GUILD_ID_W).catch(() => null);
+      if (!lapdGuild) return res.redirect('/lapd/weblogin?err=id');
+      const member = await lapdGuild.members.fetch(discordId).catch(() => null);
+      if (!member) return res.redirect('/lapd/weblogin?err=id');
+      const memberRanks = LAPD_RANKS.filter(r => member.roles.cache.has(r.id));
+      if (!memberRanks.length) return res.redirect('/lapd/weblogin?err=id');
+      const rank = memberRanks.sort((a,b) => (LAPD_ERANK[b.ebene]||0)-(LAPD_ERANK[a.ebene]||0))[0];
+      if (password !== LAPD_PW[rank.ebene]) return res.redirect('/lapd/weblogin?err=pw');
+      req.session.lapd = {
+        userId:      member.id,
+        displayName: member.displayName || member.user.username,
+        uname:       member.user.username,
+        rankName:    rank.name,
+        ebene:       rank.ebene,
+        loggedInAt:  Date.now(),
+      };
+      return res.redirect('/lapd/dashboard?tab=board');
+    } catch (e) {
+      console.error('WebLogin Fehler:', e.message);
+      return res.redirect('/lapd/weblogin?err=id');
+    }
+  });
 
   // ── POST /lapd/logout ────────────────────────────────────────────────────
   app.post('/lapd/logout',(req,res)=>{
@@ -2528,7 +2607,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
 
   // ── GET /lapd/logo.png ────────────────────────────────────────────────────
   app.get('/lapd/logo.png',(req,res)=>{
-    const f=require('path').join(__dirname,'lapd_logo.png');
+    const f=require('path').join(__dirname,'assets','lapd_logo.png');
     if(fs.existsSync(f)) res.sendFile(f); else res.status(404).end();
   });
   app.get('/lapd/warrant-photo/:id',(req,res)=>{
