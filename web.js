@@ -957,7 +957,11 @@ module.exports = function startWebServer(client, DATA_DIR) {
     secret: process.env.SESSION_SECRET || 'paradise-city-2024',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 60 * 60 * 1000 }
+    cookie: {
+      maxAge: 60 * 60 * 1000,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_PUBLIC_DOMAIN
+    }
   }));
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -2247,6 +2251,9 @@ module.exports = function startWebServer(client, DATA_DIR) {
   });
 
   // ── POST /lapd/lookup — Benutzername prüfen ─────────────────────────────
+  app.get('/lapd/lookup', (req, res) => res.redirect('/lapd'));
+  app.get('/lapd/login',  (req, res) => res.redirect('/lapd'));
+
   app.post('/lapd/lookup', async (req, res) => {
     const username = (req.body.username || '').trim();
     if (!username) {
