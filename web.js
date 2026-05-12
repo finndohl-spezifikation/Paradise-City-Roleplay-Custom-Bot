@@ -2274,29 +2274,43 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     } catch { return res.redirect('/lapd?err=fail'); }
   });
 
-  // ── GET /lapd/auth/:token — direkt einloggen, kein Passwortformular ───────
-  app.get('/lapd/auth/:token', async (req,res)=>{
+  // ── GET /lapd/auth/:token ────────────────────────────────────────────────
+  app.get('/lapd/auth/:token', (req,res)=>{
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
     const entry = lapdTokens.get(req.params.token);
     if (!entry || Date.now()>entry.expires) {
       res.setHeader('Content-Type','text/html; charset=utf-8');
       return res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="err">⚠️ Dieser Link ist abgelaufen. Bitte klicke erneut auf den Button in Discord.</div></div>'+LFOOT);
     }
-    // Höchsten Rang nehmen (index 0 = highest in LAPD_RANKS order)
+    const rank    = entry.ranks[0];
+    const errHtml = req.query.err==='pw' ? '<div class="err">⚠️ Falsches Passwort. Bitte erneut versuchen.</div>' : '';
+    const eColor  = LAPD_EBENE[rank.ebene] ? LAPD_EBENE[rank.ebene].color : '#90caf9';
+    res.setHeader('Content-Type','text/html; charset=utf-8');
+    res.send(LHEAD+'<div class="card">'+LBADGE+errHtml+
+      '<p class="u-hint">👤 <strong>'+esc(entry.uname)+'</strong></p>'+
+      '<p class="u-hint" style="color:'+eColor+';font-weight:700;margin-bottom:16px">🎖️ '+esc(rank.name)+'</p>'+
+      '<form method="POST" action="/lapd/auth/'+req.params.token+'">'+
+      '<div class="fg"><label>Passwort</label><input type="password" name="password" placeholder="••••••••" required autocomplete="current-password" autofocus></div>'+
+      '<button class="btn" type="submit">🔓 Einloggen</button></form></div>'+LFOOT);
+  });
+
+  // ── POST /lapd/auth/:token ───────────────────────────────────────────────
+  app.post('/lapd/auth/:token', async (req,res)=>{
+    const entry = lapdTokens.get(req.params.token);
+    if (!entry || Date.now()>entry.expires) return res.redirect('/lapd');
     const rank = entry.ranks[0];
+    if ((req.body.password||'').trim() !== LAPD_PW[rank.ebene])
+      return res.redirect('/lapd/auth/'+req.params.token+'?err=pw');
     try {
       let guild = client.guilds.cache.get(LAPD_GUILD_ID);
       if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(()=>null);
       const member = guild ? await guild.members.fetch(entry.memberId).catch(()=>null) : null;
-      if (!member||!member.roles.cache.has(rank.id)) {
-        res.setHeader('Content-Type','text/html; charset=utf-8');
-        return res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="err">⚠️ Rolle nicht mehr vorhanden. Bitte erneut versuchen.</div></div>'+LFOOT);
-      }
+      if (!member||!member.roles.cache.has(rank.id)) return res.redirect('/lapd');
       req.session.lapd = { userId:entry.memberId, username:member.user.username, displayName:member.displayName,
         rankId:rank.id, rankName:rank.name, ebene:rank.ebene, loginTime:Date.now() };
       lapdTokens.delete(req.params.token);
       return res.redirect('/lapd/dashboard');
-    } catch { req.session.lapdError='fail'; return res.redirect('/lapd'); }
+    } catch { return res.redirect('/lapd'); }
   });
 
   app.get('/lapd/lookup',(req,res)=>res.redirect('/lapd'));
