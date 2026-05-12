@@ -2182,7 +2182,15 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   const LAPD_EMBED_FILE = path.join(DATA_DIR, 'lapd_duty_embed.json');
   const LAPD_ANN_FILE   = path.join(DATA_DIR, 'lapd_announcements.json');
   const LAPD_VAC_FILE   = path.join(DATA_DIR, 'lapd_vacations.json');
-  const LAPD_WARN_FILE  = path.join(DATA_DIR, 'lapd_warnings.json');
+  const LAPD_WARN_FILE      = path.join(DATA_DIR, 'lapd_warnings.json');
+  const LAPD_SCHEDULE_FILE  = path.join(DATA_DIR, 'lapd_schedule.json');
+  const LAPD_REPORTS_FILE   = path.join(DATA_DIR, 'lapd_reports.json');
+  const LAPD_PERSONS_FILE   = path.join(DATA_DIR, 'lapd_persons.json');
+  const LAPD_VEHICLES_FILE  = path.join(DATA_DIR, 'lapd_vehicles.json');
+  const LAPD_CRIMES_FILE    = path.join(DATA_DIR, 'lapd_crimes.json');
+  const LAPD_WARRANTS_FILE  = path.join(DATA_DIR, 'lapd_warrants.json');
+  const LAPD_WARRANT_PHOTOS = path.join(DATA_DIR, 'warrant_photos');
+  if(!fs.existsSync(LAPD_WARRANT_PHOTOS)) fs.mkdirSync(LAPD_WARRANT_PHOTOS,{recursive:true});
 
   function lj(f,d){ try{ return JSON.parse(fs.readFileSync(f,'utf8')); }catch{ return d; } }
   function sj(f,d){ try{ fs.writeFileSync(f,JSON.stringify(d,null,2),'utf8'); }catch(e){ console.error('sj',e.message); } }
@@ -2207,6 +2215,18 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   });
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function genId(){ return require('crypto').randomBytes(10).toString('hex'); }
+  function loadSchedule(){ return lj(LAPD_SCHEDULE_FILE,[]); }
+  function saveSchedule(d){ sj(LAPD_SCHEDULE_FILE,d); }
+  function loadReports(){ return lj(LAPD_REPORTS_FILE,[]); }
+  function saveReports(d){ sj(LAPD_REPORTS_FILE,d); }
+  function loadPersons(){ return lj(LAPD_PERSONS_FILE,[]); }
+  function savePersons(d){ sj(LAPD_PERSONS_FILE,d); }
+  function loadVehicles(){ return lj(LAPD_VEHICLES_FILE,[]); }
+  function saveVehicles(d){ sj(LAPD_VEHICLES_FILE,d); }
+  function loadCrimes(){ return lj(LAPD_CRIMES_FILE,[]); }
+  function saveCrimes(d){ sj(LAPD_CRIMES_FILE,d); }
+  function loadWarrants(){ return lj(LAPD_WARRANTS_FILE,[]); }
+  function saveWarrants(d){ sj(LAPD_WARRANTS_FILE,d); }
 
   // ── Duty Embed ───────────────────────────────────────────────────────────
   const { EmbedBuilder: _DEB } = require('discord.js');
@@ -2467,18 +2487,262 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     res.json({ ok:true });
   });
 
+
+  // ── GET /lapd/logo.png ────────────────────────────────────────────────────
+  app.get('/lapd/logo.png',(req,res)=>{
+    const f=require('path').join(__dirname,'lapd_logo.png');
+    if(fs.existsSync(f)) res.sendFile(f); else res.status(404).end();
+  });
+  app.get('/lapd/warrant-photo/:id',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).end();
+    const id=req.params.id.replace(/[^a-f0-9]/g,'');
+    const files=fs.readdirSync(LAPD_WARRANT_PHOTOS).filter(f=>f.startsWith(id+'.')).slice(0,1);
+    if(!files.length) return res.status(404).end();
+    res.sendFile(require('path').join(LAPD_WARRANT_PHOTOS,files[0]));
+  });
+
+  // ── POST /lapd/api/announce-residents ────────────────────────────────────
+  app.post('/lapd/api/announce-residents',async(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    if(s.ebene!=='leitung') return res.status(403).json({ok:false,msg:'Nur Command Staff'});
+    const {content}=req.body;
+    if(!content||!String(content).trim()) return res.json({ok:false,msg:'Inhalt fehlt'});
+    try{
+      const ch=await client.channels.fetch('1492939424441569542').catch(()=>null);
+      if(!ch) return res.json({ok:false,msg:'Kanal nicht gefunden'});
+      await ch.send({content:String(content).slice(0,2000)});
+      res.json({ok:true});
+    }catch(e){res.json({ok:false,msg:e.message});}
+  });
+
+  // ── PANIC BUTTON ──────────────────────────────────────────────────────────
+  const _panicCooldown=new Map();
+  app.post('/lapd/api/panic',async(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    const now=Date.now();
+    if(_panicCooldown.has(s.userId)&&now-_panicCooldown.get(s.userId)<60000)
+      return res.json({ok:false,msg:'Bitte 60 Sekunden warten'});
+    _panicCooldown.set(s.userId,now);
+    try{
+      let guild=client.guilds.cache.get(LAPD_GUILD_ID);
+      if(!guild) guild=await client.guilds.fetch(LAPD_GUILD_ID).catch(()=>null);
+      if(!guild) return res.json({ok:false,msg:'Server nicht gefunden'});
+      await guild.members.fetch().catch(()=>{});
+      const roleIds=LAPD_RANKS.map(r=>r.id);
+      const notified=new Set();
+      for(const roleId of roleIds)
+        guild.members.cache.filter(m=>m.roles.cache.has(roleId)&&m.id!==s.userId).forEach(m=>notified.add(m));
+      const {EmbedBuilder:_PEB}=require('discord.js');
+      const pEmbed=new _PEB()
+        .setColor(0xff0000)
+        .setTitle('🚨 PANIC BUTTON AUSGELÖST')
+        .setDescription('**Ein Officer befindet sich in AKUTER GEFAHR!**')
+        .addFields(
+          {name:'👤 Officer',value:s.displayName+' ('+s.rankName+')',inline:true},
+          {name:'🎖️ Division',value:(LAPD_EBENE[s.ebene]||{label:s.ebene}).label,inline:true},
+          {name:'⏰ Zeitpunkt',value:'<t:'+Math.floor(now/1000)+':F>',inline:false}
+        )
+        .setFooter({text:'LAPD Panic Alert System'}).setTimestamp();
+      let count=0;
+      for(const m of notified){ m.send({embeds:[pEmbed]}).catch(()=>{}); count++; }
+      res.json({ok:true,notified:count});
+    }catch(e){res.json({ok:false,msg:e.message});}
+  });
+
+  // ── DIENSTPLAN ────────────────────────────────────────────────────────────
+  app.get('/lapd/api/schedule',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const sched=loadSchedule().sort((a,b)=>b.ts-a.ts);
+    res.json({ok:true,items:sched});
+  });
+  app.post('/lapd/api/schedule',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    if(s.ebene!=='leitung'&&s.ebene!=='befehl') return res.status(403).json({ok:false,msg:'Keine Berechtigung'});
+    const{date,shift,duty,notes,assignments}=req.body;
+    if(!date||!duty) return res.json({ok:false,msg:'Datum und Dienst erforderlich'});
+    const sched=loadSchedule();
+    sched.push({id:genId(),date,shift:String(shift||'').slice(0,50),duty:String(duty).slice(0,100),
+      notes:String(notes||'').slice(0,500),assignments:Array.isArray(assignments)?assignments:[],
+      authorId:s.userId,authorName:s.displayName,ts:Date.now()});
+    saveSchedule(sched);
+    res.json({ok:true});
+  });
+  app.delete('/lapd/api/schedule/:id',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    if(s.ebene!=='leitung'&&s.ebene!=='befehl') return res.status(403).json({ok:false});
+    saveSchedule(loadSchedule().filter(x=>x.id!==req.params.id));
+    res.json({ok:true});
+  });
+
+  // ── EINSATZBERICHTE ───────────────────────────────────────────────────────
+  app.get('/lapd/api/reports',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const{date}=req.query;
+    let items=loadReports().sort((a,b)=>b.ts-a.ts);
+    if(date) items=items.filter(r=>r.date===date);
+    res.json({ok:true,items});
+  });
+  app.post('/lapd/api/reports',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    const{date,time,location,involved,description}=req.body;
+    if(!date||!description) return res.json({ok:false,msg:'Datum und Beschreibung erforderlich'});
+    const reps=loadReports();
+    reps.push({id:genId(),date,time:String(time||'').slice(0,10),location:String(location||'').slice(0,200),
+      involved:String(involved||'').slice(0,500),description:String(description).slice(0,3000),
+      authorId:s.userId,authorName:s.displayName,rankName:s.rankName,ebene:s.ebene,ts:Date.now()});
+    saveReports(reps);
+    res.json({ok:true});
+  });
+
+  // ── PERSONENAKTEN ────────────────────────────────────────────────────────
+  app.get('/lapd/api/persons',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const{q}=req.query;
+    let items=loadPersons().sort((a,b)=>a.lastName.localeCompare(b.lastName));
+    if(q) items=items.filter(p=>(p.firstName+' '+p.lastName).toLowerCase().includes(q.toLowerCase()));
+    res.json({ok:true,items});
+  });
+  app.post('/lapd/api/persons',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    const{firstName,lastName,dob,address,nationality,entryType,notes}=req.body;
+    if(!firstName||!lastName) return res.json({ok:false,msg:'Vor- und Nachname erforderlich'});
+    const list=loadPersons();
+    list.push({id:genId(),firstName:String(firstName).slice(0,80),lastName:String(lastName).slice(0,80),
+      dob:String(dob||''),address:String(address||'').slice(0,200),nationality:String(nationality||'').slice(0,80),
+      entryType:String(entryType||'').slice(0,50),notes:String(notes||'').slice(0,1000),
+      authorId:s.userId,authorName:s.displayName,ts:Date.now()});
+    savePersons(list);
+    res.json({ok:true});
+  });
+  app.delete('/lapd/api/persons/:id',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    if(s.ebene!=='leitung'&&s.ebene!=='befehl') return res.status(403).json({ok:false});
+    savePersons(loadPersons().filter(x=>x.id!==req.params.id));
+    res.json({ok:true});
+  });
+
+  // ── FAHRZEUGAKTEN ─────────────────────────────────────────────────────────
+  app.get('/lapd/api/vehicles',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const{q}=req.query;
+    let items=loadVehicles().sort((a,b)=>a.plate.localeCompare(b.plate));
+    if(q) items=items.filter(v=>(v.plate+' '+v.owner).toLowerCase().includes(q.toLowerCase()));
+    res.json({ok:true,items});
+  });
+  app.post('/lapd/api/vehicles',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    const{plate,make,model,color,owner,status,notes}=req.body;
+    if(!plate) return res.json({ok:false,msg:'Kennzeichen erforderlich'});
+    const list=loadVehicles();
+    list.push({id:genId(),plate:String(plate).toUpperCase().slice(0,20),make:String(make||'').slice(0,60),
+      model:String(model||'').slice(0,60),color:String(color||'').slice(0,40),
+      owner:String(owner||'').slice(0,100),status:String(status||'normal').slice(0,30),
+      notes:String(notes||'').slice(0,500),authorId:s.userId,authorName:s.displayName,ts:Date.now()});
+    saveVehicles(list);
+    res.json({ok:true});
+  });
+  app.delete('/lapd/api/vehicles/:id',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    saveVehicles(loadVehicles().filter(x=>x.id!==req.params.id));
+    res.json({ok:true});
+  });
+
+  // ── STRAFAKTEN ───────────────────────────────────────────────────────────
+  app.get('/lapd/api/crimes',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const{q}=req.query;
+    let items=loadCrimes().sort((a,b)=>b.ts-a.ts);
+    if(q) items=items.filter(x=>x.personName.toLowerCase().includes(q.toLowerCase()));
+    res.json({ok:true,items});
+  });
+  app.post('/lapd/api/crimes',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    const{personName,personId,offense,penalty,date,notes}=req.body;
+    if(!personName||!offense) return res.json({ok:false,msg:'Person und Vergehen erforderlich'});
+    const list=loadCrimes();
+    list.push({id:genId(),personName:String(personName).slice(0,100),personId:String(personId||'').slice(0,50),
+      offense:String(offense).slice(0,200),penalty:String(penalty||'').slice(0,200),
+      date:String(date||new Date().toISOString().split('T')[0]),notes:String(notes||'').slice(0,500),
+      authorId:s.userId,authorName:s.displayName,rankName:s.rankName,ts:Date.now()});
+    saveCrimes(list);
+    res.json({ok:true});
+  });
+  app.delete('/lapd/api/crimes/:id',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    saveCrimes(loadCrimes().filter(x=>x.id!==req.params.id));
+    res.json({ok:true});
+  });
+
+  // ── FAHNDUNGEN ────────────────────────────────────────────────────────────
+  app.get('/lapd/api/warrants',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const{status}=req.query;
+    let items=loadWarrants().sort((a,b)=>b.ts-a.ts);
+    if(status) items=items.filter(w=>w.status===status);
+    res.json({ok:true,items});
+  });
+  app.post('/lapd/api/warrants',upload.single('photo'),async(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    const{name,description,offense,danger}=req.body;
+    if(!name||!offense) return res.json({ok:false,msg:'Name und Vergehen erforderlich'});
+    const id=genId();
+    let hasPhoto=false;
+    if(req.file){
+      try{
+        const ext=req.file.mimetype.includes('png')?'png':req.file.mimetype.includes('webp')?'webp':'jpg';
+        fs.writeFileSync(require('path').join(LAPD_WARRANT_PHOTOS,id+'.'+ext),req.file.buffer);
+        hasPhoto=true;
+      }catch{}
+    }
+    const list=loadWarrants();
+    list.push({id,name:String(name).slice(0,100),description:String(description||'').slice(0,500),
+      offense:String(offense).slice(0,200),danger:String(danger||'mittel').slice(0,20),
+      status:'aktiv',hasPhoto,authorId:s.userId,authorName:s.displayName,rankName:s.rankName,ts:Date.now()});
+    saveWarrants(list);
+    res.json({ok:true});
+  });
+  app.patch('/lapd/api/warrants/:id',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    if(s.ebene!=='leitung'&&s.ebene!=='befehl') return res.status(403).json({ok:false});
+    const list=loadWarrants();
+    const item=list.find(x=>x.id===req.params.id);
+    if(!item) return res.json({ok:false,msg:'Nicht gefunden'});
+    item.status=req.body.status||item.status;
+    saveWarrants(list);
+    res.json({ok:true});
+  });
+  app.delete('/lapd/api/warrants/:id',(req,res)=>{
+    if(!isLapdAuth(req)) return res.status(401).json({ok:false});
+    const s=req.session.lapd;
+    if(s.ebene!=='leitung'&&s.ebene!=='befehl') return res.status(403).json({ok:false});
+    saveWarrants(loadWarrants().filter(x=>x.id!==req.params.id));
+    res.json({ok:true});
+  });
+
   // ── GET /lapd/dashboard ─────────────────────────────────────────────────
-  const LAPD_CSS = "*{box-sizing:border-box;margin:0;padding:0}body{background:#050c26;color:#e0e0e0;font-family:\"Segoe UI\",sans-serif;min-height:100vh;display:flex}.sidebar{width:220px;min-height:100vh;background:#081235;border-right:1px solid #1e4080;display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}.sb-logo{padding:18px 16px 14px;border-bottom:1px solid #1e4080;display:flex;align-items:center;gap:10px}.sb-logo .ico{font-size:2rem;line-height:1}.sb-logo h2{font-size:.82rem;font-weight:800;color:#ffd700;letter-spacing:2px;line-height:1.3}.sb-logo p{font-size:.66rem;color:#90caf9;margin-top:2px}.sb-nav{flex:1;padding:8px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}.nb{display:flex;align-items:center;gap:11px;width:100%;background:transparent;border:none;border-left:4px solid transparent;border-radius:0 8px 8px 0;color:#5a6a80;padding:10px 12px;font-size:.82rem;font-weight:600;cursor:pointer;text-align:left;transition:.15s}.nb .ni{font-size:1.1rem;width:24px;text-align:center;flex-shrink:0}.nb:hover{color:#c0d8ff;background:#0f1f4a;border-left-color:#2a4a8a}.nb.act{color:#60a5fa;background:#0f2255;border-left-color:#1e90ff;font-weight:700}.sb-user{padding:14px 16px;border-top:1px solid #1e4080}.sb-user .uname{font-size:.78rem;font-weight:700;color:#e0e0e0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sb-user .urank{font-size:.69rem;font-weight:600;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbtn{display:block;width:100%;background:transparent;border:1px solid #1e4080;color:#6b7280;padding:7px 12px;border-radius:7px;font-size:.78rem;cursor:pointer;transition:.2s;text-align:center}.lbtn:hover{border-color:#ef5350;color:#ef5350}.main-wrap{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}main{flex:1;padding:22px 24px;max-width:1020px;width:100%}.sec{background:#0c1b45;border:1px solid #1e4080;border-radius:10px;margin-bottom:16px;overflow:hidden}.sh{padding:12px 18px;border-bottom:1px solid #1e4080;display:flex;align-items:center;justify-content:space-between;gap:8px}.sh h3{font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.sb{padding:16px 18px}table{width:100%;border-collapse:collapse;font-size:.84rem}th{color:#6b7280;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;padding:8px 10px;text-align:left;border-bottom:1px solid #1e4080}td{padding:8px 10px;border-bottom:1px solid #07102e}tr:last-child td{border-bottom:none}tr:hover td{background:#040920}.muted{color:#374151;font-size:.84rem;padding:8px 0}.fg{margin-bottom:12px}.fg label{display:block;font-size:.72rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}.fg input,.fg select,.fg textarea{width:100%;background:#040920;border:1px solid #1e4080;color:#e0e0e0;padding:9px 12px;border-radius:7px;font-size:.88rem;outline:none;transition:.2s;font-family:inherit}.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1565c0}.fg select option{background:#040920}.fg textarea{resize:vertical;min-height:80px}.row{display:flex;gap:10px;flex-wrap:wrap}.row .fg{flex:1;min-width:140px}.btn{background:#1565c0;color:#fff;border:none;padding:9px 18px;border-radius:7px;font-size:.84rem;font-weight:700;cursor:pointer;transition:.2s}.btn:hover{background:#1976d2}.btn.red{background:#7f1d1d}.btn.red:hover{background:#991b1b}.btn.grn{background:#14532d}.btn.grn:hover{background:#166534}.btn.sm{padding:5px 11px;font-size:.75rem}.btn.ghost{background:transparent;border:1px solid #1e4080;color:#90caf9}.btn.ghost:hover{border-color:#42a5f5;color:#42a5f5}.pin-badge{color:#ffd700;font-size:.7rem;font-weight:700;margin-left:6px}.ann-card{border:1px solid #1e4080;border-radius:8px;padding:14px;margin-bottom:10px;background:#040920}.ann-card.pinned{border-color:#ffd700}.ann-card h4{font-size:.9rem;font-weight:700;margin-bottom:6px}.ann-card .meta{font-size:.72rem;color:#6b7280;margin-bottom:8px}.ann-card .body{font-size:.85rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}.ann-acts{display:flex;gap:6px;margin-top:10px}.vac-badge{padding:3px 10px;border-radius:10px;font-size:.7rem;font-weight:700}.vac-badge.pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid #ffc107}.vac-badge.approved{background:rgba(76,175,80,.15);color:#66bb6a;border:1px solid #66bb6a}.vac-badge.rejected{background:rgba(183,28,28,.15);color:#ef9a9a;border:1px solid #b71c1c}.flash{padding:10px 14px;border-radius:7px;margin-bottom:12px;font-size:.84rem}.flash.ok{background:rgba(76,175,80,.15);border:1px solid #388e3c;color:#a5d6a7}.flash.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;color:#ef9a9a}.nl{display:inline}.info-card{display:flex;flex-direction:column;gap:0}.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #1a3060}.info-row:last-child{border-bottom:none}.info-l{font-size:.72rem;color:#6b8aba;text-transform:uppercase;letter-spacing:1px}.info-v{font-size:.85rem;font-weight:600}@media(max-width:720px){.sidebar{width:180px}.main-wrap{margin-left:180px}.nb{padding:9px 10px;font-size:.78rem}}";
+  const LAPD_CSS = "*{box-sizing:border-box;margin:0;padding:0}body{background:#0c1840;color:#e0e0e0;font-family:\"Segoe UI\",sans-serif;min-height:100vh;display:flex}@keyframes introPulse{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.05);opacity:1}100%{transform:scale(1);opacity:1}}@keyframes introFadeOut{0%{opacity:1;pointer-events:all}100%{opacity:0;pointer-events:none}}@keyframes panicGlow{0%,100%{box-shadow:0 0 8px #ff0000,0 0 22px #ff000077}50%{box-shadow:0 0 20px #ff0000,0 0 45px #ff0000bb}}@keyframes panicPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}.intro-overlay{position:fixed;inset:0;background:#060d20;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px}.intro-overlay.fade-out{animation:introFadeOut .7s ease forwards}.intro-logo{width:190px;height:190px;border-radius:50%;animation:introPulse .9s cubic-bezier(.34,1.56,.64,1) forwards}.intro-txt{color:#90caf9;font-size:.85rem;font-weight:700;letter-spacing:4px;text-transform:uppercase}.sidebar{width:222px;min-height:100vh;background:#091535;border-right:1px solid #1a3a78;display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}.sb-logo{padding:12px 12px 10px;border-bottom:1px solid #1a3a78;display:flex;align-items:center;gap:10px}.sb-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #1e6fff55}.sb-logo div{flex:1;min-width:0}.sb-logo h2{font-size:.78rem;font-weight:800;color:#ffd700;letter-spacing:2px;line-height:1.3}.sb-logo p{font-size:.62rem;color:#90caf9;margin-top:1px}.panic-wrap{padding:8px 10px 4px}.panic-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;background:#7f1d1d;color:#fca5a5;border:1px solid #ef4444;border-radius:8px;padding:9px 12px;font-size:.75rem;font-weight:800;cursor:pointer;letter-spacing:1px;text-transform:uppercase;animation:panicGlow 1.8s infinite,panicPulse 1.8s infinite}.panic-btn:active{transform:scale(.96)}.sb-nav{flex:1;padding:6px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}.nb{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:none;border-left:4px solid transparent;border-radius:0 8px 8px 0;color:#5a6a80;padding:8px 11px;font-size:.78rem;font-weight:600;cursor:pointer;text-align:left;transition:.15s}.nb .ni{font-size:.95rem;width:22px;text-align:center;flex-shrink:0}.nb:hover{color:#c0d8ff;background:#0f1f4a;border-left-color:#2a4a8a}.nb.act{color:#60a5fa;background:#0f2255;border-left-color:#1e90ff;font-weight:700}.sb-user{padding:11px 14px;border-top:1px solid #1a3a78}.sb-user .uname{font-size:.76rem;font-weight:700;color:#e0e0e0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sb-user .urank{font-size:.67rem;font-weight:600;margin-bottom:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbtn{display:block;width:100%;background:transparent;border:1px solid #1a3a78;color:#6b7280;padding:7px 12px;border-radius:7px;font-size:.76rem;cursor:pointer;transition:.2s;text-align:center}.lbtn:hover{border-color:#ef5350;color:#ef5350}.main-wrap{margin-left:222px;flex:1;display:flex;flex-direction:column;min-height:100vh}main{flex:1;padding:20px 22px;max-width:1060px;width:100%}.sec{background:#0f2050;border:1px solid #1a3a78;border-radius:10px;margin-bottom:14px;overflow:hidden}.sh{padding:11px 16px;border-bottom:1px solid #1a3a78;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.sh h3{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.sb{padding:14px 16px}table{width:100%;border-collapse:collapse;font-size:.82rem}th{color:#6b7280;font-size:.67rem;text-transform:uppercase;letter-spacing:1px;padding:7px 10px;text-align:left;border-bottom:1px solid #1a3a78}td{padding:7px 10px;border-bottom:1px solid #091535}tr:last-child td{border-bottom:none}tr:hover td{background:#070f2b}.muted{color:#374151;font-size:.82rem;padding:8px 0}.fg{margin-bottom:11px}.fg label{display:block;font-size:.7rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.fg input,.fg select,.fg textarea{width:100%;background:#070f2b;border:1px solid #1a3a78;color:#e0e0e0;padding:8px 12px;border-radius:7px;font-size:.86rem;outline:none;transition:.2s;font-family:inherit}.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1e6fff}.fg select option{background:#070f2b}.fg textarea{resize:vertical;min-height:80px}.row{display:flex;gap:10px;flex-wrap:wrap}.row .fg{flex:1;min-width:140px}.btn{background:#1565c0;color:#fff;border:none;padding:8px 16px;border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.2s}.btn:hover{background:#1976d2}.btn.red{background:#7f1d1d}.btn.red:hover{background:#991b1b}.btn.grn{background:#14532d}.btn.grn:hover{background:#166534}.btn.sm{padding:4px 10px;font-size:.72rem}.btn.ghost{background:transparent;border:1px solid #1a3a78;color:#90caf9}.btn.ghost:hover{border-color:#42a5f5;color:#42a5f5}.btn.warn{background:#78350f;color:#fcd34d}.btn.warn:hover{background:#92400e}.pin-badge{color:#ffd700;font-size:.68rem;font-weight:700;margin-left:6px}.ann-card{border:1px solid #1a3a78;border-radius:8px;padding:13px;margin-bottom:9px;background:#070f2b}.ann-card.pinned{border-color:#ffd700}.ann-card h4{font-size:.88rem;font-weight:700;margin-bottom:5px}.ann-card .meta{font-size:.7rem;color:#6b7280;margin-bottom:7px}.ann-card .body{font-size:.83rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}.ann-acts{display:flex;gap:6px;margin-top:9px}.vac-badge{padding:3px 10px;border-radius:10px;font-size:.68rem;font-weight:700}.vac-badge.pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid #ffc107}.vac-badge.approved{background:rgba(76,175,80,.15);color:#66bb6a;border:1px solid #66bb6a}.vac-badge.rejected{background:rgba(183,28,28,.15);color:#ef9a9a;border:1px solid #b71c1c}.flash{padding:9px 13px;border-radius:7px;margin-bottom:11px;font-size:.82rem}.flash.ok{background:rgba(76,175,80,.15);border:1px solid #388e3c;color:#a5d6a7}.flash.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;color:#ef9a9a}.nl{display:inline}.info-card{display:flex;flex-direction:column}.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #1a3a78}.info-row:last-child{border-bottom:none}.info-l{font-size:.7rem;color:#6b8aba;text-transform:uppercase;letter-spacing:1px}.info-v{font-size:.83rem;font-weight:600}.danger-badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700}.danger-badge.hoch{background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444}.danger-badge.mittel{background:rgba(251,191,36,.2);color:#fcd34d;border:1px solid #f59e0b}.danger-badge.niedrig{background:rgba(74,222,128,.2);color:#86efac;border:1px solid #22c55e}.warrant-photo{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #1a3a78;cursor:pointer}.status-badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700}.status-badge.aktiv{background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444}.status-badge.gefasst{background:rgba(74,222,128,.2);color:#86efac;border:1px solid #22c55e}.bkat-section{margin-bottom:18px}.bkat-cat{font-size:.72rem;font-weight:800;color:#ffd700;text-transform:uppercase;letter-spacing:2px;padding:9px 0 5px;border-bottom:1px solid #1a3a78;margin-bottom:5px}.bkat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 4px;border-bottom:1px solid #091535;font-size:.8rem}.bkat-row:last-child{border-bottom:none}.bkat-row:hover{background:#070f2b}.bkat-fine{color:#fcd34d;font-weight:700;white-space:nowrap;margin-left:12px}.duty-tag{display:inline-block;padding:2px 8px;background:#0f2255;border:1px solid #1a3a78;border-radius:12px;font-size:.7rem;margin:2px}@media(max-width:720px){.sidebar{width:180px}.main-wrap{margin-left:180px}.nb{padding:8px 10px;font-size:.74rem}}"
 
   app.get('/lapd/dashboard', (req,res)=>{
     if (!isLapdAuth(req)) return res.redirect('/lapd');
     const s       = req.session.lapd;
     const eInfo   = LAPD_EBENE[s.ebene];
-    const canPost  = s.ebene==='leitung';
-    const canWarn  = s.ebene==='leitung'||s.ebene==='befehl';
-    const clientJs = (function buildClientJs(userId, ebene, displayName, rankName, canPost, canWarn) {
+    const canPost      = s.ebene==='leitung';
+    const canWarn      = s.ebene==='leitung'||s.ebene==='befehl';
+    const canSchedule  = s.ebene==='leitung'||s.ebene==='befehl';
+    const clientJs = (function buildClientJs(userId, ebene, displayName, rankName, canPost, canWarn, canSchedule) {
   return `
-const ME={userId:${JSON.stringify(userId)},ebene:${JSON.stringify(ebene)},displayName:${JSON.stringify(displayName)},rankName:${JSON.stringify(rankName)},canPost:${canPost},canWarn:${canWarn},loginTime:${Date.now()}};
+const ME={userId:${JSON.stringify(userId)},ebene:${JSON.stringify(ebene)},displayName:${JSON.stringify(displayName)},rankName:${JSON.stringify(rankName)},canPost:${canPost},canWarn:${canWarn},canSchedule:${canSchedule},loginTime:${Date.now()}};
 const ECOLOR={leitung:"#ffd700",befehl:"#42a5f5",detective:"#ab47bc",officer:"#66bb6a"};
 const ELABEL={leitung:"Command Staff",befehl:"Supervisory Staff",detective:"Detective Division",officer:"Officer Division"};
 
@@ -2493,6 +2757,13 @@ function loadTab(t){
   else if(t==="duty")loadDuty();
   else if(t==="vacation")loadVacation();
   else if(t==="warnings")loadWarnings();
+  else if(t==="schedule")loadSchedule();
+  else if(t==="reports")loadReports();
+  else if(t==="persons")loadPersons();
+  else if(t==="vehicles")loadVehicles();
+  else if(t==="crimes")loadCrimes();
+  else if(t==="bkat"){}
+  else if(t==="warrants")loadWarrants();
 }
 function flash(el,msg,ok){
   el.innerHTML='<div class="flash '+(ok?"ok":"err")+'">'+escH(msg)+'</div>';
@@ -2520,13 +2791,7 @@ async function loadBoard(){
   el.querySelectorAll(".pin-btn").forEach(b=>b.addEventListener("click",()=>togglePin(b.closest(".ann-card").dataset.id)));
   el.querySelectorAll(".del-btn").forEach(b=>b.addEventListener("click",()=>delAnn(b.closest(".ann-card").dataset.id)));
 }
-async function postAnn(e){
-  e.preventDefault();
-  const fd=new FormData(e.target);
-  const r=await fetch("/lapd/api/announcements",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:fd.get("title"),content:fd.get("content")})}).then(x=>x.json()).catch(()=>({ok:false}));
-  flash(document.getElementById("ann-flash"),r.ok?"Ankündigung gepostet!":r.msg||"Fehler",r.ok);
-  if(r.ok){e.target.reset();loadBoard();}
-}
+// postAnn defined below
 async function togglePin(id){
   await fetch("/lapd/api/announcements/"+id+"/pin",{method:"POST"}).catch(()=>{});
   loadBoard();
@@ -2653,17 +2918,356 @@ async function delWarn(id){
   if(r.ok)loadWarnings();
 }
 
-document.addEventListener("DOMContentLoaded",()=>showTab("board"));
+// ── BUSSGELDK DATA ────────────────────────────────────────────────────────
+const BKAT=[
+{cat:"Geschwindigkeitsüberschreitungen",items:[
+  ["Überschreitung 1-10 mph","$35"],["Überschreitung 11-15 mph","$70"],["Überschreitung 16-25 mph","$100"],
+  ["Überschreitung 26-40 mph","$200"],["Überschreitung 41+ mph / Raserei","$500+"],
+  ["Schulzone / Bauzone (jede Überschreitung)","$350-$1.000"],["Rekordraserei 100+ mph","$900 + Führerscheinverlust"]]},
+{cat:"Ampeln & Verkehrsschilder",items:[
+  ["Rote Ampel überfahren","$490"],["Stoppschild nicht beachtet","$238"],
+  ["Vorfahrt nicht gewährt","$260"],["Vorfahrt ggü. Fußgänger missachtet","$220"]]},
+{cat:"Fahrzeug & Zulassung",items:[
+  ["Fahren ohne gültigen Führerschein","$1.000"],["Fahren mit gesperrtem Führerschein","$1.500"],
+  ["Fahrzeug ohne Zulassung / abgelaufen","$200"],["Fahren ohne Haftpflichtversicherung","$1.500-$2.500"],
+  ["Fahrzeugkennzeichen manipuliert","$1.000"]]},
+{cat:"Ablenkung & Sicherheit",items:[
+  ["Handy am Steuer (1. Verstoß)","$150"],["Handy am Steuer (Wiederholung)","$250"],
+  ["Kein Sicherheitsgurt Fahrer","$162"],["Kind ohne Kindersitz unter 8 J.","$490"],
+  ["Kopfhörer beim Fahren","$160"]]},
+{cat:"Alkohol & Drogen",items:[
+  ["DUI - Fahren unter Einfluss (1. Verstoß)","$1.500-$5.000 + Knast"],["DUI (Wiederholung)","$10.000 + Führerscheinentzug"],
+  ["Öffentlich Alkohol trinken","$250"],["Drogenbesitz Cannabis unter 28g","$500"],
+  ["Drogenbesitz stärkere Substanzen","$1.000-$5.000"],["Drogenhandel","Felony bis 5 Jahre"]]},
+{cat:"Verkehr & Ordnung",items:[
+  ["Illegales Überholen","$285"],["Unerlaubte U-Wende","$100"],["Falschparken / Halteverbot","$65"],
+  ["Parken vor Hydranten","$88"],["Parken auf Behindertenplatz","$250-$1.000"],
+  ["Illegales Street Racing","$500 + Fahrzeugbeschlagnahme"],["Unfallflucht","$10.000 + Strafanzeige"]]},
+{cat:"Straftaten Misdemeanor",items:[
+  ["Einfacher Diebstahl unter $950","$1.000 + bis 6 Monate Haft"],["Sachbeschädigung / Vandalismus","$400 + Schadensersatz"],
+  ["Ruhestörung","$165"],["Hausfriedensbruch","$500"],["Bedrohung / Belästigung","$1.000"],
+  ["Widerstand gegen Vollzugsbeamte","$1.000 + Haft"],["Flucht vor Polizei zu Fuß","$1.000"],
+  ["Körperverletzung leicht","$2.000 + bis 1 Jahr Haft"]]},
+{cat:"Schwere Straftaten Felony",items:[
+  ["Schwerer Diebstahl über $950","Felony 1-3 Jahre"],["Einbruch Burglary","Felony 2-6 Jahre"],
+  ["Raubüberfall Robbery","Felony 3-9 Jahre"],["Körperverletzung mit Waffe","Felony 2-4 Jahre"],
+  ["Waffenbesitz ohne Erlaubnis","Felony 16 Monate-3 Jahre"],["Flucht vor Polizei im Fahrzeug","$10.000 + Felony"]]}
+];
+
+// ── INTRO ANIMATION ────────────────────────────────────────────────────────
+(function(){
+  const ov=document.getElementById("introOverlay");
+  if(!ov)return;
+  setTimeout(function(){
+    ov.classList.add("fade-out");
+    setTimeout(function(){ ov.style.display="none"; },700);
+  },2400);
+})();
+
+// ── PANIC BUTTON ──────────────────────────────────────────────────────────
+let _panicCd=false;
+async function triggerPanic(){
+  if(_panicCd){alert("Bitte 60 Sekunden warten.");return;}
+  if(!confirm("PANIC BUTTON ausloesen?\n\nAlle LAPD-Officer bekommen sofort eine DM!"))return;
+  _panicCd=true;
+  const r=await fetch("/lapd/api/panic",{method:"POST"}).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  if(r.ok) alert("Panic-Signal gesendet! "+r.notified+" Officer benachrichtigt.");
+  else alert("Fehler: "+(r.msg||"Unbekannter Fehler"));
+  setTimeout(function(){ _panicCd=false; },60000);
+}
+
+// ── ANNOUNCEMENT (overrides old postAnn, bewohner option) ─────────────────
+async function postAnn(e){
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  const target=fd.get("annTarget")||"intern";
+  const content=fd.get("content");
+  const title=fd.get("title")||"";
+  let r;
+  if(target==="residents"){
+    r=await fetch("/lapd/api/announce-residents",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({content:content})}).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+    flash(document.getElementById("ann-flash"),r.ok?"Nachricht an alle Bewohner gesendet!":r.msg||"Fehler",r.ok);
+  } else {
+    r=await fetch("/lapd/api/announcements",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({title:title,content:content})}).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+    flash(document.getElementById("ann-flash"),r.ok?"Ankuendigung gepostet!":r.msg||"Fehler",r.ok);
+    if(r.ok)loadBoard();
+  }
+  if(r.ok)e.target.reset();
+}
+
+// ── DIENSTPLAN ────────────────────────────────────────────────────────────
+async function loadSchedule(){
+  const el=document.getElementById("sched-content");
+  if(!el)return;
+  el.innerHTML='<p class="muted">Laedt...</p>';
+  const r=await fetch("/lapd/api/schedule").then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Kein Dienstplan eingetragen.</p>';return;}
+  var SHIFTS={"frueh":"Fruehschicht","spaet":"Spaetschicht","nacht":"Nachtschicht","tag":"Tagschicht"};
+  el.innerHTML=r.items.map(function(s){
+    var asgn=s.assignments&&s.assignments.length?'<div style="margin:4px 0">'+s.assignments.map(function(a){return '<span class="duty-tag">'+escH(a)+'</span>';}).join("")+'</div>':"";
+    var delBtn=ME.canSchedule?'<button class="btn sm red" onclick="deleteSchedule(\''+s.id+'\')">Loeschen</button>':"";
+    return '<div class="ann-card">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'+
+      '<h4 style="color:#90caf9">'+(SHIFTS[s.shift]||s.shift||"Allgemein")+' | '+escH(s.date)+'</h4>'+
+      delBtn+'</div>'+
+      '<div style="color:#ffd700;font-weight:700;font-size:.88rem;margin-bottom:5px">'+escH(s.duty)+'</div>'+
+      asgn+(s.notes?'<div class="muted" style="font-size:.78rem">'+escH(s.notes)+'</div>':"")+
+      '<div style="font-size:.68rem;color:#374151;margin-top:5px">Erstellt von '+escH(s.authorName)+' - '+fdate(s.ts)+'</div>'+
+      '</div>';
+  }).join("");
+}
+async function submitSchedule(e){
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  const raw=fd.get("assignments")||"";
+  const assignments=raw?raw.split(",").map(function(x){return x.trim();}).filter(Boolean):[];
+  const r=await fetch("/lapd/api/schedule",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({date:fd.get("date"),shift:fd.get("shift"),duty:fd.get("duty"),notes:fd.get("notes"),assignments:assignments})
+  }).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  flash(document.getElementById("sched-flash"),r.ok?"Dienst eingetragen!":r.msg||"Fehler",r.ok);
+  if(r.ok){e.target.reset();loadSchedule();}
+}
+async function deleteSchedule(id){
+  if(!confirm("Eintrag loeschen?"))return;
+  await fetch("/lapd/api/schedule/"+id,{method:"DELETE"});
+  loadSchedule();
+}
+
+// ── EINSATZBERICHTE ───────────────────────────────────────────────────────
+async function loadReports(){
+  const el=document.getElementById("reports-content");if(!el)return;
+  const df=document.getElementById("reports-date");
+  const dateFilter=df?df.value:"";
+  el.innerHTML='<p class="muted">Laedt...</p>';
+  const url="/lapd/api/reports"+(dateFilter?"?date="+encodeURIComponent(dateFilter):"");
+  const r=await fetch(url).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Berichte gefunden.</p>';return;}
+  el.innerHTML=r.items.map(function(rep){
+    return '<div class="ann-card">'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'+
+      '<h4>'+escH(rep.date)+(rep.time?" | "+escH(rep.time):"")+'</h4>'+
+      '<span style="color:#90caf9;font-size:.72rem">'+escH(rep.authorName)+' ('+escH(rep.rankName)+')</span>'+
+      '</div>'+
+      (rep.location?'<div style="font-size:.78rem;color:#ffd700;margin-bottom:3px">Ort: '+escH(rep.location)+'</div>':"")+
+      (rep.involved?'<div style="font-size:.78rem;color:#ab47bc;margin-bottom:5px">Beteiligte: '+escH(rep.involved)+'</div>':"")+
+      '<div style="font-size:.83rem;line-height:1.5;white-space:pre-wrap">'+escH(rep.description)+'</div>'+
+      '<div style="font-size:.68rem;color:#374151;margin-top:4px">'+ftime(rep.ts)+'</div>'+
+      '</div>';
+  }).join("");
+}
+async function submitReport(e){
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  const r=await fetch("/lapd/api/reports",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({date:fd.get("date"),time:fd.get("time"),location:fd.get("location"),
+      involved:fd.get("involved"),description:fd.get("description")})
+  }).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  flash(document.getElementById("rep-flash"),r.ok?"Einsatzbericht gespeichert!":r.msg||"Fehler",r.ok);
+  if(r.ok){e.target.reset();loadReports();}
+}
+
+// ── PERSONENAKTEN ─────────────────────────────────────────────────────────
+async function loadPersons(){
+  const el=document.getElementById("persons-content");if(!el)return;
+  const qEl=document.getElementById("persons-q");
+  el.innerHTML='<p class="muted">Laedt...</p>';
+  const url="/lapd/api/persons"+(qEl&&qEl.value?"?q="+encodeURIComponent(qEl.value):"");
+  const r=await fetch(url).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Eintraege gefunden.</p>';return;}
+  var canDel=ME.ebene==="leitung"||ME.ebene==="befehl";
+  el.innerHTML=r.items.map(function(p){
+    return '<div class="ann-card">'+
+      '<div style="display:flex;justify-content:space-between;align-items:start">'+
+      '<h4>'+escH(p.lastName)+', '+escH(p.firstName)+'</h4>'+
+      (canDel?'<button class="btn sm red" onclick="deletePerson(\''+p.id+'\')">Loeschen</button>':"")+
+      '</div><div class="info-card" style="margin-top:7px">'+
+      (p.dob?'<div class="info-row"><span class="info-l">Geburtsdatum</span><span class="info-v">'+escH(p.dob)+'</span></div>':"")+
+      (p.address?'<div class="info-row"><span class="info-l">Adresse</span><span class="info-v">'+escH(p.address)+'</span></div>':"")+
+      (p.nationality?'<div class="info-row"><span class="info-l">Staatsangeh.</span><span class="info-v">'+escH(p.nationality)+'</span></div>':"")+
+      (p.entryType?'<div class="info-row"><span class="info-l">Einreise</span><span class="info-v">'+escH(p.entryType)+'</span></div>':"")+
+      (p.notes?'<div class="info-row"><span class="info-l">Notizen</span><span class="info-v">'+escH(p.notes)+'</span></div>':"")+
+      '</div><div style="font-size:.68rem;color:#374151;margin-top:5px">Erfasst von '+escH(p.authorName)+' - '+fdate(p.ts)+'</div>'+
+      '</div>';
+  }).join("");
+}
+async function submitPerson(e){
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  const r=await fetch("/lapd/api/persons",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({firstName:fd.get("firstName"),lastName:fd.get("lastName"),dob:fd.get("dob"),
+      address:fd.get("address"),nationality:fd.get("nationality"),entryType:fd.get("entryType"),notes:fd.get("notes")})
+  }).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  flash(document.getElementById("persons-flash"),r.ok?"Akte angelegt!":r.msg||"Fehler",r.ok);
+  if(r.ok){e.target.reset();loadPersons();}
+}
+async function deletePerson(id){
+  if(!confirm("Akte loeschen?"))return;
+  await fetch("/lapd/api/persons/"+id,{method:"DELETE"});
+  loadPersons();
+}
+
+// ── FAHRZEUGAKTEN ─────────────────────────────────────────────────────────
+async function loadVehicles(){
+  const el=document.getElementById("vehicles-content");if(!el)return;
+  const qEl=document.getElementById("vehicles-q");
+  el.innerHTML='<p class="muted">Laedt...</p>';
+  const url="/lapd/api/vehicles"+(qEl&&qEl.value?"?q="+encodeURIComponent(qEl.value):"");
+  const r=await fetch(url).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Fahrzeuge eingetragen.</p>';return;}
+  el.innerHTML='<table><thead><tr><th>Kennzeichen</th><th>Marke / Modell</th><th>Farbe</th><th>Eigentuemer</th><th>Status</th><th></th></tr></thead><tbody>'+
+    r.items.map(function(v){
+      var sc=v.status==="gestohlen"?"color:#f87171":v.status==="gesucht"?"color:#fcd34d":"color:#86efac";
+      return '<tr><td><strong>'+escH(v.plate)+'</strong></td><td>'+escH(v.make)+' '+escH(v.model)+'</td>'+
+        '<td>'+escH(v.color)+'</td><td>'+escH(v.owner)+'</td>'+
+        '<td><span style="'+sc+'">'+escH(v.status)+'</span></td>'+
+        '<td><button class="btn sm red" onclick="deleteVehicle(\''+v.id+'\')">X</button></td></tr>';
+    }).join("")+'</tbody></table>';
+}
+async function submitVehicle(e){
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  const r=await fetch("/lapd/api/vehicles",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({plate:fd.get("plate"),make:fd.get("make"),model:fd.get("model"),color:fd.get("color"),
+      owner:fd.get("owner"),status:fd.get("status"),notes:fd.get("notes")})
+  }).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  flash(document.getElementById("vehicles-flash"),r.ok?"Fahrzeug gespeichert!":r.msg||"Fehler",r.ok);
+  if(r.ok){e.target.reset();loadVehicles();}
+}
+async function deleteVehicle(id){
+  if(!confirm("Fahrzeugakte loeschen?"))return;
+  await fetch("/lapd/api/vehicles/"+id,{method:"DELETE"});
+  loadVehicles();
+}
+
+// ── STRAFAKTEN ────────────────────────────────────────────────────────────
+async function loadCrimes(){
+  const el=document.getElementById("crimes-content");if(!el)return;
+  const qEl=document.getElementById("crimes-q");
+  el.innerHTML='<p class="muted">Laedt...</p>';
+  const url="/lapd/api/crimes"+(qEl&&qEl.value?"?q="+encodeURIComponent(qEl.value):"");
+  const r=await fetch(url).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Strafeintraege vorhanden.</p>';return;}
+  el.innerHTML=r.items.map(function(x){
+    return '<div class="ann-card">'+
+      '<div style="display:flex;justify-content:space-between">'+
+      '<h4>'+escH(x.personName)+'</h4>'+
+      '<button class="btn sm red" onclick="deleteCrime(\''+x.id+'\')">Loeschen</button>'+
+      '</div><div class="info-card" style="margin-top:5px">'+
+      '<div class="info-row"><span class="info-l">Vergehen</span><span class="info-v">'+escH(x.offense)+'</span></div>'+
+      (x.penalty?'<div class="info-row"><span class="info-l">Strafe</span><span class="info-v" style="color:#fcd34d">'+escH(x.penalty)+'</span></div>':"")+
+      '<div class="info-row"><span class="info-l">Datum</span><span class="info-v">'+escH(x.date)+'</span></div>'+
+      (x.notes?'<div class="info-row"><span class="info-l">Notiz</span><span class="info-v">'+escH(x.notes)+'</span></div>':"")+
+      '</div><div style="font-size:.68rem;color:#374151;margin-top:4px">Erfasst von '+escH(x.authorName)+' ('+escH(x.rankName)+') - '+ftime(x.ts)+'</div>'+
+      '</div>';
+  }).join("");
+}
+async function submitCrime(e){
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  const r=await fetch("/lapd/api/crimes",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({personName:fd.get("personName"),personId:fd.get("personId")||"",offense:fd.get("offense"),
+      penalty:fd.get("penalty"),date:fd.get("date"),notes:fd.get("notes")})
+  }).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  flash(document.getElementById("crimes-flash"),r.ok?"Strafakte angelegt!":r.msg||"Fehler",r.ok);
+  if(r.ok){e.target.reset();loadCrimes();}
+}
+async function deleteCrime(id){
+  if(!confirm("Strafakte loeschen?"))return;
+  await fetch("/lapd/api/crimes/"+id,{method:"DELETE"});
+  loadCrimes();
+}
+
+// ── FAHNDUNGEN ────────────────────────────────────────────────────────────
+async function loadWarrants(){
+  const el=document.getElementById("warrants-content");if(!el)return;
+  el.innerHTML='<p class="muted">Laedt...</p>';
+  const r=await fetch("/lapd/api/warrants").then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  if(!r.ok){el.innerHTML='<p class="muted">Fehler beim Laden.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Fahndungen vorhanden.</p>';return;}
+  var canMod=ME.ebene==="leitung"||ME.ebene==="befehl";
+  el.innerHTML=r.items.map(function(w){
+    var bc=w.status==="gefasst"?"#22c55e":"#ef4444";
+    var dangerCls=w.danger==="hoch"?"hoch":w.danger==="niedrig"?"niedrig":"mittel";
+    var photo=w.hasPhoto?'<img class="warrant-photo" src="/lapd/warrant-photo/'+w.id+'" onclick="window.open(this.src)" alt="Foto">'
+      :'<div style="width:56px;height:56px;background:#070f2b;border:1px solid #1a3a78;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.4rem">?</div>';
+    var modBtns=(canMod&&w.status==="aktiv"?'<button class="btn sm grn" onclick="markGefasst(\''+w.id+'\')">Gefasst</button>':"")+
+      (canMod?'<button class="btn sm red" style="margin-left:5px" onclick="deleteWarrant(\''+w.id+'\')">Loeschen</button>':"");
+    return '<div class="ann-card" style="border-left:3px solid '+bc+'">'+
+      '<div style="display:flex;gap:12px;align-items:start">'+
+      photo+
+      '<div style="flex:1">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+      '<h4>'+escH(w.name)+'</h4>'+
+      '<div style="display:flex;gap:5px">'+
+      '<span class="status-badge '+w.status+'">'+escH(w.status.toUpperCase())+'</span>'+
+      '<span class="danger-badge '+dangerCls+'">'+escH(w.danger)+'</span>'+
+      '</div></div>'+
+      '<div style="font-size:.8rem;color:#fcd34d;margin-bottom:3px">'+escH(w.offense)+'</div>'+
+      (w.description?'<div style="font-size:.8rem;margin-bottom:5px">'+escH(w.description)+'</div>':"")+
+      modBtns+
+      '</div></div>'+
+      '<div style="font-size:.68rem;color:#374151;margin-top:5px">'+escH(w.authorName)+' ('+escH(w.rankName)+') - '+ftime(w.ts)+'</div>'+
+      '</div>';
+  }).join("");
+}
+async function submitWarrant(e){
+  e.preventDefault();
+  const formData=new FormData();
+  const fd=new FormData(e.target);
+  formData.append("name",fd.get("name"));
+  formData.append("description",fd.get("description")||"");
+  formData.append("offense",fd.get("offense"));
+  formData.append("danger",fd.get("danger")||"mittel");
+  const pf=e.target.querySelector("input[type=file]");
+  if(pf&&pf.files[0]) formData.append("photo",pf.files[0]);
+  const r=await fetch("/lapd/api/warrants",{method:"POST",body:formData}).then(function(x){return x.json();}).catch(function(){return {ok:false};});
+  flash(document.getElementById("warrants-flash"),r.ok?"Fahndung erstellt!":r.msg||"Fehler",r.ok);
+  if(r.ok){e.target.reset();loadWarrants();}
+}
+async function markGefasst(id){
+  await fetch("/lapd/api/warrants/"+id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"gefasst"})});
+  loadWarrants();
+}
+async function deleteWarrant(id){
+  if(!confirm("Fahndung loeschen?"))return;
+  await fetch("/lapd/api/warrants/"+id,{method:"DELETE"});
+  loadWarrants();
+}
+
+// ── BUSSGELDK render ──────────────────────────────────────────────────────
+function renderBkat(){
+  const el=document.getElementById("bkat-content");if(!el)return;
+  const qEl=document.getElementById("bkat-q");
+  const search=qEl?qEl.value.toLowerCase():"";
+  el.innerHTML=BKAT.map(function(section){
+    var rows=section.items.filter(function(r){return !search||r[0].toLowerCase().includes(search);});
+    if(!rows.length)return"";
+    return '<div class="bkat-section"><div class="bkat-cat">'+escH(section.cat)+'</div>'+
+      rows.map(function(row){return '<div class="bkat-row"><span>'+escH(row[0])+'</span><span class="bkat-fine">'+escH(row[1])+'</span></div>';}).join("")+
+      '</div>';
+  }).join("");
+}
+
+document.addEventListener("DOMContentLoaded",function(){showTab("board");renderBkat();});
+
 `.trim();
-})(s.userId, s.ebene, s.displayName, s.rankName, canPost, canWarn);
+})(s.userId, s.ebene, s.displayName, s.rankName, canPost, canWarn, canSchedule);
 
     const postForm = canPost ?
       '<div class="sec"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">📝 Neue Ankündigung</h3></div>'+
       '<div class="sb"><div id="ann-flash"></div>'+
       '<form onsubmit="postAnn(event)">'+
-      '<div class="fg"><label>Titel</label><input type="text" name="title" maxlength="100" required placeholder="Titel der Ankündigung"></div>'+
+      '<div class="fg"><label>Empfänger</label><select name="annTarget"><option value="intern">📋 LAPD Intern (Dashboard)</option><option value="residents">🏙️ Alle Bewohner von Los Angeles</option></select></div>'+
+      '<div class="fg" id="ann-title-wrap"><label>Titel</label><input type="text" name="title" maxlength="100" placeholder="Titel der Ankündigung"></div>'+
       '<div class="fg"><label>Inhalt</label><textarea name="content" maxlength="2000" required placeholder="Ankündigung verfassen..."></textarea></div>'+
-      '<button class="btn" type="submit">📌 Ankündigung posten</button></form></div></div>' : '';
+      '<button class="btn" type="submit">📌 Senden</button></form></div></div>' : '';
 
     const warnForm = canWarn ?
       '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">⚠️ Verwarnung ausstellen</h3></div>'+
@@ -2719,6 +3323,104 @@ document.addEventListener("DOMContentLoaded",()=>showTab("board"));
       '<div class="tsec" id="t-warnings" style="display:none">'+warnForm+
       '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">⚠️ Abmahnung/Suspendierung</h3></div>'+
       '<div class="sb"><div id="warn-content"></div></div></div>'+
+      '</div>'+
+      '<div class="tsec" id="t-schedule" style="display:none">'+
+      (canSchedule ?
+        '<div class="sec"><div class="sh" style="border-left:3px solid #42a5f5"><h3 style="color:#42a5f5">Dienst einteilen</h3></div>'+
+        '<div class="sb"><div id="sched-flash"></div>'+
+        '<form onsubmit="submitSchedule(event)">'+
+        '<div class="row"><div class="fg"><label>Datum</label><input type="date" name="date" required></div>'+
+        '<div class="fg"><label>Schicht</label><select name="shift"><option value="frueh">Fruehschicht</option><option value="tag">Tagschicht</option><option value="spaet">Spaetschicht</option><option value="nacht">Nachtschicht</option></select></div></div>'+
+        '<div class="fg"><label>Diensttyp</label><select name="duty"><option>Fahrzeugstreife</option><option>Fussstreife</option><option>Motorradstreife</option><option>Verkehrskontrolle</option><option>Objektschutz</option><option>Gefangenenbetreuung</option><option>Ermittlung</option><option>Bereitschaft</option><option>Spezialeinheit</option></select></div>'+
+        '<div class="fg"><label>Officer (kommagetrennt)</label><input type="text" name="assignments" placeholder="z.B. Officer Mueller, Officer Smith"></div>'+
+        '<div class="fg"><label>Notiz</label><input type="text" name="notes" maxlength="300"></div>'+
+        '<button class="btn" type="submit">Eintragen</button></form></div></div>'
+      : '') +
+      '<div class="sec" style="margin-top:14px"><div class="sh" style="border-left:3px solid #42a5f5"><h3 style="color:#42a5f5">Dienstplan</h3></div>'+
+      '<div class="sb"><div id="sched-content"><p class="muted">Laedt...</p></div></div></div>'+
+      '</div>'+
+      '<div class="tsec" id="t-reports" style="display:none">'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #66bb6a"><h3 style="color:#66bb6a">Einsatzbericht schreiben</h3></div>'+
+      '<div class="sb"><div id="rep-flash"></div>'+
+      '<form onsubmit="submitReport(event)">'+
+      '<div class="row"><div class="fg"><label>Datum</label><input type="date" name="date" required></div>'+
+      '<div class="fg"><label>Uhrzeit</label><input type="time" name="time"></div></div>'+
+      '<div class="fg"><label>Einsatzort</label><input type="text" name="location" maxlength="200" placeholder="Strasse / Ort"></div>'+
+      '<div class="fg"><label>Beteiligte</label><input type="text" name="involved" maxlength="500" placeholder="Namen der Beteiligten"></div>'+
+      '<div class="fg"><label>Beschreibung</label><textarea name="description" maxlength="3000" required placeholder="Einsatzbeschreibung..." style="min-height:120px"></textarea></div>'+
+      '<button class="btn" type="submit">Bericht absenden</button></form></div></div>'+
+      '<div class="sec" style="margin-top:14px"><div class="sh" style="border-left:3px solid #66bb6a"><h3 style="color:#66bb6a">Berichte suchen</h3>'+
+      '<div style="display:flex;gap:8px;align-items:center">'+
+      '<input id="reports-date" type="date" style="background:#070f2b;border:1px solid #1a3a78;color:#e0e0e0;padding:6px 10px;border-radius:6px;font-size:.82rem;outline:none">'+
+      '<button class="btn sm" onclick="loadReports()">Suchen</button>'+
+      '<button class="btn sm ghost" onclick="document.getElementById(\'reports-date\').value=\'\';loadReports()">Alle</button>'+
+      '</div></div>'+
+      '<div class="sb"><div id="reports-content"><p class="muted">Laedt...</p></div></div></div>'+
+      '</div>'+
+      '<div class="tsec" id="t-persons" style="display:none">'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #ab47bc"><h3 style="color:#ab47bc">Personenakte anlegen</h3></div>'+
+      '<div class="sb"><div id="persons-flash"></div>'+
+      '<form onsubmit="submitPerson(event)">'+
+      '<div class="row"><div class="fg"><label>Vorname</label><input type="text" name="firstName" maxlength="80" required placeholder="Vorname"></div>'+
+      '<div class="fg"><label>Nachname</label><input type="text" name="lastName" maxlength="80" required placeholder="Nachname"></div></div>'+
+      '<div class="row"><div class="fg"><label>Geburtsdatum</label><input type="date" name="dob"></div>'+
+      '<div class="fg"><label>Staatsangehoerigkeit</label><input type="text" name="nationality" maxlength="80" placeholder="z.B. Amerikanisch"></div></div>'+
+      '<div class="fg"><label>Adresse</label><input type="text" name="address" maxlength="200" placeholder="Strasse, Hausnummer, PLZ, Stadt"></div>'+
+      '<div class="fg"><label>Einreiseart</label><select name="entryType"><option value="">Auswaehlen</option><option>Staatsbuerger</option><option>Legale Einwanderung</option><option>Illegale Einwanderung</option><option>Visum</option><option>Greencard</option></select></div>'+
+      '<div class="fg"><label>Notizen</label><textarea name="notes" maxlength="1000" placeholder="Besondere Merkmale..."></textarea></div>'+
+      '<button class="btn" type="submit">Akte anlegen</button></form></div></div>'+
+      '<div class="sec" style="margin-top:14px"><div class="sh" style="border-left:3px solid #ab47bc"><h3 style="color:#ab47bc">Personenakten A-Z</h3>'+
+      '<input id="persons-q" type="text" placeholder="Name suchen..." oninput="loadPersons()" style="background:#070f2b;border:1px solid #1a3a78;color:#e0e0e0;padding:6px 10px;border-radius:6px;font-size:.82rem;outline:none;width:200px"></div>'+
+      '<div class="sb"><div id="persons-content"><p class="muted">Laedt...</p></div></div></div>'+
+      '</div>'+
+      '<div class="tsec" id="t-vehicles" style="display:none">'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #26c6da"><h3 style="color:#26c6da">Fahrzeug erfassen</h3></div>'+
+      '<div class="sb"><div id="vehicles-flash"></div>'+
+      '<form onsubmit="submitVehicle(event)">'+
+      '<div class="row"><div class="fg"><label>Kennzeichen</label><input type="text" name="plate" maxlength="20" required placeholder="z.B. 7ABC234"></div>'+
+      '<div class="fg"><label>Status</label><select name="status"><option value="normal">Normal</option><option value="gestohlen">Gestohlen</option><option value="gesucht">Gesucht</option><option value="beschlagnahmt">Beschlagnahmt</option></select></div></div>'+
+      '<div class="row"><div class="fg"><label>Marke</label><input type="text" name="make" maxlength="60" placeholder="z.B. Toyota"></div>'+
+      '<div class="fg"><label>Modell</label><input type="text" name="model" maxlength="60" placeholder="z.B. Camry"></div>'+
+      '<div class="fg"><label>Farbe</label><input type="text" name="color" maxlength="40" placeholder="z.B. Silber"></div></div>'+
+      '<div class="fg"><label>Eigentuemer</label><input type="text" name="owner" maxlength="100" placeholder="Vor- und Nachname"></div>'+
+      '<div class="fg"><label>Notizen</label><input type="text" name="notes" maxlength="500"></div>'+
+      '<button class="btn" type="submit">Speichern</button></form></div></div>'+
+      '<div class="sec" style="margin-top:14px"><div class="sh" style="border-left:3px solid #26c6da"><h3 style="color:#26c6da">Fahrzeugakten</h3>'+
+      '<input id="vehicles-q" type="text" placeholder="Kennzeichen oder Eigentuemer..." oninput="loadVehicles()" style="background:#070f2b;border:1px solid #1a3a78;color:#e0e0e0;padding:6px 10px;border-radius:6px;font-size:.82rem;outline:none;width:240px"></div>'+
+      '<div class="sb"><div id="vehicles-content"><p class="muted">Laedt...</p></div></div></div>'+
+      '</div>'+
+      '<div class="tsec" id="t-crimes" style="display:none">'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">Strafakte anlegen</h3></div>'+
+      '<div class="sb"><div id="crimes-flash"></div>'+
+      '<form onsubmit="submitCrime(event)">'+
+      '<div class="row"><div class="fg"><label>Name des Beschuldigten</label><input type="text" name="personName" maxlength="100" required placeholder="Vor- und Nachname"></div>'+
+      '<div class="fg"><label>Datum</label><input type="date" name="date"></div></div>'+
+      '<div class="fg"><label>Vergehen</label><input type="text" name="offense" maxlength="200" required placeholder="z.B. DUI, Koerperverletzung..."></div>'+
+      '<div class="fg"><label>Strafe / Urteil</label><input type="text" name="penalty" maxlength="200" placeholder="z.B. $1.000 Geldstrafe..."></div>'+
+      '<div class="fg"><label>Notizen</label><textarea name="notes" maxlength="500"></textarea></div>'+
+      '<button class="btn" type="submit">Strafakte anlegen</button></form></div></div>'+
+      '<div class="sec" style="margin-top:14px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">Strafakten</h3>'+
+      '<input id="crimes-q" type="text" placeholder="Person suchen..." oninput="loadCrimes()" style="background:#070f2b;border:1px solid #1a3a78;color:#e0e0e0;padding:6px 10px;border-radius:6px;font-size:.82rem;outline:none;width:200px"></div>'+
+      '<div class="sb"><div id="crimes-content"><p class="muted">Laedt...</p></div></div></div>'+
+      '</div>'+
+      '<div class="tsec" id="t-bkat" style="display:none">'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">Bussgeldkatalog Los Angeles</h3>'+
+      '<input id="bkat-q" type="text" placeholder="Suchen..." oninput="renderBkat()" style="background:#070f2b;border:1px solid #1a3a78;color:#e0e0e0;padding:6px 10px;border-radius:6px;font-size:.82rem;outline:none;width:180px"></div>'+
+      '<div class="sb"><div id="bkat-content"></div></div></div>'+
+      '</div>'+
+      '<div class="tsec" id="t-warrants" style="display:none">'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #ef4444"><h3 style="color:#ef4444">Fahndung erstellen</h3></div>'+
+      '<div class="sb"><div id="warrants-flash"></div>'+
+      '<form onsubmit="submitWarrant(event)">'+
+      '<div class="row"><div class="fg"><label>Name der gesuchten Person</label><input type="text" name="name" maxlength="100" required></div>'+
+      '<div class="fg"><label>Gefahrenstufe</label><select name="danger"><option value="niedrig">Niedrig</option><option value="mittel" selected>Mittel</option><option value="hoch">HOCH</option></select></div></div>'+
+      '<div class="fg"><label>Vergehen / Vorwurf</label><input type="text" name="offense" maxlength="200" required placeholder="z.B. Bewaffneter Raububerfall..."></div>'+
+      '<div class="fg"><label>Beschreibung / Personenbeschreibung</label><textarea name="description" maxlength="500" placeholder="Beschreibung, letzte bekannte Position..."></textarea></div>'+
+      '<div class="fg"><label>Foto der gesuchten Person (optional)</label>'+
+      '<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" style="background:#070f2b;border:1px solid #1a3a78;padding:6px 10px;border-radius:6px;color:#90caf9;font-size:.8rem;width:100%"></div>'+
+      '<button class="btn red" type="submit">Fahndung erstellen</button></form></div></div>'+
+      '<div class="sec" style="margin-top:14px"><div class="sh" style="border-left:3px solid #ef4444"><h3 style="color:#ef4444">Aktive Fahndungen</h3></div>'+
+      '<div class="sb"><div id="warrants-content"><p class="muted">Laedt...</p></div></div></div>'+
       '</div>'+
       '</main></div>'+
       '<script>'+clientJs+'</script></body></html>'
