@@ -1278,25 +1278,26 @@ async function buildInviteCache(guild) {
           if (m.author.id === client.user.id) await m.delete().catch(() => {});
         }
       }
+      const LINE = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const handyEmbed = new EmbedBuilder()
-        .setTitle('📱 Handy-Verwaltung')
+        .setTitle('📱  Handy-Verwaltung')
         .setDescription(
-          'Willkommen bei deiner **Handy-Verwaltung**!\n\n' +
-          '> 📱 **Handy An/Aus** — Schalte dein Handy ein oder aus\n' +
-          '> 📲 **Apps** — Verwalte deine installierten Apps\n' +
-          '> 🎮 **Spiele** — Spiele Handy-Spiele direkt im Browser\n' +
-          '> 📡 **Dispatch** — Erreichbarkeit für Einsatzkräfte\n' +
-          '> 💬 **WhatsApp** — Sende Nachrichten an andere Spieler\n\n' +
-          '⚠️ Du benötigst ein **Handy** aus dem Kwil E Markt und es muss **eingeschaltet** sein.'
+          LINE + '\n\n' +
+          '📱  **Handy An/Aus** — Schalte dein Handy ein oder aus\n' +
+          '📲  **Apps** — Installiere & verwalte deine Apps\n' +
+          '🎮  **Spiele** — Spiele direkt im Browser\n' +
+          '<:emoji_24:1502984875387392011>  **WhatsApp** — Schreibe anderen Spielern\n' +
+          '🚨  **Dispatch** — Erreichbarkeit für Einsatzkräfte\n\n' +
+          LINE + '\n\n' +
+          '⚠️  Für alle Funktionen benötigst du ein **Handy** aus dem **Kwil E Markt** — und es muss **eingeschaltet** sein.'
         )
         .setColor(DARK_ORANGE)
-        .setFooter({ text: 'Paradise City Roleplay • Handy-System' });
+        .setFooter({ text: 'Paradise City Roleplay  •  Handy-System' });
       const handyMenu = new StringSelectMenuBuilder()
         .setCustomId('handy_menu')
         .setPlaceholder('📱 Was möchtest du tun?')
         .addOptions(
-          new StringSelectMenuOptionBuilder().setLabel('Handy Einschalten').setValue('handy_an').setEmoji('📱').setDescription('Schalte dein Handy ein'),
-          new StringSelectMenuOptionBuilder().setLabel('Handy Ausschalten').setValue('handy_aus').setEmoji('📵').setDescription('Schalte dein Handy aus'),
+          new StringSelectMenuOptionBuilder().setLabel('Handy An/Aus').setValue('handy_an').setEmoji('📱').setDescription('Schalte dein Handy ein oder aus'),
           new StringSelectMenuOptionBuilder().setLabel('Apps').setValue('handy_apps').setEmoji('📲').setDescription('Apps installieren & verwalten'),
           new StringSelectMenuOptionBuilder().setLabel('Spiele').setValue('handy_spiele').setEmoji('🎮').setDescription('Handy-Spiele im Browser spielen'),
           new StringSelectMenuOptionBuilder().setLabel('WhatsApp').setValue('handy_whatsapp').setEmoji({ id: '1502984875387392011', name: 'emoji_24' }).setDescription('Nachrichten an Spieler senden'),
