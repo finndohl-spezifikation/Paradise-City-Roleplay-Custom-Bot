@@ -2259,7 +2259,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   // ── Login CSS / helpers ──────────────────────────────────────────────────
   const LCSS = '*{box-sizing:border-box;margin:0;padding:0}body{background:#04091f;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#0c1b45;border:1px solid #1e4080;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}.badge{text-align:center;margin-bottom:24px}.badge .ico{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}hr{border:none;border-top:1px solid #1e4080;margin:20px 0}.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}.info{background:rgba(21,101,192,.15);border:1px solid #1565c0;border-radius:8px;padding:14px;margin-bottom:16px;color:#90caf9;font-size:.88rem;line-height:1.6}.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.fg input,.fg select{width:100%;background:#040920;border:1px solid #1e4080;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}.fg select option{background:#040920}.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}.btn:hover{background:#1976d2}.foot{margin-top:28px;color:#1e4080;font-size:.7rem;letter-spacing:1px;text-align:center}';
   const LHEAD  = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>LAPD</title><style>'+LCSS+'</style></head><body>';
-  const LBADGE = '<div class="badge"><div class="ico">🛡️</div><h1>LAPD</h1><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><div class="sub">Paradise City Roleplay</div></div><hr>';
+  const LBADGE = '<div class="badge"><img src="/lapd/logo.png" alt="LAPD" style="width:100px;height:100px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 14px;box-shadow:0 0 28px #1a4fa8aa"><h1>LAPD</h1><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><div class="sub">Paradise City Roleplay</div></div><hr>';
   const LFOOT  = '<div class="foot">LAPD INTERNES SYSTEM • UNBEFUGTER ZUGRIFF VERBOTEN</div></body></html>';
 
   // ── GET /lapd ────────────────────────────────────────────────────────────
@@ -3261,7 +3261,13 @@ function renderBkat(){
   }).join("");
 }
 
-document.addEventListener("DOMContentLoaded",function(){showTab("board");renderBkat();});
+document.addEventListener("DOMContentLoaded",function(){
+  showTab("board");
+  renderBkat();
+  // Intro overlay fade-out
+  var ov=document.getElementById("intro-overlay");
+  if(ov){setTimeout(function(){ov.classList.add("fade-out");setTimeout(function(){ov.remove();},750);},2200);}
+});
 
 `.trim();
 })(s.userId, s.ebene, s.displayName, s.rankName, canPost, canWarn, canSchedule);
@@ -3287,10 +3293,10 @@ document.addEventListener("DOMContentLoaded",function(){showTab("board");renderB
     res.send(
       '<!DOCTYPE html><html lang="de"><head>'+
       '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">'+
-      '<title>LAPD Dashboard</title><style>'+LAPD_CSS+'</style></head><body>'+
+      '<title>LAPD Dashboard</title><style>'+LAPD_CSS+'</style></head><body>'+'<div id="intro-overlay" class="intro-overlay">'+'<img src="/lapd/logo.png" class="intro-logo" alt="LAPD" onerror="this.style.display=\'none\'">'+'<div class="intro-txt">LOS ANGELES POLICE DEPARTMENT</div>'+'<div style="color:#4a6fa8;font-size:.7rem;letter-spacing:2px">PARADISE CITY ROLEPLAY</div>'+'</div>'+
       // ── Sidebar ──
       '<aside class="sidebar">'+
-      '<div class="sb-logo"><div class="ico">🛡️</div><div><h2>LAPD</h2><p>Dashboard</p></div></div>'+
+      '<div class="sb-logo"><img src="/lapd/logo.png" alt="LAPD" style="width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 0 14px #1a4fa888"><div><h2>LAPD</h2><p>Dashboard</p></div></div>'+
       '<nav class="sb-nav">'+
       '<button class="nb act" data-t="board" onclick="showTab(\'board\')"><span class="ni">ℹ️</span><span class="nl">Informationen</span></button>'+
       '<button class="nb" data-t="duty" onclick="showTab(\'duty\')"><span class="ni">🕐</span><span class="nl">Dienst</span></button>'+
