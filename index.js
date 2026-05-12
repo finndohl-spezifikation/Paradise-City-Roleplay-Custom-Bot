@@ -2155,6 +2155,7 @@ client.on('guildCreate',  async (guild)  => { await buildInviteCache(guild); });
 
 // ─── MEMBER ADD ───────────────────────────────────────────────────────────────
 client.on('guildMemberAdd', async (member) => {
+  if (member.guild.id === '1498482541751963698') return;
   if (!member.user.bot) {
     // Auto-Rolle
     try { await member.roles.add('1490855725516460234'); }
@@ -2303,6 +2304,7 @@ client.on('guildMemberAdd', async (member) => {
 // ─── MEMBER REMOVE ────────────────────────────────────────────────────────────
 client.on('guildMemberRemove', async (member) => {
   if (member.user.bot) return;
+  if (member.guild.id === '1498482541751963698') return;
 
   const invData      = loadInvites();
   const guildData    = invData[member.guild.id] ?? {};
