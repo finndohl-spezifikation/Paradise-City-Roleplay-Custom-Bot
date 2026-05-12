@@ -1250,6 +1250,34 @@ async function buildInviteCache(guild) {
     if (handyCh) {
       const msgs = await handyCh.messages.fetch({ limit: 20 }).catch(() => null);
       const existing = msgs ? msgs.find(m => m.author.id === client.user.id && m.components.length > 0) : null;
+      if (!existing) {
+        const LINE = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+        const handyEmbedNew = new EmbedBuilder()
+          .setTitle('📱  Handy-Verwaltung')
+          .setDescription(LINE + '\n\n' +
+            '📱  **Handy An/Aus** — Schalte dein Handy ein oder aus\n' +
+            '📲  **Apps** — Installiere & verwalte deine Apps\n' +
+            '🎮  **Spiele** — Spiele direkt im Browser\n' +
+            '<:emoji_24:1502984875387392011>  **WhatsApp** — Schreibe anderen Spielern\n' +
+            '🚨  **Dispatch** — Erreichbarkeit für Einsatzkräfte\n\n' +
+            LINE + '\n\n' +
+            '⚠️  Für alle Funktionen benötigst du ein **Handy** aus dem **Kwil E Markt** — und es muss **eingeschaltet** sein.')
+          .setColor(DARK_ORANGE)
+          .setFooter({ text: 'Paradise City Roleplay  •  Handy-System' });
+        const handyMenuNew = new StringSelectMenuBuilder()
+          .setCustomId('handy_menu')
+          .setPlaceholder('📱 Was möchtest du tun?')
+          .addOptions(
+            new StringSelectMenuOptionBuilder().setLabel('Handy An/Aus').setValue('handy_an').setEmoji('📱').setDescription('Schalte dein Handy ein oder aus'),
+            new StringSelectMenuOptionBuilder().setLabel('Apps').setValue('handy_apps').setEmoji('📲').setDescription('Apps installieren & verwalten'),
+            new StringSelectMenuOptionBuilder().setLabel('Spiele').setValue('handy_spiele').setEmoji('🎮').setDescription('Handy-Spiele im Browser spielen'),
+            new StringSelectMenuOptionBuilder().setLabel('WhatsApp').setValue('handy_whatsapp').setEmoji({ id: '1502984875387392011', name: 'emoji_24' }).setDescription('Nachrichten an Spieler senden'),
+            new StringSelectMenuOptionBuilder().setLabel('Dispatch').setValue('handy_dispatch').setEmoji('🚨').setDescription('Erreichbarkeit für Einsatzkräfte'),
+          );
+        const handyMenuRowNew = new ActionRowBuilder().addComponents(handyMenuNew);
+        await handyCh.send({ embeds: [handyEmbedNew], components: [handyMenuRowNew] }).catch(e => console.error('Handy send Fehler:', e.message));
+        console.log('✅ Handy-Embed neu gesendet.');
+      }
       if (existing) {
         const LINE = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
         const handyEmbed = new EmbedBuilder()
@@ -1936,7 +1964,7 @@ async function buildInviteCache(guild) {
               .setLabel('🎰 Lotto spielen')
               .setStyle(ButtonStyle.Primary);
             const lottoRow = new ActionRowBuilder().addComponents(lottoBtn);
-            await lottoCh.send({ embeds: [lottoEmbed], components: [lottoRow] });
+            await lottoCh.send({ embeds: [lottoEmbed], components: [lottoRow] }).catch(e => console.error('Lotto send Fehler:', e.message));
             console.log('✅ Lotto-Embed gesendet.');
           }
         }
@@ -1984,7 +2012,7 @@ async function buildInviteCache(guild) {
             if (m.author.id === client.user.id) await m.delete().catch(() => {});
           }
         }
-        await lapdCh.send({ embeds: [lapdEmbed], components: [lapdRow] });
+        await lapdCh.send({ embeds: [lapdEmbed], components: [lapdRow] }).catch(e => console.error('LAPD send Fehler', chId, e.message));
         console.log('✅ LAPD Dashboard Link gesendet in', chId, '→', lapdUrl);
       }
     } catch (e) { console.error('LAPD Dashboard Embed Fehler:', e.message); }
