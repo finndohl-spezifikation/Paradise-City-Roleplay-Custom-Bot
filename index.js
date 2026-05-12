@@ -4956,8 +4956,8 @@ client.on('interactionCreate', async (interaction) => {
 
   // Nur weiterverarbeiten wenn es ein Handy-Befehl ist
   const handyIds = ['handy_an','handy_aus','handy_apps','handy_spiele','handy_dispatch','handy_whatsapp'];
-  const subIds   = ['app_select','spiel_snake','spiel_tetris','dispatch_lapd','dispatch_lamd','dispatch_lacs','whatsapp_modal'];
-  if (cid !== 'handy_menu' && !handyIds.includes(cid) && !subIds.includes(cid)) return;
+  const subIds   = ['app_select','spiel_snake','spiel_tetris','dispatch_lapd','dispatch_lamd','dispatch_lacs','whatsapp_empfaenger'];
+  if (cid !== 'handy_menu' && !handyIds.includes(cid) && !subIds.includes(cid) && !cid.startsWith('whatsapp_msg_')) return;
 
   const uid    = interaction.user.id;
   const member = interaction.member;
@@ -5174,27 +5174,70 @@ client.on('interactionCreate', async (interaction) => {
   if (effectiveId === 'handy_whatsapp') {
     if (!hatHandy(uid))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     if (!hatHandyAn(member, uid)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
-    const modal = new ModalBuilder().setCustomId('whatsapp_modal').setTitle('💬 WhatsApp Nachricht senden');
+    // Alle Mitglieder mit eingeschaltetem Handy laden
+    const guild = interaction.guild;
+    await guild.members.fetch().catch(() => {});
+    const online = guild.members.cache.filter(m =>
+      m.roles.cache.has(ROLE_HANDY_AN) && m.id !== uid && !m.user.bot
+    );
+    if (online.size === 0) {
+      return sendReply({ embeds: [new EmbedBuilder().setColor(0xff5500).setTitle('💬 WhatsApp').setDescription('📵 Gerade hat **niemand anderes** sein Handy eingeschaltet.
+
+Bitte versuche es später erneut.')] });
+    }
+    const options = [...online.values()].slice(0, 25).map(m =>
+      new StringSelectMenuOptionBuilder()
+        .setLabel((m.displayName || m.user.username).slice(0, 100))
+        .setValue(m.id)
+        .setDescription(('@' + m.user.username).slice(0, 100))
+    );
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId('whatsapp_empfaenger')
+      .setPlaceholder('👤 Empfänger auswählen...')
+      .addOptions(options);
+    const row = new ActionRowBuilder().addComponents(menu);
+    return sendReply({
+      embeds: [new EmbedBuilder().setColor(0x25d366).setTitle('💬 WhatsApp').setDescription('Wähle einen Spieler aus, dem du schreiben möchtest.
+
+*Nur Spieler mit eingeschaltetem Handy werden angezeigt.*')],
+      components: [row]
+    });
+  }
+
+  // ── WHATSAPP: Empfänger gewählt → Modal ──────────────────────────────────
+  if (cid === 'whatsapp_empfaenger') {
+    const empfaengerId = interaction.values[0];
+    const modal = new ModalBuilder()
+      .setCustomId('whatsapp_msg_' + empfaengerId)
+      .setTitle('💬 WhatsApp Nachricht');
     modal.addComponents(
       new ActionRowBuilder().addComponents(
-        new TextInputBuilder().setCustomId('wa_empfaenger').setLabel('Empfänger (Discord User-ID)').setStyle(TextInputStyle.Short).setPlaceholder('z.B. 123456789012345678').setRequired(true)
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder().setCustomId('wa_nachricht').setLabel('Nachricht').setStyle(TextInputStyle.Paragraph).setPlaceholder('Schreibe deine Nachricht...').setRequired(true).setMaxLength(1000)
+        new TextInputBuilder()
+          .setCustomId('wa_nachricht')
+          .setLabel('Nachricht')
+          .setStyle(TextInputStyle.Paragraph)
+          .setPlaceholder('Schreibe deine Nachricht...')
+          .setRequired(true)
+          .setMaxLength(1000)
       ),
     );
     return interaction.showModal(modal);
   }
 
   // ── WHATSAPP MODAL SUBMIT ─────────────────────────────────────────────────
-  if (cid === 'whatsapp_modal') {
+  if (cid.startsWith('whatsapp_msg_')) {
     await interaction.deferReply({ ephemeral: true });
-    const empfaengerRaw = interaction.fields.getTextInputValue('wa_empfaenger').trim().replace(/[<@!>]/g, '');
-    const nachricht     = interaction.fields.getTextInputValue('wa_nachricht').trim();
+    const empfaengerId = cid.replace('whatsapp_msg_', '');
+    const nachricht    = interaction.fields.getTextInputValue('wa_nachricht').trim();
     let empfaenger;
-    try { empfaenger = await interaction.client.users.fetch(empfaengerRaw); }
-    catch { return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Empfänger nicht gefunden. Bitte prüfe die User-ID.')] }); }
-    if (empfaenger.bot) return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du kannst keine Nachrichten an Bots senden.')] });
+    try { empfaenger = await interaction.client.users.fetch(empfaengerId); }
+    catch { return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Empfänger nicht gefunden.')] }); }
+    // Prüfe ob Empfänger noch Handy eingeschaltet hat
+    const guild = interaction.guild;
+    const empMember = await guild.members.fetch(empfaengerId).catch(() => null);
+    if (!empMember || !empMember.roles.cache.has(ROLE_HANDY_AN)) {
+      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Der Empfänger hat sein Handy inzwischen **ausgeschaltet**.')] });
+    }
     const dmEmbed = new EmbedBuilder()
       .setColor(0x25d366)
       .setTitle('💬 WhatsApp Nachricht')
