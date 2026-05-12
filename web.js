@@ -2434,7 +2434,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         ebene:       rank.ebene,
         loggedInAt:  Date.now(),
       };
-      return res.redirect('/lapd/dashboard?tab=board');
+      return res.redirect('/lapd/dashboard?tab=start');
     } catch (e) {
       console.error('WebLogin Fehler:', e.message);
       return res.redirect('/lapd/weblogin?err=id');
@@ -3077,7 +3077,8 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +'</div>'
       +'</div>'
       +'<nav class="sb-nav">'
-      +nav('board','ℹ️','Informationen')
+      +nav('start','🏠','Startseite')
+      +nav('board','ℹ️','Ankündigungen')
       +nav('duty','🕐','Dienst')
       +nav('vacation','✈️','Urlaub')
       +nav('warnings','⚠️','Abmahnung')
@@ -3239,13 +3240,37 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     const canWarn     = s.ebene==='leitung'||s.ebene==='befehl';
     const canSchedule = s.ebene==='leitung'||s.ebene==='befehl';
     const canMod      = canWarn;
-    const tab   = req.query.tab || 'board';
+    const tab   = req.query.tab || 'start';
     const flash = req.query.ok  ? {ok:true,  text:req.query.ok}
                 : req.query.err ? {ok:false, text:req.query.err}
                 : null;
     let content = '';
 
-    if (tab === 'board') {
+    if (tab === 'start') {
+      const welcomeCardStart = '<div class="sec" style="border-left:4px solid #1F51FF;background:linear-gradient(135deg,#060f27 0%,#0a1a3a 100%)">'
+        +'<div class="sh" style="border-left:none">'
+        +'<h3 style="color:#ffd700;font-size:.88rem;letter-spacing:2px">&#x1F46E; LAPD System &mdash; Willkommen, '+esc(s.displayName)+'</h3>'
+        +'</div>'
+        +'<div class="sb" style="padding:20px 22px">'
+        +'<div style="display:flex;flex-direction:column;gap:14px">'
+        +'<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(31,81,255,0.08);border:1px solid #1a3a78;border-radius:9px">'
+        +'<span style="font-size:1.3rem;flex-shrink:0">&#x1F3DB;&#xFE0F;</span>'
+        +'<div><div style="font-size:.72rem;color:#6aa3ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">System</div>'
+        +'<div style="font-size:.88rem;color:#e0e0e0;font-weight:600">Offizielles Betriebssystem des Los Angeles Police Department</div></div></div>'
+        +'<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(239,68,68,0.08);border:1px solid #7f1d1d;border-radius:9px">'
+        +'<span style="font-size:1.3rem;flex-shrink:0">&#x1F6A8;</span>'
+        +'<div><div style="font-size:.72rem;color:#f87171;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Wichtiger Hinweis</div>'
+        +'<div style="font-size:.88rem;color:#fca5a5;font-weight:600">Missbrauch des Panic Buttons f&uuml;hrt zu einer sofortigen Suspendierung</div></div></div>'
+        +'<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(74,222,128,0.07);border:1px solid #14532d;border-radius:9px">'
+        +'<span style="font-size:1.3rem;flex-shrink:0">&#x2705;</span>'
+        +'<div><div style="font-size:.72rem;color:#86efac;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Dienst</div>'
+        +'<div style="font-size:.88rem;color:#bbf7d0;font-weight:600">Wir w&uuml;nschen Ihnen einen angenehmen Dienst</div></div></div>'
+        +'</div>'
+        +'<div style="margin-top:18px;padding-top:14px;border-top:1px solid #1a3a78;text-align:center;font-size:.67rem;color:#4a6a9a;letter-spacing:.08em">LAPD System &mdash; Programmiert und Bereitgestellt durch Inhaber von Paradise City Roleplay</div>'
+        +'</div></div>';
+      content = welcomeCardStart;
+
+    } else if (tab === 'board') {
       const ann = loadAnn().sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)||b.ts-a.ts);
       let annHtml = ann.length ? ann.map(a => {
         const cls = 'ann-card'+(a.pinned?' pinned':'');
@@ -3276,29 +3301,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
           +'<button class="btn" type="submit">Senden</button>'
           +'</form></div></div>' : '';
 
-      const welcomeCard = '<div class="sec" style="border-left:4px solid #1F51FF;background:linear-gradient(135deg,#060f27 0%,#0a1a3a 100%)">'
-        +'<div class="sh" style="border-left:none">'
-        +'<h3 style="color:#ffd700;font-size:.88rem;letter-spacing:2px">&#x1F46E; LAPD System &mdash; Willkommen, '+esc(s.displayName)+'</h3>'
-        +'</div>'
-        +'<div class="sb" style="padding:20px 22px">'
-        +'<div style="display:flex;flex-direction:column;gap:14px">'
-        +'<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(31,81,255,0.08);border:1px solid #1a3a78;border-radius:9px">'
-        +'<span style="font-size:1.3rem;flex-shrink:0">&#x1F3DB;&#xFE0F;</span>'
-        +'<div><div style="font-size:.72rem;color:#6aa3ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">System</div>'
-        +'<div style="font-size:.88rem;color:#e0e0e0;font-weight:600">Offizielles Betriebssystem des Los Angeles Police Department</div></div></div>'
-        +'<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(239,68,68,0.08);border:1px solid #7f1d1d;border-radius:9px">'
-        +'<span style="font-size:1.3rem;flex-shrink:0">&#x1F6A8;</span>'
-        +'<div><div style="font-size:.72rem;color:#f87171;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Wichtiger Hinweis</div>'
-        +'<div style="font-size:.88rem;color:#fca5a5;font-weight:600">Missbrauch des Panic Buttons f&uuml;hrt zu einer sofortigen Suspendierung</div></div></div>'
-        +'<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(74,222,128,0.07);border:1px solid #14532d;border-radius:9px">'
-        +'<span style="font-size:1.3rem;flex-shrink:0">&#x2705;</span>'
-        +'<div><div style="font-size:.72rem;color:#86efac;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Dienst</div>'
-        +'<div style="font-size:.88rem;color:#bbf7d0;font-weight:600">Wir w&uuml;nschen Ihnen einen angenehmen Dienst</div></div></div>'
-        +'</div>'
-        +'<div style="margin-top:18px;padding-top:14px;border-top:1px solid #1a3a78;text-align:center;font-size:.67rem;color:#4a6a9a;letter-spacing:.08em">LAPD System &mdash; Programmiert und Bereitgestellt durch Inhaber von Paradise City Roleplay</div>'
-        +'</div></div>';
-      content = welcomeCard
-        +postForm
+      content = postForm
         +'<div class="sec"><div class="sh" style="border-left:3px solid #90caf9"><h3 style="color:#90caf9">Ankündigungen</h3></div>'
         +'<div class="sb">'+annHtml+'</div></div>';
 
@@ -3736,7 +3739,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   app.post('/lapd/dashboard/post-ann', (req,res) => {
     if (!isLapdAuth(req)) return res.redirect('/lapd');
     const s = req.session.lapd;
-    const tab = req.query.tab||'board';
+    const tab = req.query.tab||'start';
     if (s.ebene!=='leitung') return dashRedir(res, tab, 'Nur Command Staff.');
     const {title, content, annTarget} = req.body;
     if (!title||!content) return dashRedir(res, tab, 'Titel und Inhalt erforderlich.');
@@ -3757,7 +3760,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
 
   app.post('/lapd/dashboard/pin-ann/:id', (req,res) => {
     if (!isLapdAuth(req)) return res.redirect('/lapd');
-    const tab = req.query.tab||'board';
+    const tab = req.query.tab||'start';
     if (req.session.lapd.ebene!=='leitung') return dashRedir(res, tab, 'Nur Command Staff.');
     const ann = loadAnn();
     const item = ann.find(a=>a.id===req.params.id);
@@ -3767,7 +3770,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
 
   app.post('/lapd/dashboard/del-ann/:id', (req,res) => {
     if (!isLapdAuth(req)) return res.redirect('/lapd');
-    const tab = req.query.tab||'board';
+    const tab = req.query.tab||'start';
     if (req.session.lapd.ebene!=='leitung') return dashRedir(res, tab, 'Nur Command Staff.');
     saveAnn(loadAnn().filter(a=>a.id!==req.params.id));
     dashRedir(res, tab, 'Gelöscht.', true);
