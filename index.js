@@ -3025,13 +3025,19 @@ client.on('interactionCreate', async (interaction) => {
         if (!guild) {
           return interaction.editReply({ content: '❌ LAPD-Server nicht erreichbar.' });
         }
-        const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+        const member = await guild.members.fetch({ user: interaction.user.id, force: true }).catch(() => null);
         if (!member) {
           return interaction.editReply({ content: '❌ Du bist kein Mitglied des LAPD-Servers.' });
         }
         const memberRanks = LAPD_RANKS_B.filter(r => member.roles.cache.has(r.id));
         if (memberRanks.length === 0) {
-          return interaction.editReply({ content: '❌ Du hast keine LAPD-Rolle auf dem Server.' });
+          // Nochmal versuchen mit explizitem Roles-Fetch
+          await member.fetch().catch(()=>{});
+          const retryRanks = LAPD_RANKS_B.filter(r => member.roles.cache.has(r.id));
+          if (retryRanks.length === 0) {
+            return interaction.editReply({ content: '❌ Du hast keine LAPD-Rolle auf dem Server 1498482541751963698.' });
+          }
+          memberRanks.push(...retryRanks);
         }
         const token   = require('crypto').randomBytes(32).toString('hex');
         const expires = Date.now() + 10 * 60 * 1000; // 10 Minuten
