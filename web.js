@@ -3843,29 +3843,6 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       offense:String(offense).slice(0,200),danger:String(danger||'mittel').slice(0,20),
       status:'aktiv',hasPhoto,authorId:s.userId,authorName:s.displayName,rankName:s.rankName,ts:Date.now()});
     saveWarrants(list);
-    // Discord Fahndungs-Benachrichtigung
-    (async () => {
-      try {
-        const annCh = await client.channels.fetch('1492939424441569542').catch(() => null);
-        if (annCh) {
-          const dangerColor = danger === 'hoch' ? 0xef4444 : danger === 'mittel' ? 0xf59e0b : 0x22c55e;
-          const dangerLabel = danger === 'hoch' ? '🔴 Hoch' : danger === 'mittel' ? '🟡 Mittel' : '🟢 Niedrig';
-          const { EmbedBuilder } = require('discord.js');
-          const embed = new EmbedBuilder()
-            .setColor(dangerColor)
-            .setTitle('🚨  NEUE FAHNDUNG — ' + String(name).slice(0,100))
-            .addFields(
-              { name: 'Vergehen', value: String(offense).slice(0,200), inline: false },
-              { name: 'Gefährlichkeit', value: dangerLabel, inline: true },
-              { name: 'Ausgestellt von', value: s.displayName + ' (' + s.rankName + ')', inline: true }
-            )
-            .setFooter({ text: 'LAPD  •  Paradise City Roleplay' })
-            .setTimestamp();
-          if (hasPhoto) embed.setThumbnail('https://' + (process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080') + '/lapd/warrant-photo/' + id);
-          await annCh.send({ content: '<@&1490855738644365603>', embeds: [embed] });
-        }
-      } catch(e) { console.error('Fahndung Discord:', e.message); }
-    })();
     dashRedir(res, tab, 'Fahndung erstellt.', true);
   });
 
