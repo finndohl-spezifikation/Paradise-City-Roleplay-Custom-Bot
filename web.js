@@ -3296,6 +3296,13 @@ document.addEventListener("DOMContentLoaded",function(){showTab("board");renderB
       '<button class="nb" data-t="duty" onclick="showTab(\'duty\')"><span class="ni">🕐</span><span class="nl">Dienst</span></button>'+
       '<button class="nb" data-t="vacation" onclick="showTab(\'vacation\')"><span class="ni">✈️</span><span class="nl">Urlaub</span></button>'+
       '<button class="nb" data-t="warnings" onclick="showTab(\'warnings\')"><span class="ni">⚠️</span><span class="nl">Abmahnung</span></button>'+
+      '<button class="nb" data-t="schedule" onclick="showTab(\'schedule\')"><span class="ni">📅</span><span class="nl">Dienstplan</span></button>'+
+      '<button class="nb" data-t="reports" onclick="showTab(\'reports\')"><span class="ni">📋</span><span class="nl">Einsatzbericht</span></button>'+
+      '<button class="nb" data-t="persons" onclick="showTab(\'persons\')"><span class="ni">🪪</span><span class="nl">Personenakten</span></button>'+
+      '<button class="nb" data-t="vehicles" onclick="showTab(\'vehicles\')"><span class="ni">🚗</span><span class="nl">Fahrzeugakten</span></button>'+
+      '<button class="nb" data-t="crimes" onclick="showTab(\'crimes\')"><span class="ni">📁</span><span class="nl">Strafakten</span></button>'+
+      '<button class="nb" data-t="bkat" onclick="showTab(\'bkat\')"><span class="ni">📜</span><span class="nl">Bußgeldkatalog</span></button>'+
+      '<button class="nb" data-t="warrants" onclick="showTab(\'warrants\')"><span class="ni">🔴</span><span class="nl">Fahndungen</span></button>'+
       '</nav>'+
       '<div class="sb-user">'+
       '<div class="uname">'+esc(s.displayName)+'</div>'+
