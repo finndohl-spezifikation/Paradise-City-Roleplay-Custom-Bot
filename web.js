@@ -2230,13 +2230,13 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   const LCSS = '*{box-sizing:border-box;margin:0;padding:0}body{background:#080d1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#0d1b2e;border:1px solid #1a3a6b;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}.badge{text-align:center;margin-bottom:24px}.badge .ico{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}hr{border:none;border-top:1px solid #1a3a6b;margin:20px 0}.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}.info{background:rgba(21,101,192,.15);border:1px solid #1565c0;border-radius:8px;padding:14px;margin-bottom:16px;color:#90caf9;font-size:.88rem;line-height:1.6}.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.fg input,.fg select{width:100%;background:#060c1a;border:1px solid #1a3a6b;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}.fg select option{background:#060c1a}.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}.btn:hover{background:#1976d2}.foot{margin-top:28px;color:#1a3a6b;font-size:.7rem;letter-spacing:1px;text-align:center}';
   const LHEAD  = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>LAPD</title><style>'+LCSS+'</style></head><body>';
   const LBADGE = '<div class="badge"><div class="ico">🛡️</div><h1>LAPD</h1><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><div class="sub">Paradise City Roleplay</div></div><hr>';
-  const LFOOT  = '<div class="foot">LAPD INTERNAL SYSTEM • UNAUTHORIZED ACCESS PROHIBITED</div></body></html>';
+  const LFOOT  = '<div class="foot">LAPD INTERNES SYSTEM • UNBEFUGTER ZUGRIFF VERBOTEN</div></body></html>';
 
   // ── GET /lapd ────────────────────────────────────────────────────────────
   app.get('/lapd', (req,res)=>{
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
     res.setHeader('Content-Type','text/html; charset=utf-8');
-    res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="info">📱 Use the <strong>🛡️ Open Dashboard</strong> button in Discord.<br>The bot sends you a personal link — no username entry needed.</div></div>'+LFOOT);
+    res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="info">📱 Nutze den <strong>🛡️ Dashboard öffnen</strong>-Button in Discord.<br>Der Bot schickt dir einen persönlichen Link — kein Benutzername erforderlich.</div></div>'+LFOOT);
   });
 
   // ── GET /lapd/auth/:token ────────────────────────────────────────────────
@@ -2245,19 +2245,29 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     const entry = lapdTokens.get(req.params.token);
     if (!entry || Date.now()>entry.expires) {
       res.setHeader('Content-Type','text/html; charset=utf-8');
-      return res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="err">⚠️ This link has expired. Please click the button in Discord again.</div></div>'+LFOOT);
+      return res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="err">⚠️ Dieser Link ist abgelaufen. Bitte klicke erneut auf den Button in Discord.</div></div>'+LFOOT);
     }
-    const opts = entry.ranks.map((r,i)=>
-      '<option value="'+i+'">'+esc(r.name)+' — '+LAPD_EBENE[r.ebene].label+'</option>'
-    ).join('');
-    const errHtml = req.query.err==='pw' ? '<div class="err">⚠️ Incorrect password. Please try again.</div>' : '';
+    const errHtml = req.query.err==='pw' ? '<div class="err">⚠️ Falsches Passwort. Bitte versuche es erneut.</div>' : '';
     res.setHeader('Content-Type','text/html; charset=utf-8');
-    res.send(LHEAD+'<div class="card">'+LBADGE+errHtml+
-      '<p class="u-hint">👤 Logged in as <strong>'+esc(entry.uname)+'</strong></p>'+
-      '<form method="POST" action="/lapd/auth/'+req.params.token+'">'+
-      '<div class="fg"><label>Select Rank</label><select name="rankIdx" required>'+opts+'</select></div>'+
-      '<div class="fg"><label>Password</label><input type="password" name="password" placeholder="••••••••" required autocomplete="current-password"></div>'+
-      '<button class="btn" type="submit">🔓 Login</button></form></div>'+LFOOT);
+    if (entry.ranks.length === 1) {
+      // Nur ein Rang → kein Dropdown, direkt Passwort
+      res.send(LHEAD+'<div class="card">'+LBADGE+errHtml+
+        '<p class="u-hint">👤 <strong>'+esc(entry.uname)+'</strong> &mdash; <span style="color:'+LAPD_EBENE[entry.ranks[0].ebene].color+'">'+esc(entry.ranks[0].name)+'</span></p>'+
+        '<form method="POST" action="/lapd/auth/'+req.params.token+'">'+
+        '<input type="hidden" name="rankIdx" value="0">'+
+        '<div class="fg"><label>Passwort</label><input type="password" name="password" placeholder="••••••••" required autocomplete="current-password" autofocus></div>'+
+        '<button class="btn" type="submit">🔓 Einloggen</button></form></div>'+LFOOT);
+    } else {
+      const opts = entry.ranks.map((r,i)=>
+        '<option value="'+i+'">'+esc(r.name)+' — '+LAPD_EBENE[r.ebene].label+'</option>'
+      ).join('');
+      res.send(LHEAD+'<div class="card">'+LBADGE+errHtml+
+        '<p class="u-hint">👤 <strong>'+esc(entry.uname)+'</strong></p>'+
+        '<form method="POST" action="/lapd/auth/'+req.params.token+'">'+
+        '<div class="fg"><label>Rang auswählen</label><select name="rankIdx" required>'+opts+'</select></div>'+
+        '<div class="fg"><label>Passwort</label><input type="password" name="password" placeholder="••••••••" required autocomplete="current-password"></div>'+
+        '<button class="btn" type="submit">🔓 Einloggen</button></form></div>'+LFOOT);
+    }
   });
 
   // ── POST /lapd/auth/:token ───────────────────────────────────────────────
@@ -2477,21 +2487,21 @@ function flash(el,msg,ok){
   setTimeout(()=>{el.innerHTML="";},4000);
 }
 function escH(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function fdate(ts){return new Date(ts).toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit",year:"numeric"});}
-function ftime(ts){const d=new Date(ts);return d.toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});}
+function fdate(ts){return new Date(ts).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});}
+function ftime(ts){const d=new Date(ts);return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}
 
 // ── BOARD ──────────────────────────────────────────────────────────────────
 async function loadBoard(){
   const el=document.getElementById("board-content");
-  el.innerHTML='<p class="muted">Loading...</p>';
+  el.innerHTML='<p class="muted">Lädt...</p>';
   const r=await fetch("/lapd/api/announcements").then(x=>x.json()).catch(()=>({ok:false}));
-  if(!r.ok){el.innerHTML='<p class="muted">Failed to load.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">No announcements yet.</p>';return;}
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Noch keine Ankündigungen.</p>';return;}
   el.innerHTML=r.items.map(a=>{
     const cls="ann-card"+(a.pinned?" pinned":"");
-    const pinLabel=a.pinned?"Unpin":"📌 Pin";
-    const acts=ME.canPost?('<div class="ann-acts"><button class="btn sm ghost pin-btn">'+pinLabel+'</button><button class="btn sm red del-btn">🗑️ Delete</button></div>'):"";
-    const pinBadge=a.pinned?'<span class="pin-badge">📌 PINNED</span>':"";
+    const pinLabel=a.pinned?"Anpinnen aufheben":"📌 Anpinnen";
+    const acts=ME.canPost?('<div class="ann-acts"><button class="btn sm ghost pin-btn">'+pinLabel+'</button><button class="btn sm red del-btn">🗑️ Löschen</button></div>'):"";
+    const pinBadge=a.pinned?'<span class="pin-badge">📌 ANGEPINNT</span>':"";
     return '<div class="'+cls+'" data-id="'+a.id+'"><h4>'+escH(a.title)+pinBadge+'</h4><div class="meta">'+escH(a.authorName)+' ('+escH(a.rankName)+') &bull; '+fdate(a.ts)+'</div><div class="body">'+escH(a.content)+'</div>'+acts+'</div>';
   }).join("");
   el.querySelectorAll(".pin-btn").forEach(b=>b.addEventListener("click",()=>togglePin(b.closest(".ann-card").dataset.id)));
@@ -2501,7 +2511,7 @@ async function postAnn(e){
   e.preventDefault();
   const fd=new FormData(e.target);
   const r=await fetch("/lapd/api/announcements",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:fd.get("title"),content:fd.get("content")})}).then(x=>x.json()).catch(()=>({ok:false}));
-  flash(document.getElementById("ann-flash"),r.ok?"Announcement posted!":r.msg||"Error",r.ok);
+  flash(document.getElementById("ann-flash"),r.ok?"Ankündigung gepostet!":r.msg||"Fehler",r.ok);
   if(r.ok){e.target.reset();loadBoard();}
 }
 async function togglePin(id){
@@ -2509,7 +2519,7 @@ async function togglePin(id){
   loadBoard();
 }
 async function delAnn(id){
-  if(!confirm("Delete this announcement?"))return;
+  if(!confirm("Ankündigung wirklich löschen?"))return;
   await fetch("/lapd/api/announcements/"+id,{method:"DELETE"}).catch(()=>{});
   loadBoard();
 }
@@ -2517,16 +2527,16 @@ async function delAnn(id){
 // ── DUTY ───────────────────────────────────────────────────────────────────
 async function loadDuty(){
   const el=document.getElementById("duty-content");
-  el.innerHTML='<p class="muted">Loading...</p>';
+  el.innerHTML='<p class="muted">Lädt...</p>';
   const r=await fetch("/lapd/api/duty").then(x=>x.json()).catch(()=>({ok:false}));
-  if(!r.ok){el.innerHTML='<p class="muted">Failed to load.</p>';return;}
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
   const btn=document.getElementById("duty-btn");
   if(btn){
-    btn.textContent=r.onDuty?"🔴 Sign Off Duty":"🟢 Sign On Duty";
+    btn.textContent=r.onDuty?"🔴 Dienst beenden":"🟢 Dienst antreten";
     btn.className="btn "+(r.onDuty?"red":"grn");
   }
-  if(!r.list.length){el.innerHTML='<p class="muted">No officers currently on duty.</p>';return;}
-  el.innerHTML='<table><thead><tr><th>Name</th><th>Rank</th><th>Division</th><th>Since</th></tr></thead><tbody>'+
+  if(!r.list.length){el.innerHTML='<p class="muted">Derzeit kein Officer im Dienst.</p>';return;}
+  el.innerHTML='<table><thead><tr><th>Name</th><th>Rang</th><th>Abteilung</th><th>Seit</th></tr></thead><tbody>'+
     r.list.map(d=>'<tr><td>'+escH(d.displayName)+'</td><td>'+escH(d.rankName)+'</td>'+
       '<td style="color:'+(ECOLOR[d.ebene]||"#e0e0e0")+'">'+(ELABEL[d.ebene]||d.ebene)+'</td>'+
       '<td>'+ftime(d.since)+'</td></tr>').join("")+
@@ -2543,13 +2553,14 @@ async function toggleDuty(){
 // ── VACATION ───────────────────────────────────────────────────────────────
 async function loadVacation(){
   const el=document.getElementById("vac-list");
-  el.innerHTML='<p class="muted">Loading...</p>';
+  el.innerHTML='<p class="muted">Lädt...</p>';
   const r=await fetch("/lapd/api/vacations").then(x=>x.json()).catch(()=>({ok:false}));
-  if(!r.ok){el.innerHTML='<p class="muted">Failed to load.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">No vacation requests yet.</p>';return;}
-  el.innerHTML='<table><thead><tr><th>From</th><th>To</th><th>Note</th><th>Status</th></tr></thead><tbody>'+
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Noch keine Urlaubsanträge.</p>';return;}
+  el.innerHTML='<table><thead><tr><th>Von</th><th>Bis</th><th>Notiz</th><th>Status</th></tr></thead><tbody>'+
     r.items.map(v=>{
-      const badge='<span class="vac-badge '+v.status+'">'+v.status.toUpperCase()+'</span>';
+      const statusDE={pending:"AUSSTEHEND",approved:"GENEHMIGT",rejected:"ABGELEHNT"};
+      const badge='<span class="vac-badge '+v.status+'">'+(statusDE[v.status]||v.status.toUpperCase())+'</span>';
       const rej=v.rejectReason?('<br><small style="color:#ef9a9a">'+escH(v.rejectReason)+'</small>'):"";
       return '<tr><td>'+escH(v.from)+'</td><td>'+escH(v.to)+'</td><td>'+escH(v.note||"—")+'</td><td>'+badge+rej+'</td></tr>';
     }).join("")+
@@ -2559,7 +2570,7 @@ async function submitVac(e){
   e.preventDefault();
   const fd=new FormData(e.target);
   const r=await fetch("/lapd/api/vacations",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({from:fd.get("from"),to:fd.get("to"),note:fd.get("note")})}).then(x=>x.json()).catch(()=>({ok:false}));
-  flash(document.getElementById("vac-flash"),r.ok?"Request submitted! Command Staff will review it.":r.msg||"Error",r.ok);
+  flash(document.getElementById("vac-flash"),r.ok?"Antrag gestellt! Command Staff wird ihn prüfen.":r.msg||"Fehler",r.ok);
   if(r.ok){e.target.reset();loadVacation();}
 }
 
@@ -2567,12 +2578,12 @@ async function submitVac(e){
 let allMembers=[];
 async function loadWarnings(){
   const el=document.getElementById("warn-content");
-  el.innerHTML='<p class="muted">Loading...</p>';
+  el.innerHTML='<p class="muted">Lädt...</p>';
   const r=await fetch("/lapd/api/warnings").then(x=>x.json()).catch(()=>({ok:false}));
-  if(!r.ok){el.innerHTML='<p class="muted">Failed to load.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">No warnings found.</p>';return;}
+  if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Verwarnungen vorhanden.</p>';return;}
   const canWarn=ME.canWarn;
-  el.innerHTML='<table><thead><tr><th>Date</th><th>Officer</th><th>Reason</th><th>Issued By</th>'+(canWarn?'<th></th>':'')+
+  el.innerHTML='<table><thead><tr><th>Datum</th><th>Officer</th><th>Grund</th><th>Ausgestellt von</th>'+(canWarn?'<th></th>':'')+
     '</tr></thead><tbody>'+
     r.items.map(w=>{
       const delBtn=canWarn?('<td><button class="btn sm red dw-btn">🗑️</button></td>'):"";
@@ -2590,7 +2601,7 @@ async function loadMembersForWarn(){
   allMembers=r.items||[];
   const sel=document.getElementById("warn-target");
   if(sel){
-    sel.innerHTML='<option value="">— Select Officer —</option>'+
+    sel.innerHTML='<option value="">— Officer auswählen —</option>'+
       allMembers.map(m=>{
         const val=m.id+"||"+m.name+"||"+m.rankName+"||"+m.ebene;
         return '<option value="'+escH(val)+'">'+escH(m.name)+' — '+escH(m.rankName)+'</option>';
@@ -2602,15 +2613,15 @@ async function submitWarn(e){
   const fd=new FormData(e.target);
   const tv=fd.get("target")||"";
   const parts=tv.split("||");
-  if(parts.length<4){flash(document.getElementById("warn-flash"),"Please select an officer",false);return;}
+  if(parts.length<4){flash(document.getElementById("warn-flash"),"Bitte einen Officer auswählen",false);return;}
   const r=await fetch("/lapd/api/warnings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({targetId:parts[0],targetName:parts[1],targetRank:parts[2],targetEbene:parts[3],reason:fd.get("reason")})}).then(x=>x.json()).catch(()=>({ok:false}));
-  flash(document.getElementById("warn-flash"),r.ok?"Warning issued.":r.msg||"Error",r.ok);
+  flash(document.getElementById("warn-flash"),r.ok?"Verwarnung ausgestellt.":r.msg||"Fehler",r.ok);
   if(r.ok){e.target.reset();loadWarnings();}
 }
 async function delWarn(id){
-  if(!confirm("Delete this warning?"))return;
+  if(!confirm("Verwarnung wirklich löschen?"))return;
   const r=await fetch("/lapd/api/warnings/"+id,{method:"DELETE"}).then(x=>x.json()).catch(()=>({ok:false}));
-  flash(document.getElementById("warn-flash"),r.ok?"Warning deleted.":r.msg||"Error",r.ok);
+  flash(document.getElementById("warn-flash"),r.ok?"Verwarnung gelöscht.":r.msg||"Fehler",r.ok);
   if(r.ok)loadWarnings();
 }
 
@@ -2619,20 +2630,20 @@ document.addEventListener("DOMContentLoaded",()=>showTab("board"));
 })(s.userId, s.ebene, s.displayName, s.rankName, canPost, canWarn);
 
     const postForm = canPost ?
-      '<div class="sec"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">📝 New Announcement</h3></div>'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">📝 Neue Ankündigung</h3></div>'+
       '<div class="sb"><div id="ann-flash"></div>'+
       '<form onsubmit="postAnn(event)">'+
-      '<div class="fg"><label>Title</label><input type="text" name="title" maxlength="100" required placeholder="Announcement title"></div>'+
-      '<div class="fg"><label>Content</label><textarea name="content" maxlength="2000" required placeholder="Write your announcement..."></textarea></div>'+
-      '<button class="btn" type="submit">📌 Post Announcement</button></form></div></div>' : '';
+      '<div class="fg"><label>Titel</label><input type="text" name="title" maxlength="100" required placeholder="Titel der Ankündigung"></div>'+
+      '<div class="fg"><label>Inhalt</label><textarea name="content" maxlength="2000" required placeholder="Ankündigung verfassen..."></textarea></div>'+
+      '<button class="btn" type="submit">📌 Ankündigung posten</button></form></div></div>' : '';
 
     const warnForm = canWarn ?
-      '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">⚠️ Issue Warning</h3></div>'+
+      '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">⚠️ Verwarnung ausstellen</h3></div>'+
       '<div class="sb"><div id="warn-flash"></div>'+
       '<form onsubmit="submitWarn(event)">'+
-      '<div class="fg"><label>Officer</label><select id="warn-target" name="target" required onclick="loadMembersForWarn()"><option value="">— Select Officer —</option></select></div>'+
-      '<div class="fg"><label>Reason</label><textarea name="reason" maxlength="1000" required placeholder="Reason for the warning..."></textarea></div>'+
-      '<button class="btn red" type="submit">⚠️ Issue Warning</button></form></div></div>' : '';
+      '<div class="fg"><label>Officer</label><select id="warn-target" name="target" required onclick="loadMembersForWarn()"><option value="">— Officer auswählen —</option></select></div>'+
+      '<div class="fg"><label>Grund</label><textarea name="reason" maxlength="1000" required placeholder="Grund der Verwarnung..."></textarea></div>'+
+      '<button class="btn red" type="submit">⚠️ Verwarnung ausstellen</button></form></div></div>' : '';
 
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.send(
@@ -2648,34 +2659,34 @@ document.addEventListener("DOMContentLoaded",()=>showTab("board"));
       '<form method="POST" action="/lapd/logout" style="display:inline"><button class="lbtn" type="submit">Logout</button></form>'+
       '</div></header>'+
       '<nav>'+
-      '<button class="nb act" data-t="board" onclick="showTab(\'board\')">📋 Information Board</button>'+
-      '<button class="nb" data-t="duty" onclick="showTab(\'duty\')">🕐 Duty</button>'+
-      '<button class="nb" data-t="vacation" onclick="showTab(\'vacation\')">✈️ Vacation</button>'+
-      '<button class="nb" data-t="warnings" onclick="showTab(\'warnings\')">⚠️ Warnings</button>'+
+      '<button class="nb act" data-t="board" onclick="showTab(\'board\')">📋 Schwarzes Brett</button>'+
+      '<button class="nb" data-t="duty" onclick="showTab(\'duty\')">🕐 Dienst</button>'+
+      '<button class="nb" data-t="vacation" onclick="showTab(\'vacation\')">✈️ Urlaub</button>'+
+      '<button class="nb" data-t="warnings" onclick="showTab(\'warnings\')">⚠️ Verwarnungen</button>'+
       '</nav>'+
       '<main>'+
       '<div class="tsec" id="t-board">'+postForm+
-      '<div class="sec"><div class="sh" style="border-left:3px solid #1e90ff"><h3 style="color:#1e90ff">📋 Announcements</h3></div>'+
-      '<div class="sb"><div id="board-content"><p class="muted">Loading...</p></div></div></div>'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #1e90ff"><h3 style="color:#1e90ff">📋 Ankündigungen</h3></div>'+
+      '<div class="sb"><div id="board-content"><p class="muted">Lädt...</p></div></div></div>'+
       '</div>'+
       '<div class="tsec" id="t-duty" style="display:none">'+
-      '<div class="sec"><div class="sh" style="border-left:3px solid #66bb6a"><h3 style="color:#66bb6a">🕐 Duty Status</h3>'+
-      '<button id="duty-btn" class="btn grn" onclick="toggleDuty()">🟢 Sign On Duty</button></div>'+
-      '<div class="sb"><div id="duty-content"><p class="muted">Loading...</p></div></div></div>'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #66bb6a"><h3 style="color:#66bb6a">🕐 Dienststatus</h3>'+
+      '<button id="duty-btn" class="btn grn" onclick="toggleDuty()">🟢 Dienst antreten</button></div>'+
+      '<div class="sb"><div id="duty-content"><p class="muted">Lädt...</p></div></div></div>'+
       '</div>'+
       '<div class="tsec" id="t-vacation" style="display:none">'+
-      '<div class="sec"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">✈️ Request Vacation</h3></div>'+
+      '<div class="sec"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">✈️ Urlaub beantragen</h3></div>'+
       '<div class="sb"><div id="vac-flash"></div>'+
       '<form onsubmit="submitVac(event)">'+
-      '<div class="row"><div class="fg"><label>From</label><input type="date" name="from" required></div>'+
-      '<div class="fg"><label>To</label><input type="date" name="to" required></div></div>'+
-      '<div class="fg"><label>Note (optional)</label><input type="text" name="note" maxlength="500" placeholder="Reason or note..."></div>'+
-      '<button class="btn" type="submit">📨 Submit Request</button></form></div></div>'+
-      '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">📄 My Vacation Requests</h3></div>'+
+      '<div class="row"><div class="fg"><label>Von</label><input type="date" name="from" required></div>'+
+      '<div class="fg"><label>Bis</label><input type="date" name="to" required></div></div>'+
+      '<div class="fg"><label>Notiz (optional)</label><input type="text" name="note" maxlength="500" placeholder="Grund oder Anmerkung..."></div>'+
+      '<button class="btn" type="submit">📨 Antrag stellen</button></form></div></div>'+
+      '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ffd700"><h3 style="color:#ffd700">📄 Meine Urlaubsanträge</h3></div>'+
       '<div class="sb"><div id="vac-list"></div></div></div>'+
       '</div>'+
       '<div class="tsec" id="t-warnings" style="display:none">'+warnForm+
-      '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">⚠️ Warnings</h3></div>'+
+      '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">⚠️ Verwarnungen</h3></div>'+
       '<div class="sb"><div id="warn-content"></div></div></div>'+
       '</div>'+
       '</main><script>'+clientJs+'</script></body></html>'
