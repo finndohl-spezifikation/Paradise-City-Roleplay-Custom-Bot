@@ -330,12 +330,8 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       try {
         const msg = await ch.messages.fetch(setup.lohnlisteMsgId);
         await msg.edit({ embeds: [embed], components: [] });
-        return;
       } catch {}
     }
-    const msg = await ch.send({ embeds: [embed] });
-    setup.lohnlisteMsgId = msg.id;
-    saveSetup(setup);
   }
 
   // ─── LOHNBÜRO EMBED ─────────────────────────────────────────────────────────
@@ -354,12 +350,8 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       try {
         const msg = await ch.messages.fetch(setup.lohnbueroMsgId);
         await msg.edit({ embeds: [embed], components: [row] });
-        return;
       } catch {}
     }
-    const msg = await ch.send({ embeds: [embed], components: [row] });
-    setup.lohnbueroMsgId = msg.id;
-    saveSetup(setup);
   }
 
   // ─── ONLINE BANKING EMBED ────────────────────────────────────────────────────
@@ -378,12 +370,8 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       try {
         const msg = await ch.messages.fetch(setup.bankingMsgId);
         await msg.edit({ embeds: [embed], components: [row] });
-        return;
       } catch {}
     }
-    const msg = await ch.send({ embeds: [embed], components: [row] });
-    setup.bankingMsgId = msg.id;
-    saveSetup(setup);
   }
 
   // ─── RECHNUNGEN EMBED ───────────────────────────────────────────────────────
@@ -402,12 +390,8 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       try {
         const msg = await ch.messages.fetch(setup.rechnungenMsgId);
         await msg.edit({ embeds: [embed], components: [row] });
-        return;
       } catch {}
     }
-    const msg = await ch.send({ embeds: [embed], components: [row] });
-    setup.rechnungenMsgId = msg.id;
-    saveSetup(setup);
   }
   async function updateShopEmbed(shopId) {
       const m = SHOP_META[shopId];
@@ -425,16 +409,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         );
         if (exists) return;
       }
-      // Not found → send embed once
-      const embed = new EmbedBuilder()
-        .setColor(m.color)
-        .setTitle(m.emoji + '  ' + m.name)
-        .setDescription('Klicke auf **Einkaufen** um den Shop zu öffnen und alle verfügbaren Items zu sehen.')
-        .setFooter({ text: 'Paradise City Roleplay  •  ' + m.name });
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('sp_shop:' + shopId).setLabel('🛒  Einkaufen').setStyle(ButtonStyle.Success)
-      );
-      await ch.send({ embeds: [embed], components: [row] });
+      // Not found → skip, never send new on restart
     }
   
 
@@ -1269,43 +1244,41 @@ async function buildInviteCache(guild) {
     } catch (e) { console.error('Einreise-Embed Fehler:', e.message); }
   }
 
-  // ── Handy-Embed senden ────────────────────────────────────────────────────
+  // ── Handy-Embed: edit-only on restart, never send new ────────────────────
   {
     const handyCh = await client.channels.fetch(HANDY_CH).catch(() => null);
     if (handyCh) {
       const msgs = await handyCh.messages.fetch({ limit: 20 }).catch(() => null);
-      if (msgs) {
-        for (const m of msgs.values()) {
-          if (m.author.id === client.user.id) await m.delete().catch(() => {});
-        }
+      const existing = msgs ? msgs.find(m => m.author.id === client.user.id && m.components.length > 0) : null;
+      if (existing) {
+        const LINE = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+        const handyEmbed = new EmbedBuilder()
+          .setTitle('📱  Handy-Verwaltung')
+          .setDescription(
+            LINE + '\n\n' +
+            '📱  **Handy An/Aus** — Schalte dein Handy ein oder aus\n' +
+            '📲  **Apps** — Installiere & verwalte deine Apps\n' +
+            '🎮  **Spiele** — Spiele direkt im Browser\n' +
+            '<:emoji_24:1502984875387392011>  **WhatsApp** — Schreibe anderen Spielern\n' +
+            '🚨  **Dispatch** — Erreichbarkeit für Einsatzkräfte\n\n' +
+            LINE + '\n\n' +
+            '⚠️  Für alle Funktionen benötigst du ein **Handy** aus dem **Kwil E Markt** — und es muss **eingeschaltet** sein.'
+          )
+          .setColor(DARK_ORANGE)
+          .setFooter({ text: 'Paradise City Roleplay  •  Handy-System' });
+        const handyMenu = new StringSelectMenuBuilder()
+          .setCustomId('handy_menu')
+          .setPlaceholder('📱 Was möchtest du tun?')
+          .addOptions(
+            new StringSelectMenuOptionBuilder().setLabel('Handy An/Aus').setValue('handy_an').setEmoji('📱').setDescription('Schalte dein Handy ein oder aus'),
+            new StringSelectMenuOptionBuilder().setLabel('Apps').setValue('handy_apps').setEmoji('📲').setDescription('Apps installieren & verwalten'),
+            new StringSelectMenuOptionBuilder().setLabel('Spiele').setValue('handy_spiele').setEmoji('🎮').setDescription('Handy-Spiele im Browser spielen'),
+            new StringSelectMenuOptionBuilder().setLabel('WhatsApp').setValue('handy_whatsapp').setEmoji({ id: '1502984875387392011', name: 'emoji_24' }).setDescription('Nachrichten an Spieler senden'),
+            new StringSelectMenuOptionBuilder().setLabel('Dispatch').setValue('handy_dispatch').setEmoji('🚨').setDescription('Erreichbarkeit für Einsatzkräfte'),
+          );
+        const handyMenuRow = new ActionRowBuilder().addComponents(handyMenu);
+        await existing.edit({ embeds: [handyEmbed], components: [handyMenuRow] }).catch(() => {});
       }
-      const LINE = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
-      const handyEmbed = new EmbedBuilder()
-        .setTitle('📱  Handy-Verwaltung')
-        .setDescription(
-          LINE + '\n\n' +
-          '📱  **Handy An/Aus** — Schalte dein Handy ein oder aus\n' +
-          '📲  **Apps** — Installiere & verwalte deine Apps\n' +
-          '🎮  **Spiele** — Spiele direkt im Browser\n' +
-          '<:emoji_24:1502984875387392011>  **WhatsApp** — Schreibe anderen Spielern\n' +
-          '🚨  **Dispatch** — Erreichbarkeit für Einsatzkräfte\n\n' +
-          LINE + '\n\n' +
-          '⚠️  Für alle Funktionen benötigst du ein **Handy** aus dem **Kwil E Markt** — und es muss **eingeschaltet** sein.'
-        )
-        .setColor(DARK_ORANGE)
-        .setFooter({ text: 'Paradise City Roleplay  •  Handy-System' });
-      const handyMenu = new StringSelectMenuBuilder()
-        .setCustomId('handy_menu')
-        .setPlaceholder('📱 Was möchtest du tun?')
-        .addOptions(
-          new StringSelectMenuOptionBuilder().setLabel('Handy An/Aus').setValue('handy_an').setEmoji('📱').setDescription('Schalte dein Handy ein oder aus'),
-          new StringSelectMenuOptionBuilder().setLabel('Apps').setValue('handy_apps').setEmoji('📲').setDescription('Apps installieren & verwalten'),
-          new StringSelectMenuOptionBuilder().setLabel('Spiele').setValue('handy_spiele').setEmoji('🎮').setDescription('Handy-Spiele im Browser spielen'),
-          new StringSelectMenuOptionBuilder().setLabel('WhatsApp').setValue('handy_whatsapp').setEmoji({ id: '1502984875387392011', name: 'emoji_24' }).setDescription('Nachrichten an Spieler senden'),
-          new StringSelectMenuOptionBuilder().setLabel('Dispatch').setValue('handy_dispatch').setEmoji('🚨').setDescription('Erreichbarkeit für Einsatzkräfte'),
-        );
-      const handyMenuRow = new ActionRowBuilder().addComponents(handyMenu);
-      await handyCh.send({ embeds: [handyEmbed], components: [handyMenuRow] });
     }
   }
 
