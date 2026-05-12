@@ -2274,51 +2274,24 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     } catch { return res.redirect('/lapd?err=fail'); }
   });
 
-  // ── GET /lapd/auth/:token ────────────────────────────────────────────────
-  app.get('/lapd/auth/:token', (req,res)=>{
+  // ── GET /lapd/auth/:token — direkt einloggen, kein Passwortformular ───────
+  app.get('/lapd/auth/:token', async (req,res)=>{
     if (isLapdAuth(req)) return res.redirect('/lapd/dashboard');
     const entry = lapdTokens.get(req.params.token);
     if (!entry || Date.now()>entry.expires) {
       res.setHeader('Content-Type','text/html; charset=utf-8');
       return res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="err">⚠️ Dieser Link ist abgelaufen. Bitte klicke erneut auf den Button in Discord.</div></div>'+LFOOT);
     }
-    const errHtml = req.query.err==='pw' ? '<div class="err">⚠️ Falsches Passwort. Bitte versuche es erneut.</div>' : '';
-    res.setHeader('Content-Type','text/html; charset=utf-8');
-    if (entry.ranks.length === 1) {
-      // Nur ein Rang → kein Dropdown, direkt Passwort
-      res.send(LHEAD+'<div class="card">'+LBADGE+errHtml+
-        '<p class="u-hint">👤 <strong>'+esc(entry.uname)+'</strong> &mdash; <span style="color:'+LAPD_EBENE[entry.ranks[0].ebene].color+'">'+esc(entry.ranks[0].name)+'</span></p>'+
-        '<form method="POST" action="/lapd/auth/'+req.params.token+'">'+
-        '<input type="hidden" name="rankIdx" value="0">'+
-        '<div class="fg"><label>Passwort</label><input type="password" name="password" placeholder="••••••••" required autocomplete="current-password" autofocus></div>'+
-        '<button class="btn" type="submit">🔓 Einloggen</button></form></div>'+LFOOT);
-    } else {
-      const opts = entry.ranks.map((r,i)=>
-        '<option value="'+i+'">'+esc(r.name)+' — '+LAPD_EBENE[r.ebene].label+'</option>'
-      ).join('');
-      res.send(LHEAD+'<div class="card">'+LBADGE+errHtml+
-        '<p class="u-hint">👤 <strong>'+esc(entry.uname)+'</strong></p>'+
-        '<form method="POST" action="/lapd/auth/'+req.params.token+'">'+
-        '<div class="fg"><label>Rang auswählen</label><select name="rankIdx" required>'+opts+'</select></div>'+
-        '<div class="fg"><label>Passwort</label><input type="password" name="password" placeholder="••••••••" required autocomplete="current-password"></div>'+
-        '<button class="btn" type="submit">🔓 Einloggen</button></form></div>'+LFOOT);
-    }
-  });
-
-  // ── POST /lapd/auth/:token ───────────────────────────────────────────────
-  app.post('/lapd/auth/:token', async (req,res)=>{
-    const entry = lapdTokens.get(req.params.token);
-    if (!entry || Date.now()>entry.expires) { req.session.lapdError='expired'; return res.redirect('/lapd'); }
-    const idx  = parseInt(req.body.rankIdx,10);
-    const rank = entry.ranks[isNaN(idx)?-1:idx];
-    if (!rank) return res.redirect('/lapd/auth/'+req.params.token);
-    if ((req.body.password||'').trim() !== LAPD_PW[rank.ebene])
-      return res.redirect('/lapd/auth/'+req.params.token+'?err=pw');
+    // Höchsten Rang nehmen (index 0 = highest in LAPD_RANKS order)
+    const rank = entry.ranks[0];
     try {
       let guild = client.guilds.cache.get(LAPD_GUILD_ID);
       if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID).catch(()=>null);
       const member = guild ? await guild.members.fetch(entry.memberId).catch(()=>null) : null;
-      if (!member||!member.roles.cache.has(rank.id)) { req.session.lapdError='role'; return res.redirect('/lapd'); }
+      if (!member||!member.roles.cache.has(rank.id)) {
+        res.setHeader('Content-Type','text/html; charset=utf-8');
+        return res.send(LHEAD+'<div class="card">'+LBADGE+'<div class="err">⚠️ Rolle nicht mehr vorhanden. Bitte erneut versuchen.</div></div>'+LFOOT);
+      }
       req.session.lapd = { userId:entry.memberId, username:member.user.username, displayName:member.displayName,
         rankId:rank.id, rankName:rank.name, ebene:rank.ebene, loginTime:Date.now() };
       lapdTokens.delete(req.params.token);
