@@ -3060,10 +3060,25 @@ client.on('interactionCreate', async (interaction) => {
         setTimeout(() => lapdTokens.delete(token), 10 * 60 * 1000);
         const domain  = (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.REPLIT_DOMAINS || 'localhost:8080').split(',')[0].trim();
         const authUrl = 'https://' + domain + '/lapd/auth/' + token;
+        const LAPD_PW_B = { leitung:'LAPD_Chef_2025', befehl:'LAPD_Befehl_2025', detective:'LAPD_Detective_2025', officer:'LAPD_Officer_2025' };
+        const LAPD_EBENE_B = { leitung:'Leitungsebene', befehl:'Befehlsebene', detective:'Detective Division', officer:'Officer Division' };
+        const uniqueEbenen = [...new Set(memberRanks.map(r => r.ebene))];
+        const pwLines = uniqueEbenen.map(e => '`' + LAPD_PW_B[e] + '`  —  ' + LAPD_EBENE_B[e]).join('\n');
+        const replyEmbed = new EmbedBuilder()
+          .setColor(0x1565c0)
+          .setTitle('🛡️ LAPD Dashboard – Dein Login')
+          .setDescription(
+            '**Klicke den Button** um das Dashboard zu öffnen.\n' +
+            'Der Link ist **10 Minuten** gültig.\n\n' +
+            '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+            '🔑 **Dein Passwort:**\n' + pwLines + '\n' +
+            '━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+          )
+          .setFooter({ text: 'Nur für dich sichtbar • Nicht weitergeben' });
         const authBtn = new ButtonBuilder().setLabel('🛡️ Dashboard öffnen').setURL(authUrl).setStyle(ButtonStyle.Link);
         const authRow = new ActionRowBuilder().addComponents(authBtn);
         return interaction.editReply({
-          content: '✅ Dein persönlicher Login-Link (gültig 10 Minuten):',
+          embeds: [replyEmbed],
           components: [authRow]
         });
       } catch (e) {
