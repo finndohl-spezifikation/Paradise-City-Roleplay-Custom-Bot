@@ -2448,7 +2448,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   });
 
   // ── GET /lapd/dashboard ─────────────────────────────────────────────────
-  const LAPD_CSS = "*{box-sizing:border-box;margin:0;padding:0}body{background:#050c26;color:#e0e0e0;font-family:\"Segoe UI\",sans-serif;min-height:100vh;display:flex}.sidebar{width:220px;min-height:100vh;background:#081235;border-right:1px solid #1e4080;display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}.sb-logo{padding:18px 16px 14px;border-bottom:1px solid #1e4080;display:flex;align-items:center;gap:10px}.sb-logo .ico{font-size:2rem;line-height:1}.sb-logo h2{font-size:.82rem;font-weight:800;color:#ffd700;letter-spacing:2px;line-height:1.3}.sb-logo p{font-size:.66rem;color:#90caf9;margin-top:2px}.sb-nav{flex:1;padding:10px 0;overflow-y:auto}.nb{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:none;border-left:3px solid transparent;color:#6b7280;padding:11px 16px;font-size:.82rem;font-weight:600;cursor:pointer;text-align:left;transition:.15s}.nb .ni{font-size:1rem;width:22px;text-align:center;flex-shrink:0}.nb:hover{color:#90caf9;background:#0c1b45}.nb.act{color:#1e90ff;border-left-color:#1e90ff;background:#0c1b45}.sb-user{padding:14px 16px;border-top:1px solid #1e4080}.sb-user .uname{font-size:.78rem;font-weight:700;color:#e0e0e0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sb-user .urank{font-size:.69rem;font-weight:600;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbtn{display:block;width:100%;background:transparent;border:1px solid #1e4080;color:#6b7280;padding:7px 12px;border-radius:7px;font-size:.78rem;cursor:pointer;transition:.2s;text-align:center}.lbtn:hover{border-color:#ef5350;color:#ef5350}.main-wrap{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}main{flex:1;padding:22px 24px;max-width:1020px;width:100%}.sec{background:#0c1b45;border:1px solid #1e4080;border-radius:10px;margin-bottom:16px;overflow:hidden}.sh{padding:12px 18px;border-bottom:1px solid #1e4080;display:flex;align-items:center;justify-content:space-between;gap:8px}.sh h3{font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.sb{padding:16px 18px}table{width:100%;border-collapse:collapse;font-size:.84rem}th{color:#6b7280;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;padding:8px 10px;text-align:left;border-bottom:1px solid #1e4080}td{padding:8px 10px;border-bottom:1px solid #07102e}tr:last-child td{border-bottom:none}tr:hover td{background:#040920}.muted{color:#374151;font-size:.84rem;padding:8px 0}.fg{margin-bottom:12px}.fg label{display:block;font-size:.72rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}.fg input,.fg select,.fg textarea{width:100%;background:#040920;border:1px solid #1e4080;color:#e0e0e0;padding:9px 12px;border-radius:7px;font-size:.88rem;outline:none;transition:.2s;font-family:inherit}.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1565c0}.fg select option{background:#040920}.fg textarea{resize:vertical;min-height:80px}.row{display:flex;gap:10px;flex-wrap:wrap}.row .fg{flex:1;min-width:140px}.btn{background:#1565c0;color:#fff;border:none;padding:9px 18px;border-radius:7px;font-size:.84rem;font-weight:700;cursor:pointer;transition:.2s}.btn:hover{background:#1976d2}.btn.red{background:#7f1d1d}.btn.red:hover{background:#991b1b}.btn.grn{background:#14532d}.btn.grn:hover{background:#166534}.btn.sm{padding:5px 11px;font-size:.75rem}.btn.ghost{background:transparent;border:1px solid #1e4080;color:#90caf9}.btn.ghost:hover{border-color:#42a5f5;color:#42a5f5}.pin-badge{color:#ffd700;font-size:.7rem;font-weight:700;margin-left:6px}.ann-card{border:1px solid #1e4080;border-radius:8px;padding:14px;margin-bottom:10px;background:#040920}.ann-card.pinned{border-color:#ffd700}.ann-card h4{font-size:.9rem;font-weight:700;margin-bottom:6px}.ann-card .meta{font-size:.72rem;color:#6b7280;margin-bottom:8px}.ann-card .body{font-size:.85rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}.ann-acts{display:flex;gap:6px;margin-top:10px}.vac-badge{padding:3px 10px;border-radius:10px;font-size:.7rem;font-weight:700}.vac-badge.pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid #ffc107}.vac-badge.approved{background:rgba(76,175,80,.15);color:#66bb6a;border:1px solid #66bb6a}.vac-badge.rejected{background:rgba(183,28,28,.15);color:#ef9a9a;border:1px solid #b71c1c}.flash{padding:10px 14px;border-radius:7px;margin-bottom:12px;font-size:.84rem}.flash.ok{background:rgba(76,175,80,.15);border:1px solid #388e3c;color:#a5d6a7}.flash.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;color:#ef9a9a}@media(max-width:600px){header{padding:10px 14px}main{padding:12px}}";
+  const LAPD_CSS = "*{box-sizing:border-box;margin:0;padding:0}body{background:#050c26;color:#e0e0e0;font-family:\"Segoe UI\",sans-serif;min-height:100vh;display:flex}.sidebar{width:220px;min-height:100vh;background:#081235;border-right:1px solid #1e4080;display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}.sb-logo{padding:18px 16px 14px;border-bottom:1px solid #1e4080;display:flex;align-items:center;gap:10px}.sb-logo .ico{font-size:2rem;line-height:1}.sb-logo h2{font-size:.82rem;font-weight:800;color:#ffd700;letter-spacing:2px;line-height:1.3}.sb-logo p{font-size:.66rem;color:#90caf9;margin-top:2px}.sb-nav{flex:1;padding:10px 0;overflow-y:auto}.nb{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:none;border-left:3px solid transparent;color:#6b7280;padding:11px 16px;font-size:.82rem;font-weight:600;cursor:pointer;text-align:left;transition:.15s}.nb .ni{font-size:1rem;width:22px;text-align:center;flex-shrink:0}.nb:hover{color:#90caf9;background:#0c1b45}.nb.act{color:#1e90ff;border-left-color:#1e90ff;background:#0c1b45}.sb-user{padding:14px 16px;border-top:1px solid #1e4080}.sb-user .uname{font-size:.78rem;font-weight:700;color:#e0e0e0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sb-user .urank{font-size:.69rem;font-weight:600;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbtn{display:block;width:100%;background:transparent;border:1px solid #1e4080;color:#6b7280;padding:7px 12px;border-radius:7px;font-size:.78rem;cursor:pointer;transition:.2s;text-align:center}.lbtn:hover{border-color:#ef5350;color:#ef5350}.main-wrap{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}main{flex:1;padding:22px 24px;max-width:1020px;width:100%}.sec{background:#0c1b45;border:1px solid #1e4080;border-radius:10px;margin-bottom:16px;overflow:hidden}.sh{padding:12px 18px;border-bottom:1px solid #1e4080;display:flex;align-items:center;justify-content:space-between;gap:8px}.sh h3{font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.sb{padding:16px 18px}table{width:100%;border-collapse:collapse;font-size:.84rem}th{color:#6b7280;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;padding:8px 10px;text-align:left;border-bottom:1px solid #1e4080}td{padding:8px 10px;border-bottom:1px solid #07102e}tr:last-child td{border-bottom:none}tr:hover td{background:#040920}.muted{color:#374151;font-size:.84rem;padding:8px 0}.fg{margin-bottom:12px}.fg label{display:block;font-size:.72rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}.fg input,.fg select,.fg textarea{width:100%;background:#040920;border:1px solid #1e4080;color:#e0e0e0;padding:9px 12px;border-radius:7px;font-size:.88rem;outline:none;transition:.2s;font-family:inherit}.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1565c0}.fg select option{background:#040920}.fg textarea{resize:vertical;min-height:80px}.row{display:flex;gap:10px;flex-wrap:wrap}.row .fg{flex:1;min-width:140px}.btn{background:#1565c0;color:#fff;border:none;padding:9px 18px;border-radius:7px;font-size:.84rem;font-weight:700;cursor:pointer;transition:.2s}.btn:hover{background:#1976d2}.btn.red{background:#7f1d1d}.btn.red:hover{background:#991b1b}.btn.grn{background:#14532d}.btn.grn:hover{background:#166534}.btn.sm{padding:5px 11px;font-size:.75rem}.btn.ghost{background:transparent;border:1px solid #1e4080;color:#90caf9}.btn.ghost:hover{border-color:#42a5f5;color:#42a5f5}.pin-badge{color:#ffd700;font-size:.7rem;font-weight:700;margin-left:6px}.ann-card{border:1px solid #1e4080;border-radius:8px;padding:14px;margin-bottom:10px;background:#040920}.ann-card.pinned{border-color:#ffd700}.ann-card h4{font-size:.9rem;font-weight:700;margin-bottom:6px}.ann-card .meta{font-size:.72rem;color:#6b7280;margin-bottom:8px}.ann-card .body{font-size:.85rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}.ann-acts{display:flex;gap:6px;margin-top:10px}.vac-badge{padding:3px 10px;border-radius:10px;font-size:.7rem;font-weight:700}.vac-badge.pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid #ffc107}.vac-badge.approved{background:rgba(76,175,80,.15);color:#66bb6a;border:1px solid #66bb6a}.vac-badge.rejected{background:rgba(183,28,28,.15);color:#ef9a9a;border:1px solid #b71c1c}.flash{padding:10px 14px;border-radius:7px;margin-bottom:12px;font-size:.84rem}.flash.ok{background:rgba(76,175,80,.15);border:1px solid #388e3c;color:#a5d6a7}.flash.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;color:#ef9a9a}.nl{display:none}@media(max-width:640px){.sidebar{width:100%;height:auto;min-height:unset;flex-direction:row;position:fixed;top:auto;bottom:0;left:0;border-right:none;border-top:1px solid #1e4080}.sb-logo{display:none}.sb-nav{display:flex;flex-direction:row;flex:1;padding:0;overflow-x:auto}.nb{flex:1;flex-direction:column;padding:7px 2px;gap:2px;border-left:none;border-top:2px solid transparent;border-bottom:none;justify-content:center;align-items:center;font-size:.6rem;min-width:0;white-space:normal}.nb.act{border-left:none;border-top-color:#1e90ff;background:#0c1b45}.nb .ni{width:auto;font-size:1.3rem}.nl{display:block;font-size:.58rem;text-align:center;line-height:1.1;white-space:nowrap;overflow:hidden;max-width:62px}.sb-user{display:none}.main-wrap{margin-left:0;padding-bottom:68px}main{padding:14px 10px}}";
 
   app.get('/lapd/dashboard', (req,res)=>{
     if (!isLapdAuth(req)) return res.redirect('/lapd');
@@ -2458,7 +2458,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     const canWarn  = s.ebene==='leitung'||s.ebene==='befehl';
     const clientJs = (function buildClientJs(userId, ebene, displayName, rankName, canPost, canWarn) {
   return `
-const ME={userId:${JSON.stringify(userId)},ebene:${JSON.stringify(ebene)},displayName:${JSON.stringify(displayName)},rankName:${JSON.stringify(rankName)},canPost:${canPost},canWarn:${canWarn}};
+const ME={userId:${JSON.stringify(userId)},ebene:${JSON.stringify(ebene)},displayName:${JSON.stringify(displayName)},rankName:${JSON.stringify(rankName)},canPost:${canPost},canWarn:${canWarn},loginTime:${Date.now()}};
 const ECOLOR={leitung:"#ffd700",befehl:"#42a5f5",detective:"#ab47bc",officer:"#66bb6a"};
 const ELABEL={leitung:"Command Staff",befehl:"Supervisory Staff",detective:"Detective Division",officer:"Officer Division"};
 
@@ -2469,7 +2469,8 @@ function showTab(t){
   if(el){el.style.display="";loadTab(t);}
 }
 function loadTab(t){
-  if(t==="board")loadBoard();
+  if(t==="info")loadInfo();
+else if(t==="board")loadBoard();
   else if(t==="duty")loadDuty();
   else if(t==="vacation")loadVacation();
   else if(t==="warnings")loadWarnings();
@@ -2481,6 +2482,23 @@ function flash(el,msg,ok){
 function escH(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function fdate(ts){return new Date(ts).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});}
 function ftime(ts){const d=new Date(ts);return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});}
+
+
+// ── INFO ───────────────────────────────────────────────────────────────────
+function loadInfo(){
+  const el=document.getElementById("info-content");
+  if(!el||el.dataset.loaded)return;
+  el.dataset.loaded="1";
+  const color=ECOLOR[ME.ebene]||"#90caf9";
+  const login=ME.loginTime?ftime(ME.loginTime):"-";
+  el.innerHTML=
+    '<div class="info-card">'+
+    '<div class="info-row"><span class="info-l">👤 Name</span><span class="info-v">'+escH(ME.displayName)+'</span></div>'+
+    '<div class="info-row"><span class="info-l">🎖️ Rang</span><span class="info-v" style="color:'+color+'">'+escH(ME.rankName)+'</span></div>'+
+    '<div class="info-row"><span class="info-l">🏛️ Abteilung</span><span class="info-v" style="color:'+color+'">'+escH(ELABEL[ME.ebene]||ME.ebene)+'</span></div>'+
+    '<div class="info-row"><span class="info-l">⏰ Angemeldet</span><span class="info-v">'+login+'</span></div>'+
+    '</div>';
+}
 
 // ── BOARD ──────────────────────────────────────────────────────────────────
 async function loadBoard(){
@@ -2573,7 +2591,7 @@ async function loadWarnings(){
   el.innerHTML='<p class="muted">Lädt...</p>';
   const r=await fetch("/lapd/api/warnings").then(x=>x.json()).catch(()=>({ok:false}));
   if(!r.ok){el.innerHTML='<p class="muted">Laden fehlgeschlagen.</p>';return;}
-  if(!r.items.length){el.innerHTML='<p class="muted">Keine Verwarnungen vorhanden.</p>';return;}
+  if(!r.items.length){el.innerHTML='<p class="muted">Keine Einträge vorhanden.</p>';return;}
   const canWarn=ME.canWarn;
   el.innerHTML='<table><thead><tr><th>Datum</th><th>Officer</th><th>Grund</th><th>Ausgestellt von</th>'+(canWarn?'<th></th>':'')+
     '</tr></thead><tbody>'+
@@ -2607,13 +2625,13 @@ async function submitWarn(e){
   const parts=tv.split("||");
   if(parts.length<4){flash(document.getElementById("warn-flash"),"Bitte einen Officer auswählen",false);return;}
   const r=await fetch("/lapd/api/warnings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({targetId:parts[0],targetName:parts[1],targetRank:parts[2],targetEbene:parts[3],reason:fd.get("reason")})}).then(x=>x.json()).catch(()=>({ok:false}));
-  flash(document.getElementById("warn-flash"),r.ok?"Verwarnung ausgestellt.":r.msg||"Fehler",r.ok);
+  flash(document.getElementById("warn-flash"),r.ok?"Abmahnung/Suspendierung ausgestellt.":r.msg||"Fehler",r.ok);
   if(r.ok){e.target.reset();loadWarnings();}
 }
 async function delWarn(id){
   if(!confirm("Verwarnung wirklich löschen?"))return;
   const r=await fetch("/lapd/api/warnings/"+id,{method:"DELETE"}).then(x=>x.json()).catch(()=>({ok:false}));
-  flash(document.getElementById("warn-flash"),r.ok?"Verwarnung gelöscht.":r.msg||"Fehler",r.ok);
+  flash(document.getElementById("warn-flash"),r.ok?"Eintrag gelöscht.":r.msg||"Fehler",r.ok);
   if(r.ok)loadWarnings();
 }
 
@@ -2646,10 +2664,10 @@ document.addEventListener("DOMContentLoaded",()=>showTab("board"));
       '<aside class="sidebar">'+
       '<div class="sb-logo"><div class="ico">🛡️</div><div><h2>LAPD</h2><p>Dashboard</p></div></div>'+
       '<nav class="sb-nav">'+
-      '<button class="nb act" data-t="board" onclick="showTab(\'board\')"><span class="ni">📋</span>Schwarzes Brett</button>'+
-      '<button class="nb" data-t="duty" onclick="showTab(\'duty\')"><span class="ni">🕐</span>Dienst</button>'+
-      '<button class="nb" data-t="vacation" onclick="showTab(\'vacation\')"><span class="ni">✈️</span>Urlaub</button>'+
-      '<button class="nb" data-t="warnings" onclick="showTab(\'warnings\')"><span class="ni">⚠️</span>Verwarnungen</button>'+
+      '<button class="nb" data-t="info" onclick="showTab(\'info\')"><span class="ni">ℹ️</span><span class="nl">Info</span>Informationen</button>'+'<button class="nb act" data-t="board" onclick="showTab(\'board\')"><span class="ni">📋</span><span class="nl">Brett</span>Schwarzes Brett</button>'+
+      '<button class="nb" data-t="duty" onclick="showTab(\'duty\')"><span class="ni">🕐</span><span class="nl">Dienst</span>Dienst</button>'+
+      '<button class="nb" data-t="vacation" onclick="showTab(\'vacation\')"><span class="ni">✈️</span><span class="nl">Urlaub</span>Urlaub</button>'+
+      '<button class="nb" data-t="warnings" onclick="showTab(\'warnings\')"><span class="ni">⚠️</span><span class="nl">Abmahnung</span>Abmahnung/Suspendierung</button>'+
       '</nav>'+
       '<div class="sb-user">'+
       '<div class="uname">'+esc(s.displayName)+'</div>'+
@@ -2658,7 +2676,7 @@ document.addEventListener("DOMContentLoaded",()=>showTab("board"));
       '</div></aside>'+
       // ── Main content ──
       '<div class="main-wrap"><main>'+
-      '<div class="tsec" id="t-board">'+postForm+
+      '<div class="tsec" id="t-info" style="display:none">'+'<div class="sec"><div class="sh" style="border-left:3px solid #90caf9"><h3 style="color:#90caf9">ℹ️ Meine Informationen</h3></div>'+'<div class="sb"><div id="info-content"><p class="muted">Lädt...</p></div></div></div>'+'</div>'+'<div class="tsec" id="t-board">'+postForm+
       '<div class="sec"><div class="sh" style="border-left:3px solid #1e90ff"><h3 style="color:#1e90ff">📋 Ankündigungen</h3></div>'+
       '<div class="sb"><div id="board-content"><p class="muted">Lädt...</p></div></div></div>'+
       '</div>'+
@@ -2679,7 +2697,7 @@ document.addEventListener("DOMContentLoaded",()=>showTab("board"));
       '<div class="sb"><div id="vac-list"></div></div></div>'+
       '</div>'+
       '<div class="tsec" id="t-warnings" style="display:none">'+warnForm+
-      '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">⚠️ Verwarnungen</h3></div>'+
+      '<div class="sec" style="margin-top:16px"><div class="sh" style="border-left:3px solid #ef9a9a"><h3 style="color:#ef9a9a">⚠️ Abmahnung/Suspendierung</h3></div>'+
       '<div class="sb"><div id="warn-content"></div></div></div>'+
       '</div>'+
       '</main></div>'+
