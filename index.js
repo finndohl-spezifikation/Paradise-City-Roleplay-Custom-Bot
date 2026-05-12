@@ -3034,19 +3034,10 @@ client.on('interactionCreate', async (interaction) => {
       try {
         const LAPD_GUILD_ID_B = '1498482541751963698';
         const LAPD_RANKS_B = [
-      {id:'1498483674667028543',name:'Chief of Police',ebene:'leitung'},
-      {id:'1498483758532395008',name:'Deputy Chief',ebene:'leitung'},
-      {id:'1498483802740363357',name:'Captain',ebene:'befehl'},
-      {id:'1498484140935217172',name:'Lieutenant',ebene:'befehl'},
-      {id:'1498484185491312690',name:'Staff Sergeant',ebene:'befehl'},
-      {id:'1498484299329179658',name:'Sergeant',ebene:'befehl'},
-      {id:'1498484388428779550',name:'Detective III',ebene:'detective'},
-      {id:'1498484584017559773',name:'Detective II',ebene:'detective'},
-      {id:'1498484636211482685',name:'Detective I',ebene:'detective'},
-      {id:'1498484724824408214',name:'Senior Officer',ebene:'officer'},
-      {id:'1498484934720098365',name:'Officer',ebene:'officer'},
-      {id:'1498485048565960754',name:'Trainee',ebene:'officer'},
-      {id:'1498485086071554169',name:'Rookie',ebene:'officer'},
+      {id:'1498483561982984212',name:'Command Staff (Leitung)',   ebene:'leitung'  },
+      {id:'1498484038363648121',name:'Supervisory Staff (Befehl)',ebene:'befehl'   },
+      {id:'1498484537368510504',name:'Detective Division',        ebene:'detective'},
+      {id:'1498484869863444660',name:'Officer Division',         ebene:'officer'  },
     ];
         let guild = client.guilds.cache.get(LAPD_GUILD_ID_B);
         if (!guild) guild = await client.guilds.fetch(LAPD_GUILD_ID_B).catch(() => null);
