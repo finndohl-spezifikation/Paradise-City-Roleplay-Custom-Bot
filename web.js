@@ -2182,6 +2182,8 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   const LAPD_WARRANTS_FILE  = path.join(DATA_DIR, 'lapd_warrants.json');
   const LAPD_WARRANT_PHOTOS = path.join(DATA_DIR, 'warrant_photos');
   if(!fs.existsSync(LAPD_WARRANT_PHOTOS)) fs.mkdirSync(LAPD_WARRANT_PHOTOS,{recursive:true});
+  const LAPD_CONFISCATIONS_FILE = path.join(DATA_DIR, 'lapd_confiscations.json');
+  const LAPD_NOTRUFE_FILE       = path.join(DATA_DIR, 'lapd_notrufe.json');
 
   function lj(f,d){ try{ return JSON.parse(fs.readFileSync(f,'utf8')); }catch{ return d; } }
   function sj(f,d){ try{ fs.writeFileSync(f,JSON.stringify(d,null,2),'utf8'); }catch(e){ console.error('sj',e.message); } }
@@ -2218,6 +2220,10 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   function saveCrimes(d){ sj(LAPD_CRIMES_FILE,d); }
   function loadWarrants(){ return lj(LAPD_WARRANTS_FILE,[]); }
   function saveWarrants(d){ sj(LAPD_WARRANTS_FILE,d); }
+  function loadConfiscations(){ return lj(LAPD_CONFISCATIONS_FILE,[]); }
+  function saveConfiscations(d){ sj(LAPD_CONFISCATIONS_FILE,d); }
+  function loadNotrufe(){ return lj(LAPD_NOTRUFE_FILE,[]); }
+  function saveNotrufe(d){ sj(LAPD_NOTRUFE_FILE,d); }
 
   // ── Duty Embed ───────────────────────────────────────────────────────────
   const { EmbedBuilder: _DEB } = require('discord.js');
@@ -2246,6 +2252,12 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   }
   setTimeout(()=>updateDutyEmbed(), 7000);
   module.exports.updateLapdDutyEmbed = updateDutyEmbed;
+  module.exports.addNotruf = function(data){
+    const entry={id:genId(),caller:String(data.caller||'Unbekannt').slice(0,100),
+      callerId:String(data.callerId||''),location:String(data.location||'Unbekannt').slice(0,200),
+      description:String(data.description||'').slice(0,500),status:'offen',assignedTo:null,ts:Date.now()};
+    const list=loadNotrufe(); list.push(entry); saveNotrufe(list); return entry;
+  };
 
   // ── Login CSS / helpers ──────────────────────────────────────────────────
   const LCSS = '*{box-sizing:border-box;margin:0;padding:0}body{background:#04091f;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#0c1b45;border:1px solid #1e4080;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}.badge{text-align:center;margin-bottom:24px}.badge .ico{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}hr{border:none;border-top:1px solid #1e4080;margin:20px 0}.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}.info{background:rgba(21,101,192,.15);border:1px solid #1565c0;border-radius:8px;padding:14px;margin-bottom:16px;color:#90caf9;font-size:.88rem;line-height:1.6}.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.fg input,.fg select{width:100%;background:#040920;border:1px solid #1e4080;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}.fg select option{background:#040920}.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}.btn:hover{background:#1976d2}.foot{margin-top:28px;color:#1e4080;font-size:.7rem;letter-spacing:1px;text-align:center}';
@@ -2730,7 +2742,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   });
 
   // ── Dashboard (vollständig server-seitig, kein JavaScript nötig) ─────────
-  const LAPD_CSS = "*{box-sizing:border-box;margin:0;padding:0}.top-banner{position:fixed;top:0;left:0;right:0;z-index:999;height:20px;background:#04091f;border-bottom:1px solid #1F51FF44;display:flex;align-items:center;justify-content:center;font-size:.58rem;color:#4a6a9a;letter-spacing:.06em;pointer-events:none;font-family:\"Segoe UI\",sans-serif}body{background:#030b1a;color:#e0e0e0;font-family:\"Segoe UI\",sans-serif;min-height:100vh;display:flex;padding-top:20px}@keyframes panicGlow{0%,100%{box-shadow:0 0 8px #ff0000,0 0 22px #ff000077}50%{box-shadow:0 0 20px #ff0000,0 0 45px #ff0000bb}}@keyframes panicPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}.sidebar{width:222px;min-height:calc(100vh - 20px);background:linear-gradient(180deg,#06122a 0%,#040e21 100%);border-right:1px solid #1F51FF;display:flex;flex-direction:column;position:fixed;top:20px;left:0;z-index:100;box-shadow:4px 0 24px rgba(31,81,255,0.18)}.sb-logo{padding:12px 12px 10px;border-bottom:1px solid #1F51FF;display:flex;align-items:center;gap:10px;background:rgba(31,81,255,0.07)}.sb-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #1F51FF;box-shadow:0 0 12px rgba(31,81,255,0.6)}.sb-logo div{flex:1;min-width:0}.sb-logo h2{font-size:.78rem;font-weight:800;color:#ffd700;letter-spacing:2px;line-height:1.3;text-shadow:0 0 8px rgba(255,215,0,0.5)}.sb-logo p{font-size:.62rem;color:#6aa3ff;margin-top:1px}.sb-nav{flex:1;padding:6px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}.nb{display:flex;align-items:center;gap:10px;width:100%;text-decoration:none;background:transparent;border:none;border-left:4px solid transparent;border-radius:0 8px 8px 0;color:#4a6080;padding:8px 11px;font-size:.78rem;font-weight:600;cursor:pointer;transition:.15s}.nb .ni{font-size:.95rem;width:22px;text-align:center;flex-shrink:0}.nb:hover{color:#93c5fd;background:rgba(31,81,255,0.12);border-left-color:#1a46e0}.nb.act{color:#60a5fa;background:rgba(31,81,255,0.2);border-left-color:#1F51FF;font-weight:700;box-shadow:inset 0 0 12px rgba(31,81,255,0.1)}.sb-user{padding:11px 14px;border-top:1px solid #1F51FF;background:rgba(30,111,255,0.05)}.sb-user .uname{font-size:.76rem;font-weight:700;color:#e0e0e0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sb-user .urank{font-size:.67rem;font-weight:600;margin-bottom:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbtn{display:block;width:100%;background:transparent;border:1px solid #1F51FF;color:#4a6080;padding:7px 12px;border-radius:7px;font-size:.76rem;cursor:pointer;transition:.2s;text-align:center}.lbtn:hover{border-color:#ef5350;color:#ef5350}.main-wrap{margin-left:222px;flex:1;display:flex;flex-direction:column;min-height:100vh}main{flex:1;padding:20px 22px;max-width:1060px;width:100%}.sec{background:linear-gradient(180deg,#081632 0%,#060f27 100%);border:1px solid #1a3a78;border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.4)}.sh{padding:11px 16px;border-bottom:1px solid #1a3a78;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:rgba(31,81,255,0.06)}.sh h3{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.sb{padding:14px 16px}table{width:100%;border-collapse:collapse;font-size:.82rem}th{color:#4a6080;font-size:.67rem;text-transform:uppercase;letter-spacing:1px;padding:7px 10px;text-align:left;border-bottom:1px solid #1a3a78}td{padding:7px 10px;border-bottom:1px solid #081530}tr:last-child td{border-bottom:none}tr:hover td{background:rgba(31,81,255,0.06)}.muted{color:#4a6080;font-size:.82rem;padding:8px 0}.fg{margin-bottom:11px}.fg label{display:block;font-size:.7rem;color:#6aa3ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.fg input,.fg select,.fg textarea{width:100%;background:#040c1e;border:1px solid #1a3a78;color:#e0e0e0;padding:8px 12px;border-radius:7px;font-size:.86rem;outline:none;transition:.2s;font-family:inherit}.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1F51FF;box-shadow:0 0 0 2px rgba(31,81,255,0.2)}.fg select option{background:#040c1e}.fg textarea{resize:vertical;min-height:80px}.row{display:flex;gap:10px;flex-wrap:wrap}.row .fg{flex:1;min-width:140px}.btn{background:#1F51FF;color:#fff;border:none;padding:8px 16px;border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.2s;text-decoration:none;display:inline-block;box-shadow:0 2px 8px rgba(31,81,255,0.4)}.btn:hover{background:#3a6bff;box-shadow:0 2px 12px rgba(31,81,255,0.6)}.btn.red{background:#7f1d1d;box-shadow:0 2px 8px rgba(127,29,29,0.4)}.btn.red:hover{background:#991b1b}.btn.grn{background:#14532d;box-shadow:0 2px 8px rgba(20,83,45,0.4)}.btn.grn:hover{background:#166534}.btn.sm{padding:4px 10px;font-size:.72rem}.btn.ghost{background:transparent;border:1px solid #1a3a78;color:#6aa3ff}.btn.ghost:hover{border-color:#42a5f5;color:#42a5f5}.pin-badge{color:#ffd700;font-size:.68rem;font-weight:700;margin-left:6px}.ann-card{border:1px solid #1a3a78;border-radius:8px;padding:13px;margin-bottom:9px;background:#040c1e}.ann-card.pinned{border-color:#ffd700;box-shadow:0 0 8px rgba(255,215,0,0.15)}.ann-card h4{font-size:.88rem;font-weight:700;margin-bottom:5px}.ann-card .meta{font-size:.7rem;color:#4a6080;margin-bottom:7px}.ann-card .body{font-size:.83rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}.ann-acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}.vac-badge{padding:3px 10px;border-radius:10px;font-size:.68rem;font-weight:700}.vac-badge.pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid #ffc107}.vac-badge.approved{background:rgba(76,175,80,.15);color:#66bb6a;border:1px solid #66bb6a}.vac-badge.rejected{background:rgba(183,28,28,.15);color:#ef9a9a;border:1px solid #b71c1c}.flash{padding:9px 13px;border-radius:7px;margin-bottom:11px;font-size:.82rem}.flash.ok{background:rgba(76,175,80,.12);border:1px solid #388e3c;color:#a5d6a7}.flash.err{background:rgba(183,28,28,.12);border:1px solid #b71c1c;color:#ef9a9a}.info-card{display:flex;flex-direction:column}.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #0d1f44}.info-row:last-child{border-bottom:none}.info-l{font-size:.7rem;color:#4a6a9a;text-transform:uppercase;letter-spacing:1px}.info-v{font-size:.83rem;font-weight:600}.danger-badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700}.danger-badge.hoch{background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444}.danger-badge.mittel{background:rgba(251,191,36,.2);color:#fcd34d;border:1px solid #f59e0b}.danger-badge.niedrig{background:rgba(74,222,128,.2);color:#86efac;border:1px solid #22c55e}.warrant-photo{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #1a3a78}.status-badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700}.status-badge.aktiv{background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444}.status-badge.gefasst{background:rgba(74,222,128,.2);color:#86efac;border:1px solid #22c55e}.bkat-section{margin-bottom:18px}.bkat-cat{font-size:.72rem;font-weight:800;color:#ffd700;text-transform:uppercase;letter-spacing:2px;padding:9px 0 5px;border-bottom:1px solid #1a3a78;margin-bottom:5px;text-shadow:0 0 6px rgba(255,215,0,0.3)}.bkat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 4px;border-bottom:1px solid #0d1f44;font-size:.8rem}.bkat-row:last-child{border-bottom:none}.bkat-row:hover{background:rgba(31,81,255,0.06)}.bkat-fine{color:#fcd34d;font-weight:700;white-space:nowrap;margin-left:12px}.duty-tag{display:inline-block;padding:2px 8px;background:rgba(31,81,255,0.15);border:1px solid #1a3a78;border-radius:12px;font-size:.7rem;margin:2px}@media(max-width:720px){.sidebar{width:60px}.sb-logo div,.sb-user .uname,.sb-user .urank,.sb-user form,.nb .nl{display:none}.main-wrap{margin-left:60px}.nb{justify-content:center;padding:10px 0}.nb .ni{width:auto;font-size:1.1rem}}";
+  const LAPD_CSS = "*{box-sizing:border-box;margin:0;padding:0}.top-banner{position:fixed;top:0;left:0;right:0;z-index:999;height:20px;background:#04091f;border-bottom:1px solid #1F51FF44;display:flex;align-items:center;justify-content:center;font-size:.58rem;color:#4a6a9a;letter-spacing:.06em;pointer-events:none;font-family:\"Segoe UI\",sans-serif}body{background:#030b1a;color:#e0e0e0;font-family:\"Segoe UI\",sans-serif;min-height:100vh;display:flex;padding-top:20px}@keyframes panicGlow{0%,100%{box-shadow:0 0 8px #ff0000,0 0 22px #ff000077}50%{box-shadow:0 0 20px #ff0000,0 0 45px #ff0000bb}}@keyframes panicPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}.sidebar{width:222px;min-height:calc(100vh - 20px);background:linear-gradient(180deg,#06122a 0%,#040e21 100%);border-right:1px solid #1F51FF;display:flex;flex-direction:column;position:fixed;top:20px;left:0;z-index:100;box-shadow:4px 0 24px rgba(31,81,255,0.18)}.sb-logo{padding:12px 12px 10px;border-bottom:1px solid #1F51FF;display:flex;align-items:center;gap:10px;background:rgba(31,81,255,0.07)}.sb-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #1F51FF;box-shadow:0 0 12px rgba(31,81,255,0.6)}.sb-logo div{flex:1;min-width:0}.sb-logo h2{font-size:.78rem;font-weight:800;color:#ffd700;letter-spacing:2px;line-height:1.3;text-shadow:0 0 8px rgba(255,215,0,0.5)}.sb-logo p{font-size:.62rem;color:#6aa3ff;margin-top:1px}.sb-nav{flex:1;padding:6px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}.nb{display:flex;align-items:center;gap:10px;width:100%;text-decoration:none;background:transparent;border:none;border-left:4px solid transparent;border-radius:0 8px 8px 0;color:#4a6080;padding:8px 11px;font-size:.78rem;font-weight:600;cursor:pointer;transition:.15s}.nb .ni{font-size:.95rem;width:22px;text-align:center;flex-shrink:0}.nb:hover{color:#93c5fd;background:rgba(31,81,255,0.12);border-left-color:#1a46e0}.nb.act{color:#60a5fa;background:rgba(31,81,255,0.2);border-left-color:#1F51FF;font-weight:700;box-shadow:inset 0 0 12px rgba(31,81,255,0.1)}.sb-user{padding:11px 14px;border-top:1px solid #1F51FF;background:rgba(30,111,255,0.05)}.sb-user .uname{font-size:.76rem;font-weight:700;color:#e0e0e0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sb-user .urank{font-size:.67rem;font-weight:600;margin-bottom:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbtn{display:block;width:100%;background:transparent;border:1px solid #1F51FF;color:#4a6080;padding:7px 12px;border-radius:7px;font-size:.76rem;cursor:pointer;transition:.2s;text-align:center}.lbtn:hover{border-color:#ef5350;color:#ef5350}.main-wrap{margin-left:222px;flex:1;display:flex;flex-direction:column;min-height:100vh}main{flex:1;padding:20px 22px;max-width:1060px;width:100%}.sec{background:linear-gradient(180deg,#081632 0%,#060f27 100%);border:1px solid #1a3a78;border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.4)}.sh{padding:11px 16px;border-bottom:1px solid #1a3a78;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:rgba(31,81,255,0.06)}.sh h3{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.sb{padding:14px 16px}table{width:100%;border-collapse:collapse;font-size:.82rem}th{color:#4a6080;font-size:.67rem;text-transform:uppercase;letter-spacing:1px;padding:7px 10px;text-align:left;border-bottom:1px solid #1a3a78}td{padding:7px 10px;border-bottom:1px solid #081530}tr:last-child td{border-bottom:none}tr:hover td{background:rgba(31,81,255,0.06)}.muted{color:#4a6080;font-size:.82rem;padding:8px 0}.fg{margin-bottom:11px}.fg label{display:block;font-size:.7rem;color:#6aa3ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.fg input,.fg select,.fg textarea{width:100%;background:#040c1e;border:1px solid #1a3a78;color:#e0e0e0;padding:8px 12px;border-radius:7px;font-size:.86rem;outline:none;transition:.2s;font-family:inherit}.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1F51FF;box-shadow:0 0 0 2px rgba(31,81,255,0.2)}.fg select option{background:#040c1e}.fg textarea{resize:vertical;min-height:80px}.row{display:flex;gap:10px;flex-wrap:wrap}.row .fg{flex:1;min-width:140px}.btn{background:#1F51FF;color:#fff;border:none;padding:8px 16px;border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.2s;text-decoration:none;display:inline-block;box-shadow:0 2px 8px rgba(31,81,255,0.4)}.btn:hover{background:#3a6bff;box-shadow:0 2px 12px rgba(31,81,255,0.6)}.btn.red{background:#7f1d1d;box-shadow:0 2px 8px rgba(127,29,29,0.4)}.btn.red:hover{background:#991b1b}.btn.grn{background:#14532d;box-shadow:0 2px 8px rgba(20,83,45,0.4)}.btn.grn:hover{background:#166534}.btn.sm{padding:4px 10px;font-size:.72rem}.btn.ghost{background:transparent;border:1px solid #1a3a78;color:#6aa3ff}.btn.ghost:hover{border-color:#42a5f5;color:#42a5f5}.pin-badge{color:#ffd700;font-size:.68rem;font-weight:700;margin-left:6px}.ann-card{border:1px solid #1a3a78;border-radius:8px;padding:13px;margin-bottom:9px;background:#040c1e}.ann-card.pinned{border-color:#ffd700;box-shadow:0 0 8px rgba(255,215,0,0.15)}.ann-card h4{font-size:.88rem;font-weight:700;margin-bottom:5px}.ann-card .meta{font-size:.7rem;color:#4a6080;margin-bottom:7px}.ann-card .body{font-size:.83rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}.ann-acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}.vac-badge{padding:3px 10px;border-radius:10px;font-size:.68rem;font-weight:700}.vac-badge.pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid #ffc107}.vac-badge.approved{background:rgba(76,175,80,.15);color:#66bb6a;border:1px solid #66bb6a}.vac-badge.rejected{background:rgba(183,28,28,.15);color:#ef9a9a;border:1px solid #b71c1c}.flash{padding:9px 13px;border-radius:7px;margin-bottom:11px;font-size:.82rem}.flash.ok{background:rgba(76,175,80,.12);border:1px solid #388e3c;color:#a5d6a7}.flash.err{background:rgba(183,28,28,.12);border:1px solid #b71c1c;color:#ef9a9a}.info-card{display:flex;flex-direction:column}.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #0d1f44}.info-row:last-child{border-bottom:none}.info-l{font-size:.7rem;color:#4a6a9a;text-transform:uppercase;letter-spacing:1px}.info-v{font-size:.83rem;font-weight:600}.danger-badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700}.danger-badge.hoch{background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444}.danger-badge.mittel{background:rgba(251,191,36,.2);color:#fcd34d;border:1px solid #f59e0b}.danger-badge.niedrig{background:rgba(74,222,128,.2);color:#86efac;border:1px solid #22c55e}.warrant-photo{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #1a3a78}.status-badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700}.status-badge.aktiv{background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444}.status-badge.gefasst{background:rgba(74,222,128,.2);color:#86efac;border:1px solid #22c55e}.bkat-section{margin-bottom:18px}.bkat-cat{font-size:.72rem;font-weight:800;color:#ffd700;text-transform:uppercase;letter-spacing:2px;padding:9px 0 5px;border-bottom:1px solid #1a3a78;margin-bottom:5px;text-shadow:0 0 6px rgba(255,215,0,0.3)}.bkat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 4px;border-bottom:1px solid #0d1f44;font-size:.8rem}.bkat-row:last-child{border-bottom:none}.bkat-row:hover{background:rgba(31,81,255,0.06)}.bkat-fine{color:#fcd34d;font-weight:700;white-space:nowrap;margin-left:12px}.duty-tag{display:inline-block;padding:2px 8px;background:rgba(31,81,255,0.15);border:1px solid #1a3a78;border-radius:12px;font-size:.7rem;margin:2px}.notruf-popup{position:fixed;bottom:24px;right:20px;z-index:9999;background:#04091f;border:2px solid #ef4444;border-radius:10px;padding:14px 16px;min-width:270px;max-width:320px;box-shadow:0 0 28px rgba(239,68,68,0.45);animation:npIn .3s ease}@keyframes npIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}.np-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.np-title{color:#ef4444;font-size:.78rem;font-weight:800;letter-spacing:1px}.np-x{background:none;border:none;color:#6b7280;cursor:pointer;font-size:1rem;padding:0 2px;line-height:1}.np-x:hover{color:#e0e0e0}.np-caller{font-size:.78rem;font-weight:700;color:#e0e0e0;margin-bottom:3px}.np-loc{font-size:.72rem;color:#fcd34d;margin-bottom:3px}.np-desc{font-size:.71rem;color:#9ca3af;margin-bottom:9px;max-height:48px;overflow:hidden}.np-bar{height:3px;background:#1a3a78;border-radius:2px;margin-bottom:9px;overflow:hidden}.np-fill{height:100%;width:100%;background:#ef4444;border-radius:2px}.np-acts{display:flex;gap:7px}.np-btn{flex:1;padding:5px 8px;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;border:none;text-align:center;text-decoration:none;display:inline-block;line-height:1.4}.np-go{background:#ef4444;color:#fff}.np-go:hover{background:#dc2626}.np-ign{background:#1a3a78;color:#6aa3ff;border:1px solid rgba(31,81,255,.27)}.np-ign:hover{background:#1e4080}.nr-badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700}.nr-offen{background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444}.nr-angenommen{background:rgba(74,222,128,.2);color:#86efac;border:1px solid #22c55e}.nr-geschlossen{background:rgba(100,116,139,.2);color:#94a3b8;border:1px solid #475569}.conf-lifted{opacity:.55}@media(max-width:720px){.sidebar{width:60px}.sb-logo div,.sb-user .uname,.sb-user .urank,.sb-user form,.nb .nl{display:none}.main-wrap{margin-left:60px}.nb{justify-content:center;padding:10px 0}.nb .ni{width:auto;font-size:1.1rem}}";
 
   const LAPD_BKAT = [
     {cat:"Geschwindigkeitsverstoeße",items:[
@@ -2925,6 +2937,8 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +nav('crimes','📁','Strafakten')
       +nav('bkat','📜','Bussgeldkatalog')
       +nav('warrants','🔴','Fahndungen')
+      +nav('beschlagnahme','🚔','Beschlagnahmungen')
+      +nav('notrufe','🚨','Notrufe')
       +'</nav>'
       +'<div class="sb-user">'
       +'<div class="uname">'+esc(s.displayName)+'</div>'
@@ -2938,6 +2952,8 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +flashHtml
       +content
       +'</main></div>'
+      +'<script>(function(){var lastTs=parseInt(localStorage.getItem('lapd_nr_ts')||'0');var pop=null,tmr=null;function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}function dismiss(){if(pop){pop.remove();pop=null;}if(tmr){clearTimeout(tmr);tmr=null;}}window._dismissNP=dismiss;function show(n){dismiss();var d=document.createElement('div');d.className='notruf-popup';d.innerHTML='<div class="np-hd"><span class="np-title">&#x1F6A8; NEUER NOTRUF</span><button class="np-x" onclick="_dismissNP()">&#x2715;</button></div><div class="np-caller">'+esc(n.caller)+'</div><div class="np-loc">&#x1F4CD; '+esc(n.location||'Unbekannt')+'</div>'+(n.description?'<div class="np-desc">'+esc(n.description.slice(0,80))+'</div>':'')+'<div class="np-bar"><div class="np-fill" id="np-fill"></div></div><div class="np-acts"><a class="np-btn np-go" href="?tab=notrufe">Zum Notruf</a><button class="np-btn np-ign" onclick="_dismissNP()">Ignorieren</button></div>';document.body.appendChild(d);pop=d;var f=document.getElementById('np-fill');if(f){f.style.transition='width 5s linear';setTimeout(function(){f.style.width='0%';},60);}tmr=setTimeout(dismiss,5300);}async function poll(){try{var r=await fetch('/lapd/api/notrufe/new?since='+lastTs);var list=await r.json();if(list&&list.length>0){lastTs=list[0].ts;localStorage.setItem('lapd_nr_ts',String(lastTs));show(list[0]);}}catch(e){}}setInterval(poll,4000);poll();})();</script>
+'
       +'</body></html>';
   }
 
@@ -3281,6 +3297,62 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         +'</form></div></div>';
     }
 
+    } else if (tab === 'beschlagnahme') {
+      const confs = loadConfiscations().sort((a,b)=>b.ts-a.ts);
+      const confHtml = confs.length
+        ? confs.map(c=>'<div class="ann-card '+(c.status==='aufgehoben'?'conf-lifted':'')+'">'
+          +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">'
+          +'<div><h4 style="margin-bottom:3px">'+esc(c.besitzer)+'</h4>'
+          +'<span style="font-size:.72rem;color:#fcd34d">'+esc(c.fahrzeug)+(c.kennzeichen?' &bull; KZ: '+esc(c.kennzeichen):'')+'</span></div>'
+          +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+          +(c.status==='aufgehoben'?'<span class="status-badge gefasst">AUFGEHOBEN</span>':'<span class="status-badge aktiv">BESCHLAGNAHMT</span>')
+          +(canMod&&c.status==='aktiv'?'<form method="POST" action="/lapd/dashboard/lift-confiscation/'+esc(c.id)+'?tab=beschlagnahme" style="display:inline"><button class="btn sm grn" type="submit">Aufheben</button></form> ':' ')
+          +(canMod?'<form method="POST" action="/lapd/dashboard/del-confiscation/'+esc(c.id)+'?tab=beschlagnahme" style="display:inline"><button class="btn sm red" type="submit">Loeschen</button></form>':'')
+          +'</div></div>'
+          +'<div class="info-card" style="margin-top:7px">'
+          +'<div class="info-row"><span class="info-l">Grund</span><span class="info-v">'+esc(c.grund)+'</span></div>'
+          +(c.liftedBy?'<div class="info-row"><span class="info-l">Aufgehoben von</span><span class="info-v" style="color:#86efac">'+esc(c.liftedBy)+'</span></div>':'')
+          +'</div>'
+          +'<div style="font-size:.68rem;color:#6b7280;margin-top:5px">Erfasst von '+esc(c.authorName)+' ('+esc(c.rankName)+') &bull; '+dbFmtTime(c.ts)+'</div>'
+          +'</div>').join('')
+        : '<p class="muted">Keine Beschlagnahmungen vorhanden.</p>';
+      content = '<div class="sec"><div class="sh" style="border-left:3px solid #f59e0b"><h3 style="color:#f59e0b">&#x1F694; Beschlagnahmungen</h3></div>'
+        +'<div class="sb">'+confHtml+'</div></div>'
+        +(canMod?'<div class="sec"><div class="sh" style="border-left:3px solid #f59e0b"><h3 style="color:#f59e0b">Fahrzeug beschlagnahmen</h3></div>'
+        +'<div class="sb"><form method="POST" action="/lapd/dashboard/confiscate?tab=beschlagnahme">'
+        +'<div class="row"><div class="fg"><label>Besitzer (Name)</label><input type="text" name="besitzer" required maxlength="200"></div>'
+        +'<div class="fg"><label>Fahrzeug (Marke / Modell)</label><input type="text" name="fahrzeug" required maxlength="200"></div></div>'
+        +'<div class="row"><div class="fg"><label>Kennzeichen (optional)</label><input type="text" name="kennzeichen" maxlength="20"></div>'
+        +'<div class="fg"><label>Grund der Beschlagnahmung</label><input type="text" name="grund" required maxlength="300"></div></div>'
+        +'<button class="btn" style="background:#f59e0b;box-shadow:0 2px 8px rgba(245,158,11,.4)" type="submit">&#x1F694; Beschlagnahmen</button>'
+        +'</form></div></div>':'');
+
+    } else if (tab === 'notrufe') {
+      const notrufe = loadNotrufe().sort((a,b)=>b.ts-a.ts);
+      const nHtml = notrufe.length
+        ? notrufe.map(n=>'<div class="ann-card">'
+          +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">'
+          +'<div><h4 style="color:#ef4444;margin-bottom:3px">&#x1F6A8; '+esc(n.caller)+'</h4>'
+          +'<div style="font-size:.72rem;color:#fcd34d">&#x1F4CD; '+esc(n.location||'Unbekannt')+'</div>'
+          +(n.description?'<div style="font-size:.78rem;margin-top:4px;color:#c8ccd2">'+esc(n.description)+'</div>':'')
+          +'</div>'
+          +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">'
+          +'<span class="nr-badge nr-'+esc(n.status)+'">'+esc(n.status.toUpperCase())+'</span>'
+          +(n.status!=='geschlossen'?'<form method="POST" action="/lapd/dashboard/close-notruf/'+esc(n.id)+'?tab=notrufe" style="display:inline"><button class="btn sm red" type="submit">Schliessen</button></form>':'')
+          +(canMod?'<form method="POST" action="/lapd/dashboard/del-notruf/'+esc(n.id)+'?tab=notrufe" style="display:inline"><button class="btn sm" style="background:#1a2a4a" type="submit">Loeschen</button></form>':'')
+          +'</div></div>'
+          +(n.assignedTo?'<div style="margin-top:8px;padding:6px 10px;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.25);border-radius:6px;font-size:.76rem;color:#86efac">&#x2705; <strong>Uebernommen von:</strong> '+esc(n.assignedTo)+'</div>':'')
+          +(n.status==='offen'
+            ?'<div style="margin-top:9px"><form method="POST" action="/lapd/dashboard/accept-notruf/'+esc(n.id)+'?tab=notrufe" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">'
+              +'<div class="fg" style="flex:1;min-width:160px;margin:0"><label>Streife / Officer-Namen</label>'
+              +'<input type="text" name="officers" required maxlength="200" placeholder="z.B. Officer Mueller, Detective Smith"></div>'
+              +'<button class="btn grn" type="submit" style="height:36px;margin-bottom:0">Annehmen</button></form></div>':'')
+          +'<div style="font-size:.68rem;color:#6b7280;margin-top:6px">'+dbFmtTime(n.ts)+'</div>'
+          +'</div>').join('')
+        : '<p class="muted">Keine Notrufe vorhanden.</p>';
+      content = '<div class="sec"><div class="sh" style="border-left:3px solid #ef4444"><h3 style="color:#ef4444">&#x1F6A8; Notrufe</h3></div>'
+        +'<div class="sb">'+nHtml+'</div></div>';
+
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.send(lapdPage(s, tab, content, flash));
   });
@@ -3572,6 +3644,119 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     dashRedir(res, tab, 'Geloescht.', true);
   });
 
+
+
+  // ── Beschlagnahmungen ─────────────────────────────────────────────────────
+  app.post('/lapd/dashboard/confiscate', (req,res) => {
+    if (!isLapdAuth(req)) return res.redirect('/lapd');
+    const s = req.session.lapd;
+    const tab = req.query.tab||'beschlagnahme';
+    const {besitzer,fahrzeug,kennzeichen,grund} = req.body;
+    if (!besitzer||!fahrzeug||!grund) return dashRedir(res, tab, 'Besitzer, Fahrzeug und Grund erforderlich.');
+    const entry = {id:genId(),besitzer:String(besitzer).slice(0,200),fahrzeug:String(fahrzeug).slice(0,200),
+      kennzeichen:String(kennzeichen||'').slice(0,20),grund:String(grund).slice(0,300),
+      status:'aktiv',liftedBy:null,authorId:s.userId,authorName:s.displayName,rankName:s.rankName,ts:Date.now()};
+    const list = loadConfiscations(); list.push(entry); saveConfiscations(list);
+    (async()=>{ try {
+      const ch = await client.channels.fetch('1492316049922592990').catch(()=>null);
+      if(ch){
+        const {EmbedBuilder}=require('discord.js');
+        await ch.send({embeds:[new EmbedBuilder().setColor(0xf59e0b)
+          .setTitle('🚔  Fahrzeug beschlagnahmt')
+          .addFields(
+            {name:'Besitzer',value:String(besitzer).slice(0,200),inline:true},
+            {name:'Fahrzeug',value:String(fahrzeug).slice(0,200)+(kennzeichen?' (KZ: '+String(kennzeichen)+')':''),inline:true},
+            {name:'Grund',value:String(grund).slice(0,300),inline:false},
+            {name:'Beamter',value:s.displayName+' ('+s.rankName+')',inline:true}
+          ).setFooter({text:'LAPD  \u2022  Paradise City Roleplay'}).setTimestamp()]});
+      }
+    } catch(e){ req.log ? req.log.error(e,'Beschlagnahmung Discord') : console.error('Beschlagnahmung Discord:',e.message); }})();
+    dashRedir(res, tab, 'Fahrzeug beschlagnahmt.', true);
+  });
+
+  app.post('/lapd/dashboard/lift-confiscation/:id', (req,res) => {
+    if (!isLapdAuth(req)) return res.redirect('/lapd');
+    const s = req.session.lapd;
+    const tab = req.query.tab||'beschlagnahme';
+    if (s.ebene!=='leitung'&&s.ebene!=='befehl') return dashRedir(res, tab, 'Keine Berechtigung.');
+    const list = loadConfiscations();
+    const item = list.find(x=>x.id===req.params.id);
+    if (!item) return dashRedir(res, tab, 'Nicht gefunden.');
+    item.status='aufgehoben'; item.liftedBy=s.displayName+' ('+s.rankName+')'; item.liftedAt=Date.now();
+    saveConfiscations(list);
+    (async()=>{ try {
+      const ch = await client.channels.fetch('1492316049922592990').catch(()=>null);
+      if(ch){
+        const {EmbedBuilder}=require('discord.js');
+        await ch.send({embeds:[new EmbedBuilder().setColor(0x22c55e)
+          .setTitle('\u{1F513}  Beschlagnahmung aufgehoben')
+          .addFields(
+            {name:'Besitzer',value:item.besitzer,inline:true},
+            {name:'Fahrzeug',value:item.fahrzeug+(item.kennzeichen?' (KZ: '+item.kennzeichen+')':''),inline:true},
+            {name:'Aufgehoben von',value:s.displayName+' ('+s.rankName+')',inline:true}
+          ).setFooter({text:'LAPD  \u2022  Paradise City Roleplay'}).setTimestamp()]});
+      }
+    } catch(e){ req.log ? req.log.error(e,'Aufhebung Discord') : console.error('Aufhebung Discord:',e.message); }})();
+    dashRedir(res, tab, 'Beschlagnahmung aufgehoben.', true);
+  });
+
+  app.post('/lapd/dashboard/del-confiscation/:id', (req,res) => {
+    if (!isLapdAuth(req)) return res.redirect('/lapd');
+    const tab = req.query.tab||'beschlagnahme';
+    if (req.session.lapd.ebene!=='leitung'&&req.session.lapd.ebene!=='befehl') return dashRedir(res, tab, 'Keine Berechtigung.');
+    saveConfiscations(loadConfiscations().filter(x=>x.id!==req.params.id));
+    dashRedir(res, tab, 'Geloescht.', true);
+  });
+
+  // ── Notrufe ───────────────────────────────────────────────────────────────
+  app.get('/lapd/api/notrufe/new', (req,res) => {
+    if (!isLapdAuth(req)) return res.json([]);
+    const since = parseInt(req.query.since||'0');
+    const list = loadNotrufe().filter(n=>n.ts>since&&n.status==='offen').sort((a,b)=>b.ts-a.ts).slice(0,5);
+    res.json(list);
+  });
+
+  app.post('/lapd/api/notruf', express.json(), (req,res) => {
+    const {caller,callerId,location,description,secret} = req.body;
+    if (secret!==(process.env.LAPD_NOTRUF_SECRET||'lapd_notruf_2025')) return res.status(403).json({error:'forbidden'});
+    const entry={id:genId(),caller:String(caller||'Unbekannt').slice(0,100),callerId:String(callerId||''),
+      location:String(location||'Unbekannt').slice(0,200),description:String(description||'').slice(0,500),
+      status:'offen',assignedTo:null,ts:Date.now()};
+    const list=loadNotrufe(); list.push(entry); saveNotrufe(list);
+    res.json({ok:true,id:entry.id});
+  });
+
+  app.post('/lapd/dashboard/accept-notruf/:id', (req,res) => {
+    if (!isLapdAuth(req)) return res.redirect('/lapd');
+    const s = req.session.lapd;
+    const tab = req.query.tab||'notrufe';
+    const {officers} = req.body;
+    if (!officers) return dashRedir(res, tab, 'Bitte Officer-Namen angeben.');
+    const list = loadNotrufe();
+    const item = list.find(x=>x.id===req.params.id);
+    if (!item) return dashRedir(res, tab, 'Notruf nicht gefunden.');
+    item.status='angenommen'; item.assignedTo=String(officers).slice(0,200);
+    item.acceptedBy=s.displayName; item.acceptedAt=Date.now();
+    saveNotrufe(list);
+    dashRedir(res, tab, 'Notruf uebernommen.', true);
+  });
+
+  app.post('/lapd/dashboard/close-notruf/:id', (req,res) => {
+    if (!isLapdAuth(req)) return res.redirect('/lapd');
+    const tab = req.query.tab||'notrufe';
+    const list = loadNotrufe();
+    const item = list.find(x=>x.id===req.params.id);
+    if (item){ item.status='geschlossen'; saveNotrufe(list); }
+    dashRedir(res, tab, 'Notruf geschlossen.', true);
+  });
+
+  app.post('/lapd/dashboard/del-notruf/:id', (req,res) => {
+    if (!isLapdAuth(req)) return res.redirect('/lapd');
+    const tab = req.query.tab||'notrufe';
+    if (req.session.lapd.ebene!=='leitung'&&req.session.lapd.ebene!=='befehl') return dashRedir(res, tab, 'Keine Berechtigung.');
+    saveNotrufe(loadNotrufe().filter(x=>x.id!==req.params.id));
+    dashRedir(res, tab, 'Geloescht.', true);
+  });
 
   // ── Start ────────────────────────────────────────────────────────────────
   const PORT = process.env.PORT || 8080;
