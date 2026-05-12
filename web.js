@@ -2952,11 +2952,36 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +flashHtml
       +content
       +'</main></div>'
-      +'<script>(function(){var lastTs=parseInt(localStorage.getItem('lapd_nr_ts')||'0');var pop=null,tmr=null;function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}function dismiss(){if(pop){pop.remove();pop=null;}if(tmr){clearTimeout(tmr);tmr=null;}}window._dismissNP=dismiss;function show(n){dismiss();var d=document.createElement('div');d.className='notruf-popup';d.innerHTML='<div class="np-hd"><span class="np-title">&#x1F6A8; NEUER NOTRUF</span><button class="np-x" onclick="_dismissNP()">&#x2715;</button></div><div class="np-caller">'+esc(n.caller)+'</div><div class="np-loc">&#x1F4CD; '+esc(n.location||'Unbekannt')+'</div>'+(n.description?'<div class="np-desc">'+esc(n.description.slice(0,80))+'</div>':'')+'<div class="np-bar"><div class="np-fill" id="np-fill"></div></div><div class="np-acts"><a class="np-btn np-go" href="?tab=notrufe">Zum Notruf</a><button class="np-btn np-ign" onclick="_dismissNP()">Ignorieren</button></div>';document.body.appendChild(d);pop=d;var f=document.getElementById('np-fill');if(f){f.style.transition='width 5s linear';setTimeout(function(){f.style.width='0%';},60);}tmr=setTimeout(dismiss,5300);}async function poll(){try{var r=await fetch('/lapd/api/notrufe/new?since='+lastTs);var list=await r.json();if(list&&list.length>0){lastTs=list[0].ts;localStorage.setItem('lapd_nr_ts',String(lastTs));show(list[0]);}}catch(e){}}setInterval(poll,4000);poll();})();</script>
-'
+      +_buildPollingScript()
       +'</body></html>';
   }
 
+  function _buildPollingScript(){
+    return `<script>(function(){`
+      +`var lastTs=parseInt(localStorage.getItem('lapd_nr_ts')||'0');`
+      +`var pop=null,tmr=null;`
+      +`function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}`
+      +`function dismiss(){if(pop){pop.remove();pop=null;}if(tmr){clearTimeout(tmr);tmr=null;}}`
+      +`window._dismissNP=dismiss;`
+      +`function show(n){dismiss();var d=document.createElement('div');d.className='notruf-popup';`
+      +`d.innerHTML='<div class="np-hd"><span class="np-title">&#x1F6A8; NEUER NOTRUF</span>'`
+      +`+'<button class="np-x" onclick="_dismissNP()">&#x2715;</button></div>'`
+      +`+'<div class="np-caller">'+escH(n.caller)+'</div>'`
+      +`+'<div class="np-loc">&#x1F4CD; '+escH(n.location||'Unbekannt')+'</div>'`
+      +`+(n.description?'<div class="np-desc">'+escH(n.description.slice(0,80))+'</div>':'')`
+      +`+'<div class="np-bar"><div class="np-fill" id="np-fill"></div></div>'`
+      +`+'<div class="np-acts"><a class="np-btn np-go" href="?tab=notrufe">Zum Notruf</a>'`
+      +`+'<button class="np-btn np-ign" onclick="_dismissNP()">Ignorieren</button></div>';`
+      +`document.body.appendChild(d);pop=d;`
+      +`var f=document.getElementById('np-fill');`
+      +`if(f){f.style.transition='width 5s linear';setTimeout(function(){f.style.width='0%';},60);}`
+      +`tmr=setTimeout(dismiss,5300);}`
+      +`async function poll(){try{var r=await fetch('/lapd/api/notrufe/new?since='+lastTs);`
+      +`var list=await r.json();`
+      +`if(list&&list.length>0){lastTs=list[0].ts;localStorage.setItem('lapd_nr_ts',String(lastTs));show(list[0]);}}`
+      +`catch(e){}}`
+      +`setInterval(poll,4000);poll();})();</script>`;
+  }
   app.get('/lapd/dashboard', (req,res) => {
     if (!isLapdAuth(req)) return res.redirect('/lapd');
     const s = req.session.lapd;
@@ -3295,7 +3320,6 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         +'<div class="fg"><label>Foto (optional)</label><input type="file" name="photo" accept="image/*" style="color:#e0e0e0"></div>'
         +'<button class="btn red" type="submit">Fahndung erstellen</button>'
         +'</form></div></div>';
-    }
 
     } else if (tab === 'beschlagnahme') {
       const confs = loadConfiscations().sort((a,b)=>b.ts-a.ts);
@@ -3352,6 +3376,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         : '<p class="muted">Keine Notrufe vorhanden.</p>';
       content = '<div class="sec"><div class="sh" style="border-left:3px solid #ef4444"><h3 style="color:#ef4444">&#x1F6A8; Notrufe</h3></div>'
         +'<div class="sb">'+nHtml+'</div></div>';
+    }
 
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.send(lapdPage(s, tab, content, flash));
