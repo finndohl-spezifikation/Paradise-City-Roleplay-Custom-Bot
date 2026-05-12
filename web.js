@@ -925,6 +925,7 @@ function buildInvalidLottoPage(msg) {
 
 module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map()) {
   const app        = express();
+  app.set('trust proxy', 1); // Railway / Nginx HTTPS-Proxy
   const CODES_FILE   = path.join(DATA_DIR, 'einreise_codes.json');
   const EINREISE_TOKEN_FILE = path.join(DATA_DIR, 'einreise_tokens.json');
   function loadEinreiseTokens() { try { return JSON.parse(fs.readFileSync(EINREISE_TOKEN_FILE,'utf8')); } catch { return {}; } }
