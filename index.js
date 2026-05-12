@@ -3690,7 +3690,7 @@ client.on('interactionCreate', async (interaction) => {
           saveFraktionen(data);
           await updateFrakEmbed().catch(() => {});
           const logCh = await client.channels.fetch(FRAK_LOG_CH).catch(() => null);
-          if (logCh) await logCh.send({ embeds: [new EmbedBuilder()
+          const sperreEmbed = new EmbedBuilder()
             .setColor(Colors.Red)
             .setTitle(`🔒  Fraktion gesperrt — ${name}`)
             .addFields(
@@ -3698,8 +3698,10 @@ client.on('interactionCreate', async (interaction) => {
               { name: 'Grund', value: grund },
               { name: 'Gesperrt von', value: `<@${user.id}>`, inline: true },
               { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
-            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp()
-          ]});
+            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp();
+          if (logCh) await logCh.send({ embeds: [sperreEmbed] });
+          const sperreCh = await client.channels.fetch('1497050512028205186').catch(() => null);
+          if (sperreCh) await sperreCh.send({ embeds: [sperreEmbed] });
           return interaction.reply({ content: `🔒 Fraktion **${name}** wurde gesperrt.`, ephemeral: true });
         }
 
