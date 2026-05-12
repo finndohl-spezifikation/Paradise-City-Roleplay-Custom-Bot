@@ -1244,71 +1244,7 @@ async function buildInviteCache(guild) {
     } catch (e) { console.error('Einreise-Embed Fehler:', e.message); }
   }
 
-  // ── Handy-Embed: edit-only on restart, never send new ────────────────────
-  {
-    const handyCh = await client.channels.fetch(HANDY_CH).catch(() => null);
-    if (handyCh) {
-      const msgs = await handyCh.messages.fetch({ limit: 20 }).catch(() => null);
-      const existing = msgs ? msgs.find(m => m.author.id === client.user.id && m.components.length > 0) : null;
-      if (!existing) {
-        const LINE = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
-        const handyEmbedNew = new EmbedBuilder()
-          .setTitle('📱  Handy-Verwaltung')
-          .setDescription(LINE + '\n\n' +
-            '📱  **Handy An/Aus** — Schalte dein Handy ein oder aus\n' +
-            '📲  **Apps** — Installiere & verwalte deine Apps\n' +
-            '🎮  **Spiele** — Spiele direkt im Browser\n' +
-            '<:emoji_24:1502984875387392011>  **WhatsApp** — Schreibe anderen Spielern\n' +
-            '🚨  **Dispatch** — Erreichbarkeit für Einsatzkräfte\n\n' +
-            LINE + '\n\n' +
-            '⚠️  Für alle Funktionen benötigst du ein **Handy** aus dem **Kwil E Markt** — und es muss **eingeschaltet** sein.')
-          .setColor(DARK_ORANGE)
-          .setFooter({ text: 'Paradise City Roleplay  •  Handy-System' });
-        const handyMenuNew = new StringSelectMenuBuilder()
-          .setCustomId('handy_menu')
-          .setPlaceholder('📱 Was möchtest du tun?')
-          .addOptions(
-            new StringSelectMenuOptionBuilder().setLabel('Handy An/Aus').setValue('handy_an').setEmoji('📱').setDescription('Schalte dein Handy ein oder aus'),
-            new StringSelectMenuOptionBuilder().setLabel('Apps').setValue('handy_apps').setEmoji('📲').setDescription('Apps installieren & verwalten'),
-            new StringSelectMenuOptionBuilder().setLabel('Spiele').setValue('handy_spiele').setEmoji('🎮').setDescription('Handy-Spiele im Browser spielen'),
-            new StringSelectMenuOptionBuilder().setLabel('WhatsApp').setValue('handy_whatsapp').setEmoji({ id: '1502984875387392011', name: 'emoji_24' }).setDescription('Nachrichten an Spieler senden'),
-            new StringSelectMenuOptionBuilder().setLabel('Dispatch').setValue('handy_dispatch').setEmoji('🚨').setDescription('Erreichbarkeit für Einsatzkräfte'),
-          );
-        const handyMenuRowNew = new ActionRowBuilder().addComponents(handyMenuNew);
-        await handyCh.send({ embeds: [handyEmbedNew], components: [handyMenuRowNew] }).catch(e => console.error('Handy send Fehler:', e.message));
-        console.log('✅ Handy-Embed neu gesendet.');
-      }
-      if (existing) {
-        const LINE = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
-        const handyEmbed = new EmbedBuilder()
-          .setTitle('📱  Handy-Verwaltung')
-          .setDescription(
-            LINE + '\n\n' +
-            '📱  **Handy An/Aus** — Schalte dein Handy ein oder aus\n' +
-            '📲  **Apps** — Installiere & verwalte deine Apps\n' +
-            '🎮  **Spiele** — Spiele direkt im Browser\n' +
-            '<:emoji_24:1502984875387392011>  **WhatsApp** — Schreibe anderen Spielern\n' +
-            '🚨  **Dispatch** — Erreichbarkeit für Einsatzkräfte\n\n' +
-            LINE + '\n\n' +
-            '⚠️  Für alle Funktionen benötigst du ein **Handy** aus dem **Kwil E Markt** — und es muss **eingeschaltet** sein.'
-          )
-          .setColor(DARK_ORANGE)
-          .setFooter({ text: 'Paradise City Roleplay  •  Handy-System' });
-        const handyMenu = new StringSelectMenuBuilder()
-          .setCustomId('handy_menu')
-          .setPlaceholder('📱 Was möchtest du tun?')
-          .addOptions(
-            new StringSelectMenuOptionBuilder().setLabel('Handy An/Aus').setValue('handy_an').setEmoji('📱').setDescription('Schalte dein Handy ein oder aus'),
-            new StringSelectMenuOptionBuilder().setLabel('Apps').setValue('handy_apps').setEmoji('📲').setDescription('Apps installieren & verwalten'),
-            new StringSelectMenuOptionBuilder().setLabel('Spiele').setValue('handy_spiele').setEmoji('🎮').setDescription('Handy-Spiele im Browser spielen'),
-            new StringSelectMenuOptionBuilder().setLabel('WhatsApp').setValue('handy_whatsapp').setEmoji({ id: '1502984875387392011', name: 'emoji_24' }).setDescription('Nachrichten an Spieler senden'),
-            new StringSelectMenuOptionBuilder().setLabel('Dispatch').setValue('handy_dispatch').setEmoji('🚨').setDescription('Erreichbarkeit für Einsatzkräfte'),
-          );
-        const handyMenuRow = new ActionRowBuilder().addComponents(handyMenu);
-        await existing.edit({ embeds: [handyEmbed], components: [handyMenuRow] }).catch(() => {});
-      }
-    }
-  }
+
 
 
   // ── Einmalig: Startpunkt-Embed senden ─────────────────────────────────────
@@ -1870,11 +1806,7 @@ async function buildInviteCache(guild) {
         } catch (e) { console.error('Ping-Rollen-Embed Fehler:', e.message); }
       }
 
-      // Team-Übersicht initial laden
-      const guild0 = client.guilds.cache.first();
-      if (guild0) await updateTeamEmbed(guild0).catch(() => {});
-      // Fraktionen-Übersicht initial laden
-      await updateFrakEmbed().catch(() => {});
+
 
       // ── Einmalig: Rubbellos-Embed senden ────────────────────────────────────────
       {
@@ -1920,102 +1852,8 @@ async function buildInviteCache(guild) {
         }
       }
 
-      // ── Lotto-Embed senden (prüft ob bereits vorhanden) ──────────────────────
-      try {
-        const lottoCh = await client.channels.fetch(LOTTO_CH).catch(() => null);
-        if (lottoCh) {
-          const recent = await lottoCh.messages.fetch({ limit: 50 }).catch(() => null);
-          // Alte Bot-Nachrichten löschen und neu senden
-          if (recent) {
-            for (const msg of recent.values()) {
-              if (msg.author.id === client.user.id && msg.components.length > 0 && msg.components[0]?.components?.[0]?.customId === 'lotto_play') {
-                await msg.delete().catch(() => {});
-              }
-            }
-          }
-          {
-            const lottoEmbed = new EmbedBuilder()
-              .setColor(DARK_ORANGE)
-              .setTitle('🎰  P A R A D I S E   C I T Y   L O T T O')
-              .setDescription(
-                `> *Täglich um **12:00 Uhr** dreht sich das Rad des Schicksals…*\n` +
-                `\u200B\n` +
-                `**▸ SO FUNKTIONIERT ES**\n` +
-                `Wähle **6 Zahlen** \`(1–100)\` und eine **Superzahl** \`(1–10)\`.\n` +
-                `Du benötigst einen 🎟️ **Lottoschein** aus dem Shop für **2.800 $**.\n` +
-                `Du kannst mehrere Scheine kaufen & pro Tag abgeben.\n` +
-                `\u200B\n` +
-                `**▸ GEWINNTABELLE**\n` +
-                `\`\`\`\n` +
-                `  1 Richtige  →      50.000 $\n` +
-                `  2 Richtige  →     100.000 $\n` +
-                `  3 Richtige  →     200.000 $\n` +
-                `  4 Richtige  →     400.000 $\n` +
-                `  5 Richtige  →     800.000 $\n` +
-                `  6 Richtige  →   1.000.000 $\n` +
-                `  ★ Superzahl  →   3.000.000 $\n` +
-                `\`\`\`\n` +
-                `⚠️ **Maximal 5 Gewinner pro Woche.** Danach keine Auszahlung bis zur nächsten Woche.\n` +
-                `📩 Gewinner werden per **DM** benachrichtigt.`
-              )
-              .setFooter({ text: 'Paradise City Roleplay  •  Lotto  •  Viel Glück! 🍀' });
-            const lottoBtn = new ButtonBuilder()
-              .setCustomId('lotto_play')
-              .setLabel('🎰 Lotto spielen')
-              .setStyle(ButtonStyle.Primary);
-            const lottoRow = new ActionRowBuilder().addComponents(lottoBtn);
-            await lottoCh.send({ embeds: [lottoEmbed], components: [lottoRow] }).catch(e => console.error('Lotto send Fehler:', e.message));
-            console.log('✅ Lotto-Embed gesendet.');
-          }
-        }
-      } catch (e) { console.error('Lotto-Embed Fehler:', e.message); }
 
-    // ── LAPD Dashboard Link senden ────────────────────────────────────────
-    try {
-      const domain = (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.REPLIT_DOMAINS || 'localhost:8080').split(',')[0].trim();
-      const lapdUrl = 'https://' + domain + '/lapd';
-      const lapdLine = '━'.repeat(40);
-      const lapdEmbed = new EmbedBuilder()
-        .setColor(0x0e1f52)
-        .setTitle('🛡️  LAPD Internal Dashboard')
-        .setThumbnail('https://' + domain + '/lapd/logo.png')
-        .setDescription(
-          lapdLine + '\n\n' +
-          '> 🔐 **Login** mit deinem Discord Account\n' +
-          '> 🕐 **Dienst** anmelden & abmelden\n' +
-          '> 📅 **Dienstplan** — Einheiten einteilen\n' +
-          '> 📋 **Einsatzberichte** schreiben & suchen\n' +
-          '> 🪪 **Personenakten** — A–Z sortiert\n' +
-          '> 🚗 **Fahrzeugakten** erfassen\n' +
-          '> 📁 **Strafakten** anlegen\n' +
-          '> 📜 **Bußgeldkatalog** Los Angeles\n' +
-          '> 🔴 **Fahndungen** mit Foto\n' +
-          '> 🚨 **Panic Button** — Notfall-Alert\n\n' +
-          lapdLine + '\n\n' +
-          '⚠️ Nur für autorisierte LAPD Mitglieder.'
-        )
-        .setFooter({ text: 'Los Angeles Police Department  •  Paradise City Roleplay' })
-        .setTimestamp();
-      const lapdBtn = new ButtonBuilder()
-        .setLabel('🛡️ Dashboard öffnen')
-        .setCustomId('lapd_dashboard')
-        .setStyle(ButtonStyle.Secondary);
-      const lapdRow = new ActionRowBuilder().addComponents(lapdBtn);
 
-      // Beide Kanäle: Hauptserver + LAPD-Server
-      for (const chId of ['1491789518603419825', '1498490936290709504']) {
-        const lapdCh = await client.channels.fetch(chId).catch(() => null);
-        if (!lapdCh) continue;
-        const recent = await lapdCh.messages.fetch({ limit: 20 }).catch(() => null);
-        if (recent) {
-          for (const m of recent.values()) {
-            if (m.author.id === client.user.id) await m.delete().catch(() => {});
-          }
-        }
-        await lapdCh.send({ embeds: [lapdEmbed], components: [lapdRow] }).catch(e => console.error('LAPD send Fehler', chId, e.message));
-        console.log('✅ LAPD Dashboard Link gesendet in', chId, '→', lapdUrl);
-      }
-    } catch (e) { console.error('LAPD Dashboard Embed Fehler:', e.message); }
 
     });
 
