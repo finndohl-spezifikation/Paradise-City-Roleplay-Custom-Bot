@@ -1221,6 +1221,25 @@ client.once('ready', async () => {
       .addUserOption(opt => opt.setName('nutzer').setDescription('Welcher Nutzer soll gebannt werden?').setRequired(true))
       .addStringOption(opt => opt.setName('grund').setDescription('Grund für den permanenten Ban').setRequired(true))
       .toJSON(),
+
+    // ─── ATM Raub Commands ──────────────────────────────────────────────────────
+    new SlashCommandBuilder()
+      .setName('raub-fail')
+      .setDescription('Markiert einen Raubüberfall als fehlgeschlagen (kein Cooldown)')
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+      .addStringOption(o => o.setName('typ').setDescription('Art des Raubs').setRequired(true)
+        .addChoices({ name: 'ATM-Raub', value: 'atm' }))
+      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('raub-cooldown')
+      .setDescription('Setzt den Raub-Cooldown eines Spielers manuell zurück')
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+      .addStringOption(o => o.setName('typ').setDescription('Art des Raubs').setRequired(true)
+        .addChoices({ name: 'ATM-Raub', value: 'atm' }))
+      .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
+      .toJSON(),
     ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -5623,6 +5642,392 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 });
+
+// ─── ATM-RAUB SYSTEM ──────────────────────────────────────────────────────────
+{
+  const ATM_INFO_CH  = '1490894308088352961'; // Info-Embed-Kanal
+  const ATM_RAUB_CH  = '1490894309145313330'; // Foto-Einreichungs-Kanal
+  const ATM_RAUB_FILE = path.join(DATA_DIR, 'atm_raub.json');
+  const LAPD_NOTRUFE_FILE_R = path.join(DATA_DIR, 'lapd_notrufe.json');
+
+  function loadAtmRaub()  { try { return JSON.parse(fs.readFileSync(ATM_RAUB_FILE,'utf8')); } catch { return {}; } }
+  function saveAtmRaub(d) { fs.writeFileSync(ATM_RAUB_FILE, JSON.stringify(d,null,2),'utf8'); }
+  function loadLapdNotrufe() { try { return JSON.parse(fs.readFileSync(LAPD_NOTRUFE_FILE_R,'utf8')); } catch { return []; } }
+  function saveLapdNotrufe(d){ fs.writeFileSync(LAPD_NOTRUFE_FILE_R,JSON.stringify(d,null,2),'utf8'); }
+  function loadInvAtm()  { try { return JSON.parse(fs.readFileSync(path.join(DATA_DIR,'inventar.json'),'utf8')); } catch { return {}; } }
+  function saveInvAtm(d) { fs.writeFileSync(path.join(DATA_DIR,'inventar.json'),JSON.stringify(d,null,2),'utf8'); }
+  function loadKontoAtm(uid) { try { const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR,'konto.json'),'utf8')); return d[uid]??{konto:0,schwarz:0}; } catch { return {konto:0,schwarz:0}; } }
+  function setKontoAtm(uid,obj) { let d={}; try{d=JSON.parse(fs.readFileSync(path.join(DATA_DIR,'konto.json'),'utf8'));}catch{} d[uid]=obj; fs.writeFileSync(path.join(DATA_DIR,'konto.json'),JSON.stringify(d,null,2),'utf8'); }
+
+  // ── Info-Embed senden (einmalig, beim Start) ─────────────────────────────
+  client.once('ready', async () => {
+    try {
+      const data = loadAtmRaub();
+      if (data._infoEmbedSent) return; // Bereits gesendet, nicht doppeln
+      const ch = await client.channels.fetch(ATM_INFO_CH).catch(()=>null);
+      if (!ch) return;
+      const embed = new EmbedBuilder()
+        .setColor(0xE65100)
+        .setTitle('🏧 ATM-Raub — Informationen')
+        .setDescription(
+          '**💰 Beute:** 3.000$ – 10.000$ *(zufällig)*\n' +
+          '**📍 Ort:** Alle ATMs im gesamten Staat erlaubt\n' +
+          '**👤 Spieler:** Ab 1 Person möglich\n' +
+          '**👮 Beamte:** Mindestens 2 Officers im Dienst\n\n' +
+          '**🔧 Benötigte Items**\n' +
+          '> **Brecheisen** → 10 Min.\n' +
+          '> ┗ 🔨〢𝘉𝘢𝘶𝘮𝘢𝘳𝘬𝘵\n\n' +
+          '> **Sprengstoff** → 5 Min.\n' +
+          '> ┗ 👥〢𝘚𝘤𝘩𝘸𝘢𝘳𝘻𝘮𝘢𝘳𝘬𝘵\n\n' +
+          '**📋 Ablauf**\n' +
+          '1. Raub In-Game durchführen\n' +
+          '2. Foto als Beweis in <#1490894309145313330> senden\n' +
+          '3. Werkzeug in der DM auswählen\n' +
+          '4. Team bestätigt Erfolg oder Fehlschlag'
+        )
+        .setFooter({ text: 'Paradise City Roleplay • Raubüberfälle' })
+        .setTimestamp();
+      await ch.send({ embeds: [embed] });
+      data._infoEmbedSent = true;
+      saveAtmRaub(data);
+    } catch(e) { console.error('[ATM-INFO-EMBED]', e.message); }
+  });
+
+  // ── messageCreate: Foto-Kanal ─────────────────────────────────────────────
+  client.on('messageCreate', async (msg) => {
+    if (msg.author.bot) return;
+    if (msg.channelId !== ATM_RAUB_CH) return;
+
+    // Nur Bilder erlaubt
+    const hasImage = msg.attachments.some(a => a.contentType && a.contentType.startsWith('image/'));
+    if (!hasImage) {
+      await msg.delete().catch(()=>{});
+      return;
+    }
+
+    // Server-Log: Bild wurde gesendet
+    sendLog(CH.SERVER_LOG, new EmbedBuilder()
+      .setColor(0xE65100)
+      .setTitle('🏧 ATM-Raub: Foto eingereicht')
+      .addFields(
+        { name: '👤 Spieler',  value: `<@${msg.author.id}> (${msg.author.username})`, inline: true },
+        { name: '📸 Beweis',   value: msg.attachments.first()?.url || 'Kein Bild', inline: false }
+      )
+      .setTimestamp()
+      .setFooter({ text: 'Paradise City Roleplay • ATM-Raub Log' })
+    ).catch(()=>{});
+
+    const data = loadAtmRaub();
+    const entry = data[msg.author.id] || {};
+    const now = Date.now();
+
+    // Aktiver Raub läuft?
+    if (entry.active) {
+      try {
+        const dm = await msg.author.createDM();
+        await dm.send({ embeds: [new EmbedBuilder()
+          .setColor(0xff4400)
+          .setTitle('⚠️ Aktiver Raubüberfall')
+          .setDescription('Du hast bereits einen **aktiven Raubüberfall**! Warte bis dieser abgeschlossen ist.')
+          .setFooter({ text: 'Paradise City Roleplay' })]});
+      } catch {}
+      await msg.delete().catch(()=>{});
+      return;
+    }
+
+    // 24h Cooldown?
+    if (entry.cooldownUntil && now < entry.cooldownUntil) {
+      const remaining = Math.ceil((entry.cooldownUntil - now) / 60000);
+      const hours = Math.floor(remaining / 60), mins = remaining % 60;
+      try {
+        const dm = await msg.author.createDM();
+        await dm.send({ embeds: [new EmbedBuilder()
+          .setColor(0xff4400)
+          .setTitle('⏳ Cooldown aktiv')
+          .setDescription(`Du kannst einen Raubüberfall nur **alle 24 Stunden** machen.\nVerbleibend: **${hours}h ${mins}m**`)
+          .setFooter({ text: 'Paradise City Roleplay' })]});
+      } catch {}
+      await msg.delete().catch(()=>{});
+      return;
+    }
+
+    // LAPD Officers im Dienst prüfen
+    let dutyData = {};
+    try { dutyData = JSON.parse(fs.readFileSync(path.join(DATA_DIR,'lapd_duty.json'),'utf8')); } catch {}
+    const onDutyCount = Object.values(dutyData).filter(d=>d&&d.onDuty).length;
+    if (onDutyCount < 2) {
+      try {
+        const dm = await msg.author.createDM();
+        await dm.send({ embeds: [new EmbedBuilder()
+          .setColor(0xff4400)
+          .setTitle('🚫 Nicht genug Officers')
+          .setDescription(`Für einen ATM-Raub müssen mindestens **2 LAPD Officers** im Dienst sein.\nAktuell: **${onDutyCount} Officer(s)** im Dienst.`)
+          .setFooter({ text: 'Paradise City Roleplay' })]});
+      } catch {}
+      await msg.delete().catch(()=>{});
+      return;
+    }
+
+    // Inventar-Check: hat der Spieler überhaupt ein Werkzeug?
+    const inv = (loadInvAtm()[msg.author.id]) || {};
+    const hasBrecheisen = (inv['Brecheisen'] || 0) > 0;
+    const hasSprengstoff = (inv['Sprengstoff'] || 0) > 0;
+    if (!hasBrecheisen && !hasSprengstoff) {
+      try {
+        const dm = await msg.author.createDM();
+        await dm.send({ embeds: [new EmbedBuilder()
+          .setColor(0xff4400)
+          .setTitle('❌ Kein Werkzeug')
+          .setDescription('Du hast weder ein **Brecheisen** (Baumarkt) noch **Sprengstoff** (Schwarzmarkt) in deinem Inventar.')
+          .setFooter({ text: 'Paradise City Roleplay' })]});
+      } catch {}
+      await msg.delete().catch(()=>{});
+      return;
+    }
+
+    // DM senden mit Werkzeug-Auswahl
+    const options = [];
+    if (hasBrecheisen)   options.push({ label: '🔨 Brecheisen (10 Min.)',  description: 'Aus dem Baumarkt — 10 Minuten Dauer',   value: 'brecheisen' });
+    if (hasSprengstoff)  options.push({ label: '💣 Sprengstoff (5 Min.)',  description: 'Vom Schwarzmarkt — 5 Minuten Dauer',    value: 'sprengstoff' });
+
+    const select = new StringSelectMenuBuilder()
+      .setCustomId(`atm_tool_select:${msg.author.id}`)
+      .setPlaceholder('Werkzeug auswählen')
+      .addOptions(options);
+    const row = new ActionRowBuilder().addComponents(select);
+    const dmEmbed = new EmbedBuilder()
+      .setColor(0xE65100)
+      .setTitle('🏧 ATM-Raub — Werkzeug auswählen')
+      .setDescription('Wähle das Werkzeug aus, das du für den Raub verwenden möchtest.\nDas Item wird dabei aus deinem Inventar entfernt.')
+      .setFooter({ text: 'Paradise City Roleplay • ATM-Raub' });
+    try {
+      const dm = await msg.author.createDM();
+      await dm.send({ embeds: [dmEmbed], components: [row] });
+    } catch {
+      await msg.delete().catch(()=>{});
+    }
+  });
+
+  // ── interactionCreate: Werkzeug-Auswahl DM ───────────────────────────────
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isStringSelectMenu()) return;
+    if (!interaction.customId.startsWith('atm_tool_select:')) return;
+
+    const userId = interaction.customId.split(':')[1];
+    if (interaction.user.id !== userId) {
+      return interaction.reply({ content: '❌ Das ist nicht deine Auswahl.', ephemeral: true });
+    }
+
+    await interaction.deferReply({ ephemeral: false }).catch(()=>{});
+
+    const tool = interaction.values[0]; // 'brecheisen' oder 'sprengstoff'
+    const itemName = tool === 'sprengstoff' ? 'Sprengstoff' : 'Brecheisen';
+    const durationMs = tool === 'sprengstoff' ? 5 * 60 * 1000 : 10 * 60 * 1000;
+    const durationLabel = tool === 'sprengstoff' ? '5 Minuten' : '10 Minuten';
+
+    // Inventar-Check (nochmal, race condition)
+    const allInv = loadInvAtm();
+    const inv = allInv[userId] || {};
+    if (!inv[itemName] || inv[itemName] <= 0) {
+      return interaction.editReply({ embeds: [new EmbedBuilder()
+        .setColor(0xff4400)
+        .setTitle('❌ Item nicht gefunden')
+        .setDescription(`Du hast **${itemName}** nicht in deinem Inventar.`)]});
+    }
+
+    // Item aus Inventar entfernen
+    inv[itemName] -= 1;
+    if (inv[itemName] <= 0) delete inv[itemName];
+    allInv[userId] = inv;
+    saveInvAtm(allInv);
+
+    // Aktiven Raub speichern
+    const data = loadAtmRaub();
+    data[userId] = data[userId] || {};
+    data[userId].active = {
+      tool,
+      itemName,
+      startedAt: Date.now(),
+      duration: durationMs,
+      username: interaction.user.username,
+    };
+    saveAtmRaub(data);
+
+    // LAPD Dashboard Notruf hinzufügen
+    try {
+      const notrufe = loadLapdNotrufe();
+      notrufe.push({
+        id: Date.now().toString(),
+        ts: Date.now(),
+        type: 'atm_raub',
+        title: '🏧 ATM-Raubüberfall',
+        caller: interaction.user.username,
+        userId,
+        location: 'Alle ATMs im Staat – ATM-Raub',
+        description: `ATM-Raub von **${interaction.user.username}** (${itemName}, ${durationLabel})`,
+        status: 'offen',
+        tool: itemName,
+        duration: durationLabel,
+      });
+      saveLapdNotrufe(notrufe);
+    } catch(e) { console.error('[ATM-NOTRUF]', e.message); }
+
+    // Server-Log: Raub gestartet
+    sendLog(CH.SERVER_LOG, new EmbedBuilder()
+      .setColor(0xE65100)
+      .setTitle('🏧 ATM-Raub gestartet')
+      .addFields(
+        { name: '👤 Spieler',   value: `<@${userId}> (${interaction.user.username})`, inline: true },
+        { name: '🔧 Werkzeug',  value: itemName,    inline: true },
+        { name: '⏱️ Dauer',    value: durationLabel, inline: true },
+        { name: '📦 Item entfernt', value: `${itemName} aus Inventar entfernt`, inline: false }
+      )
+      .setTimestamp()
+      .setFooter({ text: 'Paradise City Roleplay • ATM-Raub Log' })
+    ).catch(()=>{});
+
+    // DM: Raub läuft
+    await interaction.editReply({ embeds: [new EmbedBuilder()
+      .setColor(0x22c55e)
+      .setTitle('✅ Raub gestartet!')
+      .setDescription(`Dein ATM-Raub wurde gestartet!\n**Werkzeug:** ${itemName}\n**Dauer:** ${durationLabel}\n\nDu erhältst automatisch deine Beute wenn die Zeit abgelaufen ist.`)
+      .setFooter({ text: 'Paradise City Roleplay • ATM-Raub' })
+      .setTimestamp()]});
+
+    // Timer starten
+    setTimeout(async () => {
+      // Prüfen ob Raub noch aktiv (könnte durch raub-fail abgebrochen worden sein)
+      const currentData = loadAtmRaub();
+      if (!currentData[userId] || !currentData[userId].active) return;
+
+      // Auszahlung: 3000 – 10000 Schwarzgeld
+      const beute = Math.floor(Math.random() * 7001) + 3000;
+      const konto = loadKontoAtm(userId);
+      konto.schwarz = (konto.schwarz || 0) + beute;
+      setKontoAtm(userId, konto);
+
+      // Raub als abgeschlossen markieren + 24h Cooldown setzen
+      currentData[userId].active = null;
+      currentData[userId].cooldownUntil = Date.now() + 24 * 60 * 60 * 1000;
+      currentData[userId].lastSuccess = Date.now();
+      saveAtmRaub(currentData);
+
+      // LAPD Notruf schließen
+      try {
+        const notrufe = loadLapdNotrufe();
+        const n = notrufe.find(x => x.userId === userId && x.type === 'atm_raub' && x.status === 'offen');
+        if (n) { n.status = 'geschlossen'; saveLapdNotrufe(notrufe); }
+      } catch {}
+
+      // Server-Log: Raub abgeschlossen
+      sendLog(CH.SERVER_LOG, new EmbedBuilder()
+        .setColor(0x22c55e)
+        .setTitle('🏧 ATM-Raub abgeschlossen')
+        .addFields(
+          { name: '👤 Spieler', value: `<@${userId}> (${interaction.user.username})`, inline: true },
+          { name: '💰 Beute',   value: `${beute.toLocaleString('de-CH')} $ Schwarzgeld`, inline: true },
+        )
+        .setTimestamp()
+        .setFooter({ text: 'Paradise City Roleplay • ATM-Raub Log' })
+      ).catch(()=>{});
+
+      // DM: Beute
+      try {
+        const user2 = await client.users.fetch(userId).catch(()=>null);
+        if (user2) {
+          const dm = await user2.createDM();
+          await dm.send({ embeds: [new EmbedBuilder()
+            .setColor(0x22c55e)
+            .setTitle('💰 ATM-Raub erfolgreich!')
+            .setDescription(`Dein ATM-Raub war erfolgreich!\n\n**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n\nDas Geld wurde deinem **Schwarzgeld-Wallet** gutgeschrieben.\n\n⏳ Du kannst in **24 Stunden** erneut einen Raub starten.`)
+            .setFooter({ text: 'Paradise City Roleplay • ATM-Raub' })
+            .setTimestamp()]});
+        }
+      } catch {}
+    }, durationMs);
+  });
+
+  // ── /raub-fail ────────────────────────────────────────────────────────────
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+    if (interaction.commandName !== 'raub-fail') return;
+
+    const typ     = interaction.options.getString('typ');
+    const target  = interaction.options.getUser('spieler');
+    const data    = loadAtmRaub();
+    const entry   = data[target.id] || {};
+
+    if (!entry.active) {
+      return interaction.reply({ content: `❌ <@${target.id}> hat aktuell keinen aktiven ATM-Raub.`, ephemeral: true });
+    }
+
+    // Raub fehlgeschlagen — KEIN Cooldown
+    data[target.id].active = null;
+    saveAtmRaub(data);
+
+    // LAPD Notruf schließen
+    try {
+      const notrufe = loadLapdNotrufe();
+      const n = notrufe.find(x => x.userId === target.id && x.type === 'atm_raub' && x.status === 'offen');
+      if (n) { n.status = 'geschlossen'; saveLapdNotrufe(notrufe); }
+    } catch {}
+
+    // DM an Spieler
+    try {
+      const user2 = await client.users.fetch(target.id).catch(()=>null);
+      if (user2) {
+        const dm = await user2.createDM();
+        await dm.send({ embeds: [new EmbedBuilder()
+          .setColor(0xff4400)
+          .setTitle('❌ ATM-Raub fehlgeschlagen')
+          .setDescription('Dein ATM-Raub wurde als **fehlgeschlagen** gewertet.\nDu hast keinen Cooldown und kannst es erneut versuchen.')
+          .setFooter({ text: 'Paradise City Roleplay' })]});
+      }
+    } catch {}
+
+    // Server-Log
+    sendLog(CH.SERVER_LOG, new EmbedBuilder()
+      .setColor(0xff4400)
+      .setTitle('🏧 ATM-Raub fehlgeschlagen (Admin)')
+      .addFields(
+        { name: '👤 Spieler', value: `<@${target.id}> (${target.username})`, inline: true },
+        { name: '👮 Von',     value: `<@${interaction.user.id}>`,            inline: true },
+      )
+      .setTimestamp()
+      .setFooter({ text: 'Paradise City Roleplay • ATM-Raub Log' })
+    ).catch(()=>{});
+
+    return interaction.reply({ content: `✅ Raub von <@${target.id}> wurde als fehlgeschlagen markiert. Kein Cooldown gesetzt.`, ephemeral: true });
+  });
+
+  // ── /raub-cooldown ────────────────────────────────────────────────────────
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+    if (interaction.commandName !== 'raub-cooldown') return;
+
+    const target = interaction.options.getUser('spieler');
+    const data   = loadAtmRaub();
+    if (!data[target.id]) data[target.id] = {};
+    data[target.id].cooldownUntil = 0;
+    data[target.id].active = null;
+    saveAtmRaub(data);
+
+    sendLog(CH.SERVER_LOG, new EmbedBuilder()
+      .setColor(0x38bdf8)
+      .setTitle('🔓 ATM-Raub Cooldown zurückgesetzt')
+      .addFields(
+        { name: '👤 Spieler', value: `<@${target.id}> (${target.username})`, inline: true },
+        { name: '👮 Von',     value: `<@${interaction.user.id}>`,            inline: true },
+      )
+      .setTimestamp()
+      .setFooter({ text: 'Paradise City Roleplay • ATM-Raub Log' })
+    ).catch(()=>{});
+
+    return interaction.reply({ content: `✅ Cooldown von <@${target.id}> wurde zurückgesetzt.`, ephemeral: true });
+  });
+}
+// ─── END ATM-RAUB SYSTEM ─────────────────────────────────────────────────────
+
 // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
   console.error('[UNHANDLED REJECTION]', reason);
