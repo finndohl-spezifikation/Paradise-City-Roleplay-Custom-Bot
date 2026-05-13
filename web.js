@@ -2480,7 +2480,7 @@ ${autoSel}
       ebene:       ebene,
       loggedInAt:  Date.now(),
     };
-    return res.redirect('/lapd/splash');
+    req.session.save(function() { res.redirect('/lapd/splash'); });
   });
 
 
