@@ -5768,17 +5768,28 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
-    // Inventar-Check: hat der Spieler überhaupt ein Werkzeug?
-    const inv = (loadInvAtm()[msg.author.id]) || {};
-    const hasBrecheisen = (inv['Brecheisen'] || 0) > 0;
-    const hasSprengstoff = (inv['Sprengstoff'] || 0) > 0;
+    // Inventar-Check: hat der Spieler überhaupt ein Werkzeug? (case-insensitiv)
+    const allInvMap = loadInvAtm();
+    const inv = allInvMap[msg.author.id] || {};
+    // Suche case-insensitiv nach Brecheisen / Sprengstoff
+    const brecheisenKey   = Object.keys(inv).find(k => k.toLowerCase().includes('brecheisen'));
+    const sprengstoffKey  = Object.keys(inv).find(k => k.toLowerCase().includes('sprengstoff') || k.toLowerCase().includes('sprengung') || k.toLowerCase().includes('explosiv'));
+    const hasBrecheisen  = brecheisenKey  && (inv[brecheisenKey]  || 0) > 0;
+    const hasSprengstoff = sprengstoffKey && (inv[sprengstoffKey] || 0) > 0;
+
     if (!hasBrecheisen && !hasSprengstoff) {
+      const invList = Object.keys(inv).length
+        ? Object.entries(inv).map(([k,v])=>`• **${k}** — ${v}x`).join('\n')
+        : '_Inventar leer_';
       try {
         const dm = await msg.author.createDM();
         await dm.send({ embeds: [new EmbedBuilder()
           .setColor(0xff4400)
-          .setTitle('❌ Kein Werkzeug')
-          .setDescription('Du hast weder ein **Brecheisen** (Baumarkt) noch **Sprengstoff** (Schwarzmarkt) in deinem Inventar.')
+          .setTitle('❌ Kein Werkzeug gefunden')
+          .setDescription(
+            'Du hast weder ein **Brecheisen** (Baumarkt) noch **Sprengstoff** (Schwarzmarkt) in deinem Inventar.\n\n' +
+            '**Dein Inventar:**\n' + invList
+          )
           .setFooter({ text: 'Paradise City Roleplay' })]});
       } catch {}
       await msg.delete().catch(()=>{});
@@ -5821,23 +5832,30 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.deferReply({ ephemeral: false }).catch(()=>{});
 
     const tool = interaction.values[0]; // 'brecheisen' oder 'sprengstoff'
-    const itemName = tool === 'sprengstoff' ? 'Sprengstoff' : 'Brecheisen';
     const durationMs = tool === 'sprengstoff' ? 5 * 60 * 1000 : 10 * 60 * 1000;
     const durationLabel = tool === 'sprengstoff' ? '5 Minuten' : '10 Minuten';
 
-    // Inventar-Check (nochmal, race condition)
+    // Inventar-Check (nochmal, race condition) — case-insensitiv
     const allInv = loadInvAtm();
     const inv = allInv[userId] || {};
-    if (!inv[itemName] || inv[itemName] <= 0) {
+    const searchTerm = tool === 'sprengstoff'
+      ? (k) => k.toLowerCase().includes('sprengstoff') || k.toLowerCase().includes('sprengung') || k.toLowerCase().includes('explosiv')
+      : (k) => k.toLowerCase().includes('brecheisen');
+    const foundKey = Object.keys(inv).find(searchTerm);
+    if (!foundKey || (inv[foundKey] || 0) <= 0) {
+      const invList = Object.keys(inv).length
+        ? Object.entries(inv).map(([k,v])=>`• **${k}** — ${v}x`).join('\n')
+        : '_Inventar leer_';
       return interaction.editReply({ embeds: [new EmbedBuilder()
         .setColor(0xff4400)
         .setTitle('❌ Item nicht gefunden')
-        .setDescription(`Du hast **${itemName}** nicht in deinem Inventar.`)]});
+        .setDescription(`Dieses Item wurde nicht in deinem Inventar gefunden.\n\n**Dein Inventar:**\n${invList}`)]});
     }
+    const itemName = foundKey; // echter Name aus dem Inventar
 
     // Item aus Inventar entfernen
-    inv[itemName] -= 1;
-    if (inv[itemName] <= 0) delete inv[itemName];
+    inv[foundKey] -= 1;
+    if (inv[foundKey] <= 0) delete inv[foundKey];
     allInv[userId] = inv;
     saveInvAtm(allInv);
 
