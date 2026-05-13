@@ -108,7 +108,7 @@ function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&
   function page(title, body) {
   return `<!DOCTYPE html><html lang="de"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title} — Paradise City Roleplay</title>
+<title>${title} — Cryptik Roleplay</title>
 <style>${CSS}.btn-sm{display:inline-block;padding:3px 10px;background:#e65100;color:#fff;border:none;border-radius:6px;font-size:.78em;cursor:pointer;text-decoration:none;vertical-align:middle;margin-left:4px;line-height:1.6}
   
     /* ── Team-Banner ── */
@@ -214,14 +214,14 @@ function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&
         </div>
       </div>
       <div class="tb-detail">
-        <p>Du möchtest gerne ein Teil des Teams von Paradise City werden? Dann lies dir kurz die Voraussetzungen durch und bewirb dich danach in einem Ticket.</p>
+        <p>Du möchtest gerne ein Teil des Teams von Cryptik Roleplay werden? Dann lies dir kurz die Voraussetzungen durch und bewirb dich danach in einem Ticket.</p>
         <ul>
           <li>Du bist mindestens <strong>16 Jahre</strong> alt</li>
           <li>Du bist interessiert an <strong>Teamarbeit</strong> und der Entwicklung des Servers</li>
           <li>Du kannst in hitzigen Situationen trotzdem <strong>ruhig bleiben</strong></li>
           <li>Du bist <strong>zuverlässig</strong></li>
         </ul>
-        <p>Wenn das alles zu dir passt, bewirb dich noch heute und werde ein Teil des Teams von <strong>Paradise City</strong>!</p>
+        <p>Wenn das alles zu dir passt, bewirb dich noch heute und werde ein Teil des Teams von <strong>Cryptik Roleplay</strong>!</p>
       </div>
     </div>
     <script>
@@ -310,11 +310,11 @@ function buildClaimedPage(entry) {
   }).join('');
   return `<!DOCTYPE html>
 <html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rubbellos — Paradise City Roleplay</title>
+<title>Rubbellos — Cryptik Roleplay</title>
 <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px;text-align:center}h1{color:#ffd180;font-size:1.3em;letter-spacing:2px;text-transform:uppercase;margin:12px 0 6px}.card{background:#161b22;border:2px solid #3fb950;border-radius:18px;padding:28px 24px;max-width:400px;width:100%;margin-top:20px}.ico{font-size:3em;margin-bottom:10px}.grid{display:grid;grid-template-columns:repeat(3,80px);gap:6px;margin:16px auto;width:fit-content}.prize{font-size:1.1em;font-weight:700;color:#3fb950;margin:12px 0 6px}.note{color:#8b949e;font-size:.8em;margin-top:16px}</style></head>
 <body>
 <div style="font-size:2.8em;margin-bottom:8px">🎟️</div>
-<h1>Paradise City Rubbellos</h1>
+<h1>Cryptik Roleplay Rubbellos</h1>
 <div class="card">
   <div class="ico">${ico}</div>
   <h2 style="color:#ffd180;font-size:1.1em;margin-bottom:8px">${h}</h2>
@@ -332,7 +332,7 @@ function buildScratchPage(token, entry, scratchedCells) {
     const gridJ = JSON.stringify(grid);
     return `<!DOCTYPE html>
   <html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Rubbellos — Paradise City Roleplay</title>
+  <title>Rubbellos — Cryptik Roleplay</title>
   <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 48px}
@@ -380,7 +380,7 @@ function buildScratchPage(token, entry, scratchedCells) {
   .win-chip em{color:#3fb950;font-weight:700}
   @media(max-width:380px){.grid{grid-template-columns:repeat(3,90px);grid-template-rows:repeat(3,90px)}.cell,.cv{width:90px;height:90px}}
   </style></head><body>
-  <div class="hdr"><div class="ico">🎟️</div><h1>Paradise City Rubbellos</h1><p>Rubbele alle 9 Felder frei und sichere deinen Gewinn!</p></div>
+  <div class="hdr"><div class="ico">🎟️</div><h1>Cryptik Roleplay Rubbellos</h1><p>Rubbele alle 9 Felder frei und sichere deinen Gewinn!</p></div>
   <div class="card">
   <p class="hint">🖱️ Maus gedrückt halten &amp; rubbeln &mdash; oder auf dem Handy mit dem Finger wischen</p>
   <div class="grid" id="grid">${cells}</div>
@@ -668,7 +668,7 @@ function buildLottoPage(token) {
   return `<!DOCTYPE html>
 <html lang="de"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Lotto — Paradise City Roleplay</title>
+<title>Lotto — Cryptik Roleplay</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--gold:#FFD700;--gold2:#FFA500;--gold3:#B8860B;--bg:#0a0c10;--card:#111318;--border:#2a2d35;--text:#e8e8e8;--sub:#8b949e}
@@ -755,7 +755,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 
 <div class="hdr">
   <div class="hdr-logo">🎰</div>
-  <h1>Paradise City Lotto</h1>
+  <h1>Cryptik Roleplay Lotto</h1>
   <p>Wähle deine Glückszahlen und gib deinen Schein ab!</p>
 </div>
 
@@ -961,7 +961,7 @@ async function submitTicket() {
 
 function buildInvalidLottoPage(msg) {
   return `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lotto — Paradise City</title>
+<title>Lotto — Cryptik Roleplay</title>
 <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#0a0c10;color:#e8e8e8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
 .box{background:#111318;border:1.5px solid #2a2d35;border-radius:20px;padding:40px 28px;max-width:400px;width:100%;text-align:center}
 .ico{font-size:3em;margin-bottom:16px}.h{color:#FFD700;font-size:1.2em;font-weight:700;margin-bottom:10px}.p{color:#8b949e;font-size:.88em;line-height:1.65}</style></head>
@@ -1066,7 +1066,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   app.get('/einreise', (req, res) => {
       res.send(`<!DOCTYPE html><html lang="de"><head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Einreise — Paradise City Roleplay</title>
+  <title>Einreise — Cryptik Roleplay</title>
   <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;min-height:100vh}
@@ -1099,11 +1099,11 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   </head><body>
   <div id="introOverlay">
     <div id="introBox">
-      <div class="mo-title">🏛️ Paradise City Roleplay — Willkommen!</div>
+      <div class="mo-title">🏛️ Cryptik Roleplay — Willkommen!</div>
       <div class="mo-rule"><div class="mo-num">1</div><div>Bitte lies dir vor dem Erstellen deines Charakters das <strong>Regelwerk</strong> durch.</div></div>
       <div class="mo-rule"><div class="mo-num">2</div><div>Stelle sicher, dass du <strong>DM-Nachrichten aktiviert</strong> hast, damit unser Bot dir Nachrichten senden kann.</div></div>
       <div class="mo-rule"><div class="mo-num">3</div><div>Solltest du <strong>legal einreisen</strong>, gib bitte nur korrekte Daten zu deinem IC-Charakter an. Eine Änderung ist später nur durch den <strong>Tod deines Charakters</strong> möglich.</div></div>
-      <div class="mo-wish">Wir wünschen dir viel Spaß bei deinem Start auf Paradise City Roleplay! 🎮</div>
+      <div class="mo-wish">Wir wünschen dir viel Spaß bei deinem Start auf Cryptik Roleplay! 🎮</div>
       <button id="introBtn">Ich habe verstanden ✅</button>
     </div>
   </div>
@@ -1281,7 +1281,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
           color: 0xE65100,
           title: '🆔  Deine Discord ID',
           description: `Hier ist deine Discord ID für die Einreise-Seite:\n\n\`${member.id}\`\n\nKopiere sie und trage sie im Formular ein.`,
-          footer: { text: 'Paradise City Roleplay  •  Einreise' },
+          footer: { text: 'Cryptik Roleplay  •  Einreise' },
           timestamp: new Date().toISOString(),
         }]});
         req.session.didHelpOk = true;
@@ -1318,7 +1318,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
           title: '🎭  Dein persönlicher Einreise-Link',
           description: `Klicke auf den Link unten um deinen Charakter zu erstellen.\n\nDieser Link ist **15 Minuten** gültig und nur für dich persönlich.`,
           fields: [{ name: '👉  Einreise starten', value: `[${link}](${link})`, inline: false }],
-          footer: { text: 'Paradise City Roleplay  •  Einreise' },
+          footer: { text: 'Cryptik Roleplay  •  Einreise' },
           timestamp: new Date().toISOString(),
         }]});
         res.send(page('DM gesendet', `${header('DM gesendet')}<div class="card"><div class="success-wrap"><div class="icon">📬</div><h2 style="color:#ffd180">Schau in deine DMs!</h2><p>Wir haben dir einen persönlichen Einreise-Link per Discord-DM geschickt.<br>Öffne deine DMs und klicke auf den Link. Er ist <strong>15 Minuten</strong> gültig.</p></div></div>`));
@@ -1435,7 +1435,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       <div class="card"><div class="success-wrap">
         <div class="icon">✅</div>
         <h2>Legale Einreise Bestätigt!</h2>
-        <p>Willkommen in Paradise City, <strong>${vorname_0} ${nachname_0}</strong>!<br>
+        <p>Willkommen in Cryptik Roleplay, <strong>${vorname_0} ${nachname_0}</strong>!<br>
         Dein Charakter wurde offiziell registriert. Du hast nun Zugriff auf alle legalen Aktivitäten.</p>
         <p style="margin-top:14px;color:#555;font-size:.8em">Du kannst dieses Fenster schließen.</p>
       </div></div>
@@ -1540,7 +1540,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         <div class="card"><div class="success-wrap">
           <div class="icon">⚠️</div>
           <h2 style="color:#f85149">Illegale Einreise Bestätigt</h2>
-          <p>Du bist nun illegal in Paradise City. Bleib unter dem Radar — und pass auf dich auf.<br>5.000 $ Schwarzgeld wurden gutgeschrieben.</p>
+          <p>Du bist nun illegal in Cryptik Roleplay. Bleib unter dem Radar — und pass auf dich auf.<br>5.000 $ Schwarzgeld wurden gutgeschrieben.</p>
           <p style="margin-top:14px;color:#555;font-size:.8em">Du kannst dieses Fenster schließen.</p>
         </div></div>
       `));
@@ -1655,7 +1655,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       <div class="card"><div class="success-wrap">
         <div class="icon">⚠️</div>
         <h2 style="color:#f85149">Illegale Einreise Bestätigt</h2>
-        <p>Du bist nun illegal in Paradise City.<br>Bleib unter dem Radar — und pass auf dich auf.</p>
+        <p>Du bist nun illegal in Cryptik Roleplay.<br>Bleib unter dem Radar — und pass auf dich auf.</p>
         <p style="margin-top:14px;color:#555;font-size:.8em">Du kannst dieses Fenster schließen.</p>
       </div></div>
     `));
@@ -1865,7 +1865,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         <div class="success-wrap">
           <div class="icon">${isLegal ? '✅' : '⚠️'}</div>
           <h2 style="color:${isLegal ? '#3fb950' : '#f85149'}">Gruppen-Einreise Bestätigt!</h2>
-          <p>Alle 4 Mitglieder wurden erfolgreich in Paradise City eingetragen.<br>
+          <p>Alle 4 Mitglieder wurden erfolgreich in Cryptik Roleplay eingetragen.<br>
           Einreiseart: <strong>${isLegal ? 'Legal' : 'Illegal'}</strong></p>
           <p style="margin-top:14px;color:#555;font-size:.8em">Du kannst dieses Fenster schließen.</p>
         </div>
@@ -1925,7 +1925,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     <div class="header">
       <div class="seal">🏛️</div>
       <div class="header-text">
-        <h1>Paradise City Roleplay</h1>
+        <h1>Cryptik Roleplay</h1>
         <h2>Offizieller Personalausweis</h2>
         <h3>Los Angeles Einwohner Melde Amt</h3>
       </div>
@@ -1944,7 +1944,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       </div>
     </div>
     <div class="footer">
-      <div class="footer-text">Paradise City • Offizielles Dokument</div>
+      <div class="footer-text">Cryptik Roleplay • Offizielles Dokument</div>
       <div class="valid-badge">GüLTIG</div>
     </div>
   </div>
@@ -2184,11 +2184,11 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     // ── SPIELE ────────────────────────────────────────────────────────────────
     app.get('/snake', (req, res) => {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.send("<!DOCTYPE html>\n<html lang=\"de\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no\">\n<title>🐍 Snake – Paradise City</title>\n<style>\n  *{box-sizing:border-box;margin:0;padding:0}\n  body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;user-select:none}\n  h1{font-size:1.6rem;margin-bottom:8px;color:#4ade80;text-shadow:0 0 18px #22c55e88;letter-spacing:2px}\n  #scoreboard{display:flex;gap:30px;margin-bottom:14px;font-size:.95rem;color:#aaa}\n  #scoreboard span{color:#4ade80;font-weight:700;font-size:1.1rem}\n  #canvas{border:2px solid #22c55e44;border-radius:8px;background:#111;box-shadow:0 0 30px #22c55e22;touch-action:none}\n  #overlay{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#000000cc;border-radius:10px;padding:30px 40px}\n  #overlay h2{font-size:1.5rem;color:#f87171}\n  #overlay p{color:#aaa;font-size:.9rem}\n  #overlay .score-final{font-size:2rem;font-weight:700;color:#4ade80}\n  #overlay button{background:#22c55e;color:#000;border:none;padding:10px 28px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:4px;transition:.2s}\n  #overlay button:hover{background:#4ade80;transform:scale(1.05)}\n  #wrap{position:relative;display:inline-block}\n  #controls{margin-top:14px;color:#555;font-size:.8rem;text-align:center}\n  .hidden{display:none!important}\n  /* Mobile pad */\n  #dpad{display:none;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:4px;margin-top:18px}\n  #dpad button{background:#1a1a1a;border:1px solid #333;color:#fff;font-size:1.3rem;border-radius:8px;cursor:pointer;width:52px;height:52px;display:flex;align-items:center;justify-content:center;touch-action:manipulation}\n  #dpad button:active{background:#22c55e22}\n  @media(max-width:500px){#canvas{width:320px;height:320px}#dpad{display:grid}}\n</style>\n</head>\n<body>\n<h1>🐍 Snake</h1>\n<div id=\"scoreboard\">Punkte: <span id=\"sc\">0</span>&nbsp;&nbsp;Highscore: <span id=\"hi\">0</span></div>\n<div id=\"wrap\">\n  <canvas id=\"canvas\" width=\"400\" height=\"400\"></canvas>\n  <div id=\"overlay\">\n    <h2 id=\"oTitle\">Paradise City Snake</h2>\n    <p id=\"oMsg\">Steuere die Schlange und sammle Futter</p>\n    <div class=\"score-final hidden\" id=\"oScore\"></div>\n    <button id=\"oBtn\">▶ Spielen</button>\n  </div>\n</div>\n<div id=\"dpad\">\n  <div></div><button data-d=\"up\">▲</button><div></div>\n  <button data-d=\"left\">◀</button><div></div><button data-d=\"right\">▶</button>\n  <div></div><button data-d=\"down\">▼</button><div></div>\n</div>\n<div id=\"controls\">WASD / Pfeiltasten · Handy: Wischen oder Steuerkreuz</div>\n<script>\nconst C=document.getElementById('canvas');\nconst ctx=C.getContext('2d');\nconst TILE=20, COLS=20, ROWS=20;\nlet snake,dir,nextDir,food,score,hiScore=0,running=false,loop;\n\nfunction rnd(max){return Math.floor(Math.random()*max);}\nfunction spawnFood(){\n  let f;\n  do{ f={x:rnd(COLS),y:rnd(ROWS)}; }\n  while(snake.some(s=>s.x===f.x&&s.y===f.y));\n  return f;\n}\nfunction init(){\n  snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];\n  dir={x:1,y:0}; nextDir={x:1,y:0};\n  food=spawnFood(); score=0; draw();\n}\nfunction draw(){\n  // bg\n  ctx.fillStyle='#111'; ctx.fillRect(0,0,400,400);\n  // grid dots\n  ctx.fillStyle='#1a1a1a';\n  for(let x=0;x<COLS;x++) for(let y=0;y<ROWS;y++) ctx.fillRect(x*TILE+9,y*TILE+9,2,2);\n  // food\n  const fx=food.x*TILE, fy=food.y*TILE;\n  ctx.shadowColor='#ef4444'; ctx.shadowBlur=12;\n  ctx.fillStyle='#ef4444'; ctx.beginPath();\n  ctx.arc(fx+TILE/2,fy+TILE/2,TILE/2-2,0,Math.PI*2); ctx.fill();\n  ctx.shadowBlur=0;\n  // snake\n  snake.forEach((s,i)=>{\n    const grad=ctx.createLinearGradient(s.x*TILE,s.y*TILE,s.x*TILE+TILE,s.y*TILE+TILE);\n    grad.addColorStop(0, i===0?'#4ade80':'#22c55e');\n    grad.addColorStop(1, i===0?'#22c55e':'#16a34a');\n    ctx.fillStyle=grad;\n    ctx.shadowColor='#22c55e'; ctx.shadowBlur=i===0?14:4;\n    const r=i===0?5:4;\n    const px=s.x*TILE+1, py=s.y*TILE+1, pw=TILE-2, ph=TILE-2;\n    ctx.beginPath(); ctx.roundRect(px,py,pw,ph,r); ctx.fill();\n  });\n  ctx.shadowBlur=0;\n  document.getElementById('sc').textContent=score;\n}\nfunction step(){\n  dir={...nextDir};\n  const head={x:snake[0].x+dir.x, y:snake[0].y+dir.y};\n  // wall wrap\n  head.x=(head.x+COLS)%COLS; head.y=(head.y+ROWS)%ROWS;\n  // self collision\n  if(snake.some(s=>s.x===head.x&&s.y===head.y)){gameOver();return;}\n  snake.unshift(head);\n  if(head.x===food.x&&head.y===food.y){\n    score+=10; if(score>hiScore)hiScore=score;\n    food=spawnFood();\n    document.getElementById('hi').textContent=hiScore;\n  } else { snake.pop(); }\n  draw();\n}\nfunction gameOver(){\n  clearInterval(loop); running=false;\n  document.getElementById('oTitle').textContent='Game Over!';\n  document.getElementById('oMsg').textContent='Dein Ergebnis:';\n  const os=document.getElementById('oScore');\n  os.textContent=score+' Punkte'; os.classList.remove('hidden');\n  document.getElementById('oBtn').textContent='🔄 Nochmal';\n  document.getElementById('overlay').classList.remove('hidden');\n}\nfunction startGame(){\n  document.getElementById('overlay').classList.add('hidden');\n  document.getElementById('oScore').classList.add('hidden');\n  init(); running=true;\n  const speed=Math.max(80, 150-Math.floor(score/50)*10);\n  clearInterval(loop);\n  loop=setInterval(()=>{ step(); },200);\n}\ndocument.getElementById('oBtn').addEventListener('click',startGame);\n// Keys\ndocument.addEventListener('keydown',e=>{\n  const k=e.key;\n  if((k==='ArrowUp'||k==='w'||k==='W')&&dir.y!==1)nextDir={x:0,y:-1};\n  else if((k==='ArrowDown'||k==='s'||k==='S')&&dir.y!==-1)nextDir={x:0,y:1};\n  else if((k==='ArrowLeft'||k==='a'||k==='A')&&dir.x!==1)nextDir={x:-1,y:0};\n  else if((k==='ArrowRight'||k==='d'||k==='D')&&dir.x!==-1)nextDir={x:1,y:0};\n  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(k))e.preventDefault();\n});\n// D-Pad\ndocument.querySelectorAll('#dpad button').forEach(b=>{\n  b.addEventListener('click',()=>{\n    const d=b.dataset.d;\n    if(d==='up'&&dir.y!==1)nextDir={x:0,y:-1};\n    else if(d==='down'&&dir.y!==-1)nextDir={x:0,y:1};\n    else if(d==='left'&&dir.x!==1)nextDir={x:-1,y:0};\n    else if(d==='right'&&dir.x!==-1)nextDir={x:1,y:0};\n  });\n});\n// Touch swipe\nlet tx,ty;\nC.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});\nC.addEventListener('touchend',e=>{\n  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;\n  if(Math.abs(dx)>Math.abs(dy)){if(dx>20&&dir.x!==-1)nextDir={x:1,y:0};else if(dx<-20&&dir.x!==1)nextDir={x:-1,y:0};}\n  else{if(dy>20&&dir.y!==-1)nextDir={x:0,y:1};else if(dy<-20&&dir.y!==1)nextDir={x:0,y:-1};}\n},{passive:true});\ninit();\n</script>\n</body>\n</html>");
+      res.send("<!DOCTYPE html>\n<html lang=\"de\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no\">\n<title>🐍 Snake – Cryptik Roleplay</title>\n<style>\n  *{box-sizing:border-box;margin:0;padding:0}\n  body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;user-select:none}\n  h1{font-size:1.6rem;margin-bottom:8px;color:#4ade80;text-shadow:0 0 18px #22c55e88;letter-spacing:2px}\n  #scoreboard{display:flex;gap:30px;margin-bottom:14px;font-size:.95rem;color:#aaa}\n  #scoreboard span{color:#4ade80;font-weight:700;font-size:1.1rem}\n  #canvas{border:2px solid #22c55e44;border-radius:8px;background:#111;box-shadow:0 0 30px #22c55e22;touch-action:none}\n  #overlay{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#000000cc;border-radius:10px;padding:30px 40px}\n  #overlay h2{font-size:1.5rem;color:#f87171}\n  #overlay p{color:#aaa;font-size:.9rem}\n  #overlay .score-final{font-size:2rem;font-weight:700;color:#4ade80}\n  #overlay button{background:#22c55e;color:#000;border:none;padding:10px 28px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:4px;transition:.2s}\n  #overlay button:hover{background:#4ade80;transform:scale(1.05)}\n  #wrap{position:relative;display:inline-block}\n  #controls{margin-top:14px;color:#555;font-size:.8rem;text-align:center}\n  .hidden{display:none!important}\n  /* Mobile pad */\n  #dpad{display:none;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:4px;margin-top:18px}\n  #dpad button{background:#1a1a1a;border:1px solid #333;color:#fff;font-size:1.3rem;border-radius:8px;cursor:pointer;width:52px;height:52px;display:flex;align-items:center;justify-content:center;touch-action:manipulation}\n  #dpad button:active{background:#22c55e22}\n  @media(max-width:500px){#canvas{width:320px;height:320px}#dpad{display:grid}}\n</style>\n</head>\n<body>\n<h1>🐍 Snake</h1>\n<div id=\"scoreboard\">Punkte: <span id=\"sc\">0</span>&nbsp;&nbsp;Highscore: <span id=\"hi\">0</span></div>\n<div id=\"wrap\">\n  <canvas id=\"canvas\" width=\"400\" height=\"400\"></canvas>\n  <div id=\"overlay\">\n    <h2 id=\"oTitle\">Cryptik Roleplay Snake</h2>\n    <p id=\"oMsg\">Steuere die Schlange und sammle Futter</p>\n    <div class=\"score-final hidden\" id=\"oScore\"></div>\n    <button id=\"oBtn\">▶ Spielen</button>\n  </div>\n</div>\n<div id=\"dpad\">\n  <div></div><button data-d=\"up\">▲</button><div></div>\n  <button data-d=\"left\">◀</button><div></div><button data-d=\"right\">▶</button>\n  <div></div><button data-d=\"down\">▼</button><div></div>\n</div>\n<div id=\"controls\">WASD / Pfeiltasten · Handy: Wischen oder Steuerkreuz</div>\n<script>\nconst C=document.getElementById('canvas');\nconst ctx=C.getContext('2d');\nconst TILE=20, COLS=20, ROWS=20;\nlet snake,dir,nextDir,food,score,hiScore=0,running=false,loop;\n\nfunction rnd(max){return Math.floor(Math.random()*max);}\nfunction spawnFood(){\n  let f;\n  do{ f={x:rnd(COLS),y:rnd(ROWS)}; }\n  while(snake.some(s=>s.x===f.x&&s.y===f.y));\n  return f;\n}\nfunction init(){\n  snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];\n  dir={x:1,y:0}; nextDir={x:1,y:0};\n  food=spawnFood(); score=0; draw();\n}\nfunction draw(){\n  // bg\n  ctx.fillStyle='#111'; ctx.fillRect(0,0,400,400);\n  // grid dots\n  ctx.fillStyle='#1a1a1a';\n  for(let x=0;x<COLS;x++) for(let y=0;y<ROWS;y++) ctx.fillRect(x*TILE+9,y*TILE+9,2,2);\n  // food\n  const fx=food.x*TILE, fy=food.y*TILE;\n  ctx.shadowColor='#ef4444'; ctx.shadowBlur=12;\n  ctx.fillStyle='#ef4444'; ctx.beginPath();\n  ctx.arc(fx+TILE/2,fy+TILE/2,TILE/2-2,0,Math.PI*2); ctx.fill();\n  ctx.shadowBlur=0;\n  // snake\n  snake.forEach((s,i)=>{\n    const grad=ctx.createLinearGradient(s.x*TILE,s.y*TILE,s.x*TILE+TILE,s.y*TILE+TILE);\n    grad.addColorStop(0, i===0?'#4ade80':'#22c55e');\n    grad.addColorStop(1, i===0?'#22c55e':'#16a34a');\n    ctx.fillStyle=grad;\n    ctx.shadowColor='#22c55e'; ctx.shadowBlur=i===0?14:4;\n    const r=i===0?5:4;\n    const px=s.x*TILE+1, py=s.y*TILE+1, pw=TILE-2, ph=TILE-2;\n    ctx.beginPath(); ctx.roundRect(px,py,pw,ph,r); ctx.fill();\n  });\n  ctx.shadowBlur=0;\n  document.getElementById('sc').textContent=score;\n}\nfunction step(){\n  dir={...nextDir};\n  const head={x:snake[0].x+dir.x, y:snake[0].y+dir.y};\n  // wall wrap\n  head.x=(head.x+COLS)%COLS; head.y=(head.y+ROWS)%ROWS;\n  // self collision\n  if(snake.some(s=>s.x===head.x&&s.y===head.y)){gameOver();return;}\n  snake.unshift(head);\n  if(head.x===food.x&&head.y===food.y){\n    score+=10; if(score>hiScore)hiScore=score;\n    food=spawnFood();\n    document.getElementById('hi').textContent=hiScore;\n  } else { snake.pop(); }\n  draw();\n}\nfunction gameOver(){\n  clearInterval(loop); running=false;\n  document.getElementById('oTitle').textContent='Game Over!';\n  document.getElementById('oMsg').textContent='Dein Ergebnis:';\n  const os=document.getElementById('oScore');\n  os.textContent=score+' Punkte'; os.classList.remove('hidden');\n  document.getElementById('oBtn').textContent='🔄 Nochmal';\n  document.getElementById('overlay').classList.remove('hidden');\n}\nfunction startGame(){\n  document.getElementById('overlay').classList.add('hidden');\n  document.getElementById('oScore').classList.add('hidden');\n  init(); running=true;\n  const speed=Math.max(80, 150-Math.floor(score/50)*10);\n  clearInterval(loop);\n  loop=setInterval(()=>{ step(); },200);\n}\ndocument.getElementById('oBtn').addEventListener('click',startGame);\n// Keys\ndocument.addEventListener('keydown',e=>{\n  const k=e.key;\n  if((k==='ArrowUp'||k==='w'||k==='W')&&dir.y!==1)nextDir={x:0,y:-1};\n  else if((k==='ArrowDown'||k==='s'||k==='S')&&dir.y!==-1)nextDir={x:0,y:1};\n  else if((k==='ArrowLeft'||k==='a'||k==='A')&&dir.x!==1)nextDir={x:-1,y:0};\n  else if((k==='ArrowRight'||k==='d'||k==='D')&&dir.x!==-1)nextDir={x:1,y:0};\n  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(k))e.preventDefault();\n});\n// D-Pad\ndocument.querySelectorAll('#dpad button').forEach(b=>{\n  b.addEventListener('click',()=>{\n    const d=b.dataset.d;\n    if(d==='up'&&dir.y!==1)nextDir={x:0,y:-1};\n    else if(d==='down'&&dir.y!==-1)nextDir={x:0,y:1};\n    else if(d==='left'&&dir.x!==1)nextDir={x:-1,y:0};\n    else if(d==='right'&&dir.x!==-1)nextDir={x:1,y:0};\n  });\n});\n// Touch swipe\nlet tx,ty;\nC.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});\nC.addEventListener('touchend',e=>{\n  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;\n  if(Math.abs(dx)>Math.abs(dy)){if(dx>20&&dir.x!==-1)nextDir={x:1,y:0};else if(dx<-20&&dir.x!==1)nextDir={x:-1,y:0};}\n  else{if(dy>20&&dir.y!==-1)nextDir={x:0,y:1};else if(dy<-20&&dir.y!==1)nextDir={x:0,y:-1};}\n},{passive:true});\ninit();\n</script>\n</body>\n</html>");
     });
     app.get('/tetris', (req, res) => {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.send("<!DOCTYPE html>\n<html lang=\"de\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no\">\n<title>🟦 Tetris – Paradise City</title>\n<style>\n  *{box-sizing:border-box;margin:0;padding:0}\n  body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;user-select:none;padding:10px}\n  h1{font-size:1.6rem;margin-bottom:10px;color:#818cf8;text-shadow:0 0 18px #6366f188;letter-spacing:2px}\n  #main{display:flex;gap:18px;align-items:flex-start}\n  canvas{border:2px solid #6366f144;border-radius:8px;background:#111;box-shadow:0 0 30px #6366f122}\n  #side{display:flex;flex-direction:column;gap:14px;min-width:110px}\n  .panel{background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:12px;text-align:center}\n  .panel label{font-size:.7rem;color:#666;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px}\n  .panel span{font-size:1.5rem;font-weight:700;color:#818cf8}\n  #nextCanvas{background:#111;border-radius:6px;display:block;margin:0 auto}\n  #overlay{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#000000cc;border-radius:10px;padding:30px 40px}\n  #overlay h2{font-size:1.5rem;color:#f87171}\n  #overlay .sub{color:#aaa;font-size:.9rem}\n  #overlay .score-final{font-size:2rem;font-weight:700;color:#818cf8}\n  #overlay button{background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s}\n  #overlay button:hover{background:#818cf8;transform:scale(1.05)}\n  #wrap{position:relative;display:inline-block}\n  #controls{margin-top:12px;color:#444;font-size:.75rem;text-align:center;line-height:1.7}\n  .hidden{display:none!important}\n  #dpad{display:none;grid-template-columns:repeat(3,52px);grid-template-rows:52px 52px;gap:4px;margin-top:12px}\n  #dpad button{background:#1a1a1a;border:1px solid #333;color:#fff;font-size:1.2rem;border-radius:8px;cursor:pointer;width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-family:monospace;touch-action:manipulation}\n  #dpad button:active{background:#6366f144}\n  @media(max-width:560px){#dpad{display:grid}#main{gap:10px}}\n</style>\n</head>\n<body>\n<h1>🟦 Tetris</h1>\n<div id=\"main\">\n  <div id=\"wrap\">\n    <canvas id=\"board\" width=\"200\" height=\"400\"></canvas>\n    <div id=\"overlay\">\n      <h2 id=\"oTitle\">Paradise City Tetris</h2>\n      <p class=\"sub\" id=\"oSub\">Baue Reihen und sammle Punkte!</p>\n      <div class=\"score-final hidden\" id=\"oScore\"></div>\n      <button id=\"oBtn\">▶ Spielen</button>\n    </div>\n  </div>\n  <div id=\"side\">\n    <div class=\"panel\">\n      <label>Punkte</label>\n      <span id=\"sc\">0</span>\n    </div>\n    <div class=\"panel\">\n      <label>Level</label>\n      <span id=\"lv\">1</span>\n    </div>\n    <div class=\"panel\">\n      <label>Reihen</label>\n      <span id=\"ln\">0</span>\n    </div>\n    <div class=\"panel\">\n      <label>Nächstes</label>\n      <canvas id=\"nextCanvas\" width=\"80\" height=\"80\"></canvas>\n    </div>\n  </div>\n</div>\n<div id=\"dpad\">\n  <div></div><button data-a=\"rot\">↻</button><div></div>\n  <button data-a=\"left\">◀</button><button data-a=\"down\">▼</button><button data-a=\"right\">▶</button>\n</div>\n<div id=\"controls\">← → Bewegen · ↑ Drehen · ↓ Schneller · Leertaste: Fallen lassen</div>\n<script>\nconst B=document.getElementById('board'), ctx=B.getContext('2d');\nconst NC=document.getElementById('nextCanvas'), nctx=NC.getContext('2d');\nconst TW=20, TH=20, COLS=10, ROWS=20;\nconst COLORS=['','#f87171','#fb923c','#facc15','#4ade80','#38bdf8','#818cf8','#f472b6'];\nconst PIECES=[\n  [],\n  [[1,1,1,1]],                          // I - red\n  [[2,0,0],[2,2,2]],                    // J - orange\n  [[0,0,3],[3,3,3]],                    // L - yellow\n  [[4,4],[4,4]],                        // O - green\n  [[0,5,5],[5,5,0]],                    // S - blue\n  [[0,6,0],[6,6,6]],                    // T - indigo\n  [[7,7,0],[0,7,7]],                    // Z - pink\n];\nlet board,piece,piecePos,nextPiece,score,level,lines,running,loop,dropCounter,lastTime;\n\nfunction rndPiece(){return Math.floor(Math.random()*7)+1;}\nfunction newPiece(t){\n  piece=PIECES[t].map(r=>[...r]);\n  piecePos={x:Math.floor(COLS/2)-Math.ceil(piece[0].length/2),y:0};\n}\nfunction rotate(m){\n  const R=m.length,C2=m[0].length,out=Array.from({length:C2},()=>Array(R).fill(0));\n  for(let r=0;r<R;r++) for(let c=0;c<C2;c++) out[c][R-1-r]=m[r][c];\n  return out;\n}\nfunction valid(p,pos){\n  return p.every((row,r)=>row.every((v,c)=>{\n    if(!v)return true;\n    const bx=pos.x+c,by=pos.y+r;\n    return bx>=0&&bx<COLS&&by<ROWS&&(by<0||!board[by][bx]);\n  }));\n}\nfunction merge(){\n  piece.forEach((row,r)=>row.forEach((v,c)=>{if(v)board[piecePos.y+r][piecePos.x+c]=v;}));\n}\nfunction clearLines(){\n  let cleared=0;\n  for(let r=ROWS-1;r>=0;r--){\n    if(board[r].every(v=>v)){board.splice(r,1);board.unshift(Array(COLS).fill(0));cleared++;r++;}\n  }\n  if(cleared){\n    const pts=[0,100,300,500,800];\n    score+=(pts[cleared]||800)*level;\n    lines+=cleared;\n    level=Math.floor(lines/10)+1;\n    document.getElementById('sc').textContent=score;\n    document.getElementById('lv').textContent=level;\n    document.getElementById('ln').textContent=lines;\n  }\n}\nfunction drawBlock(c,x,y,size,ctx2){\n  if(!c)return;\n  const col=COLORS[c];\n  ctx2.fillStyle=col;\n  ctx2.shadowColor=col; ctx2.shadowBlur=6;\n  ctx2.fillRect(x+1,y+1,size-2,size-2);\n  ctx2.shadowBlur=0;\n  ctx2.fillStyle='rgba(255,255,255,0.15)';\n  ctx2.fillRect(x+1,y+1,size-2,4);\n}\nfunction drawBoard(){\n  ctx.fillStyle='#111'; ctx.fillRect(0,0,COLS*TW,ROWS*TH);\n  // grid\n  ctx.strokeStyle='#1c1c1c'; ctx.lineWidth=0.5;\n  for(let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*TW,0);ctx.lineTo(x*TW,ROWS*TH);ctx.stroke();}\n  for(let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*TH);ctx.lineTo(COLS*TW,y*TH);ctx.stroke();}\n  // board cells\n  board.forEach((row,r)=>row.forEach((v,c)=>drawBlock(v,c*TW,r*TH,TW,ctx)));\n  // ghost piece\n  let ghostY=piecePos.y;\n  while(valid(piece,{x:piecePos.x,y:ghostY+1}))ghostY++;\n  if(ghostY!==piecePos.y){\n    piece.forEach((row,r)=>row.forEach((v,c)=>{\n      if(!v)return;\n      ctx.fillStyle='rgba(255,255,255,0.08)';\n      ctx.fillRect((piecePos.x+c)*TW+1,(ghostY+r)*TH+1,TW-2,TH-2);\n    }));\n  }\n  // active piece\n  piece.forEach((row,r)=>row.forEach((v,c)=>drawBlock(v,(piecePos.x+c)*TW,(piecePos.y+r)*TH,TW,ctx)));\n}\nfunction drawNext(){\n  nctx.fillStyle='#111'; nctx.fillRect(0,0,80,80);\n  const p=PIECES[nextPiece];\n  const ox=Math.floor((4-p[0].length)/2)*16+8;\n  const oy=Math.floor((4-p.length)/2)*16+8;\n  p.forEach((row,r)=>row.forEach((v,c)=>drawBlock(v,ox+c*16,oy+r*16,16,nctx)));\n}\nfunction drop(){\n  piecePos.y++;\n  if(!valid(piece,piecePos)){\n    piecePos.y--;\n    merge();\n    clearLines();\n    const nt=nextPiece; nextPiece=rndPiece();\n    newPiece(nt);\n    drawNext();\n    if(!valid(piece,piecePos)){gameOver();return;}\n  }\n}\nfunction hardDrop(){\n  while(valid(piece,{x:piecePos.x,y:piecePos.y+1}))piecePos.y++;\n  drop();\n}\nfunction gameOver(){\n  clearInterval(loop); running=false;\n  document.getElementById('oTitle').textContent='Game Over!';\n  document.getElementById('oSub').textContent='Dein Ergebnis:';\n  const os=document.getElementById('oScore');\n  os.textContent=score+' Punkte'; os.classList.remove('hidden');\n  document.getElementById('oBtn').textContent='🔄 Nochmal';\n  document.getElementById('overlay').classList.remove('hidden');\n}\nfunction startGame(){\n  document.getElementById('overlay').classList.add('hidden');\n  document.getElementById('oScore').classList.add('hidden');\n  board=Array.from({length:ROWS},()=>Array(COLS).fill(0));\n  score=0;level=1;lines=0;\n  ['sc','lv','ln'].forEach(id=>document.getElementById(id).textContent=id==='sc'||id==='ln'?0:1);\n  nextPiece=rndPiece(); newPiece(rndPiece()); drawNext(); running=true;\n  clearInterval(loop);\n  loop=setInterval(()=>{drop();drawBoard();},Math.max(200,800-level*40));\n}\ndocument.getElementById('oBtn').addEventListener('click',startGame);\ndocument.addEventListener('keydown',e=>{\n  if(!running)return;\n  if(e.key==='ArrowLeft'){const np={x:piecePos.x-1,y:piecePos.y};if(valid(piece,np))piecePos=np;}\n  else if(e.key==='ArrowRight'){const np={x:piecePos.x+1,y:piecePos.y};if(valid(piece,np))piecePos=np;}\n  else if(e.key==='ArrowDown'){drop();}\n  else if(e.key==='ArrowUp'){const r=rotate(piece);if(valid(r,piecePos))piece=r;}\n  else if(e.key===' '){hardDrop();}\n  else return;\n  e.preventDefault();\n  drawBoard();\n});\ndocument.querySelectorAll('#dpad button').forEach(b=>{\n  b.addEventListener('click',()=>{\n    if(!running)return;\n    const a=b.dataset.a;\n    if(a==='left'){const np={x:piecePos.x-1,y:piecePos.y};if(valid(piece,np)){piecePos=np;drawBoard();}}\n    else if(a==='right'){const np={x:piecePos.x+1,y:piecePos.y};if(valid(piece,np)){piecePos=np;drawBoard();}}\n    else if(a==='down'){drop();drawBoard();}\n    else if(a==='rot'){const r=rotate(piece);if(valid(r,piecePos)){piece=r;drawBoard();}}\n  });\n});\n// initial draw\nboard=Array.from({length:ROWS},()=>Array(COLS).fill(0));\npiece=[[0]]; piecePos={x:0,y:0};\nctx.fillStyle='#111'; ctx.fillRect(0,0,COLS*TW,ROWS*TH);\n</script>\n</body>\n</html>");
+      res.send("<!DOCTYPE html>\n<html lang=\"de\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no\">\n<title>🟦 Tetris – Cryptik Roleplay</title>\n<style>\n  *{box-sizing:border-box;margin:0;padding:0}\n  body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;user-select:none;padding:10px}\n  h1{font-size:1.6rem;margin-bottom:10px;color:#818cf8;text-shadow:0 0 18px #6366f188;letter-spacing:2px}\n  #main{display:flex;gap:18px;align-items:flex-start}\n  canvas{border:2px solid #6366f144;border-radius:8px;background:#111;box-shadow:0 0 30px #6366f122}\n  #side{display:flex;flex-direction:column;gap:14px;min-width:110px}\n  .panel{background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:12px;text-align:center}\n  .panel label{font-size:.7rem;color:#666;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px}\n  .panel span{font-size:1.5rem;font-weight:700;color:#818cf8}\n  #nextCanvas{background:#111;border-radius:6px;display:block;margin:0 auto}\n  #overlay{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#000000cc;border-radius:10px;padding:30px 40px}\n  #overlay h2{font-size:1.5rem;color:#f87171}\n  #overlay .sub{color:#aaa;font-size:.9rem}\n  #overlay .score-final{font-size:2rem;font-weight:700;color:#818cf8}\n  #overlay button{background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s}\n  #overlay button:hover{background:#818cf8;transform:scale(1.05)}\n  #wrap{position:relative;display:inline-block}\n  #controls{margin-top:12px;color:#444;font-size:.75rem;text-align:center;line-height:1.7}\n  .hidden{display:none!important}\n  #dpad{display:none;grid-template-columns:repeat(3,52px);grid-template-rows:52px 52px;gap:4px;margin-top:12px}\n  #dpad button{background:#1a1a1a;border:1px solid #333;color:#fff;font-size:1.2rem;border-radius:8px;cursor:pointer;width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-family:monospace;touch-action:manipulation}\n  #dpad button:active{background:#6366f144}\n  @media(max-width:560px){#dpad{display:grid}#main{gap:10px}}\n</style>\n</head>\n<body>\n<h1>🟦 Tetris</h1>\n<div id=\"main\">\n  <div id=\"wrap\">\n    <canvas id=\"board\" width=\"200\" height=\"400\"></canvas>\n    <div id=\"overlay\">\n      <h2 id=\"oTitle\">Cryptik Roleplay Tetris</h2>\n      <p class=\"sub\" id=\"oSub\">Baue Reihen und sammle Punkte!</p>\n      <div class=\"score-final hidden\" id=\"oScore\"></div>\n      <button id=\"oBtn\">▶ Spielen</button>\n    </div>\n  </div>\n  <div id=\"side\">\n    <div class=\"panel\">\n      <label>Punkte</label>\n      <span id=\"sc\">0</span>\n    </div>\n    <div class=\"panel\">\n      <label>Level</label>\n      <span id=\"lv\">1</span>\n    </div>\n    <div class=\"panel\">\n      <label>Reihen</label>\n      <span id=\"ln\">0</span>\n    </div>\n    <div class=\"panel\">\n      <label>Nächstes</label>\n      <canvas id=\"nextCanvas\" width=\"80\" height=\"80\"></canvas>\n    </div>\n  </div>\n</div>\n<div id=\"dpad\">\n  <div></div><button data-a=\"rot\">↻</button><div></div>\n  <button data-a=\"left\">◀</button><button data-a=\"down\">▼</button><button data-a=\"right\">▶</button>\n</div>\n<div id=\"controls\">← → Bewegen · ↑ Drehen · ↓ Schneller · Leertaste: Fallen lassen</div>\n<script>\nconst B=document.getElementById('board'), ctx=B.getContext('2d');\nconst NC=document.getElementById('nextCanvas'), nctx=NC.getContext('2d');\nconst TW=20, TH=20, COLS=10, ROWS=20;\nconst COLORS=['','#f87171','#fb923c','#facc15','#4ade80','#38bdf8','#818cf8','#f472b6'];\nconst PIECES=[\n  [],\n  [[1,1,1,1]],                          // I - red\n  [[2,0,0],[2,2,2]],                    // J - orange\n  [[0,0,3],[3,3,3]],                    // L - yellow\n  [[4,4],[4,4]],                        // O - green\n  [[0,5,5],[5,5,0]],                    // S - blue\n  [[0,6,0],[6,6,6]],                    // T - indigo\n  [[7,7,0],[0,7,7]],                    // Z - pink\n];\nlet board,piece,piecePos,nextPiece,score,level,lines,running,loop,dropCounter,lastTime;\n\nfunction rndPiece(){return Math.floor(Math.random()*7)+1;}\nfunction newPiece(t){\n  piece=PIECES[t].map(r=>[...r]);\n  piecePos={x:Math.floor(COLS/2)-Math.ceil(piece[0].length/2),y:0};\n}\nfunction rotate(m){\n  const R=m.length,C2=m[0].length,out=Array.from({length:C2},()=>Array(R).fill(0));\n  for(let r=0;r<R;r++) for(let c=0;c<C2;c++) out[c][R-1-r]=m[r][c];\n  return out;\n}\nfunction valid(p,pos){\n  return p.every((row,r)=>row.every((v,c)=>{\n    if(!v)return true;\n    const bx=pos.x+c,by=pos.y+r;\n    return bx>=0&&bx<COLS&&by<ROWS&&(by<0||!board[by][bx]);\n  }));\n}\nfunction merge(){\n  piece.forEach((row,r)=>row.forEach((v,c)=>{if(v)board[piecePos.y+r][piecePos.x+c]=v;}));\n}\nfunction clearLines(){\n  let cleared=0;\n  for(let r=ROWS-1;r>=0;r--){\n    if(board[r].every(v=>v)){board.splice(r,1);board.unshift(Array(COLS).fill(0));cleared++;r++;}\n  }\n  if(cleared){\n    const pts=[0,100,300,500,800];\n    score+=(pts[cleared]||800)*level;\n    lines+=cleared;\n    level=Math.floor(lines/10)+1;\n    document.getElementById('sc').textContent=score;\n    document.getElementById('lv').textContent=level;\n    document.getElementById('ln').textContent=lines;\n  }\n}\nfunction drawBlock(c,x,y,size,ctx2){\n  if(!c)return;\n  const col=COLORS[c];\n  ctx2.fillStyle=col;\n  ctx2.shadowColor=col; ctx2.shadowBlur=6;\n  ctx2.fillRect(x+1,y+1,size-2,size-2);\n  ctx2.shadowBlur=0;\n  ctx2.fillStyle='rgba(255,255,255,0.15)';\n  ctx2.fillRect(x+1,y+1,size-2,4);\n}\nfunction drawBoard(){\n  ctx.fillStyle='#111'; ctx.fillRect(0,0,COLS*TW,ROWS*TH);\n  // grid\n  ctx.strokeStyle='#1c1c1c'; ctx.lineWidth=0.5;\n  for(let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*TW,0);ctx.lineTo(x*TW,ROWS*TH);ctx.stroke();}\n  for(let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*TH);ctx.lineTo(COLS*TW,y*TH);ctx.stroke();}\n  // board cells\n  board.forEach((row,r)=>row.forEach((v,c)=>drawBlock(v,c*TW,r*TH,TW,ctx)));\n  // ghost piece\n  let ghostY=piecePos.y;\n  while(valid(piece,{x:piecePos.x,y:ghostY+1}))ghostY++;\n  if(ghostY!==piecePos.y){\n    piece.forEach((row,r)=>row.forEach((v,c)=>{\n      if(!v)return;\n      ctx.fillStyle='rgba(255,255,255,0.08)';\n      ctx.fillRect((piecePos.x+c)*TW+1,(ghostY+r)*TH+1,TW-2,TH-2);\n    }));\n  }\n  // active piece\n  piece.forEach((row,r)=>row.forEach((v,c)=>drawBlock(v,(piecePos.x+c)*TW,(piecePos.y+r)*TH,TW,ctx)));\n}\nfunction drawNext(){\n  nctx.fillStyle='#111'; nctx.fillRect(0,0,80,80);\n  const p=PIECES[nextPiece];\n  const ox=Math.floor((4-p[0].length)/2)*16+8;\n  const oy=Math.floor((4-p.length)/2)*16+8;\n  p.forEach((row,r)=>row.forEach((v,c)=>drawBlock(v,ox+c*16,oy+r*16,16,nctx)));\n}\nfunction drop(){\n  piecePos.y++;\n  if(!valid(piece,piecePos)){\n    piecePos.y--;\n    merge();\n    clearLines();\n    const nt=nextPiece; nextPiece=rndPiece();\n    newPiece(nt);\n    drawNext();\n    if(!valid(piece,piecePos)){gameOver();return;}\n  }\n}\nfunction hardDrop(){\n  while(valid(piece,{x:piecePos.x,y:piecePos.y+1}))piecePos.y++;\n  drop();\n}\nfunction gameOver(){\n  clearInterval(loop); running=false;\n  document.getElementById('oTitle').textContent='Game Over!';\n  document.getElementById('oSub').textContent='Dein Ergebnis:';\n  const os=document.getElementById('oScore');\n  os.textContent=score+' Punkte'; os.classList.remove('hidden');\n  document.getElementById('oBtn').textContent='🔄 Nochmal';\n  document.getElementById('overlay').classList.remove('hidden');\n}\nfunction startGame(){\n  document.getElementById('overlay').classList.add('hidden');\n  document.getElementById('oScore').classList.add('hidden');\n  board=Array.from({length:ROWS},()=>Array(COLS).fill(0));\n  score=0;level=1;lines=0;\n  ['sc','lv','ln'].forEach(id=>document.getElementById(id).textContent=id==='sc'||id==='ln'?0:1);\n  nextPiece=rndPiece(); newPiece(rndPiece()); drawNext(); running=true;\n  clearInterval(loop);\n  loop=setInterval(()=>{drop();drawBoard();},Math.max(200,800-level*40));\n}\ndocument.getElementById('oBtn').addEventListener('click',startGame);\ndocument.addEventListener('keydown',e=>{\n  if(!running)return;\n  if(e.key==='ArrowLeft'){const np={x:piecePos.x-1,y:piecePos.y};if(valid(piece,np))piecePos=np;}\n  else if(e.key==='ArrowRight'){const np={x:piecePos.x+1,y:piecePos.y};if(valid(piece,np))piecePos=np;}\n  else if(e.key==='ArrowDown'){drop();}\n  else if(e.key==='ArrowUp'){const r=rotate(piece);if(valid(r,piecePos))piece=r;}\n  else if(e.key===' '){hardDrop();}\n  else return;\n  e.preventDefault();\n  drawBoard();\n});\ndocument.querySelectorAll('#dpad button').forEach(b=>{\n  b.addEventListener('click',()=>{\n    if(!running)return;\n    const a=b.dataset.a;\n    if(a==='left'){const np={x:piecePos.x-1,y:piecePos.y};if(valid(piece,np)){piecePos=np;drawBoard();}}\n    else if(a==='right'){const np={x:piecePos.x+1,y:piecePos.y};if(valid(piece,np)){piecePos=np;drawBoard();}}\n    else if(a==='down'){drop();drawBoard();}\n    else if(a==='rot'){const r=rotate(piece);if(valid(r,piecePos)){piece=r;drawBoard();}}\n  });\n});\n// initial draw\nboard=Array.from({length:ROWS},()=>Array(COLS).fill(0));\npiece=[[0]]; piecePos={x:0,y:0};\nctx.fillStyle='#111'; ctx.fillRect(0,0,COLS*TW,ROWS*TH);\n</script>\n</body>\n</html>");
     });
 
   
@@ -2281,13 +2281,13 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         .sort((a,b)=>(LAPD_ERANK[b.ebene]||0)-(LAPD_ERANK[a.ebene]||0));
       const emojis = { leitung:'🟡', befehl:'🔵', detective:'🟣', officer:'🟢' };
       const embed = new _DEB()
-        .setColor(0x1565c0)
+        .setColor(0xE8002D)
         .setTitle('🛡️ LAPD — Officers On Duty')
         .setDescription(list.length===0
           ? '⚫  **No officers currently on duty.**'
           : list.map(d=>(emojis[d.ebene]||'🟢')+' **'+d.displayName+'** — '+d.rankName).join('\n'))
         .setTimestamp()
-        .setFooter({ text:'Los Angeles Police Department • Paradise City Roleplay' });
+        .setFooter({ text:'Los Angeles Police Department • Cryptik Roleplay' });
       const stored = lj(LAPD_EMBED_FILE,{});
       const ch = await client.channels.fetch(LAPD_DUTY_CHANNEL).catch(()=>null);
       if (!ch) return;
@@ -2309,7 +2309,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   // ── Login CSS / helpers ──────────────────────────────────────────────────
   const LCSS = '*{box-sizing:border-box;margin:0;padding:0}body{background:#04091f;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#0c1b45;border:1px solid #1e4080;border-radius:14px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 0 50px rgba(21,101,192,.25)}.badge{text-align:center;margin-bottom:24px}.badge .ico{font-size:4rem}.badge h1{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:3px;margin-top:8px}.badge .sub{font-size:.75rem;color:#90caf9;letter-spacing:1px;margin-top:3px}hr{border:none;border-top:1px solid #1e4080;margin:20px 0}.err{background:rgba(183,28,28,.15);border:1px solid #b71c1c;border-radius:8px;padding:11px 14px;margin-bottom:16px;color:#ef9a9a;font-size:.88rem}.info{background:rgba(21,101,192,.15);border:1px solid #1565c0;border-radius:8px;padding:14px;margin-bottom:16px;color:#90caf9;font-size:.88rem;line-height:1.6}.u-hint{color:#90caf9;font-size:.85rem;margin-bottom:14px}.fg{margin-bottom:15px}.fg label{display:block;font-size:.75rem;color:#90caf9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.fg input,.fg select{width:100%;background:#040920;border:1px solid #1e4080;color:#e0e0e0;padding:11px 14px;border-radius:8px;font-size:.95rem;outline:none;transition:.2s}.fg input:focus,.fg select:focus{border-color:#1565c0;box-shadow:0 0 0 2px rgba(21,101,192,.3)}.fg select option{background:#040920}.btn{width:100%;background:#1565c0;color:#fff;border:none;padding:13px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;touch-action:manipulation}.btn:hover{background:#1976d2}.foot{margin-top:28px;color:#1e4080;font-size:.7rem;letter-spacing:1px;text-align:center}';
   const LHEAD  = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>LAPD</title><style>'+LCSS+'</style></head><body>';
-  const LBADGE = '<div class="badge"><img src="/lapd/logo.png" alt="LAPD" style="width:100px;height:100px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 14px;box-shadow:0 0 28px #1a4fa8aa"><h1>LAPD</h1><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><div class="sub">Paradise City Roleplay</div></div><hr>';
+  const LBADGE = '<div class="badge"><img src="/lapd/logo.png" alt="LAPD" style="width:100px;height:100px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 14px;box-shadow:0 0 28px #1a4fa8aa"><h1>LAPD</h1><div class="sub">LOS ANGELES POLICE DEPARTMENT</div><div class="sub">Cryptik Roleplay</div></div><hr>';
   const LFOOT  = '<div class="foot">LAPD INTERNES SYSTEM • UNBEFUGTER ZUGRIFF VERBOTEN</div></body></html>';
   const LAPD_INTRO_CSS = '';
   const LAPD_INTRO_HTML = '';
@@ -2395,7 +2395,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       +'<div class="nm">'+s.displayName+'</div>'
       +'<div class="rk">'+s.rankName+'</div>'
       +'<div class="msg">Wir wünschen Ihnen einen angenehmen Dienst.<br>Passen Sie auf sich auf!</div>'
-      +'<div class="sub">Paradise City Roleplay • Los Santos Police Department</div>'
+      +'<div class="sub">Cryptik Roleplay • Los Santos Police Department</div>'
       +'<div class="bw"><div class="bf"></div></div>'
       +'</div>'
       +'<script>setTimeout(function(){window.location.href=\'/lapd/dashboard\';},4300);</script>'
@@ -2843,7 +2843,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
         guild.members.cache.filter(m=>m.roles.cache.has(roleId)&&m.id!==s.userId).forEach(m=>notified.add(m));
       const {EmbedBuilder:_PEB}=require('discord.js');
       const pEmbed=new _PEB()
-        .setColor(0xff0000)
+        .setColor(0xE8002D)
         .setTitle('🚨 PANIC BUTTON AUSGELÖST')
         .setDescription('**Ein Officer befindet sich in AKUTER GEFAHR!**')
         .addFields(
@@ -3215,7 +3215,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
       +'<title>LAPD System</title>'
       +'<style>'+LAPD_CSS+'</style>'
       +'</head><body>'
-      +'<div class="top-banner">Programmiert und Bereitgestellt durch Inhaber von Paradise City Roleplay</div>'
+      +'<div class="top-banner">Programmiert und Bereitgestellt durch Inhaber von Cryptik Roleplay</div>'
       +'<div class="mob-bar">'
       +'<span class="mob-bar-title">LAPD System</span>'
       +'<div style="display:flex;align-items:center;gap:7px">'
@@ -4200,14 +4200,14 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
       const ch = await client.channels.fetch('1492316049922592990').catch(()=>null);
       if(ch){
         const {EmbedBuilder}=require('discord.js');
-        await ch.send({embeds:[new EmbedBuilder().setColor(0xf59e0b)
+        await ch.send({embeds:[new EmbedBuilder().setColor(0xE8002D)
           .setTitle('🚔  Fahrzeug beschlagnahmt')
           .addFields(
             {name:'Besitzer',value:String(besitzer).slice(0,200),inline:true},
             {name:'Fahrzeug',value:String(fahrzeug).slice(0,200)+(kennzeichen?' (KZ: '+String(kennzeichen)+')':''),inline:true},
             {name:'Grund',value:String(grund).slice(0,300),inline:false},
             {name:'Beamter',value:s.displayName+' ('+s.rankName+')',inline:true}
-          ).setFooter({text:'LAPD  \u2022  Paradise City Roleplay'}).setTimestamp()]});
+          ).setFooter({text:'LAPD  \u2022  Cryptik Roleplay'}).setTimestamp()]});
       }
     } catch(e){ req.log ? req.log.error(e,'Beschlagnahmung Discord') : console.error('Beschlagnahmung Discord:',e.message); }})();
     dashRedir(res, tab, 'Fahrzeug beschlagnahmt.', true);
@@ -4227,13 +4227,13 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
       const ch = await client.channels.fetch('1492316049922592990').catch(()=>null);
       if(ch){
         const {EmbedBuilder}=require('discord.js');
-        await ch.send({content:'<@&1490855738644365603>',embeds:[new EmbedBuilder().setColor(0x22c55e)
+        await ch.send({content:'<@&1490855738644365603>',embeds:[new EmbedBuilder().setColor(0xE8002D)
           .setTitle('\u{1F513}  Beschlagnahmung aufgehoben')
           .addFields(
             {name:'Besitzer',value:item.besitzer,inline:true},
             {name:'Fahrzeug',value:item.fahrzeug+(item.kennzeichen?' (KZ: '+item.kennzeichen+')':''),inline:true},
             {name:'Aufgehoben von',value:s.displayName+' ('+s.rankName+')',inline:true}
-          ).setFooter({text:'LAPD  \u2022  Paradise City Roleplay'}).setTimestamp()]});
+          ).setFooter({text:'LAPD  \u2022  Cryptik Roleplay'}).setTimestamp()]});
       }
     } catch(e){ req.log ? req.log.error(e,'Aufhebung Discord') : console.error('Aufhebung Discord:',e.message); }})();
     dashRedir(res, tab, 'Beschlagnahmung aufgehoben.', true);
