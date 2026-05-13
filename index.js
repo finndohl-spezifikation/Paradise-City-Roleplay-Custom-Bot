@@ -902,6 +902,73 @@ async function updateLapdTeamOverview() {
 client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
   client.user.setPresence({ activities: [{ name: 'Cryptik Roleplay PS5', type: ActivityType.Playing }], status: 'online' });
+  // ─── GLOBAL EMBED RESEND (Rebranding) ────────────────────────────────────
+  {
+    const EMBED_RESEND_VER = 'v_cryptik_1';
+    const setup = loadSetup();
+    if (setup.globalEmbedVersion !== EMBED_RESEND_VER) {
+      console.log('[RESEND] Neues Embed-Branding erkannt — lösche alte Embeds und sende neu...');
+
+      // Alle Kanäle mit einmalig gesendeten Embeds
+      const STATIC_CHANNELS = [
+        '1490878156582686853', // Einreise
+        '1490878159032422433', // Startpunkt
+        '1490878159804174470', // Starterpaket
+        '1490882546144383156', // Regelwerk 1+2
+        '1490882548266696849', // Fraktionsregelwerk
+        '1490882549499564184', // SafeZones
+        '1490894308088352961', // ATM-Raub Info
+        '1490894310118392012', // Shop-Raub Info
+        FRAK_OVERVIEW_CH,      // Frak-Übersicht
+        TEAM_OVERVIEW_CH,      // Team-Übersicht
+        LAPD_TEAM_CH,          // LAPD-Team
+      ];
+
+      for (const chId of STATIC_CHANNELS) {
+        try {
+          const ch = await client.channels.fetch(chId).catch(() => null);
+          if (!ch || !ch.messages) continue;
+          // Bis zu 100 Nachrichten holen und Bot-Nachrichten löschen
+          const msgs = await ch.messages.fetch({ limit: 100 }).catch(() => null);
+          if (!msgs) continue;
+          const botMsgs = msgs.filter(m => m.author.id === client.user.id);
+          for (const [, m] of botMsgs) {
+            await m.delete().catch(() => {});
+          }
+          console.log(`[RESEND] ${botMsgs.size} Bot-Nachricht(en) in ${chId} gelöscht.`);
+        } catch (e) { console.error('[RESEND] Fehler in', chId, e.message); }
+      }
+
+      // Alle Setup-Flags löschen (erzwingt Neu-Senden)
+      delete setup.einreiseEmbedV4Sent;
+      delete setup.startpunktEmbedSent;
+      delete setup.starterpaketEmbedSent;
+      delete setup.regelwerkEmbed1SentV2;
+      delete setup.regelwerkEmbed2SentV2;
+      delete setup.fraktionsregelwerkEmbedV4;
+      delete setup.safeZonesEmbedSent;
+      delete setup.frakOverviewMsgId;
+      delete setup.teamOverviewMsgId;
+      delete setup.lapdTeamMsgId;
+      delete setup.lohnlisteMsgId;
+      delete setup.lohnbueroMsgId;
+      delete setup.bankingMsgId;
+      delete setup.rechnungenMsgId;
+
+      // ATM + Shop Info-Embed Flags in den Raub-Dateien zurücksetzen
+      try {
+        const atmFile  = path.join(DATA_DIR, 'atm_raub.json');
+        const shopFile = path.join(DATA_DIR, 'shop_raub.json');
+        if (fs.existsSync(atmFile))  { const d = JSON.parse(fs.readFileSync(atmFile,'utf8')); delete d._infoEmbedSent; fs.writeFileSync(atmFile, JSON.stringify(d,null,2),'utf8'); }
+        if (fs.existsSync(shopFile)) { const d = JSON.parse(fs.readFileSync(shopFile,'utf8')); delete d._infoEmbedSent; fs.writeFileSync(shopFile,JSON.stringify(d,null,2),'utf8'); }
+      } catch(e) { console.error('[RESEND] Raub-Flags:', e.message); }
+
+      setup.globalEmbedVersion = EMBED_RESEND_VER;
+      saveSetup(setup);
+      console.log('[RESEND] Alle alten Embeds gelöscht und Flags zurückgesetzt. Embeds werden neu gesendet...');
+    }
+  }
+  // ─── END GLOBAL EMBED RESEND ─────────────────────────────────────────────
 
   for (const guild of client.guilds.cache.values()) {
     await buildInviteCache(guild);
