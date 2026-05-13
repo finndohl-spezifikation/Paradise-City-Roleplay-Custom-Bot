@@ -1240,6 +1240,21 @@ client.once('ready', async () => {
         .addChoices({ name: 'ATM-Raub', value: 'atm' },{ name: 'Shop-Raub', value: 'shop' }))
       .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
       .toJSON(),
+
+    // ─── Verstecken / Fesseln Commands ─────────────────────────────────────────
+    new SlashCommandBuilder()
+      .setName('verstecken')
+      .setDescription('Verstecke Items aus deinem Inventar an einem Ort')
+      .addStringOption(o => o.setName('item').setDescription('Welches Item möchtest du verstecken?').setRequired(true).setAutocomplete(true))
+      .addIntegerOption(o => o.setName('menge').setDescription('Wie viele Stück?').setRequired(true).setMinValue(1))
+      .addStringOption(o => o.setName('ort').setDescription('Wo versteckst du die Items?').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('fesseln')
+      .setDescription('Fessle einen anderen Spieler mit einem Kabelbinder (aus Baumarkt)')
+      .addUserOption(o => o.setName('spieler').setDescription('Welchen Spieler möchtest du fesseln?').setRequired(true))
+      .toJSON(),
     ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -5869,6 +5884,294 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 // ─── END RAUB ADMIN COMMANDS ─────────────────────────────────────────────────
+
+
+// ─── VERSTECKEN / FESSELN SYSTEM ─────────────────────────────────────────────
+{
+  const VF_CHANNEL   = '1490882589014364250';
+  const VERSTECK_FILE = path.join(DATA_DIR, 'verstecke.json');
+  const FESSEL_FILE   = path.join(DATA_DIR, 'fesselungen.json');
+
+  function _loadInvVF(uid){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR,'inventar.json'),'utf8'));return d[uid]||{};}catch{return{};} }
+  function _saveInvVFAll(d){ fs.writeFileSync(path.join(DATA_DIR,'inventar.json'),JSON.stringify(d,null,2),'utf8'); }
+  function _loadAllInvVF(){ try{return JSON.parse(fs.readFileSync(path.join(DATA_DIR,'inventar.json'),'utf8'));}catch{return{};} }
+  function _loadVerstecke(){ try{return JSON.parse(fs.readFileSync(VERSTECK_FILE,'utf8'));}catch{return{};} }
+  function _saveVerstecke(d){ fs.writeFileSync(VERSTECK_FILE,JSON.stringify(d,null,2),'utf8'); }
+  function _loadFesselungen(){ try{return JSON.parse(fs.readFileSync(FESSEL_FILE,'utf8'));}catch{return{};} }
+  function _saveFesselungen(d){ fs.writeFileSync(FESSEL_FILE,JSON.stringify(d,null,2),'utf8'); }
+
+  // ── Autocomplete für /verstecken item ───────────────────────────────────
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isAutocomplete()) return;
+    if (interaction.commandName !== 'verstecken') return;
+    const focused = interaction.options.getFocused().toLowerCase();
+    const inv = _loadInvVF(interaction.user.id);
+    const choices = Object.entries(inv)
+      .filter(([k,v]) => v > 0 && k.toLowerCase().includes(focused))
+      .slice(0,25)
+      .map(([k,v]) => ({ name: `${k} (${v}x vorhanden)`, value: k }));
+    await interaction.respond(choices).catch(()=>{});
+  });
+
+  // ── /verstecken ─────────────────────────────────────────────────────────
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+    if (interaction.commandName !== 'verstecken') return;
+
+    if (interaction.channelId !== VF_CHANNEL)
+      return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${VF_CHANNEL}>.`, ephemeral: true });
+
+    const itemName = interaction.options.getString('item');
+    const menge    = interaction.options.getInteger('menge');
+    const ort      = interaction.options.getString('ort');
+
+    const allInv = _loadAllInvVF();
+    const inv    = allInv[interaction.user.id] || {};
+
+    // Case-insensitive item suchen
+    const foundKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
+    if (!foundKey || (inv[foundKey] || 0) < menge) {
+      const list = Object.keys(inv).length
+        ? Object.entries(inv).map(([k,v]) => `• **${k}** — ${v}x`).join('\n')
+        : '_Inventar leer_';
+      return interaction.reply({ embeds: [new EmbedBuilder()
+        .setColor(0xff4400)
+        .setTitle('❌ Item nicht gefunden / zu wenig')
+        .setDescription(`Du hast nicht genug **${itemName}** im Inventar.\n\n**Dein Inventar:**\n${list}`)
+        .setFooter({ text: 'Paradise City Roleplay' })], ephemeral: true });
+    }
+
+    // Item abziehen
+    inv[foundKey] -= menge;
+    if (inv[foundKey] <= 0) delete inv[foundKey];
+    allInv[interaction.user.id] = inv;
+    _saveInvVFAll(allInv);
+
+    // Versteck-ID erzeugen
+    const versteckId = `${interaction.user.id}_${Date.now()}`;
+
+    // Embed + Button
+    const btn = new ButtonBuilder()
+      .setCustomId(`versteck_holen:${interaction.user.id}:${versteckId}`)
+      .setLabel('📦 Items aus Versteck holen')
+      .setStyle(ButtonStyle.Success);
+    const row = new ActionRowBuilder().addComponents(btn);
+
+    const embed = new EmbedBuilder()
+      .setColor(0x854d0e)
+      .setTitle('🎒 Items versteckt')
+      .addFields(
+        { name: '👤 Spieler',  value: `<@${interaction.user.id}>`,         inline: true },
+        { name: '📦 Item',     value: `${foundKey} — **${menge}x**`,       inline: true },
+        { name: '📍 Ort',      value: ort,                                  inline: false },
+      )
+      .setFooter({ text: 'Paradise City Roleplay • Versteck-System' })
+      .setTimestamp();
+
+    await interaction.reply({ embeds: [embed], components: [row] });
+    const sentMsg = await interaction.fetchReply();
+
+    // Versteck speichern
+    const vstecke = _loadVerstecke();
+    vstecke[versteckId] = {
+      userId: interaction.user.id,
+      username: interaction.user.username,
+      item: foundKey,
+      menge,
+      ort,
+      messageId: sentMsg.id,
+      channelId: sentMsg.channelId,
+      createdAt: Date.now()
+    };
+    _saveVerstecke(vstecke);
+
+    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x854d0e).setTitle('🎒 Items versteckt')
+      .addFields(
+        { name: '👤 Spieler', value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true },
+        { name: '📦 Item',    value: `${foundKey} — ${menge}x`, inline: true },
+        { name: '📍 Ort',     value: ort, inline: false }
+      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Versteck-System' })).catch(()=>{});
+  });
+
+  // ── Button: Items aus Versteck holen ────────────────────────────────────
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isButton()) return;
+    if (!interaction.customId.startsWith('versteck_holen:')) return;
+
+    const [, ownerId, versteckId] = interaction.customId.split(':');
+    if (interaction.user.id !== ownerId)
+      return interaction.reply({ content: '❌ Du kannst nur dein **eigenes** Versteck leerholen!', ephemeral: true });
+
+    const vstecke = _loadVerstecke();
+    const v = vstecke[versteckId];
+    if (!v) return interaction.reply({ content: '❌ Dieses Versteck existiert nicht mehr.', ephemeral: true });
+
+    // Item zurück ins Inventar
+    const allInv = _loadAllInvVF();
+    const inv = allInv[ownerId] || {};
+    inv[v.item] = (inv[v.item] || 0) + v.menge;
+    allInv[ownerId] = inv;
+    _saveInvVFAll(allInv);
+
+    // Versteck entfernen
+    delete vstecke[versteckId];
+    _saveVerstecke(vstecke);
+
+    // Embed aktualisieren (Button deaktivieren)
+    const disabledBtn = new ButtonBuilder()
+      .setCustomId('versteck_leer')
+      .setLabel('✅ Versteck geleert')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true);
+    await interaction.update({ components: [new ActionRowBuilder().addComponents(disabledBtn)] }).catch(()=>{});
+
+    await interaction.followUp({ embeds: [new EmbedBuilder()
+      .setColor(0x22c55e)
+      .setTitle('✅ Items aus Versteck geholt')
+      .setDescription(`**${v.item}** (${v.menge}x) wurde wieder in dein Inventar gelegt.\n**Ort war:** ${v.ort}`)
+      .setFooter({ text: 'Paradise City Roleplay • Versteck-System' })
+      .setTimestamp()], ephemeral: true });
+
+    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x22c55e).setTitle('📦 Versteck geleert')
+      .addFields(
+        { name: '👤 Spieler', value: `<@${ownerId}> (${v.username})`, inline: true },
+        { name: '📦 Item',    value: `${v.item} — ${v.menge}x`, inline: true },
+        { name: '📍 Ort',     value: v.ort, inline: false }
+      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Versteck-System' })).catch(()=>{});
+  });
+
+  // ── /fesseln ────────────────────────────────────────────────────────────
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+    if (interaction.commandName !== 'fesseln') return;
+
+    if (interaction.channelId !== VF_CHANNEL)
+      return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${VF_CHANNEL}>.`, ephemeral: true });
+
+    const target = interaction.options.getUser('spieler');
+    if (target.id === interaction.user.id)
+      return interaction.reply({ content: '❌ Du kannst dich nicht selbst fesseln.', ephemeral: true });
+
+    const allInv = _loadAllInvVF();
+    const inv = allInv[interaction.user.id] || {};
+
+    // Kabelbinder suchen (case-insensitive)
+    const kbKey = Object.keys(inv).find(k => k.toLowerCase().includes('kabelbinder'));
+    if (!kbKey || (inv[kbKey] || 0) <= 0) {
+      const list = Object.keys(inv).length
+        ? Object.entries(inv).map(([k,v]) => `• **${k}** — ${v}x`).join('\n')
+        : '_Inventar leer_';
+      return interaction.reply({ embeds: [new EmbedBuilder()
+        .setColor(0xff4400)
+        .setTitle('❌ Kein Kabelbinder')
+        .setDescription(`Du hast keinen **Kabelbinder** im Inventar. Kaufe einen im 🔨〢𝘉𝘢𝘶𝘮𝘢𝘳𝘬𝘵.\n\n**Dein Inventar:**\n${list}`)
+        .setFooter({ text: 'Paradise City Roleplay' })], ephemeral: true });
+    }
+
+    // Kabelbinder abziehen
+    inv[kbKey] -= 1;
+    if (inv[kbKey] <= 0) delete inv[kbKey];
+    allInv[interaction.user.id] = inv;
+    _saveInvVFAll(allInv);
+
+    // Fesselung-ID
+    const fesselId = `${interaction.user.id}_${target.id}_${Date.now()}`;
+
+    // Embed + Button
+    const btn = new ButtonBuilder()
+      .setCustomId(`entfesseln:${interaction.user.id}:${target.id}:${fesselId}`)
+      .setLabel('✂️ Entfesseln')
+      .setStyle(ButtonStyle.Danger);
+    const row = new ActionRowBuilder().addComponents(btn);
+
+    const embed = new EmbedBuilder()
+      .setColor(0x7c3aed)
+      .setTitle('🔗 Spieler gefesselt')
+      .addFields(
+        { name: '🔒 Gefesselt von', value: `<@${interaction.user.id}>`, inline: true },
+        { name: '👤 Gefesselter',   value: `<@${target.id}>`,           inline: true },
+        { name: '🪢 Werkzeug',      value: kbKey,                        inline: false },
+      )
+      .setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })
+      .setTimestamp();
+
+    await interaction.reply({ embeds: [embed], components: [row] });
+    const sentMsg = await interaction.fetchReply();
+
+    // Fesselung speichern
+    const fesselungen = _loadFesselungen();
+    fesselungen[fesselId] = {
+      fesselerId: interaction.user.id,
+      fesselerName: interaction.user.username,
+      targetId: target.id,
+      targetName: target.username,
+      kbKey,
+      messageId: sentMsg.id,
+      channelId: sentMsg.channelId,
+      createdAt: Date.now()
+    };
+    _saveFesselungen(fesselungen);
+
+    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x7c3aed).setTitle('🔗 Spieler gefesselt')
+      .addFields(
+        { name: '🔒 Von',          value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true },
+        { name: '👤 Gefesselter',  value: `<@${target.id}> (${target.username})`,                     inline: true },
+        { name: '🪢 Kabelbinder',  value: kbKey, inline: false }
+      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })).catch(()=>{});
+  });
+
+  // ── Button: Entfesseln ───────────────────────────────────────────────────
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isButton()) return;
+    if (!interaction.customId.startsWith('entfesseln:')) return;
+
+    const parts = interaction.customId.split(':');
+    const fesselerId = parts[1];
+    const targetId   = parts[2];
+    const fesselId   = parts[3];
+
+    if (interaction.user.id !== fesselerId)
+      return interaction.reply({ content: '❌ Nur derjenige der gefesselt hat, kann auch entfesseln!', ephemeral: true });
+
+    const fesselungen = _loadFesselungen();
+    const f = fesselungen[fesselId];
+    if (!f) return interaction.reply({ content: '❌ Diese Fesselung existiert nicht mehr.', ephemeral: true });
+
+    // Kabelbinder zurück ins Inventar des Fesselers
+    const allInv = _loadAllInvVF();
+    const inv = allInv[fesselerId] || {};
+    inv[f.kbKey] = (inv[f.kbKey] || 0) + 1;
+    allInv[fesselerId] = inv;
+    _saveInvVFAll(allInv);
+
+    // Fesselung entfernen
+    delete fesselungen[fesselId];
+    _saveFesselungen(fesselungen);
+
+    // Button deaktivieren
+    const disabledBtn = new ButtonBuilder()
+      .setCustomId('entfesselt_done')
+      .setLabel('✅ Entfesselt')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true);
+    await interaction.update({ components: [new ActionRowBuilder().addComponents(disabledBtn)] }).catch(()=>{});
+
+    await interaction.followUp({ embeds: [new EmbedBuilder()
+      .setColor(0x22c55e)
+      .setTitle('✅ Spieler entfesselt')
+      .setDescription(`<@${targetId}> wurde entfesselt.\n**${f.kbKey}** wurde zurück in dein Inventar gelegt.`)
+      .setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })
+      .setTimestamp()], ephemeral: true });
+
+    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x22c55e).setTitle('✂️ Spieler entfesselt')
+      .addFields(
+        { name: '🔓 Entfesselt von', value: `<@${fesselerId}> (${f.fesselerName})`, inline: true },
+        { name: '👤 Spieler',        value: `<@${targetId}> (${f.targetName})`,      inline: true },
+        { name: '🪢 Kabelbinder zurück', value: f.kbKey, inline: false }
+      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })).catch(()=>{});
+  });
+}
+// ─── END VERSTECKEN / FESSELN SYSTEM ─────────────────────────────────────────
 
 // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
