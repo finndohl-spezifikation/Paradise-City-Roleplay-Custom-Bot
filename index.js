@@ -229,10 +229,10 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         : '_Keine Items_';
       return new EmbedBuilder()
         .setColor(m.color)
-        .setAuthor({ name: 'Paradise City Roleplay  •  ' + m.name })
+        .setAuthor({ name: 'Cryptik Roleplay  •  ' + m.name })
         .setTitle(m.emoji + '  ' + m.name)
         .setDescription('*' + m.desc + '*\n\n' + rows)
-        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  ' + items.length + ' Items  •  Paradise City Roleplay' });
+        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  ' + items.length + ' Items  •  Cryptik Roleplay' });
     }
 
     function buildCartEmbed(shopId, cart, cash) {
@@ -252,7 +252,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
           { name: enough ? '✅  Genug' : cart.length === 0 ? '🛒  Leer' : '❌  Nicht genug',
             value: enough ? 'Du kannst kaufen!' : cart.length === 0 ? 'Fuege Items hinzu' : 'Fehlen: ' + (total-cash).toLocaleString('de-DE') + ' Euro', inline: true }
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Warenkorb' });
+        .setFooter({ text: 'Cryptik Roleplay  •  Warenkorb' });
     }
 
     function buildTeamShopEmbed(items, page) {
@@ -263,11 +263,11 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         ? pageItems.map((it, i) => TICK + String(page*10+i+1).padStart(2,'0') + TICK + '  **' + it.name + '** — 🎁 Kostenlos').join('\n')
         : '_Keine Items_';
       return new EmbedBuilder()
-        .setColor(0xE65100)
-        .setAuthor({ name: 'Paradise City Roleplay  •  Team Shop' })
+        .setColor(0xE8002D)
+        .setAuthor({ name: 'Cryptik Roleplay  •  Team Shop' })
         .setTitle('🎖️  Team Shop')
         .setDescription('*Exklusiv fuer das Team — kostenlos beziehen*\n\n' + rows)
-        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  ' + items.length + ' Items  •  Paradise City Roleplay' });
+        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  ' + items.length + ' Items  •  Cryptik Roleplay' });
     }
 
     function buildShopSession(shopId, items, page, cart, cash) {
@@ -284,10 +284,10 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         : '🛒 Warenkorb leer  •  💵 **Bargeld:** ' + cash.toLocaleString('de-DE') + ' Euro';
       const embed = new EmbedBuilder()
         .setColor(m.color)
-        .setAuthor({ name: 'Paradise City Roleplay  •  ' + m.name })
+        .setAuthor({ name: 'Cryptik Roleplay  •  ' + m.name })
         .setTitle(m.emoji + '  ' + m.name)
         .setDescription('*' + m.desc + '*\n\n' + rows + '\n\n' + cartInfo)
-        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  Paradise City Roleplay' });
+        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  Cryptik Roleplay' });
       const pagePrev = new ButtonBuilder().setCustomId('sp_prev:' + page + ':' + shopId).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(page === 0);
       const pageNext = new ButtonBuilder().setCustomId('sp_next:' + page + ':' + shopId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1);
       const buyBtn   = new ButtonBuilder().setCustomId('sp_buy:' + page + ':' + shopId).setLabel('💰 Kaufen').setStyle(ButtonStyle.Success).setDisabled(!cart.length);
@@ -317,7 +317,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
     const ch = await client.channels.fetch('1490890346668888194').catch(() => null);
     if (!ch) return;
     const embed = new EmbedBuilder()
-      .setColor(0xE65100)
+      .setColor(0xE8002D)
       .setTitle('💵 Lohnliste')
       .setDescription(
         '<@&1490855796932739093>\n**1\'000 $ Stündlich**\nDiese Lohnklasse ist für alle arbeitslosen Spieler/in die keinen Privaten oder Staatlichen Beruf ausüben.\n\n' +
@@ -340,7 +340,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
     const ch = await client.channels.fetch('1490890348254200049').catch(() => null);
     if (!ch) return;
     const embed = new EmbedBuilder()
-      .setColor(0xE65100)
+      .setColor(0xE8002D)
       .setTitle('🏦 Lohnbüro')
       .setDescription('Drücke den Button um deinen stündlichen Lohn abzuholen.\nDu kannst deinen Lohn nur **einmal pro Stunde** abholen und nur wenn du eine gültige Lohnklassen-Rolle hast.');
     const row = new ActionRowBuilder().addComponents(
@@ -360,7 +360,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
     const ch = await client.channels.fetch('1490890349382734044').catch(() => null);
     if (!ch) return;
     const embed = new EmbedBuilder()
-      .setColor(0xE65100)
+      .setColor(0xE8002D)
       .setTitle('🏧 Online Banking')
       .setDescription('Klicke den Button um dein persönliches Online-Banking zu öffnen.\nDort siehst du deinen Bargeld- und Kontostand, die letzten Transaktionen und kannst Geld einzahlen, auszahlen oder überweisen.');
     const row = new ActionRowBuilder().addComponents(
@@ -380,7 +380,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
     const ch = await client.channels.fetch('1492314171373649983').catch(() => null);
     if (!ch) return;
     const embed = new EmbedBuilder()
-      .setColor(0xE65100)
+      .setColor(0xE8002D)
       .setTitle('🧾 Rechnungen')
       .setDescription('Klicke den Button um deine offenen Rechnungen einzusehen.\nDu kannst Rechnungen einzeln oder alle auf einmal bezahlen.');
     const row = new ActionRowBuilder().addComponents(
@@ -438,11 +438,11 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         ? pageItems.map(([n,q],i) => `\`${(page*ITEMS_PER_PAGE+i+1).toString().padStart(2,'0')}\`  **${n}** — ${q}x`).join('\n')
         : '_Keine Items vorhanden_';
       return new EmbedBuilder()
-        .setColor(0xE65100)
+        .setColor(0xE8002D)
         .setTitle(`🎒  Rucksack von ${targetUser.username}`)
         .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
         .setDescription(rows)
-        .setFooter({ text: `Seite ${page+1}/${totalPages}  •  ${items.length} Items gesamt  •  Paradise City Roleplay` });
+        .setFooter({ text: `Seite ${page+1}/${totalPages}  •  ${items.length} Items gesamt  •  Cryptik Roleplay` });
     }
     function buildLagerEmbed(targetUser, page, store) {
       const items = Object.entries(store);
@@ -452,11 +452,11 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         ? pageItems.map(([n,q],i) => `\`${(page*ITEMS_PER_PAGE+i+1).toString().padStart(2,'0')}\`  **${n}** — ${q}x`).join('\n')
         : '_Lager ist leer_';
       return new EmbedBuilder()
-        .setColor(0x5865F2)
+        .setColor(0xE8002D)
         .setTitle(`🏪  Lager von ${targetUser.username}`)
         .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
         .setDescription(rows)
-        .setFooter({ text: `Seite ${page+1}/${totalPages}  •  ${items.length} Items gesamt  •  Paradise City Roleplay` });
+        .setFooter({ text: `Seite ${page+1}/${totalPages}  •  ${items.length} Items gesamt  •  Cryptik Roleplay` });
     }
     function invPageButtons(page, totalPages, targetId, type) {
       const row = new ActionRowBuilder().addComponents(
@@ -496,7 +496,7 @@ function buildAktivitaetEmbed(data) {
     .setTitle('— AKTIVITÄTSCHECK —')
     .setDescription(
       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-      'Bist du derzeit auf **Paradise City Roleplay** aktiv?\n' +
+      'Bist du derzeit auf **Cryptik Roleplay** aktiv?\n' +
       'Bestätige deine Aktivität mit einem ✅ unter dieser Nachricht!\n' +
       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
     )
@@ -512,7 +512,7 @@ function buildAktivitaetEmbed(data) {
         inline: false,
       },
     )
-    .setFooter({ text: 'Paradise City Roleplay  •  Aktivitätscheck  •  Reagiere mit ✅' })
+    .setFooter({ text: 'Cryptik Roleplay  •  Aktivitätscheck  •  Reagiere mit ✅' })
     .setTimestamp(data.createdAt ? new Date(data.createdAt) : new Date());
 }
 
@@ -546,7 +546,7 @@ function buildGiveawayEmbed(preis, endetAt, teilnehmer) {
       { name: '\u23F3  ENDET',       value: '<t:' + endetTs + ':R> \u2022 <t:' + endetTs + ':f>', inline: false },
       { name: '\uD83C\uDF9F\uFE0F  TEILNEHMER', value: '**' + teilnehmer + '** Personen nehmen teil', inline: false },
     )
-    .setFooter({ text: 'Paradise City Roleplay  \u2022  Giveaway  \u2022  Reagiere mit \uD83C\uDF89' })
+    .setFooter({ text: 'Cryptik Roleplay  \u2022  Giveaway  \u2022  Reagiere mit \uD83C\uDF89' })
     .setTimestamp();
 }
 const activeGiveaways = new Map();
@@ -582,7 +582,7 @@ const CH = {
   LINK_CHANNEL: '1490882578276810924',
 };
 
-const DARK_ORANGE = 0xE65100;
+const DARK_ORANGE = 0xE8002D;
 
 // Entfernt custom Discord Emojis (<:name:id> und <a:name:id>) aus Text für Anzeige
 function stripCustomEmoji(text) {
@@ -772,9 +772,9 @@ async function buildInviteCache(guild) {
 
       const embed = new EmbedBuilder()
         .setColor(DARK_ORANGE)
-        .setTitle('🏙️  Fraktionsübersicht — Paradise City Roleplay')
+        .setTitle('🏙️  Fraktionsübersicht — Cryptik Roleplay')
         .setDescription(
-          `> Alle registrierten Fraktionen auf **Paradise City Roleplay**\n` +
+          `> Alle registrierten Fraktionen auf **Cryptik Roleplay**\n` +
           `> ─────────────────────────────────────\n` +
           `> 📂 Gesamt: **${names.length}**  ·  🟢 Legal: **${legal.length}**  ·  🔴 Illegal: **${illegal.length}**\n` +
           `> ⚠️ Offene Warns: **${totalWarns}**  ·  🔒 Gesperrt: **${totalSperrt}**`
@@ -783,7 +783,7 @@ async function buildInviteCache(guild) {
           { name: '🟢  Legale Fraktionen', value: legalBlock, inline: false },
           { name: '🔴  Illegale Fraktionen', value: illegalBlock, inline: false }
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Fraktionsverwaltung  |  Zuletzt aktualisiert' })
+        .setFooter({ text: 'Cryptik Roleplay  •  Fraktionsverwaltung  |  Zuletzt aktualisiert' })
         .setTimestamp();
 
       const setup = loadSetup();
@@ -827,14 +827,14 @@ async function buildInviteCache(guild) {
       )].length;
       const embed = new EmbedBuilder()
         .setColor(DARK_ORANGE)
-        .setTitle('👥  Team Übersicht — Paradise City Roleplay')
+        .setTitle('👥  Team Übersicht — Cryptik Roleplay')
         .setDescription(
-          `Hier siehst du alle aktuellen **Teammitglieder** von Paradise City Roleplay.\n` +
+          `Hier siehst du alle aktuellen **Teammitglieder** von Cryptik Roleplay.\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `👤 **Gesamte Teammitglieder:** ${totalTeam}`
         )
         .addFields(fields.length ? fields : [{ name: 'Keine Einträge', value: 'Noch keine Teammitglieder.' }])
-        .setFooter({ text: 'Paradise City Roleplay  •  Team' })
+        .setFooter({ text: 'Cryptik Roleplay  •  Team' })
         .setTimestamp();
       const setup = loadSetup();
       const ch = await client.channels.fetch(TEAM_OVERVIEW_CH).catch(() => null);
@@ -876,7 +876,7 @@ async function updateLapdTeamOverview() {
     }
     const total = [...new Set(LAPD_ROLE_IDS.flatMap(id => (guild.roles.cache.get(id)?.members.filter(m=>!m.user.bot).map(m=>m.id) ?? [])))].length;
     const embed = new EmbedBuilder()
-      .setColor(0x1F51FF)
+      .setColor(0xE8002D)
       .setTitle('👮 LAPD Team — Übersicht')
       .setDescription(
         'Alle aktuellen Mitglieder des **Los Angeles Police Department**\n'
@@ -884,7 +884,7 @@ async function updateLapdTeamOverview() {
         + `👤 **Mitglieder gesamt:** ${total}`
       )
       .addFields(fields.length ? fields : [{ name: 'Keine Einträge', value: 'Noch keine LAPD-Mitglieder mit Rolle.' }])
-      .setFooter({ text: 'LAPD System  •  Paradise City Roleplay  •  Echtzeit-Aktualisierung' })
+      .setFooter({ text: 'LAPD System  •  Cryptik Roleplay  •  Echtzeit-Aktualisierung' })
       .setTimestamp();
     const setup = loadSetup();
     const ch = await client.channels.fetch(LAPD_TEAM_CH).catch(() => null);
@@ -901,7 +901,7 @@ async function updateLapdTeamOverview() {
 
 client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
-  client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
+  client.user.setPresence({ activities: [{ name: 'Cryptik Roleplay PS5', type: ActivityType.Playing }], status: 'online' });
 
   for (const guild of client.guilds.cache.values()) {
     await buildInviteCache(guild);
@@ -1265,7 +1265,7 @@ client.once('ready', async () => {
   }
 
   await sendLog(CH.RESTART_LOG, new EmbedBuilder()
-    .setColor(Colors.Green)
+    .setColor(0xE8002D)
     .setTitle('🔄 Bot neugestartet')
     .setDescription(`**${client.user.tag}** ist wieder online.`)
     .addFields({ name: '🕐 Zeitpunkt', value: `<t:${ts()}:F>` })
@@ -1288,9 +1288,9 @@ client.once('ready', async () => {
     const LINE2 = '─────────────────────────────────────────';
     const einreiseEmbed = new EmbedBuilder()
       .setColor(DARK_ORANGE)
-      .setTitle('🛂  Einreise — Paradise City Roleplay')
+      .setTitle('🛂  Einreise — Cryptik Roleplay')
       .setDescription(
-        `Willkommen! Wähle deinen **Einreiseweg** und starte dein Leben in Paradise City.\n` +
+        `Willkommen! Wähle deinen **Einreiseweg** und starte dein Leben in Cryptik Roleplay.\n` +
         `Jeder Weg bringt andere Möglichkeiten und Einschränkungen.\n\n` +
         LINE
       )
@@ -1332,7 +1332,7 @@ client.once('ready', async () => {
           inline: false,
         },
       )
-      .setFooter({ text: 'Paradise City Roleplay  •  Einreisebehörde' })
+      .setFooter({ text: 'Cryptik Roleplay  •  Einreisebehörde' })
       .setTimestamp();
 
     const einreiseButton = new ButtonBuilder()
@@ -1362,9 +1362,9 @@ client.once('ready', async () => {
       const LINE2 = '─────────────────────────────────────────';
       const startEmbed = new EmbedBuilder()
         .setColor(DARK_ORANGE)
-        .setTitle('🗺️  Wo starte ich? — Paradise City Roleplay')
+        .setTitle('🗺️  Wo starte ich? — Cryptik Roleplay')
         .setDescription(
-          `Willkommen in **Paradise City**! Wähle deinen Startpunkt je nach Einreiseart.\n` +
+          `Willkommen in **Cryptik Roleplay**! Wähle deinen Startpunkt je nach Einreiseart.\n` +
           `Dein Startfahrzeug findest du in <#1490878162009939998> 🧳\n\n` +
           LINE
         )
@@ -1393,7 +1393,7 @@ client.once('ready', async () => {
             inline: false,
           },
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Einreisebehörde' })
+        .setFooter({ text: 'Cryptik Roleplay  •  Einreisebehörde' })
         .setTimestamp();
 
       try {
@@ -1413,9 +1413,9 @@ client.once('ready', async () => {
       const LINE2 = '─────────────────────────────────────────';
       const starterEmbed = new EmbedBuilder()
         .setColor(DARK_ORANGE)
-        .setTitle('🧳  Starterpaket — Paradise City Roleplay')
+        .setTitle('🧳  Starterpaket — Cryptik Roleplay')
         .setDescription(
-          `Willkommen auf **Paradise City Roleplay**!\n` +
+          `Willkommen auf **Cryptik Roleplay**!\n` +
           `Je nach Einreiseart erhältst du beim Start folgendes Paket.\n` +
           `Das Fahrzeug steht bereits am Startpunkt bereit.\n\n` +
           LINE
@@ -1454,7 +1454,7 @@ client.once('ready', async () => {
             inline: false,
           },
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Einreisebehörde' })
+        .setFooter({ text: 'Cryptik Roleplay  •  Einreisebehörde' })
         .setTimestamp();
 
       try {
@@ -1474,7 +1474,7 @@ client.once('ready', async () => {
       const DIV   = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
       const regelEmbed1 = new EmbedBuilder()
         .setColor(DARK_ORANGE)
-        .setTitle('📕  Paradise City Roleplay — Serverregelwerk (1/2)')
+        .setTitle('📕  Cryptik Roleplay — Serverregelwerk (1/2)')
         .addFields(
           {
             name: '🎮  Roleplay-Grundlagen & Begriffe',
@@ -1555,7 +1555,7 @@ client.once('ready', async () => {
             inline: false,
           },
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung' })
+        .setFooter({ text: 'Cryptik Roleplay  •  Serverleitung' })
         .setTimestamp();
 
       try {
@@ -1575,7 +1575,7 @@ client.once('ready', async () => {
       const DIV   = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
       const regelEmbed2 = new EmbedBuilder()
         .setColor(DARK_ORANGE)
-        .setTitle('📕  Paradise City Roleplay — Serverregelwerk (2/2)')
+        .setTitle('📕  Cryptik Roleplay — Serverregelwerk (2/2)')
         .addFields(
           {
             name: '🎒  Inventar & Besitzsystem',
@@ -1638,7 +1638,7 @@ client.once('ready', async () => {
             inline: false,
           },
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung' })
+        .setFooter({ text: 'Cryptik Roleplay  •  Serverleitung' })
         .setTimestamp();
 
       try {
@@ -1659,7 +1659,7 @@ client.once('ready', async () => {
         if (fraktCh) {
           const fraktEmbed1 = new EmbedBuilder()
             .setColor(DARK_ORANGE)
-            .setTitle('Fraktionsregelwerk — Paradise City Roleplay')
+            .setTitle('Fraktionsregelwerk — Cryptik Roleplay')
             .setDescription(
               'Dieses Regelwerk gilt für **alle Fraktionen** auf dem Server. ' +
               'Jedes Fraktionsmitglied ist verpflichtet, sich an die folgenden Bestimmungen zu halten.'
@@ -1693,7 +1693,7 @@ client.once('ready', async () => {
                 inline: false,
               },
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Seite 1 / 3' });
+            .setFooter({ text: 'Cryptik Roleplay  •  Seite 1 / 3' });
 
           const fraktEmbed2 = new EmbedBuilder()
             .setColor(DARK_ORANGE)
@@ -1732,7 +1732,7 @@ client.once('ready', async () => {
                 inline: false,
               },
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Seite 2 / 3' });
+            .setFooter({ text: 'Cryptik Roleplay  •  Seite 2 / 3' });
 
           const fraktEmbed3 = new EmbedBuilder()
             .setColor(DARK_ORANGE)
@@ -1773,7 +1773,7 @@ client.once('ready', async () => {
                 inline: false,
               },
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung  •  Seite 3 / 3' })
+            .setFooter({ text: 'Cryptik Roleplay  •  Serverleitung  •  Seite 3 / 3' })
             .setTimestamp();
 
           await fraktCh.send({ embeds: [fraktEmbed1] });
@@ -1789,7 +1789,7 @@ client.once('ready', async () => {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const safeEmbed = new EmbedBuilder()
         .setColor(DARK_ORANGE)
-        .setTitle('🛡️  Safe Zones — Paradise City Roleplay')
+        .setTitle('🛡️  Safe Zones — Cryptik Roleplay')
         .setDescription(
           `Regierungsgebäude, alle Flächen und Objekte staatlicher Unternehmen sowie die Spieler, die sich dort befinden, dürfen **weder angegriffen noch entführt** werden.\n\n` +
           LINE
@@ -1807,7 +1807,7 @@ client.once('ready', async () => {
             inline: false,
           },
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung' })
+        .setFooter({ text: 'Cryptik Roleplay  •  Serverleitung' })
         .setTimestamp();
 
       try {
@@ -1827,9 +1827,9 @@ client.once('ready', async () => {
     if (!setupT.ticketPanelSent) {
       const panelEmbed = new EmbedBuilder()
         .setColor(DARK_ORANGE)
-        .setTitle('🎫  Support — Paradise City Roleplay')
+        .setTitle('🎫  Support — Cryptik Roleplay')
         .setDescription(
-          `Willkommen beim **Support-System** von Paradise City Roleplay.\n` +
+          `Willkommen beim **Support-System** von Cryptik Roleplay.\n` +
           `Wähle eine Kategorie aus dem Dropdown-Menü um ein Ticket zu öffnen.\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `🎫 **Support / Anliegen** — Allgemeine Unterstützung\n` +
@@ -1840,7 +1840,7 @@ client.once('ready', async () => {
           `📝 **Team Bewerbung** — Bewerbung als Teammitglied\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Support' })
+        .setFooter({ text: 'Cryptik Roleplay  •  Support' })
         .setTimestamp();
 
       const selectMenu = new StringSelectMenuBuilder()
@@ -1883,7 +1883,7 @@ client.once('ready', async () => {
         ];
         const pingEmbed = new EmbedBuilder()
           .setColor(DARK_ORANGE)
-          .setTitle('🔔  Ping-Rollen — Paradise City Roleplay')
+          .setTitle('🔔  Ping-Rollen — Cryptik Roleplay')
           .setDescription(
             'Wähle deine **Ping-Rollen** über das Auswahlmenü aus.\n' +
             'Du kannst mehrere Rollen gleichzeitig auswählen.\n' +
@@ -1896,7 +1896,7 @@ client.once('ready', async () => {
             '📌 **Info Ping** — Werde bei Infos gepingt\n' +
             '📌 **Update Ping** — Werde bei Updates gepingt'
           )
-          .setFooter({ text: 'Paradise City Roleplay  •  Ping-Rollen verwalten' });
+          .setFooter({ text: 'Cryptik Roleplay  •  Ping-Rollen verwalten' });
         const pingSelect = new StringSelectMenuBuilder()
           .setCustomId('ping_rollen_select')
           .setPlaceholder('Ping-Rolle hinzufügen / entfernen …')
@@ -1922,7 +1922,7 @@ client.once('ready', async () => {
         const setupR = loadSetup();
         if (!setupR.rubbellosEmbedSent2) {
           const rubbelEmbed = new EmbedBuilder()
-            .setColor(0xE65100)
+            .setColor(0xE8002D)
             .setTitle('🎟️  Rubbellos')
             .setDescription(
               `**Mögliche Gewinne:**
@@ -1943,7 +1943,7 @@ client.once('ready', async () => {
 
 🎯 Rubbele alle 9 Felder frei — **3× dasselbe Symbol = Gewinn!**`
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' });
+            .setFooter({ text: 'Cryptik Roleplay  •  Rubbellos' });
           const rubbBtn = new ButtonBuilder()
             .setCustomId('rubbellos_use')
             .setLabel('🎟️ Rubbellos einlösen')
@@ -1966,10 +1966,10 @@ client.once('ready', async () => {
         const setupLapdT = loadSetup();
         if (!setupLapdT.lapdTicketPanelSent) {
           const lapdPanelEmbed = new EmbedBuilder()
-            .setColor(0x1F51FF)
+            .setColor(0xE8002D)
             .setTitle('🏛️ LAPD — Kontakt')
             .setDescription(
-              'Willkommen beim **LAPD Kontaktsystem** von Paradise City Roleplay.\n'
+              'Willkommen beim **LAPD Kontaktsystem** von Cryptik Roleplay.\n'
               + 'Wähle eine Kategorie um fortzufahren.\n\n'
               + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
               + '✉️ **E-Mail Schreiben** — Offizielle Anfrage an das LAPD\n'
@@ -1978,7 +1978,7 @@ client.once('ready', async () => {
               + '📝 **Bewerbung** — Bewerbung beim LAPD einreichen\n'
               + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
             )
-            .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' })
+            .setFooter({ text: 'LAPD System  •  Cryptik Roleplay' })
             .setTimestamp();
           const lapdSelect = new StringSelectMenuBuilder()
             .setCustomId('lapd_ticket_select')
@@ -2045,7 +2045,7 @@ client.once('ready', async () => {
         allTickets[ticketCh.id] = { id: ticketId, channelId: ticketCh.id, openerId: member.id, openerTag: member.user.tag, type: 'lapd_'+type, label: cfg.label, createdAt: new Date().toISOString(), closed: false };
         saveTickets(allTickets);
         const welcomeEmbed2 = new EmbedBuilder()
-          .setColor(0x1F51FF)
+          .setColor(0xE8002D)
           .setTitle(cfg.label)
           .setDescription(`Hallo <@${member.id}>!\n\nBitte schildere dein Anliegen so detailliert wie möglich.\nEin Mitarbeiter wird sich in Kürze bei dir melden.`)
           .addFields(
@@ -2053,7 +2053,7 @@ client.once('ready', async () => {
             { name: '🕐 Erstellt am',  value: `<t:${ts()}:F>`,  inline: true },
             { name: '🔖 Ticket-ID',    value: `\`${ticketId}\``, inline: true },
           )
-          .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' }).setTimestamp();
+          .setFooter({ text: 'LAPD System  •  Cryptik Roleplay' }).setTimestamp();
         const closeBtnL  = new ButtonBuilder().setCustomId('lapd_ticket_close').setLabel('Ticket schließen').setEmoji('🔒').setStyle(ButtonStyle.Danger);
         const rowL = new ActionRowBuilder().addComponents(closeBtnL);
         const pings = cfg.roles.map(r => `<@&${r}>`).join(' ');
@@ -2124,7 +2124,7 @@ client.once('ready', async () => {
             { name: '🔖 Ticket-ID',    value: `\`${ticketId}\``,       inline: true },
             { name: '🛠️ Bearbeiter', value: 'Noch kein Bearbeiter', inline: true },
           )
-          .setFooter({ text: 'Paradise City Roleplay  •  Support' }).setTimestamp();
+          .setFooter({ text: 'Cryptik Roleplay  •  Support' }).setTimestamp();
         const closeBtn  = new ButtonBuilder().setCustomId('ticket_close').setLabel('Ticket schließen').setEmoji('🔒').setStyle(ButtonStyle.Danger);
         const assignBtn = new ButtonBuilder().setCustomId('ticket_assign').setLabel('Nutzer zuweisen').setEmoji('👤').setStyle(ButtonStyle.Secondary);
         const row = new ActionRowBuilder().addComponents(closeBtn, assignBtn);
@@ -2193,7 +2193,7 @@ client.once('ready', async () => {
               { name: '🔒 Geschlossen von', value: `<@${interaction.user.id}>`,                        inline: true },
               { name: '🕐 Geschlossen am',  value: `<t:${ts()}:F>`,                                   inline: true },
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Ticket System' }).setTimestamp();
+            .setFooter({ text: 'Cryptik Roleplay  •  Ticket System' }).setTimestamp();
           await transcriptCh.send({ embeds: [tEmbed], files: [attachment] });
         } catch (e) { console.error('Transkript Fehler:', e.message); }
 
@@ -2202,7 +2202,7 @@ client.once('ready', async () => {
           const opener = await client.users.fetch(ticket.openerId);
           const bearbeiterName = ticket.bearbeiterTag || 'Kein Bearbeiter';
           const rEmbed = new EmbedBuilder()
-            .setColor(DARK_ORANGE).setTitle('⭐ Ticket Bewertung — Paradise City Roleplay')
+            .setColor(DARK_ORANGE).setTitle('⭐ Ticket Bewertung — Cryptik Roleplay')
             .setDescription(`Dein Ticket **${ticket.label}** wurde geschlossen.\nBitte bewerte den Support!`)
             .addFields(
               { name: '📂 Ticket-Typ',       value: ticket.label,     inline: true },
@@ -2223,7 +2223,7 @@ client.once('ready', async () => {
           await opener.send({ embeds: [rEmbed], components: [rRow] });
         } catch (e) { console.error('Rating DM Fehler:', e.message); }
 
-        await interaction.channel.send({ embeds: [new EmbedBuilder().setColor(Colors.Red).setDescription('🔒 Ticket wird in 5 Sekunden gelöscht...')] });
+        await interaction.channel.send({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('🔒 Ticket wird in 5 Sekunden gelöscht...')] });
         setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
       }
 
@@ -2313,10 +2313,10 @@ client.once('ready', async () => {
           }
         } catch(e) { console.error('Notruf addNotruf:', e.message); }
         return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
-          .setColor(0xef4444).setTitle('\u{1F6A8} Notruf abgesendet — LAPD')
+          .setColor(0xE8002D).setTitle('\u{1F6A8} Notruf abgesendet — LAPD')
           .setDescription('Dein Notruf wurde weitergeleitet.\n\n\u{1F4CD} **Standort:** ' + location
             + (description ? '\n\u{1F4DD} **Beschreibung:** ' + description : ''))
-          .setFooter({text:'LAPD wird benachrichtigt  •  Paradise City Roleplay'})
+          .setFooter({text:'LAPD wird benachrichtigt  •  Cryptik Roleplay'})
         ]});
       }
 
@@ -2380,7 +2380,7 @@ client.on('guildMemberAdd', async (member) => {
     try {
       const ch = await client.channels.fetch(LAPD_JOIN_CH);
       if (ch) await ch.send({ embeds: [new EmbedBuilder()
-        .setColor(0x1F51FF)
+        .setColor(0xE8002D)
         .setTitle('👮 Neues Mitglied — LAPD')
         .setDescription(`<@${member.id}> hat den LAPD-Server betreten.`)
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
@@ -2389,7 +2389,7 @@ client.on('guildMemberAdd', async (member) => {
           { name: '📅 Beigetreten', value: `<t:${ts()}:F>`, inline: true },
           { name: '🏠 Mitglieder gesamt', value: `${member.guild.memberCount}`, inline: true },
         )
-        .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' })
+        .setFooter({ text: 'LAPD System  •  Cryptik Roleplay' })
         .setTimestamp()
       ]});
     } catch (e) { console.error('LAPD Join Fehler:', e.message); }
@@ -2441,7 +2441,7 @@ client.on('guildMemberAdd', async (member) => {
       .setColor(DARK_ORANGE)
       .setTitle(`🎉  Willkommen, ${member.user.username}!`)
       .setDescription(
-        `Hey <@${member.id}>, willkommen auf **Paradise City Roleplay**!\n` +
+        `Hey <@${member.id}>, willkommen auf **Cryptik Roleplay**!\n` +
         `Du bist unser **${memberCount}. Mitglied**. Schau dir die Regeln an und viel Spaß! 🚗`
       )
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
@@ -2460,9 +2460,9 @@ client.on('guildMemberAdd', async (member) => {
       try {
         await member.send({ embeds: [new EmbedBuilder()
           .setColor(DARK_ORANGE)
-          .setTitle('👋  Willkommen bei Paradise City Roleplay!')
+          .setTitle('👋  Willkommen bei Cryptik Roleplay!')
           .setDescription(
-            `Hey **${member.user.username}**, willkommen auf **Paradise City Roleplay**! 🚗\n\n` +
+            `Hey **${member.user.username}**, willkommen auf **Cryptik Roleplay**! 🚗\n\n` +
             `Um deinen Charakter zu erstellen, geh auf die Einreise-Seite:\n` +
             `https://${(process.env.REPLIT_DOMAINS||process.env.RAILWAY_PUBLIC_DOMAIN||'localhost:8080').split(',')[0]}/einreise\n\n` +
             `Gib dort deine Discord ID ein — sie steht direkt hier unten. 👇`
@@ -2479,7 +2479,7 @@ client.on('guildMemberAdd', async (member) => {
     try {
       const ch = await client.channels.fetch(CH.INVITE_LOG);
       if (ch) await ch.send({ embeds: [new EmbedBuilder()
-        .setColor(0x43A047)
+        .setColor(0xE8002D)
         .setAuthor({ name: '➕  Mitglied beigetreten' })
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .addFields(
@@ -2490,13 +2490,13 @@ client.on('guildMemberAdd', async (member) => {
           { name: '🏆  Einladungen gesamt',   value: inviterId ? `**${totalInvites}**` : '—', inline: true },
         )
         .setTimestamp()
-        .setFooter({ text: 'Paradise City Roleplay  •  Invite Tracker' })
+        .setFooter({ text: 'Cryptik Roleplay  •  Invite Tracker' })
       ]});
     } catch (e) { console.error('Invite-Log Fehler:', e.message); }
 
     // Member-Log
     await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
-      .setColor(Colors.Green).setTitle('✅ Mitglied beigetreten')
+      .setColor(0xE8002D).setTitle('✅ Mitglied beigetreten')
       .setDescription(`<@${member.id}> (${member.user.tag}) hat den Server betreten.`)
       .addFields(
         { name: 'Mitglied',         value: `<@${member.id}>`, inline: true },
@@ -2514,16 +2514,16 @@ client.on('guildMemberAdd', async (member) => {
     if (inviter) {
       try {
         await inviter.send({ embeds: [new EmbedBuilder()
-          .setColor(Colors.Red).setTitle('⛔ Aktion nicht erlaubt')
+          .setColor(0xE8002D).setTitle('⛔ Aktion nicht erlaubt')
           .setDescription(
-            'Du hast versucht einen fremden Bot auf **Paradise City Roleplay** hinzuzufügen.\n' +
+            'Du hast versucht einen fremden Bot auf **Cryptik Roleplay** hinzuzufügen.\n' +
             'Dies ist **nicht gestattet**. Der Bot wurde automatisch gebannt.'
           ).setTimestamp()
         ]});
       } catch {}
     }
     await sendLog(CH.ACTIVITY, new EmbedBuilder()
-      .setColor(Colors.Red).setTitle('🚨 Aktivitätswarnung — Fremder Bot')
+      .setColor(0xE8002D).setTitle('🚨 Aktivitätswarnung — Fremder Bot')
       .addFields(
         { name: 'Bot',             value: `<@${member.id}> (${member.user.tag})`, inline: true },
         { name: 'Hinzugefügt von', value: inviter ? `<@${inviter.id}> (${inviter.tag})` : 'Unbekannt', inline: true },
@@ -2532,7 +2532,7 @@ client.on('guildMemberAdd', async (member) => {
       ).setTimestamp()
     );
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
-      .setColor(Colors.Red).setTitle('🔨 Automatischer Bann — Bot')
+      .setColor(0xE8002D).setTitle('🔨 Automatischer Bann — Bot')
       .addFields(
         { name: 'Bot',            value: `<@${member.id}> (${member.user.tag})` },
         { name: 'Eingeladen von', value: inviter ? `<@${inviter.id}>` : 'Unbekannt' },
@@ -2550,7 +2550,7 @@ client.on('guildMemberRemove', async (member) => {
     try {
       const ch = await client.channels.fetch(LAPD_LEAVE_CH);
       if (ch) await ch.send({ embeds: [new EmbedBuilder()
-        .setColor(0xef4444)
+        .setColor(0xE8002D)
         .setTitle('👋 Mitglied verlassen — LAPD')
         .setDescription(`**${member.user.tag}** hat den LAPD-Server verlassen.`)
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
@@ -2558,7 +2558,7 @@ client.on('guildMemberRemove', async (member) => {
           { name: '👤 Nutzer', value: member.user.tag, inline: true },
           { name: '📅 Verlassen am', value: `<t:${ts()}:F>`, inline: true },
         )
-        .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' })
+        .setFooter({ text: 'LAPD System  •  Cryptik Roleplay' })
         .setTimestamp()
       ]});
     } catch (e) { console.error('LAPD Leave Fehler:', e.message); }
@@ -2613,7 +2613,7 @@ client.on('guildMemberRemove', async (member) => {
   try {
     const ch = await client.channels.fetch(CH.INVITE_LOG);
     if (ch) await ch.send({ embeds: [new EmbedBuilder()
-      .setColor(0xE53935)
+      .setColor(0xE8002D)
       .setAuthor({ name: '➖  Mitglied verlassen' })
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
       .addFields(
@@ -2624,13 +2624,13 @@ client.on('guildMemberRemove', async (member) => {
         { name: '📉  Einladungen verbleibend', value: inviterId ? `**${remainingCount}**` : '—',          inline: true },
       )
       .setTimestamp()
-      .setFooter({ text: 'Paradise City Roleplay  •  Invite Tracker' })
+      .setFooter({ text: 'Cryptik Roleplay  •  Invite Tracker' })
     ]});
   } catch (e) { console.error('Invite-Log (Leave) Fehler:', e.message); }
 
   // Member-Log
   await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
-    .setColor(Colors.Orange).setTitle('👋 Mitglied verlassen')
+    .setColor(0xE8002D).setTitle('👋 Mitglied verlassen')
     .setDescription(`<@${member.id}> (${member.user.tag}) hat den Server verlassen.`)
     .addFields({ name: 'Mitglied', value: `<@${member.id}>` })
     .setThumbnail(member.user.displayAvatarURL()).setTimestamp()
@@ -2650,7 +2650,7 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
 
   if (oldMember.nickname !== newMember.nickname) {
     await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
-      .setColor(Colors.Blue).setTitle('✏️ Nickname geändert')
+      .setColor(0xE8002D).setTitle('✏️ Nickname geändert')
       .addFields(
         { name: 'Mitglied',       value: `<@${newMember.id}> (${newMember.user.tag})` },
         { name: 'Alter Nickname', value: oldMember.nickname || '_keiner_', inline: true },
@@ -2662,7 +2662,7 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
   const removedRoles = oldMember.roles.cache.filter(r => !newMember.roles.cache.has(r.id));
   if (addedRoles.size > 0) {
     await sendLog(CH.ROLE_LOG, new EmbedBuilder()
-      .setColor(Colors.Green).setTitle('🟢 Rolle(n) vergeben')
+      .setColor(0xE8002D).setTitle('🟢 Rolle(n) vergeben')
       .addFields(
         { name: 'Mitglied', value: `<@${newMember.id}> (${newMember.user.tag})` },
         { name: 'Rollen',   value: addedRoles.map(r => r.name).join(', ') }
@@ -2671,7 +2671,7 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
   }
   if (removedRoles.size > 0) {
     await sendLog(CH.ROLE_LOG, new EmbedBuilder()
-      .setColor(Colors.Red).setTitle('🔴 Rolle(n) entfernt')
+      .setColor(0xE8002D).setTitle('🔴 Rolle(n) entfernt')
       .addFields(
         { name: 'Mitglied', value: `<@${newMember.id}> (${newMember.user.tag})` },
         { name: 'Rollen',   value: removedRoles.map(r => r.name).join(', ') }
@@ -2877,7 +2877,7 @@ client.on('messageCreate', async (message) => {
 
   // !hallo
   if (message.content.toLowerCase() === '!hallo') {
-    await message.reply(`👋 Hallo ${message.author.username}! Willkommen bei **Paradise City Roleplay**!`);
+    await message.reply(`👋 Hallo ${message.author.username}! Willkommen bei **Cryptik Roleplay**!`);
     return;
   }
 
@@ -2887,15 +2887,15 @@ client.on('messageCreate', async (message) => {
     await message.delete().catch(() => {});
     try {
       await message.author.send({ embeds: [new EmbedBuilder()
-        .setColor(Colors.Red).setTitle('⛔ Regelverstoß — Discord-Einladung')
+        .setColor(0xE8002D).setTitle('⛔ Regelverstoß — Discord-Einladung')
         .setDescription(
-          'Das Senden von Discord-Server-Einladungen ist auf **Paradise City Roleplay** nicht erlaubt.\n\n' +
+          'Das Senden von Discord-Server-Einladungen ist auf **Cryptik Roleplay** nicht erlaubt.\n\n' +
           '⚠️ **Dein Verstoß wurde an das Serverteam weitergeleitet und wird sanktioniert.**'
         ).setTimestamp()
       ]});
     } catch {}
     await sendLog(CH.ACTIVITY, new EmbedBuilder()
-      .setColor(Colors.Red).setTitle('🚨 Aktivitätswarnung — Discord-Link')
+      .setColor(0xE8002D).setTitle('🚨 Aktivitätswarnung — Discord-Link')
       .addFields(
         { name: 'Nutzer', value: `<@${message.author.id}> (${message.author.tag})` },
         { name: 'Kanal',  value: `<#${message.channel.id}>` },
@@ -2904,7 +2904,7 @@ client.on('messageCreate', async (message) => {
       ).setTimestamp()
     );
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
-      .setColor(Colors.Orange).setTitle('⚠️ Regelverstoß — Discord-Link')
+      .setColor(0xE8002D).setTitle('⚠️ Regelverstoß — Discord-Link')
       .addFields(
         { name: 'Nutzer', value: `<@${message.author.id}> (${message.author.tag})` },
         { name: 'Kanal',  value: `<#${message.channel.id}>` }
@@ -2961,7 +2961,7 @@ client.on('messageCreate', async (message) => {
         try {
           await member.timeout(SPAM_TIMEOUT_DURATION, 'Spam (3 Wiederholungen)');
           await sendLog(CH.MOD_LOG, new EmbedBuilder()
-            .setColor(Colors.Red).setTitle('⏱️ Timeout — Spam')
+            .setColor(0xE8002D).setTitle('⏱️ Timeout — Spam')
             .addFields(
               { name: 'Nutzer', value: `<@${message.author.id}> (${message.author.tag})` },
               { name: 'Dauer',  value: '10 Minuten' },
@@ -2980,7 +2980,7 @@ client.on('messageDelete', async (message) => {
   const entry   = await getAuditEntry(message.guild, AuditLogEvent.MessageDelete);
   const deleter = entry?.executor;
   await sendLog(CH.MSG_LOG, new EmbedBuilder()
-    .setColor(Colors.Red).setTitle('🗑️ Nachricht gelöscht')
+    .setColor(0xE8002D).setTitle('🗑️ Nachricht gelöscht')
     .addFields(
       { name: 'Autor',        value: message.author ? `<@${message.author.id}> (${message.author.tag})` : 'Unbekannt' },
       { name: 'Kanal',        value: `<#${message.channel.id}>` },
@@ -2994,7 +2994,7 @@ client.on('messageDelete', async (message) => {
 client.on('messageUpdate', async (oldMsg, newMsg) => {
   if (newMsg.author?.bot || oldMsg.content === newMsg.content) return;
   await sendLog(CH.MSG_LOG, new EmbedBuilder()
-    .setColor(Colors.Yellow).setTitle('✏️ Nachricht bearbeitet')
+    .setColor(0xE8002D).setTitle('✏️ Nachricht bearbeitet')
     .addFields(
       { name: 'Nutzer',  value: `<@${newMsg.author.id}> (${newMsg.author.tag})` },
       { name: 'Kanal',   value: `<#${newMsg.channel.id}>` },
@@ -3009,7 +3009,7 @@ client.on('channelDelete', async (channel) => {
   const entry    = await getAuditEntry(channel.guild, AuditLogEvent.ChannelDelete);
   const executor = entry?.executor;
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
-    .setColor(Colors.Red).setTitle('🗑️ Kanal gelöscht')
+    .setColor(0xE8002D).setTitle('🗑️ Kanal gelöscht')
     .addFields(
       { name: 'Kanal',        value: channel.name },
       { name: 'Gelöscht von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' }
@@ -3021,7 +3021,7 @@ client.on('channelDelete', async (channel) => {
   try {
     await member.timeout(20 * 60 * 1000, 'Kanal gelöscht');
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
-      .setColor(Colors.Red).setTitle('⏱️ Timeout — Kanal gelöscht')
+      .setColor(0xE8002D).setTitle('⏱️ Timeout — Kanal gelöscht')
       .addFields(
         { name: 'Nutzer', value: `<@${executor.id}> (${executor.tag})` },
         { name: 'Dauer',  value: '20 Minuten' },
@@ -3035,7 +3035,7 @@ client.on('channelCreate', async (channel) => {
   const entry    = await getAuditEntry(channel.guild, AuditLogEvent.ChannelCreate);
   const executor = entry?.executor;
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
-    .setColor(Colors.Green).setTitle('➕ Kanal erstellt')
+    .setColor(0xE8002D).setTitle('➕ Kanal erstellt')
     .addFields(
       { name: 'Kanal',        value: `<#${channel.id}> (${channel.name})` },
       { name: 'Erstellt von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' }
@@ -3048,7 +3048,7 @@ client.on('channelUpdate', async (oldCh, newCh) => {
   const executor = entry?.executor;
   if (executor?.id === client.user?.id) return;
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
-    .setColor(Colors.Yellow).setTitle('✏️ Kanal bearbeitet')
+    .setColor(0xE8002D).setTitle('✏️ Kanal bearbeitet')
     .addFields(
       { name: 'Kanal',          value: `<#${newCh.id}>` },
       { name: 'Bearbeitet von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' },
@@ -3062,7 +3062,7 @@ client.on('roleCreate', async (role) => {
   const entry    = await getAuditEntry(role.guild, AuditLogEvent.RoleCreate);
   const executor = entry?.executor;
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
-    .setColor(Colors.Green).setTitle('➕ Rolle erstellt')
+    .setColor(0xE8002D).setTitle('➕ Rolle erstellt')
     .addFields(
       { name: 'Rolle',        value: `${role.name} (${role.id})` },
       { name: 'Erstellt von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' }
@@ -3074,7 +3074,7 @@ client.on('roleDelete', async (role) => {
   const entry    = await getAuditEntry(role.guild, AuditLogEvent.RoleDelete);
   const executor = entry?.executor;
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
-    .setColor(Colors.Red).setTitle('🗑️ Rolle gelöscht')
+    .setColor(0xE8002D).setTitle('🗑️ Rolle gelöscht')
     .addFields(
       { name: 'Rolle',        value: role.name },
       { name: 'Gelöscht von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' }
@@ -3086,7 +3086,7 @@ client.on('roleDelete', async (role) => {
   try {
     await member.timeout(20 * 60 * 1000, 'Rolle gelöscht');
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
-      .setColor(Colors.Red).setTitle('⏱️ Timeout — Rolle gelöscht')
+      .setColor(0xE8002D).setTitle('⏱️ Timeout — Rolle gelöscht')
       .addFields(
         { name: 'Nutzer', value: `<@${executor.id}> (${executor.tag})` },
         { name: 'Dauer',  value: '20 Minuten' },
@@ -3107,7 +3107,7 @@ client.on('roleUpdate', async (oldRole, newRole) => {
   const entry    = await getAuditEntry(newRole.guild, AuditLogEvent.RoleUpdate);
   const executor = entry?.executor;
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
-    .setColor(Colors.Yellow).setTitle('✏️ Rolle bearbeitet')
+    .setColor(0xE8002D).setTitle('✏️ Rolle bearbeitet')
     .addFields(
       { name: 'Rolle',          value: `${newRole.name} (${newRole.id})` },
       { name: 'Bearbeitet von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' },
@@ -3123,7 +3123,7 @@ client.on('guildAuditLogEntryCreate', async (entry, guild) => {
     const tc = entry.changes?.find(c => c.key === 'communication_disabled_until');
     if (tc?.newValue) {
       await sendLog(CH.MOD_LOG, new EmbedBuilder()
-        .setColor(Colors.Orange).setTitle('⏱️ Timeout vergeben')
+        .setColor(0xE8002D).setTitle('⏱️ Timeout vergeben')
         .addFields(
           { name: 'Nutzer', value: entry.targetId ? `<@${entry.targetId}>` : 'Unbekannt' },
           { name: 'Von',    value: entry.executor ? `<@${entry.executor.id}>` : 'Unbekannt' },
@@ -3145,7 +3145,7 @@ client.on('guildAuditLogEntryCreate', async (entry, guild) => {
   }
   if (entry.action === AuditLogEvent.MemberBanRemove) {
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
-      .setColor(Colors.Green).setTitle('✅ Ban aufgehoben')
+      .setColor(0xE8002D).setTitle('✅ Ban aufgehoben')
       .addFields(
         { name: 'Nutzer', value: entry.targetId ? `<@${entry.targetId}>` : 'Unbekannt' },
         { name: 'Von',    value: entry.executor ? `<@${entry.executor.id}>` : 'Unbekannt' }
@@ -3208,7 +3208,7 @@ client.on('interactionCreate', async (interaction) => {
         const ebene     = memberRanks[0] ? memberRanks[0].ebene : 'officer';
         const pw        = LAPD_PW_B[ebene] || '—';
         const replyEmbed = new EmbedBuilder()
-          .setColor(0x0e1f52)
+          .setColor(0xE8002D)
           .setTitle('🛡️ LAPD Dashboard')
           .setDescription(
             '👤 **' + member.displayName + '**\n' +
@@ -3251,7 +3251,7 @@ client.on('interactionCreate', async (interaction) => {
         if (reqUser) {
           const { EmbedBuilder: _AVEB } = require('discord.js');
           const aEmbed = new _AVEB()
-            .setColor(0x66bb6a)
+            .setColor(0xE8002D)
             .setTitle('✅ Vacation Request — Approved')
             .setDescription('Your vacation request has been approved.')
             .addFields(
@@ -3306,7 +3306,7 @@ client.on('interactionCreate', async (interaction) => {
         if (reqUser) {
           const { EmbedBuilder: _RVEB } = require('discord.js');
           const rEmbed = new _RVEB()
-            .setColor(0xb71c1c)
+            .setColor(0xE8002D)
             .setTitle('❌ Vacation Request — Rejected')
             .setDescription('Your vacation request has been rejected.')
             .addFields(
@@ -3427,7 +3427,7 @@ client.on('interactionCreate', async (interaction) => {
     }
     await interaction.editReply({ content: `✅ ${deleted} Nachrichten wurden gelöscht.` });
     await sendLog(CH.SERVER_LOG, new EmbedBuilder()
-      .setColor(Colors.Orange).setTitle('🗑️ /delete ausgeführt')
+      .setColor(0xE8002D).setTitle('🗑️ /delete ausgeführt')
       .addFields(
         { name: 'Von',      value: `<@${user.id}> (${user.tag})` },
         { name: 'Kanal',    value: `<#${interaction.channel.id}>` },
@@ -3454,7 +3454,7 @@ client.on('interactionCreate', async (interaction) => {
       const logCh = await client.channels.fetch(CH.MOD_LOG).catch(() => null);
       if (logCh) {
         await logCh.send({ embeds: [new EmbedBuilder()
-          .setColor(0x7f1d1d)
+          .setColor(0xE8002D)
           .setTitle('\u{1F528} Permanenter Ban')
           .addFields(
             { name: 'Nutzer',     value: target.tag + ' (`' + target.id + '`)', inline: true },
@@ -3463,12 +3463,12 @@ client.on('interactionCreate', async (interaction) => {
             { name: 'Hinweis',    value: '\u26A0\uFE0F Discord-Bots haben keinen Zugriff auf IP-Adressen. Der Discord-Account ist dauerhaft gebannt.' }
           )
           .setTimestamp()
-          .setFooter({ text: 'Paradise City Roleplay \u2022 Mod Log' })
+          .setFooter({ text: 'Cryptik Roleplay \u2022 Mod Log' })
         ] });
       }
       return interaction.reply({
         embeds: [new EmbedBuilder()
-          .setColor(0x7f1d1d)
+          .setColor(0xE8002D)
           .setTitle('\u{1F528} Nutzer gebannt')
           .setDescription('**' + target.tag + '** wurde permanent vom Server entfernt.')
           .addFields({ name: 'Grund', value: grund })
@@ -3493,7 +3493,7 @@ client.on('interactionCreate', async (interaction) => {
     const warnCount = warnsData[target.id].length;
 
     const warnEmbed = new EmbedBuilder()
-      .setColor(0xD32F2F)
+      .setColor(0xE8002D)
       .setTitle('🚨  Team Warn')
       .setDescription(`**Ein Teammitglied hat eine offizielle Verwarnung erhalten.**\n${'━'.repeat(38)}`)
       .setThumbnail(target.displayAvatarURL({ dynamic: true, size: 256 }))
@@ -3507,7 +3507,7 @@ client.on('interactionCreate', async (interaction) => {
         { name: '\u200b', value: `${'━'.repeat(38)}`, inline: false },
       )
       .setTimestamp()
-      .setFooter({ text: 'Paradise City Roleplay  •  Teamverwarnungssystem' });
+      .setFooter({ text: 'Cryptik Roleplay  •  Teamverwarnungssystem' });
 
     try {
       const warnCh = await client.channels.fetch(CH.TEAM_WARN);
@@ -3515,7 +3515,7 @@ client.on('interactionCreate', async (interaction) => {
     } catch (e) { console.error('Team-Warn Fehler:', e.message); }
 
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
-      .setColor(Colors.Orange).setTitle('📋 Team Warn ausgestellt')
+      .setColor(0xE8002D).setTitle('📋 Team Warn ausgestellt')
       .addFields(
         { name: 'Mitglied',   value: `<@${target.id}> (${target.tag})` },
         { name: 'Grund',      value: grund },
@@ -3525,7 +3525,7 @@ client.on('interactionCreate', async (interaction) => {
       ).setTimestamp()
     );
     await interaction.reply({
-      embeds: [new EmbedBuilder().setColor(Colors.Green)
+      embeds: [new EmbedBuilder().setColor(0xE8002D)
         .setDescription(`✅ Team Warn für **${target.tag}** ausgestellt (Verwarnung Nr. ${warnCount}).`)],
       ephemeral: true
     });
@@ -3541,7 +3541,7 @@ client.on('interactionCreate', async (interaction) => {
     const removed = warnsData[target.id].pop();
     saveWarns(warnsData);
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
-      .setColor(Colors.Green).setTitle('🗑️ Team Warn entfernt')
+      .setColor(0xE8002D).setTitle('🗑️ Team Warn entfernt')
       .addFields(
         { name: 'Mitglied',     value: `<@${target.id}> (${target.tag})` },
         { name: 'Grund war',    value: removed.grund },
@@ -3549,7 +3549,7 @@ client.on('interactionCreate', async (interaction) => {
       ).setTimestamp()
     );
     await interaction.reply({
-      embeds: [new EmbedBuilder().setColor(Colors.Green)
+      embeds: [new EmbedBuilder().setColor(0xE8002D)
         .setDescription(`✅ Letzte Team Warn von **${target.tag}** entfernt.\n📋 Grund war: ${removed.grund}`)],
       ephemeral: true
     });
@@ -3563,7 +3563,7 @@ client.on('interactionCreate', async (interaction) => {
     const warns     = warnsData[target.id] || [];
     if (warns.length === 0)
       return interaction.reply({
-        embeds: [new EmbedBuilder().setColor(Colors.Green)
+        embeds: [new EmbedBuilder().setColor(0xE8002D)
           .setDescription(`✅ **${target.tag}** hat keine Team Warns.`)],
         ephemeral: true
       });
@@ -3572,7 +3572,7 @@ client.on('interactionCreate', async (interaction) => {
     ).join('\n\n');
     await interaction.reply({
       embeds: [new EmbedBuilder()
-        .setColor(Colors.Orange)
+        .setColor(0xE8002D)
         .setTitle(`📋  Team Warns — ${target.tag}`)
         .setDescription(warnLines.slice(0, 4000))
         .addFields({ name: 'Gesamt', value: `${warns.length} Verwarnung(en)` })
@@ -3607,7 +3607,7 @@ client.on('interactionCreate', async (interaction) => {
       const warnCh = await client.channels.fetch(PLAYER_WARN_CH).catch(() => null);
       if (warnCh) {
         const embed = new EmbedBuilder()
-          .setColor(0xFF0000)
+          .setColor(0xE8002D)
           .setTitle('\uD83D\uDEA8  \u2501\u2501\u2501  V E R W A R N U N G  \u2501\u2501\u2501  \uD83D\uDEA8')
           .setDescription(
             '\u2501'.repeat(40) + '\n' +
@@ -3622,13 +3622,13 @@ client.on('interactionCreate', async (interaction) => {
             { name: '\uD83C\uDFF7\uFE0F  Warn-Rolle',   value: '<@&' + roleId + '>',                              inline: true },
             { name: '\u23F0  Zeitpunkt',      value: '<t:' + Math.floor(Date.now()/1000) + ':f>',         inline: true },
           )
-          .setFooter({ text: 'Paradise City Roleplay  \u2022  Verwarnungssystem' })
+          .setFooter({ text: 'Cryptik Roleplay  \u2022  Verwarnungssystem' })
           .setTimestamp();
         await warnCh.send({ embeds: [embed] });
       }
     } catch (e) { console.error('Warn-Channel Fehler:', e.message); }
     return interaction.reply({
-      embeds: [new EmbedBuilder().setColor(0xFF0000)
+      embeds: [new EmbedBuilder().setColor(0xE8002D)
         .setDescription('\uD83D\uDEA8 Warn **' + warnNum + '/5** f\u00FCr **' + target.username + '** ausgestellt.\n\uD83D\uDCCB Grund: ' + grund)],
       ephemeral: true
     });
@@ -3652,7 +3652,7 @@ client.on('interactionCreate', async (interaction) => {
       if (member && entry.roleId) await member.roles.remove(entry.roleId).catch(() => {});
     } catch {}
     return interaction.reply({
-      embeds: [new EmbedBuilder().setColor(0x3FB950)
+      embeds: [new EmbedBuilder().setColor(0xE8002D)
         .setTitle('\u2705 Warn entfernt')
         .setDescription('Warn Nr. **' + nummer + '** von **' + target.username + '** wurde entfernt.\n\uD83D\uDCCB Grund war: ' + entry.grund)],
       ephemeral: true
@@ -3666,7 +3666,7 @@ client.on('interactionCreate', async (interaction) => {
     const list   = warns[target.id] || [];
     if (list.length === 0)
       return interaction.reply({
-        embeds: [new EmbedBuilder().setColor(0x3FB950)
+        embeds: [new EmbedBuilder().setColor(0xE8002D)
           .setDescription('\u2705 **' + target.username + '** hat keine aktiven Warns.')],
         ephemeral: true
       });
@@ -3676,11 +3676,11 @@ client.on('interactionCreate', async (interaction) => {
     );
     return interaction.reply({
       embeds: [new EmbedBuilder()
-        .setColor(0xFF0000)
+        .setColor(0xE8002D)
         .setTitle('\uD83D\uDCCB  Warn-Liste — ' + target.username)
         .setDescription('\u2501'.repeat(38) + '\n' + list.length + '/5 aktive Warns\n' + '\u2501'.repeat(38))
         .addFields(...fields)
-        .setFooter({ text: 'Paradise City Roleplay  \u2022  Verwarnungssystem' })
+        .setFooter({ text: 'Cryptik Roleplay  \u2022  Verwarnungssystem' })
         .setTimestamp()],
       ephemeral: true
     });
@@ -3706,7 +3706,7 @@ client.on('interactionCreate', async (interaction) => {
           .setDescription(
             '**Code:** \x60\x60\x60' + code + '\x60\x60\x60\n1. \u00d6ffne das Einreise-Formular\n2. Trage diesen Code im Feld **"Einreise-Code"** ein\n3. Deine Rollen werden nach dem Absenden automatisch vergeben\n\n\u23f3 G\u00fcltig f\u00fcr **15 Minuten** \u00b7 nur einmalig verwendbar'
           )
-          .setFooter({ text: 'Paradise City Roleplay  •  Einreise-System' })
+          .setFooter({ text: 'Cryptik Roleplay  •  Einreise-System' })
         ],
         ephemeral: true
       });
@@ -3801,10 +3801,10 @@ client.on('interactionCreate', async (interaction) => {
       saveAusweisTokens(tokens);
       try {
         await target.send({
-          embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('🆔  Ausweis erstellen — Paradise City Roleplay')
+          embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('🆔  Ausweis erstellen — Cryptik Roleplay')
             .setDescription('Du wurdest aufgefordert, deinen Charakter-Ausweis auszufüllen.')
             .addFields({ name: '🔗  Link', value: `[Hier klicken um Ausweis auszufüllen](${link})`, inline: false }, { name: '⏱️  Gültig bis', value: `<t:${Math.floor((Date.now()+86400000)/1000)}:F>`, inline: false })
-            .setFooter({ text: 'Paradise City Roleplay  •  Ausweis-Erstellung' }).setTimestamp()]
+            .setFooter({ text: 'Cryptik Roleplay  •  Ausweis-Erstellung' }).setTimestamp()]
         });
         return interaction.reply({ content: `✅ DM an **${target.tag}** gesendet mit dem Ausweis-Erstellungslink.`, ephemeral: true });
       } catch {
@@ -3876,7 +3876,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: '📅 Wann',  value: wann,  inline: true  },
               { name: '🏆 Preis', value: preis, inline: true  },
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Events' })
+            .setFooter({ text: 'Cryptik Roleplay  •  Events' })
             .setTimestamp();
           await ch.send({ content: `<@&${EVENT_ROLE}>`, embeds: [embed] });
           return interaction.reply({ content: '✅ Event wurde im Event-Kanal gepostet!', ephemeral: true });
@@ -3916,7 +3916,7 @@ client.on('interactionCreate', async (interaction) => {
               activeGiveaways.delete(gwMsg.id);
               if (eligible.length === 0) {
                 const noWinEmbed = new EmbedBuilder()
-                  .setColor(0xFF4444)
+                  .setColor(0xE8002D)
                   .setTitle('\uD83C\uDF89  GIVEAWAY BEENDET')
                   .setDescription('Leider hat niemand mit der ben\u00F6tigten Rolle teilgenommen.\n**Preis:** ' + preis)
                   .setTimestamp();
@@ -3935,7 +3935,7 @@ client.on('interactionCreate', async (interaction) => {
                   '\uD83C\uDF9F\uFE0F **Teilnehmer:** ' + eligible.length + '\n' +
                   '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501'
                 )
-                .setFooter({ text: 'Paradise City Roleplay  \u2022  Giveaway abgeschlossen' })
+                .setFooter({ text: 'Cryptik Roleplay  \u2022  Giveaway abgeschlossen' })
                 .setTimestamp();
               await gwMsgFresh.edit({ embeds: [winEmbed] });
               await ch.send({ content: '\uD83C\uDF89 Herzlichen Gl\u00FCckwunsch <@' + winner.id + '>! Du hast **' + preis + '** gewonnen!' });
@@ -3980,7 +3980,7 @@ client.on('interactionCreate', async (interaction) => {
           await updateFrakEmbed().catch(() => {});
           const logCh = await client.channels.fetch(FRAK_LOG_CH).catch(() => null);
           if (logCh) await logCh.send({ embeds: [new EmbedBuilder()
-            .setColor(0xFF0000)
+            .setColor(0xE8002D)
             .setTitle('🚨  FRAKTIONSVERWARNUNG')
             .setDescription(
               `## ${name}\n` +
@@ -3992,7 +3992,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: '👤  Vergeben von', value: `<@${user.id}>`, inline: true },
               { name: '🕐  Zeitpunkt', value: `<t:${ts()}:F>`, inline: true },
               { name: '⚠️  Warns gesamt', value: `**${data[name].warns.length}**`, inline: true }
-            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Verwarnungssystem' }).setTimestamp()
+            ).setFooter({ text: 'Cryptik Roleplay  •  Fraktions-Verwarnungssystem' }).setTimestamp()
           ]});
           return interaction.reply({ content: `✅ **${name}** hat jetzt ${data[name].warns.length} Verwarnung(en).`, ephemeral: true });
         }
@@ -4008,7 +4008,7 @@ client.on('interactionCreate', async (interaction) => {
           await updateFrakEmbed().catch(() => {});
           const logCh = await client.channels.fetch(FRAK_LOG_CH).catch(() => null);
           if (logCh) await logCh.send({ embeds: [new EmbedBuilder()
-            .setColor(Colors.Green)
+            .setColor(0xE8002D)
             .setTitle(`✅  Fraktionsverwarnung entfernt — ${name}`)
             .addFields(
               { name: 'Fraktion', value: `**${name}** (${data[name].typ})`, inline: true },
@@ -4016,7 +4016,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: 'Entfernte Warn', value: removed.grund },
               { name: 'Entfernt von', value: `<@${user.id}>`, inline: true },
               { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
-            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp()
+            ).setFooter({ text: 'Cryptik Roleplay  •  Fraktions-Log' }).setTimestamp()
           ]});
           return interaction.reply({ content: `✅ Letzte Verwarnung von **${name}** entfernt. Noch ${data[name].warns.length} übrig.`, ephemeral: true });
         }
@@ -4034,14 +4034,14 @@ client.on('interactionCreate', async (interaction) => {
           await updateFrakEmbed().catch(() => {});
           const logCh = await client.channels.fetch(FRAK_LOG_CH).catch(() => null);
           const sperreEmbed = new EmbedBuilder()
-            .setColor(Colors.Red)
+            .setColor(0xE8002D)
             .setTitle(`🔒  Fraktion gesperrt — ${name}`)
             .addFields(
               { name: 'Fraktion', value: `**${name}** (${data[name].typ})`, inline: true },
               { name: 'Grund', value: grund },
               { name: 'Gesperrt von', value: `<@${user.id}>`, inline: true },
               { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
-            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp();
+            ).setFooter({ text: 'Cryptik Roleplay  •  Fraktions-Log' }).setTimestamp();
           if (logCh) await logCh.send({ embeds: [sperreEmbed] });
           const sperreCh = await client.channels.fetch('1497050512028205186').catch(() => null);
           if (sperreCh) await sperreCh.send({ embeds: [sperreEmbed] });
@@ -4060,13 +4060,13 @@ client.on('interactionCreate', async (interaction) => {
           await updateFrakEmbed().catch(() => {});
           const logCh = await client.channels.fetch(FRAK_LOG_CH).catch(() => null);
           if (logCh) await logCh.send({ embeds: [new EmbedBuilder()
-            .setColor(Colors.Green)
+            .setColor(0xE8002D)
             .setTitle(`🔓  Fraktionssperre aufgehoben — ${name}`)
             .addFields(
               { name: 'Fraktion', value: `**${name}** (${data[name].typ})`, inline: true },
               { name: 'Aufgehoben von', value: `<@${user.id}>`, inline: true },
               { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
-            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp()
+            ).setFooter({ text: 'Cryptik Roleplay  •  Fraktions-Log' }).setTimestamp()
           ]});
           return interaction.reply({ content: `🔓 Sperre von **${name}** wurde aufgehoben.`, ephemeral: true });
         }
@@ -4080,7 +4080,7 @@ client.on('interactionCreate', async (interaction) => {
           const ch = await client.channels.fetch(VORSCHLAG_CH).catch(() => null);
           if (!ch) return interaction.reply({ content: '❌ Vorschläge-Kanal nicht gefunden.', ephemeral: true });
           const embed = new EmbedBuilder()
-            .setColor(0x5865F2)
+            .setColor(0xE8002D)
             .setTitle(`💡  Vorschlag #${newId}`)
             .setDescription(`\`\`\`${text}\`\`\``)
             .addFields(
@@ -4088,7 +4088,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: '📅  Datum', value: `<t:${ts()}:D>`, inline: true },
               { name: '📊  Status', value: '🟡 **Offen**', inline: true }
             )
-            .setFooter({ text: `Paradise City Roleplay  •  Vorschlag #${newId}` })
+            .setFooter({ text: `Cryptik Roleplay  •  Vorschlag #${newId}` })
             .setTimestamp();
           const msg = await ch.send({ embeds: [embed] });
           await msg.react('✅');
@@ -4113,7 +4113,7 @@ client.on('interactionCreate', async (interaction) => {
           if (ch && entry.msgId) {
             const msg = await ch.messages.fetch(entry.msgId).catch(() => null);
             if (msg) await msg.edit({ embeds: [new EmbedBuilder()
-              .setColor(0x57F287)
+              .setColor(0xE8002D)
               .setTitle(`✅  Vorschlag #${id} — Angenommen`)
               .setDescription(`\`\`\`${entry.text}\`\`\``)
               .addFields(
@@ -4122,7 +4122,7 @@ client.on('interactionCreate', async (interaction) => {
                 { name: '✅  Entschieden von', value: `<@${user.id}>`, inline: true },
                 { name: '💬  Begründung', value: grund, inline: false }
               )
-              .setFooter({ text: `Paradise City Roleplay  •  Vorschlag #${id}` })
+              .setFooter({ text: `Cryptik Roleplay  •  Vorschlag #${id}` })
               .setTimestamp()
             ]});
           }
@@ -4143,7 +4143,7 @@ client.on('interactionCreate', async (interaction) => {
           if (ch && entry.msgId) {
             const msg = await ch.messages.fetch(entry.msgId).catch(() => null);
             if (msg) await msg.edit({ embeds: [new EmbedBuilder()
-              .setColor(0xED4245)
+              .setColor(0xE8002D)
               .setTitle(`❌  Vorschlag #${id} — Abgelehnt`)
               .setDescription(`\`\`\`${entry.text}\`\`\``)
               .addFields(
@@ -4152,7 +4152,7 @@ client.on('interactionCreate', async (interaction) => {
                 { name: '✅  Entschieden von', value: `<@${user.id}>`, inline: true },
                 { name: '💬  Begründung', value: grund, inline: false }
               )
-              .setFooter({ text: `Paradise City Roleplay  •  Vorschlag #${id}` })
+              .setFooter({ text: `Cryptik Roleplay  •  Vorschlag #${id}` })
               .setTimestamp()
             ]});
           }
@@ -4170,8 +4170,8 @@ client.on('interactionCreate', async (interaction) => {
             const today = new Date();
             const dateStr = `${today.getDate().toString().padStart(2,'0')}.${(today.getMonth()+1).toString().padStart(2,'0')}.${today.getFullYear()}`;
             const embed = new EmbedBuilder()
-              .setColor(0xE65100)
-              .setAuthor({ name: 'Paradise City Roleplay', iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
+              .setColor(0xE8002D)
+              .setAuthor({ name: 'Cryptik Roleplay', iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
               .setTitle('🗳️  Lobby-Abstimmung')
               .setDescription('## Wirst du heute dabei sein?\nStimme ab und lass es uns wissen!')
               .addFields(
@@ -4182,7 +4182,7 @@ client.on('interactionCreate', async (interaction) => {
                 { name: '🕒  Ich komme später', value: 'Ich stoße etwas später dazu', inline: true },
                 { name: '❌  Ich komme nicht', value: 'Heute leider nicht dabei', inline: true }
               )
-              .setFooter({ text: `Gestartet von ${user.tag}  •  Paradise City Roleplay` })
+              .setFooter({ text: `Gestartet von ${user.tag}  •  Cryptik Roleplay` })
               .setTimestamp();
             await interaction.reply({ content: '✅ Abstimmung gesendet!', ephemeral: true });
             const msg = await ch.send({ content: `<@&${LOBBY_ROLE}>`, embeds: [embed] });
@@ -4197,15 +4197,15 @@ client.on('interactionCreate', async (interaction) => {
             const ch = await client.channels.fetch(LOBBY_STATUS_CH).catch(() => null);
             if (!ch) return interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
             const embed = new EmbedBuilder()
-              .setColor(0x57F287)
-              .setAuthor({ name: 'Paradise City Roleplay', iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
+              .setColor(0xE8002D)
+              .setAuthor({ name: 'Cryptik Roleplay', iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
               .setTitle('🟢  Lobby ist jetzt OFFEN!')
               .setDescription('Die Lobby wurde geöffnet — komm jetzt rein!')
               .addFields(
                 { name: '👑  Lobby Host', value: `<@${user.id}>`, inline: true },
                 { name: '🕐  Geöffnet um', value: `<t:${ts()}:t>`, inline: true }
               )
-              .setFooter({ text: 'Paradise City Roleplay  •  Lobby-Status' })
+              .setFooter({ text: 'Cryptik Roleplay  •  Lobby-Status' })
               .setTimestamp();
             await interaction.reply({ content: '✅ Lobby als **offen** markiert!', ephemeral: true });
             await ch.send({ content: `<@&${LOBBY_ROLE}>`, embeds: [embed] });
@@ -4218,15 +4218,15 @@ client.on('interactionCreate', async (interaction) => {
             const ch = await client.channels.fetch(LOBBY_STATUS_CH).catch(() => null);
             if (!ch) return interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
             const embed = new EmbedBuilder()
-              .setColor(0xED4245)
-              .setAuthor({ name: 'Paradise City Roleplay', iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
+              .setColor(0xE8002D)
+              .setAuthor({ name: 'Cryptik Roleplay', iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
               .setTitle('🔴  Lobby ist jetzt GESCHLOSSEN')
               .setDescription('Die Lobby wurde geschlossen. Bis zum nächsten Mal!')
               .addFields(
                 { name: '👤  Geschlossen von', value: `<@${user.id}>`, inline: true },
                 { name: '🕐  Geschlossen um', value: `<t:${ts()}:t>`, inline: true }
               )
-              .setFooter({ text: 'Paradise City Roleplay  •  Lobby-Status' })
+              .setFooter({ text: 'Cryptik Roleplay  •  Lobby-Status' })
               .setTimestamp();
             await interaction.reply({ content: '✅ Lobby als **geschlossen** markiert!', ephemeral: true });
             await ch.send({ embeds: [embed] });
@@ -4270,9 +4270,9 @@ client.on('interactionCreate', async (interaction) => {
           targetInv[itemName] = (targetInv[itemName] || 0) + menge;
           setUserInv(target.id, targetInv);
           return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
-            .setColor(0x57F287).setTitle('📦  Übergabe erfolgreich')
+            .setColor(0xE8002D).setTitle('📦  Übergabe erfolgreich')
             .setDescription(`<@${user.id}> hat **${menge}x ${itemName}** an <@${target.id}> übergeben.`)
-            .setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+            .setTimestamp().setFooter({ text: 'Cryptik Roleplay  •  Inventar' })
           ]});
         }
 
@@ -4287,9 +4287,9 @@ client.on('interactionCreate', async (interaction) => {
           if (inv[itemName] <= 0) delete inv[itemName];
           setUserInv(user.id, inv);
           return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
-            .setColor(0xE65100).setTitle('✅  Item verwendet')
+            .setColor(0xE8002D).setTitle('✅  Item verwendet')
             .setDescription(`Du hast **${menge}x ${itemName}** verwendet.`)
-            .setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+            .setTimestamp().setFooter({ text: 'Cryptik Roleplay  •  Inventar' })
           ]});
         }
 
@@ -4304,12 +4304,12 @@ client.on('interactionCreate', async (interaction) => {
           const items = loadItems();
           if (!items.includes(itemName)) { items.push(itemName); saveItems(items); }
           return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
-            .setColor(0x57F287).setTitle('📦  Item vergeben')
+            .setColor(0xE8002D).setTitle('📦  Item vergeben')
             .addFields(
               { name: 'Spieler', value: `<@${target.id}>`, inline: true },
               { name: 'Item', value: `**${itemName}**`, inline: true },
               { name: 'Menge', value: `**${menge}x**`, inline: true }
-            ).setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+            ).setTimestamp().setFooter({ text: 'Cryptik Roleplay  •  Inventar' })
           ], ephemeral: true });
         }
 
@@ -4324,12 +4324,12 @@ client.on('interactionCreate', async (interaction) => {
           if (inv[itemName] <= 0) delete inv[itemName];
           setUserInv(target.id, inv);
           return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
-            .setColor(0xED4245).setTitle('❌  Item entfernt')
+            .setColor(0xE8002D).setTitle('❌  Item entfernt')
             .addFields(
               { name: 'Spieler', value: `<@${target.id}>`, inline: true },
               { name: 'Item', value: `**${itemName}**`, inline: true },
               { name: 'Menge', value: `**${menge}x**`, inline: true }
-            ).setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+            ).setTimestamp().setFooter({ text: 'Cryptik Roleplay  •  Inventar' })
           ], ephemeral: true });
         }
 
@@ -4353,7 +4353,7 @@ client.on('interactionCreate', async (interaction) => {
         if (shops[shopId].find(i => i.name === name)) return interaction.reply({ content: '❌ **' + name + '** bereits im Shop.', ephemeral: true });
         shops[shopId].push({ name, preis }); saveShops(shops);
         await updateShopEmbed(shopId).catch(() => {});
-        sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE65100)
+        sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE8002D)
           .setTitle('🏪 Shop-Log: Item hinzugefügt')
           .addFields({ name:'Shop', value:SHOP_META[shopId]?.name||shopId, inline:true },{ name:'Item', value:name, inline:true },{ name:'Preis', value:`${preis.toLocaleString('de-DE')} €`, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
@@ -4368,7 +4368,7 @@ client.on('interactionCreate', async (interaction) => {
         if (!item) return interaction.reply({ content: '❌ **' + name + '** nicht gefunden.', ephemeral: true });
         item.preis = preis; saveShops(shops);
         await updateShopEmbed(shopId).catch(() => {});
-        sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE65100)
+        sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE8002D)
           .setTitle('🏪 Shop-Log: Item bearbeitet')
           .addFields({ name:'Shop', value:SHOP_META[shopId]?.name||shopId, inline:true },{ name:'Item', value:name, inline:true },{ name:'Neuer Preis', value:`${preis.toLocaleString('de-DE')} €`, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
@@ -4381,7 +4381,7 @@ client.on('interactionCreate', async (interaction) => {
         shops[shopId] = (shops[shopId]||[]).filter(i => i.name !== name);
         if ((shops[shopId]||[]).length === lenB2) return interaction.reply({ content: '❌ **' + name + '** nicht gefunden.', ephemeral: true });
         saveShops(shops); await updateShopEmbed(shopId).catch(() => {});
-        sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE65100)
+        sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE8002D)
           .setTitle('🏪 Shop-Log: Item gelöscht')
           .addFields({ name:'Shop', value:SHOP_META[shopId]?.name||shopId, inline:true },{ name:'Item', value:name, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
@@ -4405,7 +4405,7 @@ client.on('interactionCreate', async (interaction) => {
             addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ ${typ === 'konto' ? 'Kontogeld' : 'Schwarzgeld'} (Admin)`, betrag });
           }
           const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : 'Schwarzgeld';
-          sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
+          sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE8002D)
             .setTitle('💰 Geld-Log: Geld hinzugefügt (/money-add)')
             .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`+${betrag.toLocaleString('de-CH')} $`, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
@@ -4430,7 +4430,7 @@ client.on('interactionCreate', async (interaction) => {
             addTrans(target.id, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ ${typ === 'konto' ? 'Kontogeld' : 'Schwarzgeld'} (Admin)`, betrag: -betrag });
           }
           const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : 'Schwarzgeld';
-          sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
+          sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE8002D)
             .setTitle('💰 Geld-Log: Geld abgezogen (/money-remove)')
             .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`-${betrag.toLocaleString('de-CH')} $`, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
@@ -4458,7 +4458,7 @@ client.on('interactionCreate', async (interaction) => {
           const id = Date.now().toString();
           rechnungen[target.id].push({ id, beschreibung, betrag, erstellt: Date.now(), von: interaction.user.id });
           saveRechnungen(rechnungen);
-          sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
+          sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE8002D)
             .setTitle('💰 Geld-Log: Rechnung erstellt')
             .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true },{ name:'Beschreibung', value:beschreibung },{ name:'Erstellt von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
@@ -4488,12 +4488,12 @@ client.on('interactionCreate', async (interaction) => {
           k._startgeld = true;
           setKonto(target.id, k);
           addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Startgeld (${art})`, betrag });
-          sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
+          sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE8002D)
             .setTitle('💰 Geld-Log: Einreise-Startgeld')
             .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Art', value:art, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true },{ name:'Vergeben von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
           return interaction.reply({
-            embeds: [new EmbedBuilder().setColor(0x43A047).setTitle('💵 Startgeld vergeben')
+            embeds: [new EmbedBuilder().setColor(0xE8002D).setTitle('💵 Startgeld vergeben')
               .setDescription(`<@${target.id}> hat **${betrag.toLocaleString('de-CH')} $** als ${isSchwarz ? 'Schwarzgeld' : 'Kontogeld'} erhalten.
 **Einreiseart:** ${art}`)
             ], ephemeral: true
@@ -4517,11 +4517,11 @@ client.on('interactionCreate', async (interaction) => {
         const link   = `https://${domain}/einreise/${art}/${tok}`;
         try {
           await target.send({ embeds: [new EmbedBuilder().setColor(art === 'legal' ? 0x43A047 : 0xb71c1c)
-            .setTitle(art === 'legal' ? '🏛️ Legale Einreise — Paradise City' : '🚫 Illegale Einreise — Paradise City')
+            .setTitle(art === 'legal' ? '🏛️ Legale Einreise — Cryptik Roleplay' : '🚫 Illegale Einreise — Cryptik Roleplay')
             .setDescription('Klicke auf den Link um deine Einreise auszufüllen. Der Link ist **7 Tage** gültig.')
             .addFields({ name: '🔗 Persönlicher Link', value: `[Hier klicken](${link})`, inline: false },
                        { name: '⏱️ Gültig bis', value: `<t:${Math.floor((Date.now()+7*24*60*60*1000)/1000)}:F>`, inline: false })
-            .setFooter({ text: 'Paradise City Roleplay • Einreise' }).setTimestamp()] });
+            .setFooter({ text: 'Cryptik Roleplay • Einreise' }).setTimestamp()] });
           return interaction.reply({ content: `✅ Einreise-Link (${art}) per DM an **${target.tag}** gesendet.`, ephemeral: true });
         } catch {
           return interaction.reply({ content: `❌ Konnte keine DM an **${target.tag}** senden. DMs möglicherweise deaktiviert.
@@ -4543,7 +4543,7 @@ Link: ${link}`, ephemeral: true });
           const ch = await client.channels.fetch(RUBBELLOS_CH).catch(() => null);
           if (!ch) return interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
           const rubbEmbed = new EmbedBuilder()
-            .setColor(0xE65100)
+            .setColor(0xE8002D)
             .setTitle('🎟️  Rubbellos')
             .setDescription(
               `**Mögliche Gewinne:**
@@ -4567,7 +4567,7 @@ Link: ${link}`, ephemeral: true });
 🎯 Rubbele alle 9 Felder frei — **3× dasselbe Symbol = Gewinn!**
 🏆 Beim Sportwagen-Hauptgewinn bitte ein **Ticket erstellen!**`
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' });
+            .setFooter({ text: 'Cryptik Roleplay  •  Rubbellos' });
           const rubbBtn = new ButtonBuilder()
             .setCustomId('rubbellos_use')
             .setLabel('🎟️ Rubbellos einlösen')
@@ -4611,7 +4611,7 @@ Link: ${link}`, ephemeral: true });
           } catch {}
 
         await interaction.reply({
-          embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🔄 Charakter zurückgesetzt')
+          embeds: [new EmbedBuilder().setColor(0xE8002D).setTitle('🔄 Charakter zurückgesetzt')
             .setDescription(`<@${uid}> wurde vollständig zurückgesetzt.`)
             .addFields(
               { name: '🗑️ Gelöscht', value: 'Konto · Bargeld · Inventar · Lager · Ausweis · Transaktionen · Rechnungen · Lohnlog · Nickname', inline: false },
@@ -4776,13 +4776,13 @@ client.on('interactionCreate', async (interaction) => {
       lohnlog[uid] = now;
       saveLohnlog(lohnlog);
       addTrans(uid, { ts: now, text: `+${lohnklasse.betrag.toLocaleString('de-CH')} $ Lohn (${lohnklasse.label})`, betrag: lohnklasse.betrag });
-      sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
+      sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE8002D)
         .setTitle('💰 Geld-Log: Lohn abgeholt')
         .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Klasse', value:lohnklasse.label, inline:true },{ name:'Betrag', value:`${lohnklasse.betrag.toLocaleString('de-CH')} $`, inline:true })
         .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
 
       return interaction.reply({
-        embeds: [new EmbedBuilder().setColor(0x43A047).setTitle('💵 Lohn abgeholt').setDescription(
+        embeds: [new EmbedBuilder().setColor(0xE8002D).setTitle('💵 Lohn abgeholt').setDescription(
           `Du hast **${lohnklasse.betrag.toLocaleString('de-CH')} $** als **${lohnklasse.label}** erhalten.
 
 Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} $**`
@@ -4827,7 +4827,7 @@ ${transText}`;
       }
 
       return interaction.reply({
-        embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🏧 Dein Online Banking').setDescription(desc)],
+        embeds: [new EmbedBuilder().setColor(0xE8002D).setTitle('🏧 Dein Online Banking').setDescription(desc)],
         components: rows,
         ephemeral: true
       });
@@ -4889,7 +4889,7 @@ ${transText}`;
       const meine = alle[uid] ?? [];
       if (!meine.length) return interaction.reply({ content: '✅ Du hast keine offenen Rechnungen.', ephemeral: true });
 
-      const embed = new EmbedBuilder().setColor(0xE65100).setTitle('🧾 Deine Rechnungen');
+      const embed = new EmbedBuilder().setColor(0xE8002D).setTitle('🧾 Deine Rechnungen');
       let desc = '';
       meine.forEach((r, i) => {
         desc += `**${i+1}. ${r.beschreibung}** — ${r.betrag.toLocaleString('de-CH')} $
@@ -5019,7 +5019,7 @@ ${transText}`;
       k.konto += betrag;
       setKonto(uid, k);
       addTrans(uid, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Einzahlung`, betrag });
-        sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
+        sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE8002D)
           .setTitle('💰 Geld-Log: Einzahlung (Bargeld→Konto)')
           .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
@@ -5036,7 +5036,7 @@ ${transText}`;
       setKonto(uid, k);
       setCash(uid, getCash(uid) + betrag);
       addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ Auszahlung`, betrag: -betrag });
-        sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
+        sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE8002D)
           .setTitle('💰 Geld-Log: Auszahlung (Konto→Bargeld)')
           .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
@@ -5058,7 +5058,7 @@ ${transText}`;
       setKonto(targetId, kt);
       addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ Überweisung an <@${targetId}>`, betrag: -betrag });
       addTrans(targetId, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Überweisung von <@${uid}>`, betrag });
-        sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
+        sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE8002D)
           .setTitle('💰 Geld-Log: Überweisung')
           .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
@@ -5094,7 +5094,7 @@ ${transText}`;
       if (!_k._startgeld) { _k.schwarz += 5000; _k._startgeld = true; setKonto(targetId, _k); addTrans(targetId, { ts: Date.now(), text: '+5.000 $ Startgeld (Illegale Einreise)', betrag: 5000 }); }
     } catch {}
     return interaction.reply({
-      embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🚫 Illegale Einreise registriert')
+      embeds: [new EmbedBuilder().setColor(0xE8002D).setTitle('🚫 Illegale Einreise registriert')
         .addFields({ name: 'Spieler', value: `<@${targetId}>`, inline: true }, { name: 'Name', value: `${illVor} ${illNach}`, inline: true }, { name: 'PSN', value: illPsn, inline: true }, { name: 'Geschlecht', value: illGeschl, inline: true })
         .setFooter({ text: `Erstellt von ${interaction.user.tag}` }).setTimestamp()],
       ephemeral: true
@@ -5120,7 +5120,7 @@ ${transText}`;
       setKonto(targetId, kt);
       addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ Schwarzgeld an <@${targetId}>`, betrag: -betrag });
       addTrans(targetId, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Schwarzgeld von <@${uid}>`, betrag });
-        sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
+        sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE8002D)
           .setTitle('💰 Geld-Log: Schwarzgeld gesendet')
           .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
@@ -5184,12 +5184,12 @@ ${transText}`;
     const itemList = cart.map(c => '▸ **' + c.name + '** x' + c.menge).join('\n');
     clearCart(uid, shopId);
     const m = SHOP_META[shopId];
-    const receipt = new EmbedBuilder().setColor(0x57F287).setTitle('🧾  Einkauf erfolgreich!')
+    const receipt = new EmbedBuilder().setColor(0xE8002D).setTitle('🧾  Einkauf erfolgreich!')
       .setDescription(itemList)
       .addFields(
         { name: '💸  Gezahlt', value: total.toLocaleString('de-DE') + ' Euro', inline: true },
         { name: '💵  Verbleibendes Bargeld', value: getCash(uid).toLocaleString('de-DE') + ' Euro', inline: true }
-      ).setFooter({ text: 'Paradise City Roleplay  •  ' + m.name }).setTimestamp();
+      ).setFooter({ text: 'Cryptik Roleplay  •  ' + m.name }).setTimestamp();
     
 
 
@@ -5272,7 +5272,7 @@ async function doLottoZiehung(client) {
             `**Gewinn:** 💰 **${w.betrag.toLocaleString('de-CH')} $**\n\n` +
             `Der Betrag wurde direkt auf dein Konto überwiesen!`
           )
-          .setFooter({ text: 'Paradise City Roleplay  •  Lotto' })
+          .setFooter({ text: 'Cryptik Roleplay  •  Lotto' })
           .setTimestamp();
         await user.send({ embeds: [dmEmbed] }).catch(() => {});
       } catch (_) {}
@@ -5291,7 +5291,7 @@ async function doLottoZiehung(client) {
 
       const resultEmbed = new EmbedBuilder()
         .setColor(DARK_ORANGE)
-        .setTitle('🎰 Paradise City Lotto — Tagesziehung')
+        .setTitle('🎰 Cryptik Roleplay Lotto — Tagesziehung')
         .setDescription(
           `**📅 Datum:** ${today}\n\n` +
           `**🎱 Gezogene Zahlen:**\n${zahlenStr}\n\n` +
@@ -5300,7 +5300,7 @@ async function doLottoZiehung(client) {
           `*Gewinne werden automatisch aufs Konto überwiesen.*\n` +
           `*Die nächste Ziehung findet morgen um 12:00 Uhr statt.*`
         )
-        .setFooter({ text: `Paradise City Roleplay  •  Lotto  •  ${week.winners}/${MAX_WINNERS_PER_WEEK} Wochengewinner` })
+        .setFooter({ text: `Cryptik Roleplay  •  Lotto  •  ${week.winners}/${MAX_WINNERS_PER_WEEK} Wochengewinner` })
         .setTimestamp();
 
       const playBtn = new ButtonBuilder()
@@ -5396,33 +5396,33 @@ client.on('interactionCreate', async (interaction) => {
       // Rollen aufräumen falls noch gesetzt
       await member.roles.remove(ROLE_HANDY_AN).catch(() => {});
       await member.roles.remove(ROLE_HANDY_AUS).catch(() => {});
-      return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+      return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     }
     if (hatHandyAn(member, uid)) {
-      return sendReply({ embeds: [new EmbedBuilder().setColor(0xffa500).setDescription('📱 Dein Handy ist bereits **eingeschaltet**!')] });
+      return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('📱 Dein Handy ist bereits **eingeschaltet**!')] });
     }
     await member.roles.add(ROLE_HANDY_AN).catch(() => {});
     await member.roles.remove(ROLE_HANDY_AUS).catch(() => {});
-    return sendReply({ embeds: [new EmbedBuilder().setColor(0x57f287).setDescription('📱 Dein Handy wurde **eingeschaltet**!')] });
+    return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('📱 Dein Handy wurde **eingeschaltet**!')] });
   }
 
   // ── HANDY AUS ─────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_aus') {
     if (!hatHandy(uid)) {
-      return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+      return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
     }
     if (!hatHandyAn(member, uid)) {
-      return sendReply({ embeds: [new EmbedBuilder().setColor(0xffa500).setDescription('📵 Dein Handy ist bereits **ausgeschaltet**!')] });
+      return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('📵 Dein Handy ist bereits **ausgeschaltet**!')] });
     }
     await member.roles.remove(ROLE_HANDY_AN).catch(() => {});
     await member.roles.add(ROLE_HANDY_AUS).catch(() => {});
-    return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('📵 Dein Handy wurde **ausgeschaltet**!')] });
+    return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('📵 Dein Handy wurde **ausgeschaltet**!')] });
   }
 
   // ── APPS ──────────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_apps') {
-    if (!hatHandy(uid))        return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
-    if (!hatHandyAn(member, uid)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
+    if (!hatHandy(uid))        return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandyAn(member, uid)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
     // Häkchen: welche Apps hat der Spieler bereits?
     const hasInsta   = member.roles.cache.has(ROLE_APP_INSTA);
     const hasEbay    = member.roles.cache.has(ROLE_APP_EBAY);
@@ -5517,8 +5517,8 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── SPIELE ────────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_spiele') {
-    if (!hatHandy(uid))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
-    if (!hatHandyAn(member, uid)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
+    if (!hatHandy(uid))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandyAn(member, uid)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
     return sendReply({
       embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('🎮 Handy-Spiele').setDescription('Wähle ein Spiel — es öffnet sich im Browser.')],
       components: [new ActionRowBuilder().addComponents(
@@ -5531,22 +5531,22 @@ client.on('interactionCreate', async (interaction) => {
   if (cid === 'spiel_snake') {
     const GAME_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
     return sendReply({
-      embeds: [new EmbedBuilder().setColor(0x57f287).setTitle('🐍 Snake').setDescription('Klicke auf den Button und spiele Snake direkt im Browser!')],
+      embeds: [new EmbedBuilder().setColor(0xE8002D).setTitle('🐍 Snake').setDescription('Klicke auf den Button und spiele Snake direkt im Browser!')],
       components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('🐍 Snake spielen').setStyle(ButtonStyle.Link).setURL(GAME_URL + '/snake'))],
     });
   }
   if (cid === 'spiel_tetris') {
     const GAME_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
     return sendReply({
-      embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('🟦 Tetris').setDescription('Klicke auf den Button und spiele Tetris direkt im Browser!')],
+      embeds: [new EmbedBuilder().setColor(0xE8002D).setTitle('🟦 Tetris').setDescription('Klicke auf den Button und spiele Tetris direkt im Browser!')],
       components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('🟦 Tetris spielen').setStyle(ButtonStyle.Link).setURL(GAME_URL + '/tetris'))],
     });
   }
 
   // ── DISPATCH ──────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_dispatch') {
-    if (!hatHandy(uid))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
-    if (!hatHandyAn(member, uid)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
+    if (!hatHandy(uid))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandyAn(member, uid)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
     return sendReply({
       embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('🚨 Dispatch').setDescription('Diese Funktion wird bald aktiviert. Wähle eine Einsatzzentrale:')],
       components: [new ActionRowBuilder().addComponents(
@@ -5575,13 +5575,13 @@ client.on('interactionCreate', async (interaction) => {
   }
   if (cid === 'dispatch_lamd' || cid === 'dispatch_lacs') {
     const labels = { dispatch_lamd: 'LAMD', dispatch_lacs: 'LACS' };
-    return sendReply({ embeds: [new EmbedBuilder().setColor(0xffa500).setDescription('\u{1F6A8} **Dispatch ' + labels[cid] + '** — Kommt bald!')] });
+    return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('\u{1F6A8} **Dispatch ' + labels[cid] + '** — Kommt bald!')] });
   }
 
   // ── WHATSAPP ──────────────────────────────────────────────────────────────
   if (effectiveId === 'handy_whatsapp') {
-    if (!hatHandy(uid))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
-    if (!hatHandyAn(member, uid)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
+    if (!hatHandy(uid))   return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Du hast kein Handy! Kaufe eines im **Kwil E Markt**.')] });
+    if (!hatHandyAn(member, uid)) return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Dein Handy ist **ausgeschaltet**! Schalte es zuerst ein.')] });
     // Alle Mitglieder mit eingeschaltetem Handy laden
     const guild = interaction.guild;
     await guild.members.fetch().catch(() => {});
@@ -5589,7 +5589,7 @@ client.on('interactionCreate', async (interaction) => {
       m.roles.cache.has(ROLE_HANDY_AN) && m.id !== uid && !m.user.bot
     );
     if (online.size === 0) {
-      return sendReply({ embeds: [new EmbedBuilder().setColor(0xff5500).setTitle('💬 WhatsApp').setDescription('📵 Gerade hat **niemand anderes** sein Handy eingeschaltet.\nBitte versuche es später erneut.')] });
+      return sendReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setTitle('💬 WhatsApp').setDescription('📵 Gerade hat **niemand anderes** sein Handy eingeschaltet.\nBitte versuche es später erneut.')] });
     }
     const options = [...online.values()].slice(0, 25).map(m =>
       new StringSelectMenuOptionBuilder()
@@ -5603,7 +5603,7 @@ client.on('interactionCreate', async (interaction) => {
       .addOptions(options);
     const row = new ActionRowBuilder().addComponents(menu);
     return sendReply({
-      embeds: [new EmbedBuilder().setColor(0x25d366).setTitle('💬 WhatsApp').setDescription('Wähle einen Spieler aus, dem du schreiben möchtest.\n\n*Nur Spieler mit eingeschaltetem Handy werden angezeigt.*')],
+      embeds: [new EmbedBuilder().setColor(0xE8002D).setTitle('💬 WhatsApp').setDescription('Wähle einen Spieler aus, dem du schreiben möchtest.\n\n*Nur Spieler mit eingeschaltetem Handy werden angezeigt.*')],
       components: [row]
     });
   }
@@ -5635,25 +5635,25 @@ client.on('interactionCreate', async (interaction) => {
     const nachricht    = interaction.fields.getTextInputValue('wa_nachricht').trim();
     let empfaenger;
     try { empfaenger = await interaction.client.users.fetch(empfaengerId); }
-    catch { return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Empfänger nicht gefunden.')] }); }
+    catch { return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Empfänger nicht gefunden.')] }); }
     // Prüfe ob Empfänger noch Handy eingeschaltet hat
     const guild = interaction.guild;
     const empMember = await guild.members.fetch(empfaengerId).catch(() => null);
     if (!empMember || !empMember.roles.cache.has(ROLE_HANDY_AN)) {
-      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Der Empfänger hat sein Handy inzwischen **ausgeschaltet**.')] });
+      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Der Empfänger hat sein Handy inzwischen **ausgeschaltet**.')] });
     }
     const dmEmbed = new EmbedBuilder()
-      .setColor(0x25d366)
+      .setColor(0xE8002D)
       .setTitle('💬 WhatsApp Nachricht')
       .setDescription(nachricht)
       .setAuthor({ name: 'Von: ' + interaction.user.username, iconURL: interaction.user.displayAvatarURL() })
-      .setFooter({ text: 'Paradise City Roleplay • WhatsApp' })
+      .setFooter({ text: 'Cryptik Roleplay • WhatsApp' })
       .setTimestamp();
     try {
       await empfaenger.send({ embeds: [dmEmbed] });
-      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x25d366).setDescription('✅ Nachricht wurde an **' + empfaenger.username + '** gesendet!')] });
+      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('✅ Nachricht wurde an **' + empfaenger.username + '** gesendet!')] });
     } catch {
-      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xff0000).setDescription('❌ Nachricht konnte nicht gesendet werden. Der Nutzer hat DMs möglicherweise deaktiviert.')] });
+      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xE8002D).setDescription('❌ Nachricht konnte nicht gesendet werden. Der Nutzer hat DMs möglicherweise deaktiviert.')] });
     }
   }
 });
@@ -5682,9 +5682,9 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
     try {
       const d=_loadAtm(); if(d._infoEmbedSent) return;
       const ch=await client.channels.fetch(ATM_INFO_CH).catch(()=>null); if(!ch) return;
-      await ch.send({embeds:[new EmbedBuilder().setColor(0xE65100).setTitle('🏧 ATM-Raub — Informationen')
+      await ch.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('🏧 ATM-Raub — Informationen')
         .setDescription('**💰 Beute:** 3.000$ – 10.000$ *(zufällig)*\n**📍 Ort:** Alle ATMs im gesamten Staat erlaubt\n**👤 Spieler:** Ab 1 Person möglich\n**👮 Beamte:** Mindestens 2 Officers im Dienst\n\n**🔧 Benötigte Items**\n> **Brecheisen** → 10 Min.\n> ┗ 🔨〢𝘉𝘢𝘶𝘮𝘢𝘳𝘬𝘵\n\n> **Sprengstoff** → 5 Min.\n> ┗ 👥〢𝘚𝘤𝘩𝘸𝘢𝘳𝘻𝘮𝘢𝘳𝘬𝘵\n\n**📋 Ablauf**\n1. Raub In-Game durchführen\n2. Foto als Beweis in <#1490894309145313330> senden\n3. Werkzeug in der DM auswählen\n4. Team bestätigt Erfolg oder Fehlschlag')
-        .setFooter({text:'Paradise City Roleplay • Raubüberfälle'}).setTimestamp()]});
+        .setFooter({text:'Cryptik Roleplay • Raubüberfälle'}).setTimestamp()]});
       d._infoEmbedSent=true; _saveAtm(d);
     } catch(e){console.error('[ATM-INFO]',e.message);}
   });
@@ -5696,17 +5696,17 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
     const d=_loadAtm(), entry=d[msg.author.id]||{}, now=Date.now();
     if (entry.active) {
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Raubüberfall').setDescription('Du hast bereits einen **aktiven ATM-Raub**! Warte bis dieser abgeschlossen ist.').setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('⚠️ Aktiver Raubüberfall').setDescription('Du hast bereits einen **aktiven ATM-Raub**! Warte bis dieser abgeschlossen ist.').setFooter({text:'Cryptik Roleplay'})]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
     if (entry.cooldownUntil&&now<entry.cooldownUntil) {
       const rem=Math.ceil((entry.cooldownUntil-now)/60000),h=Math.floor(rem/60),m=rem%60;
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen ATM-Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`).setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen ATM-Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`).setFooter({text:'Cryptik Roleplay'})]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
     const onDuty=_getOnDuty();
     if (onDuty<2) {
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **2 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`).setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **2 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`).setFooter({text:'Cryptik Roleplay'})]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
     const inv=(_loadInv()[msg.author.id])||{};
@@ -5715,19 +5715,19 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
     const hasB=bKey&&(inv[bKey]||0)>0, hasS=sKey&&(inv[sKey]||0)>0;
     if (!hasB&&!hasS) {
       const list=Object.keys(inv).length?Object.entries(inv).map(([k,v])=>`• **${k}** — ${v}x`).join('\n'):'_Inventar leer_';
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('❌ Kein Werkzeug').setDescription('Du hast weder **Brecheisen** noch **Sprengstoff** im Inventar.\n\n**Dein Inventar:**\n'+list).setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('❌ Kein Werkzeug').setDescription('Du hast weder **Brecheisen** noch **Sprengstoff** im Inventar.\n\n**Dein Inventar:**\n'+list).setFooter({text:'Cryptik Roleplay'})]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
 
     // Alle Checks OK → Server-Log + DM-Auswahl
-    sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE65100).setTitle('🏧 ATM-Raub: Raub eingeleitet')
+    sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE8002D).setTitle('🏧 ATM-Raub: Raub eingeleitet')
       .addFields({name:'👤 Spieler',value:`<@${msg.author.id}> (${msg.author.username})`,inline:true},{name:'📸 Beweis',value:msg.attachments.first()?.url||'-',inline:false})
-      .setTimestamp().setFooter({text:'Paradise City Roleplay • ATM-Raub Log'})).catch(()=>{});
+      .setTimestamp().setFooter({text:'Cryptik Roleplay • ATM-Raub Log'})).catch(()=>{});
     const opts=[];
     if(hasB) opts.push({label:'🔨 Brecheisen (10 Min.)',description:'Aus dem Baumarkt',value:'brecheisen'});
     if(hasS) opts.push({label:'💣 Sprengstoff (5 Min.)',description:'Vom Schwarzmarkt',value:'sprengstoff'});
     const row=new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId(`atm_tool:${msg.author.id}`).setPlaceholder('Werkzeug auswählen').addOptions(opts));
-    try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE65100).setTitle('🏧 ATM-Raub — Werkzeug auswählen').setDescription('Wähle dein Werkzeug. Es wird sofort aus dem Inventar entfernt.').setFooter({text:'Paradise City Roleplay • ATM-Raub'})],components:[row]});}
+    try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('🏧 ATM-Raub — Werkzeug auswählen').setDescription('Wähle dein Werkzeug. Es wird sofort aus dem Inventar entfernt.').setFooter({text:'Cryptik Roleplay • ATM-Raub'})],components:[row]});}
     catch{}
     await msg.delete().catch(()=>{});
   });
@@ -5747,7 +5747,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
     const fKey=Object.keys(inv).find(finder);
     if (!fKey||(inv[fKey]||0)<=0) {
       const list=Object.keys(inv).length?Object.entries(inv).map(([k,v])=>`• **${k}** — ${v}x`).join('\n'):'_Inventar leer_';
-      return interaction.editReply({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('❌ Item nicht gefunden').setDescription('Dieses Item wurde nicht gefunden.\n\n**Dein Inventar:**\n'+list)]});
+      return interaction.editReply({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('❌ Item nicht gefunden').setDescription('Dieses Item wurde nicht gefunden.\n\n**Dein Inventar:**\n'+list)]});
     }
     inv[fKey]-=1; if(inv[fKey]<=0) delete inv[fKey]; allInv[userId]=inv; _saveInv(allInv);
 
@@ -5757,10 +5757,10 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
     try{const n=_loadRaubNotrufe();n.push({id:Date.now().toString(),ts:Date.now(),type:'atm_raub',title:'🏧 ATM-Raubüberfall',caller:interaction.user.username,userId,location:'Alle ATMs im Staat',description:`ATM-Raub von **${interaction.user.username}** (${fKey}, ${durLabel})`,status:'offen'});_saveRaubNotrufe(n);}catch(e){console.error('[ATM-NOTRUF]',e.message);}
 
-    sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE65100).setTitle('🏧 ATM-Raub gestartet')
+    sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE8002D).setTitle('🏧 ATM-Raub gestartet')
       .addFields({name:'👤 Spieler',value:`<@${userId}> (${interaction.user.username})`,inline:true},{name:'🔧 Werkzeug',value:fKey,inline:true},{name:'⏱️ Dauer',value:durLabel,inline:true},{name:'📦 Item entfernt',value:fKey,inline:false})
-      .setTimestamp().setFooter({text:'Paradise City Roleplay • ATM-Raub Log'})).catch(()=>{});
-    await interaction.editReply({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('✅ ATM-Raub gestartet!').setDescription(`**Werkzeug:** ${fKey}\n**Dauer:** ${durLabel}\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.`).setFooter({text:'Paradise City Roleplay • ATM-Raub'}).setTimestamp()]});
+      .setTimestamp().setFooter({text:'Cryptik Roleplay • ATM-Raub Log'})).catch(()=>{});
+    await interaction.editReply({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('✅ ATM-Raub gestartet!').setDescription(`**Werkzeug:** ${fKey}\n**Dauer:** ${durLabel}\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.`).setFooter({text:'Cryptik Roleplay • ATM-Raub'}).setTimestamp()]});
 
     setTimeout(async()=>{
       const cur=_loadAtm(); if(!cur[userId]?.active) return;
@@ -5768,10 +5768,10 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
       const k=_getKonto(userId); k.schwarz=(k.schwarz||0)+beute; _setKonto(userId,k);
       cur[userId].active=null; cur[userId].cooldownUntil=Date.now()+24*60*60*1000; _saveAtm(cur);
       try{const n=_loadRaubNotrufe(),x=n.find(y=>y.userId===userId&&y.type==='atm_raub'&&y.status==='offen');if(x){x.status='geschlossen';_saveRaubNotrufe(n);}}catch{}
-      sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0x22c55e).setTitle('🏧 ATM-Raub abgeschlossen')
+      sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE8002D).setTitle('🏧 ATM-Raub abgeschlossen')
         .addFields({name:'👤 Spieler',value:`<@${userId}>`,inline:true},{name:'💰 Beute',value:`${beute.toLocaleString('de-CH')} $ Schwarzgeld`,inline:true})
-        .setTimestamp().setFooter({text:'Paradise City Roleplay • ATM-Raub Log'})).catch(()=>{});
-      try{const u=await client.users.fetch(userId).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('💰 ATM-Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.`).setFooter({text:'Paradise City Roleplay • ATM-Raub'}).setTimestamp()]});}}catch{}
+        .setTimestamp().setFooter({text:'Cryptik Roleplay • ATM-Raub Log'})).catch(()=>{});
+      try{const u=await client.users.fetch(userId).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('💰 ATM-Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.`).setFooter({text:'Cryptik Roleplay • ATM-Raub'}).setTimestamp()]});}}catch{}
     },durMs);
   });
 }
@@ -5791,9 +5791,9 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
     try {
       const d=_loadShop(); if(d._infoEmbedSent) return;
       const ch=await client.channels.fetch(SHOP_INFO_CH).catch(()=>null); if(!ch) return;
-      await ch.send({embeds:[new EmbedBuilder().setColor(0xE65100).setTitle('🛍️ Shop-Raub — Informationen')
+      await ch.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('🛍️ Shop-Raub — Informationen')
         .setDescription('**💰 Beute:** 12.000$ – 22.000$ *(zufällig)*\n**📍 Ort:** Shops in Los Angeles\n**👥 Spieler:** 2–3 Personen empfohlen\n**👮 Beamte:** Mindestens 2 Officers im Dienst\n**⏱️ Dauer:** 15 Minuten\n\n**📋 Ablauf**\n1. Raub In-Game mit 2–3 Spielern starten\n2. Foto als Beweis in <#1490894311389134858> senden\n3. Beute wird automatisch nach 15 Min. ausgezahlt\n4. Team bestätigt Erfolg oder Fehlschlag')
-        .setFooter({text:'Paradise City Roleplay • Raubüberfälle'}).setTimestamp()]});
+        .setFooter({text:'Cryptik Roleplay • Raubüberfälle'}).setTimestamp()]});
       d._infoEmbedSent=true; _saveShop(d);
     } catch(e){console.error('[SHOP-INFO]',e.message);}
   });
@@ -5805,17 +5805,17 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
     const d=_loadShop(), entry=d[msg.author.id]||{}, now=Date.now();
     if (entry.active) {
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Shop-Raub').setDescription('Du hast bereits einen **aktiven Shop-Raub**! Warte bis dieser abgeschlossen ist.').setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('⚠️ Aktiver Shop-Raub').setDescription('Du hast bereits einen **aktiven Shop-Raub**! Warte bis dieser abgeschlossen ist.').setFooter({text:'Cryptik Roleplay'})]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
     if (entry.cooldownUntil&&now<entry.cooldownUntil) {
       const rem=Math.ceil((entry.cooldownUntil-now)/60000),h=Math.floor(rem/60),m=rem%60;
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen Shop-Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`).setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen Shop-Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`).setFooter({text:'Cryptik Roleplay'})]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
     const onDuty=_getOnDuty();
     if (onDuty<2) {
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **2 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`).setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **2 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`).setFooter({text:'Cryptik Roleplay'})]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
 
@@ -5826,11 +5826,11 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
     try{const n=_loadRaubNotrufe();n.push({id:now+'s',ts:now,type:'shop_raub',title:'🛍️ Shop-Raubüberfall',caller:msg.author.username,userId:msg.author.id,location:'Shops in Los Angeles',description:`Shop-Raub von **${msg.author.username}** (15 Minuten)`,status:'offen'});_saveRaubNotrufe(n);}catch(e){console.error('[SHOP-NOTRUF]',e.message);}
 
-    sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE65100).setTitle('🛍️ Shop-Raub gestartet')
+    sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE8002D).setTitle('🛍️ Shop-Raub gestartet')
       .addFields({name:'👤 Spieler',value:`<@${msg.author.id}> (${msg.author.username})`,inline:true},{name:'⏱️ Dauer',value:'15 Minuten',inline:true},{name:'📸 Beweis',value:msg.attachments.first()?.url||'-',inline:false})
-      .setTimestamp().setFooter({text:'Paradise City Roleplay • Shop-Raub Log'})).catch(()=>{});
+      .setTimestamp().setFooter({text:'Cryptik Roleplay • Shop-Raub Log'})).catch(()=>{});
 
-    try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Shop-Raub gestartet!').setDescription('Dein Shop-Raub wurde gestartet!\n\n**Dauer:** 15 Minuten\n**Beute:** 12.000 – 22.000 $ Schwarzgeld\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.').setFooter({text:'Paradise City Roleplay • Shop-Raub'}).setTimestamp()]});}catch{}
+    try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('✅ Shop-Raub gestartet!').setDescription('Dein Shop-Raub wurde gestartet!\n\n**Dauer:** 15 Minuten\n**Beute:** 12.000 – 22.000 $ Schwarzgeld\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.').setFooter({text:'Cryptik Roleplay • Shop-Raub'}).setTimestamp()]});}catch{}
     await msg.delete().catch(()=>{});
 
     const uid=msg.author.id;
@@ -5840,10 +5840,10 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
       const k=_getKonto(uid); k.schwarz=(k.schwarz||0)+beute; _setKonto(uid,k);
       cur[uid].active=null; cur[uid].cooldownUntil=Date.now()+24*60*60*1000; _saveShop(cur);
       try{const n=_loadRaubNotrufe(),x=n.find(y=>y.userId===uid&&y.type==='shop_raub'&&y.status==='offen');if(x){x.status='geschlossen';_saveRaubNotrufe(n);}}catch{}
-      sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0x22c55e).setTitle('🛍️ Shop-Raub abgeschlossen')
+      sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE8002D).setTitle('🛍️ Shop-Raub abgeschlossen')
         .addFields({name:'👤 Spieler',value:`<@${uid}>`,inline:true},{name:'💰 Beute',value:`${beute.toLocaleString('de-CH')} $ Schwarzgeld`,inline:true})
-        .setTimestamp().setFooter({text:'Paradise City Roleplay • Shop-Raub Log'})).catch(()=>{});
-      try{const u=await client.users.fetch(uid).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('💰 Shop-Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.`).setFooter({text:'Paradise City Roleplay • Shop-Raub'}).setTimestamp()]});}}catch{}
+        .setTimestamp().setFooter({text:'Cryptik Roleplay • Shop-Raub Log'})).catch(()=>{});
+      try{const u=await client.users.fetch(uid).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle('💰 Shop-Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.`).setFooter({text:'Cryptik Roleplay • Shop-Raub'}).setTimestamp()]});}}catch{}
     },SHOP_DUR_MS);
   });
 }
@@ -5867,19 +5867,19 @@ client.on('interactionCreate', async (interaction) => {
     if (!e.active) return interaction.reply({content:`❌ <@${target.id}> hat keinen aktiven ${typLabel}.`,ephemeral:true});
     d[target.id].active=null; _srf(d);
     try{const n=_loadRaubNotrufe(),x=n.find(y=>y.userId===target.id&&y.type===nType&&y.status==='offen');if(x){x.status='geschlossen';_saveRaubNotrufe(n);}}catch{}
-    try{const u=await client.users.fetch(target.id).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle(`❌ ${typLabel} fehlgeschlagen`).setDescription(`Dein ${typLabel} wurde als **fehlgeschlagen** gewertet.\nKein Cooldown — du kannst es erneut versuchen.`).setFooter({text:'Paradise City Roleplay'})]});}}catch{}
-    sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xff4400).setTitle(`${typ==='shop'?'🛍️':'🏧'} ${typLabel} fehlgeschlagen (Admin)`)
+    try{const u=await client.users.fetch(target.id).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE8002D).setTitle(`❌ ${typLabel} fehlgeschlagen`).setDescription(`Dein ${typLabel} wurde als **fehlgeschlagen** gewertet.\nKein Cooldown — du kannst es erneut versuchen.`).setFooter({text:'Cryptik Roleplay'})]});}}catch{}
+    sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE8002D).setTitle(`${typ==='shop'?'🛍️':'🏧'} ${typLabel} fehlgeschlagen (Admin)`)
       .addFields({name:'👤 Spieler',value:`<@${target.id}> (${target.username})`,inline:true},{name:'👮 Von',value:`<@${interaction.user.id}>`,inline:true})
-      .setTimestamp().setFooter({text:'Paradise City Roleplay • Raub Log'})).catch(()=>{});
+      .setTimestamp().setFooter({text:'Cryptik Roleplay • Raub Log'})).catch(()=>{});
     return interaction.reply({content:`✅ ${typLabel} von <@${target.id}> fehlgeschlagen markiert. Kein Cooldown.`,ephemeral:true});
   }
 
   if (interaction.commandName==='raub-cooldown') {
     const d=_lrf(); if(!d[target.id])d[target.id]={};
     d[target.id].cooldownUntil=0; d[target.id].active=null; _srf(d);
-    sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0x38bdf8).setTitle(`🔓 ${typLabel} Cooldown zurückgesetzt`)
+    sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE8002D).setTitle(`🔓 ${typLabel} Cooldown zurückgesetzt`)
       .addFields({name:'👤 Spieler',value:`<@${target.id}> (${target.username})`,inline:true},{name:'👮 Von',value:`<@${interaction.user.id}>`,inline:true})
-      .setTimestamp().setFooter({text:'Paradise City Roleplay • Raub Log'})).catch(()=>{});
+      .setTimestamp().setFooter({text:'Cryptik Roleplay • Raub Log'})).catch(()=>{});
     return interaction.reply({content:`✅ Cooldown von <@${target.id}> (${typLabel}) zurückgesetzt.`,ephemeral:true});
   }
 });
@@ -5935,10 +5935,10 @@ client.on('interactionCreate', async (interaction) => {
         ? Object.entries(inv).map(([k,v]) => `• **${k}** — ${v}x`).join('\n')
         : '_Inventar leer_';
       return interaction.reply({ embeds: [new EmbedBuilder()
-        .setColor(0xff4400)
+        .setColor(0xE8002D)
         .setTitle('❌ Item nicht gefunden / zu wenig')
         .setDescription(`Du hast nicht genug **${itemName}** im Inventar.\n\n**Dein Inventar:**\n${list}`)
-        .setFooter({ text: 'Paradise City Roleplay' })], ephemeral: true });
+        .setFooter({ text: 'Cryptik Roleplay' })], ephemeral: true });
     }
 
     // Item abziehen
@@ -5958,14 +5958,14 @@ client.on('interactionCreate', async (interaction) => {
     const row = new ActionRowBuilder().addComponents(btn);
 
     const embed = new EmbedBuilder()
-      .setColor(0x854d0e)
+      .setColor(0xE8002D)
       .setTitle('🎒 Items versteckt')
       .addFields(
         { name: '👤 Spieler',  value: `<@${interaction.user.id}>`,         inline: true },
         { name: '📦 Item',     value: `${foundKey} — **${menge}x**`,       inline: true },
         { name: '📍 Ort',      value: ort,                                  inline: false },
       )
-      .setFooter({ text: 'Paradise City Roleplay • Versteck-System' })
+      .setFooter({ text: 'Cryptik Roleplay • Versteck-System' })
       .setTimestamp();
 
     await interaction.reply({ embeds: [embed], components: [row] });
@@ -5985,12 +5985,12 @@ client.on('interactionCreate', async (interaction) => {
     };
     _saveVerstecke(vstecke);
 
-    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x854d0e).setTitle('🎒 Items versteckt')
+    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0xE8002D).setTitle('🎒 Items versteckt')
       .addFields(
         { name: '👤 Spieler', value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true },
         { name: '📦 Item',    value: `${foundKey} — ${menge}x`, inline: true },
         { name: '📍 Ort',     value: ort, inline: false }
-      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Versteck-System' })).catch(()=>{});
+      ).setTimestamp().setFooter({ text: 'Cryptik Roleplay • Versteck-System' })).catch(()=>{});
   });
 
   // ── Button: Items aus Versteck holen ────────────────────────────────────
@@ -6026,18 +6026,18 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.update({ components: [new ActionRowBuilder().addComponents(disabledBtn)] }).catch(()=>{});
 
     await interaction.followUp({ embeds: [new EmbedBuilder()
-      .setColor(0x22c55e)
+      .setColor(0xE8002D)
       .setTitle('✅ Items aus Versteck geholt')
       .setDescription(`**${v.item}** (${v.menge}x) wurde wieder in dein Inventar gelegt.\n**Ort war:** ${v.ort}`)
-      .setFooter({ text: 'Paradise City Roleplay • Versteck-System' })
+      .setFooter({ text: 'Cryptik Roleplay • Versteck-System' })
       .setTimestamp()], ephemeral: true });
 
-    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x22c55e).setTitle('📦 Versteck geleert')
+    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0xE8002D).setTitle('📦 Versteck geleert')
       .addFields(
         { name: '👤 Spieler', value: `<@${ownerId}> (${v.username})`, inline: true },
         { name: '📦 Item',    value: `${v.item} — ${v.menge}x`, inline: true },
         { name: '📍 Ort',     value: v.ort, inline: false }
-      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Versteck-System' })).catch(()=>{});
+      ).setTimestamp().setFooter({ text: 'Cryptik Roleplay • Versteck-System' })).catch(()=>{});
   });
 
   // ── /fesseln ────────────────────────────────────────────────────────────
@@ -6062,10 +6062,10 @@ client.on('interactionCreate', async (interaction) => {
         ? Object.entries(inv).map(([k,v]) => `• **${k}** — ${v}x`).join('\n')
         : '_Inventar leer_';
       return interaction.reply({ embeds: [new EmbedBuilder()
-        .setColor(0xff4400)
+        .setColor(0xE8002D)
         .setTitle('❌ Kein Kabelbinder')
         .setDescription(`Du hast keinen **Kabelbinder** im Inventar. Kaufe einen im 🔨〢𝘉𝘢𝘶𝘮𝘢𝘳𝘬𝘵.\n\n**Dein Inventar:**\n${list}`)
-        .setFooter({ text: 'Paradise City Roleplay' })], ephemeral: true });
+        .setFooter({ text: 'Cryptik Roleplay' })], ephemeral: true });
     }
 
     // Kabelbinder abziehen
@@ -6085,14 +6085,14 @@ client.on('interactionCreate', async (interaction) => {
     const row = new ActionRowBuilder().addComponents(btn);
 
     const embed = new EmbedBuilder()
-      .setColor(0x7c3aed)
+      .setColor(0xE8002D)
       .setTitle('🔗 Spieler gefesselt')
       .addFields(
         { name: '🔒 Gefesselt von', value: `<@${interaction.user.id}>`, inline: true },
         { name: '👤 Gefesselter',   value: `<@${target.id}>`,           inline: true },
         { name: '🪢 Werkzeug',      value: kbKey,                        inline: false },
       )
-      .setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })
+      .setFooter({ text: 'Cryptik Roleplay • Fesselungs-System' })
       .setTimestamp();
 
     await interaction.reply({ embeds: [embed], components: [row] });
@@ -6112,12 +6112,12 @@ client.on('interactionCreate', async (interaction) => {
     };
     _saveFesselungen(fesselungen);
 
-    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x7c3aed).setTitle('🔗 Spieler gefesselt')
+    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0xE8002D).setTitle('🔗 Spieler gefesselt')
       .addFields(
         { name: '🔒 Von',          value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true },
         { name: '👤 Gefesselter',  value: `<@${target.id}> (${target.username})`,                     inline: true },
         { name: '🪢 Kabelbinder',  value: kbKey, inline: false }
-      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })).catch(()=>{});
+      ).setTimestamp().setFooter({ text: 'Cryptik Roleplay • Fesselungs-System' })).catch(()=>{});
   });
 
   // ── Button: Entfesseln ───────────────────────────────────────────────────
@@ -6157,18 +6157,18 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.update({ components: [new ActionRowBuilder().addComponents(disabledBtn)] }).catch(()=>{});
 
     await interaction.followUp({ embeds: [new EmbedBuilder()
-      .setColor(0x22c55e)
+      .setColor(0xE8002D)
       .setTitle('✅ Spieler entfesselt')
       .setDescription(`<@${targetId}> wurde entfesselt.\n**${f.kbKey}** wurde zurück in dein Inventar gelegt.`)
-      .setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })
+      .setFooter({ text: 'Cryptik Roleplay • Fesselungs-System' })
       .setTimestamp()], ephemeral: true });
 
-    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x22c55e).setTitle('✂️ Spieler entfesselt')
+    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0xE8002D).setTitle('✂️ Spieler entfesselt')
       .addFields(
         { name: '🔓 Entfesselt von', value: `<@${fesselerId}> (${f.fesselerName})`, inline: true },
         { name: '👤 Spieler',        value: `<@${targetId}> (${f.targetName})`,      inline: true },
         { name: '🪢 Kabelbinder zurück', value: f.kbKey, inline: false }
-      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })).catch(()=>{});
+      ).setTimestamp().setFooter({ text: 'Cryptik Roleplay • Fesselungs-System' })).catch(()=>{});
   });
 }
 // ─── END VERSTECKEN / FESSELN SYSTEM ─────────────────────────────────────────
