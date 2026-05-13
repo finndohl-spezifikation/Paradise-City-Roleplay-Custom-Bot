@@ -2496,31 +2496,8 @@ ${autoSel}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-height:100vh;
   display:flex;align-items:center;justify-content:center;overflow:hidden}
-
-/* ── Blaulicht-Overlays ── */
-.pl,.pr{position:fixed;top:0;height:100%;width:50%;pointer-events:none;z-index:50;opacity:0;transition:opacity .04s}
-.pl{left:0}.pr{right:0}
-
-/* ── Blitz-Strahl ── */
-.blitz{position:fixed;top:0;left:-30%;height:100%;width:22%;
-  background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,.92) 45%,rgba(200,220,255,.7) 55%,transparent 100%);
-  transform:skewX(-12deg);pointer-events:none;z-index:60;opacity:0}
-@keyframes blitzSweep{
-  0%  {left:-30%;opacity:0}
-  8%  {opacity:1}
-  90% {opacity:.5}
-  100%{left:115%;opacity:0}
-}
-
-/* ── Body-Blitz-Flash ── */
-@keyframes bodyFlash{
-  0%,100%{background:#030b1a}
-  50%{background:#0a1540}
-}
-
-/* ── Haupt-Splash ── */
 .splash{text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px;
-  animation:fadeInUp .7s cubic-bezier(.16,1,.3,1) both;position:relative;z-index:10}
+  animation:fadeInUp .7s cubic-bezier(.16,1,.3,1) both}
 @keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
 .logo-ring{position:relative;width:140px;height:140px}
 .logo-ring img{width:140px;height:140px;border-radius:50%;object-fit:cover;
@@ -2540,26 +2517,29 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
 @keyframes glowPulse{
   0%,100%{box-shadow:0 0 0 0 rgba(31,81,255,0)}
   50%{box-shadow:0 0 0 18px rgba(31,81,255,.25),0 0 40px rgba(31,81,255,.4)}}
-.dept{font-size:.65rem;letter-spacing:4px;color:#4a6a9a;text-transform:uppercase;animation:fadeInUp .5s .5s both}
+.dept{font-size:.65rem;letter-spacing:4px;color:#4a6a9a;text-transform:uppercase;
+  animation:fadeInUp .5s .5s both}
 .welcome{font-size:1.5rem;font-weight:800;color:#ffd700;letter-spacing:2px;
   animation:fadeInUp .5s .7s both;text-shadow:0 0 20px rgba(255,215,0,.4)}
-.rank-badge{display:inline-block;padding:5px 18px;border-radius:20px;font-size:.78rem;font-weight:700;
-  letter-spacing:1px;animation:fadeInUp .5s .9s both;
+.rank-badge{display:inline-block;padding:5px 18px;border-radius:20px;font-size:.78rem;
+  font-weight:700;letter-spacing:1px;animation:fadeInUp .5s .9s both;
   background:rgba(0,0,0,.4);border:1px solid ${eInfo.color};color:${eInfo.color}}
-.line{width:160px;height:1px;background:linear-gradient(90deg,transparent,#1F51FF,transparent);animation:fadeInUp .5s 1.1s both}
+.line{width:160px;height:1px;
+  background:linear-gradient(90deg,transparent,#1F51FF,transparent);
+  animation:fadeInUp .5s 1.1s both}
 .msg{font-size:.75rem;color:#4a6a9a;letter-spacing:.05em;animation:fadeInUp .5s 1.3s both}
-.bar-wrap{width:220px;height:3px;background:#0a1a3a;border-radius:2px;overflow:hidden;animation:fadeInUp .3s 1.5s both}
+.bar-wrap{width:220px;height:3px;background:#0a1a3a;border-radius:2px;overflow:hidden;
+  animation:fadeInUp .3s 1.5s both}
 .bar{height:100%;width:0;background:linear-gradient(90deg,#1F51FF,#ffd700);border-radius:2px;
   animation:barFill 2s 1.6s cubic-bezier(.4,0,.2,1) both}
 @keyframes barFill{from{width:0}to{width:100%}}
 </style>
 </head><body>
-<div class="pl" id="pl"></div>
-<div class="pr" id="pr"></div>
-<div class="blitz" id="blitz"></div>
 <div class="splash">
   <div class="logo-ring">
-    <div class="ring"></div><div class="ring2"></div><div class="glow"></div>
+    <div class="ring"></div>
+    <div class="ring2"></div>
+    <div class="glow"></div>
     <img src="/lapd/logo.png" alt="LAPD">
   </div>
   <div class="dept">LOS ANGELES POLICE DEPARTMENT</div>
@@ -2569,42 +2549,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
   <div class="msg">System wird geladen&hellip;</div>
   <div class="bar-wrap"><div class="bar"></div></div>
 </div>
-<script>
-// ── Blaulicht-Sequenz (startet bei 1.2s, läuft 2s) ──────────────────────
-var pl=document.getElementById('pl');
-var pr=document.getElementById('pr');
-var blitz=document.getElementById('blitz');
-var BLUE='rgba(20,90,255,0.42)';
-var RED='rgba(220,30,30,0.42)';
-
-// Abwechselnde Blaulicht-Blitze
-var flashes=0;
-var leftBlue=true;
-function doFlash(){
-  if(flashes>=12){
-    pl.style.opacity='0';pr.style.opacity='0';
-    return;
-  }
-  pl.style.background=leftBlue?BLUE:RED;
-  pr.style.background=leftBlue?RED:BLUE;
-  pl.style.opacity='1';pr.style.opacity='1';
-  leftBlue=!leftBlue;
-  flashes++;
-  setTimeout(function(){
-    pl.style.opacity='0';pr.style.opacity='0';
-    setTimeout(doFlash,55);
-  },130);
-}
-setTimeout(doFlash,1200);
-
-// ── Blitz-Strahl kurz vor dem Redirect (bei 2.7s) ────────────────────────
-setTimeout(function(){
-  blitz.style.animation='blitzSweep 0.55s ease-out both';
-},2700);
-
-// ── Redirect ──────────────────────────────────────────────────────────────
-setTimeout(function(){window.location='/lapd/dashboard?tab=start';},3400);
-</script>
+<script>setTimeout(function(){window.location='/lapd/dashboard?tab=start';},3400);</script>
 </body></html>`);
   });
 
