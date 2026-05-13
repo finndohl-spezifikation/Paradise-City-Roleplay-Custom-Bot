@@ -5713,7 +5713,8 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
     if(hasS) opts.push({label:'💣 Sprengstoff (5 Min.)',description:'Vom Schwarzmarkt',value:'sprengstoff'});
     const row=new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId(`atm_tool:${msg.author.id}`).setPlaceholder('Werkzeug auswählen').addOptions(opts));
     try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE65100).setTitle('🏧 ATM-Raub — Werkzeug auswählen').setDescription('Wähle dein Werkzeug. Es wird sofort aus dem Inventar entfernt.').setFooter({text:'Paradise City Roleplay • ATM-Raub'})],components:[row]});}
-    catch{await msg.delete().catch(()=>{});}
+    catch{}
+    await msg.delete().catch(()=>{});
   });
 
   // Werkzeug-Auswahl DM
@@ -5815,6 +5816,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
       .setTimestamp().setFooter({text:'Paradise City Roleplay • Shop-Raub Log'})).catch(()=>{});
 
     try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Shop-Raub gestartet!').setDescription('Dein Shop-Raub wurde gestartet!\n\n**Dauer:** 15 Minuten\n**Beute:** 12.000 – 22.000 $ Schwarzgeld\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.').setFooter({text:'Paradise City Roleplay • Shop-Raub'}).setTimestamp()]});}catch{}
+    await msg.delete().catch(()=>{});
 
     const uid=msg.author.id;
     setTimeout(async()=>{
