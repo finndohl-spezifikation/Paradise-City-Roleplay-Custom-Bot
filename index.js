@@ -902,44 +902,49 @@ async function updateLapdTeamOverview() {
 client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
   client.user.setPresence({ activities: [{ name: 'Cryptik Roleplay PS5', type: ActivityType.Playing }], status: 'online' });
-  // ─── GLOBAL EMBED RESEND (Rebranding) ────────────────────────────────────
+  // ─── GLOBAL EMBED RESEND (Rebranding v2) ────────────────────────────────────
   {
-    const EMBED_RESEND_VER = 'v_cryptik_1';
+    const EMBED_RESEND_VER = 'v_cryptik_2';
     const setup = loadSetup();
     if (setup.globalEmbedVersion !== EMBED_RESEND_VER) {
-      console.log('[RESEND] Neues Embed-Branding erkannt — lösche alte Embeds und sende neu...');
+      console.log('[RESEND] Embed-Resend erkannt — lösche alle Bot-Nachrichten und sende neu...');
 
-      // Alle Kanäle mit einmalig gesendeten Embeds
+      // ALLE Kanäle mit einmalig gesendeten Embeds (inkl. Button-Panels)
       const STATIC_CHANNELS = [
-        '1490878156582686853', // Einreise
+        '1490878156582686853', // Einreise (Link-Button)
         '1490878159032422433', // Startpunkt
         '1490878159804174470', // Starterpaket
-        '1490882546144383156', // Regelwerk 1+2
+        '1490882546144383156', // Regelwerk 1 + 2
         '1490882548266696849', // Fraktionsregelwerk
         '1490882549499564184', // SafeZones
+        '1490882567690518579', // Ping-Rollen (Select-Menu)
+        '1490885002030874775', // Ticket-Panel (Select-Menu)
+        '1490889784753782784', // Rubbellos (Button)
+        '1490890346668888194', // Lohnliste
+        '1490890348254200049', // Lohnbüro
+        '1490890349382734044', // Banking
+        '1492314171373649983', // Rechnungen
         '1490894308088352961', // ATM-Raub Info
         '1490894310118392012', // Shop-Raub Info
         FRAK_OVERVIEW_CH,      // Frak-Übersicht
         TEAM_OVERVIEW_CH,      // Team-Übersicht
         LAPD_TEAM_CH,          // LAPD-Team
+        LAPD_TICKET_PANEL_CH,  // LAPD Ticket-Panel (Select-Menu)
       ];
 
       for (const chId of STATIC_CHANNELS) {
         try {
           const ch = await client.channels.fetch(chId).catch(() => null);
           if (!ch || !ch.messages) continue;
-          // Bis zu 100 Nachrichten holen und Bot-Nachrichten löschen
           const msgs = await ch.messages.fetch({ limit: 100 }).catch(() => null);
           if (!msgs) continue;
           const botMsgs = msgs.filter(m => m.author.id === client.user.id);
-          for (const [, m] of botMsgs) {
-            await m.delete().catch(() => {});
-          }
+          for (const [, m] of botMsgs) { await m.delete().catch(() => {}); }
           console.log(`[RESEND] ${botMsgs.size} Bot-Nachricht(en) in ${chId} gelöscht.`);
         } catch (e) { console.error('[RESEND] Fehler in', chId, e.message); }
       }
 
-      // Alle Setup-Flags löschen (erzwingt Neu-Senden)
+      // Alle Setup-Flags löschen → erzwingt vollständiges Neu-Senden mit Buttons
       delete setup.einreiseEmbedV4Sent;
       delete setup.startpunktEmbedSent;
       delete setup.starterpaketEmbedSent;
@@ -947,6 +952,10 @@ client.once('ready', async () => {
       delete setup.regelwerkEmbed2SentV2;
       delete setup.fraktionsregelwerkEmbedV4;
       delete setup.safeZonesEmbedSent;
+      delete setup.ticketPanelSent;
+      delete setup.pingRollenEmbedSent;
+      delete setup.rubbellosEmbedSent2;
+      delete setup.lapdTicketPanelSent;
       delete setup.frakOverviewMsgId;
       delete setup.teamOverviewMsgId;
       delete setup.lapdTeamMsgId;
@@ -955,17 +964,30 @@ client.once('ready', async () => {
       delete setup.bankingMsgId;
       delete setup.rechnungenMsgId;
 
-      // ATM + Shop Info-Embed Flags in den Raub-Dateien zurücksetzen
+      // ATM + Shop Info-Embed Flags zurücksetzen
       try {
         const atmFile  = path.join(DATA_DIR, 'atm_raub.json');
         const shopFile = path.join(DATA_DIR, 'shop_raub.json');
-        if (fs.existsSync(atmFile))  { const d = JSON.parse(fs.readFileSync(atmFile,'utf8')); delete d._infoEmbedSent; fs.writeFileSync(atmFile, JSON.stringify(d,null,2),'utf8'); }
-        if (fs.existsSync(shopFile)) { const d = JSON.parse(fs.readFileSync(shopFile,'utf8')); delete d._infoEmbedSent; fs.writeFileSync(shopFile,JSON.stringify(d,null,2),'utf8'); }
+        if (fs.existsSync(atmFile))  { const d = JSON.parse(fs.readFileSync(atmFile,'utf8'));  delete d._infoEmbedSent; fs.writeFileSync(atmFile,  JSON.stringify(d,null,2),'utf8'); }
+        if (fs.existsSync(shopFile)) { const d = JSON.parse(fs.readFileSync(shopFile,'utf8')); delete d._infoEmbedSent; fs.writeFileSync(shopFile, JSON.stringify(d,null,2),'utf8'); }
       } catch(e) { console.error('[RESEND] Raub-Flags:', e.message); }
+
+      // Shop-Embeds (alle Shops neu senden)
+      for (const shopId of Object.keys(SHOP_CHANNELS)) {
+        try {
+          const sCh = await client.channels.fetch(shopId).catch(() => null);
+          if (!sCh) continue;
+          const sMsgs = await sCh.messages.fetch({ limit: 100 }).catch(() => null);
+          if (sMsgs) {
+            const bMsgs = sMsgs.filter(m => m.author.id === client.user.id);
+            for (const [, m] of bMsgs) { await m.delete().catch(() => {}); }
+          }
+        } catch(e) { console.error('[RESEND] Shop', shopId, e.message); }
+      }
 
       setup.globalEmbedVersion = EMBED_RESEND_VER;
       saveSetup(setup);
-      console.log('[RESEND] Alle alten Embeds gelöscht und Flags zurückgesetzt. Embeds werden neu gesendet...');
+      console.log('[RESEND] Fertig. Alle Embeds + Button-Panels werden neu gesendet...');
     }
   }
   // ─── END GLOBAL EMBED RESEND ─────────────────────────────────────────────
