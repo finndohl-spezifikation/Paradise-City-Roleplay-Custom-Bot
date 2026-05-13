@@ -5705,18 +5705,6 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
-    // Server-Log: Bild wurde gesendet
-    sendLog(CH.SERVER_LOG, new EmbedBuilder()
-      .setColor(0xE65100)
-      .setTitle('🏧 ATM-Raub: Foto eingereicht')
-      .addFields(
-        { name: '👤 Spieler',  value: `<@${msg.author.id}> (${msg.author.username})`, inline: true },
-        { name: '📸 Beweis',   value: msg.attachments.first()?.url || 'Kein Bild', inline: false }
-      )
-      .setTimestamp()
-      .setFooter({ text: 'Paradise City Roleplay • ATM-Raub Log' })
-    ).catch(()=>{});
-
     const data = loadAtmRaub();
     const entry = data[msg.author.id] || {};
     const now = Date.now();
@@ -5795,6 +5783,18 @@ client.on('interactionCreate', async (interaction) => {
       await msg.delete().catch(()=>{});
       return;
     }
+
+    // Server-Log: Foto akzeptiert, Raub wird gestartet
+    sendLog(CH.SERVER_LOG, new EmbedBuilder()
+      .setColor(0xE65100)
+      .setTitle('🏧 ATM-Raub: Raub eingeleitet')
+      .addFields(
+        { name: '👤 Spieler', value: `<@${msg.author.id}> (${msg.author.username})`, inline: true },
+        { name: '📸 Beweis',  value: msg.attachments.first()?.url || 'Kein Bild', inline: false }
+      )
+      .setTimestamp()
+      .setFooter({ text: 'Paradise City Roleplay • ATM-Raub Log' })
+    ).catch(()=>{});
 
     // DM senden mit Werkzeug-Auswahl
     const options = [];
