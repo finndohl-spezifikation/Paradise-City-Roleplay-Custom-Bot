@@ -2391,11 +2391,16 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     let hasError = false;
     rows.forEach(row => {
       const name = row.querySelector('.item-name').value.trim();
-      const preis = parseInt(row.querySelector('.item-price').value);
-      if (!name || !preis || preis < 1) { hasError = true; return; }
+      const rawPreis = row.querySelector('.item-price').value.replace(/[\s.]/g, '').replace(',', '.');
+      const preis = parseInt(rawPreis);
+      // Komplett leere Zeile → überspringen
+      if (!name && (rawPreis === '' || isNaN(preis))) return;
+      // Teilweise ausgefüllt → Fehler
+      if (!name || isNaN(preis) || preis < 1) { hasError = true; return; }
       items.push({ name, preis });
     });
-    if (hasError || items.length === 0) return showToast('Bitte alle Felder korrekt ausfüllen.', 'error');
+    if (hasError) return showToast('Bitte alle Felder korrekt ausfüllen (Name + Preis).', 'error');
+    if (items.length === 0) return showToast('Bitte mindestens ein Item ausfüllen.', 'error');
 
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
