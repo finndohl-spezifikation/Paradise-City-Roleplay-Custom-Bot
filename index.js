@@ -28,6 +28,10 @@ const crypto = require('crypto');
 
 // ─── Datenspeicherung ─────────────────────────────────────────────────────────
 const DATA_DIR      = path.join(__dirname, 'data');
+let _shopCb = {};
+const SHOP_MGR_TOK_FILE = path.join(DATA_DIR, 'shop_mgr_tokens.json');
+function loadShopMgrToks() { try { return JSON.parse(fs.readFileSync(SHOP_MGR_TOK_FILE,'utf8')); } catch { return {}; } }
+function saveShopMgrToks(d) { fs.writeFileSync(SHOP_MGR_TOK_FILE, JSON.stringify(d,null,2),'utf8'); }
 const lapdTokens    = new Map(); // LAPD: token -> { memberId, uname, ranks, expires }
 const LOG_SHOP_CH  = '1490878131240829028';
 const LOG_MONEY_CH = '1490878138429997087';
@@ -427,7 +431,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       }
       // Not found → skip, never send new on restart
     }
-  
+  _shopCb = { updateShopEmbed, loadShops, saveShops, SHOP_META };
 
     const INV_FILE    = path.join(__dirname, 'data', 'inventar.json');
     const LAGER_FILE  = path.join(__dirname, 'data', 'lager.json');
@@ -1204,11 +1208,7 @@ client.once('ready', async () => {
     new SlashCommandBuilder().setName('teamshop').setDescription('Oeffnet den Team-Shop').toJSON(),
     new SlashCommandBuilder()
       .setName('shop-add')
-      .setDescription('Fuegt ein Item zu einem Shop hinzu')
-      .addStringOption(opt => opt.setName('shop').setDescription('Shop waehlen').setRequired(true)
-        .addChoices({name:'Kwik-E-Markt',value:'kwik'},{name:'Baumarkt',value:'baumarkt'},{name:'Angler Shop',value:'angler'},{name:'Schwarzmarkt',value:'schwarz'},{name:'Team-Shop',value:'team'}))
-      .addStringOption(opt => opt.setName('name').setDescription('Item-Name').setRequired(true))
-      .addIntegerOption(opt => opt.setName('preis').setDescription('Preis').setRequired(true).setMinValue(1))
+      .setDescription('Shop-Manager oeffnen und mehrere Items gleichzeitig hinzufuegen')
       .toJSON(),
     new SlashCommandBuilder()
       .setName('shop-edit')
@@ -4416,18 +4416,24 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.reply({ embeds: [buildTeamShopEmbed(items, 0)], components: [row], ephemeral: true });
       }
       if (commandName === 'shop-add') {
-        const shopId = interaction.options.getString('shop');
-        const name   = interaction.options.getString('name').trim();
-        const preis  = interaction.options.getInteger('preis');
-        const shops  = loadShops(); if (!shops[shopId]) shops[shopId] = [];
-        if (shops[shopId].find(i => i.name === name)) return interaction.reply({ content: '❌ **' + name + '** bereits im Shop.', ephemeral: true });
-        shops[shopId].push({ name, preis }); saveShops(shops);
-        await updateShopEmbed(shopId).catch(() => {});
-        sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE65100)
-          .setTitle('🏪 Shop-Log: Item hinzugefügt')
-          .addFields({ name:'Shop', value:SHOP_META[shopId]?.name||shopId, inline:true },{ name:'Item', value:name, inline:true },{ name:'Preis', value:`${preis.toLocaleString('de-DE')} €`, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
-          .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
-        return interaction.reply({ content: '✅ **' + name + '** (' + preis.toLocaleString('de-DE') + ' Euro) zu **' + (SHOP_META[shopId]?.name||shopId) + '** hinzugefügt.', ephemeral: true });
+        const tok = require('crypto').randomBytes(16).toString('hex');
+        const toks = loadShopMgrToks();
+        // Token 1h gültig
+        toks[tok] = { userId: interaction.user.id, userTag: interaction.user.tag, expiresAt: Date.now() + 3600000 };
+        // Alte Tokens aufräumen
+        for (const k of Object.keys(toks)) { if (toks[k].expiresAt < Date.now()) delete toks[k]; }
+        saveShopMgrToks(toks);
+        const _WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
+        return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
+          .setColor(0xE65100)
+          .setTitle('🏪 Shop-Manager')
+          .setDescription(`Öffne den Shop-Manager um mehrere Items auf einmal hinzuzufügen:
+
+🔗 **[Shop-Manager öffnen](${_WEBAPP}/shop-manager/${tok})**
+
+⏱️ *Link ist 1 Stunde gültig.*`)
+          .setFooter({ text: 'Paradise City Roleplay  •  Shop-Manager' })
+        ]});
       }
       if (commandName === 'shop-edit') {
         const shopId = interaction.options.getString('shop');
@@ -6253,7 +6259,7 @@ process.on('uncaughtException', (err) => {
 
 // ─── WEB SERVER ───────────────────────────────────────────────────────────────
 const _webMod = require('./web');
-_webMod(client, DATA_DIR, lapdTokens);
+_webMod(client, DATA_DIR, lapdTokens, _shopCb);
 
 // ─── LOGIN (mit Retry) ───────────────────────────────────────────────────────
 if (!process.env.DISCORD_TOKEN) {
