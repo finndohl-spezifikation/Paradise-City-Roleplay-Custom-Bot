@@ -904,7 +904,7 @@ client.once('ready', async () => {
   client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
   // ─── GLOBAL EMBED RESEND (Revert zu Paradise City) ───────────────────────
   {
-    const EMBED_RESEND_VER = 'v_paradise_1';
+    const EMBED_RESEND_VER = 'v_paradise_2';
     const setup = loadSetup();
     if (setup.globalEmbedVersion !== EMBED_RESEND_VER) {
       console.log('[RESEND] Paradise City Revert — lösche Cryptik-Embeds und sende neu...');
