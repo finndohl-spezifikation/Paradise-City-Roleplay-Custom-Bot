@@ -2490,6 +2490,10 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
 
     return res.json({ ok: true, count: added, skipped: skipped.length });
   });
+  // ─── AKTIEN SYSTEM ──────────────────────────────────────────────────────────
+  require('./aktien_web')(app, express, DATA_DIR);
+  // ─── END AKTIEN SYSTEM ────────────────────────────────────────────────────
+
   // ─── END SHOP-MANAGER ──────────────────────────────────────────────────────
   app.use((req,res,next)=>{
     if(!req.session.lapd){
