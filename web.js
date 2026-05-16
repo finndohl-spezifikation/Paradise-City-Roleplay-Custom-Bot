@@ -968,7 +968,7 @@ function buildInvalidLottoPage(msg) {
 <body><div class="box"><div class="ico">⛔</div><div class="h">Link ungültig oder abgelaufen</div><div class="p">${msg}</div></div></body></html>`;
 }
 
-module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map()) {
+module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(), shopCb = {}) {
   const app        = express();
   app.set('trust proxy', 1); // Railway / Nginx HTTPS-Proxy
   const CODES_FILE   = path.join(DATA_DIR, 'einreise_codes.json');
@@ -983,6 +983,12 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   if (!fs.existsSync(AUSWEIS_TOKEN_FILE)) fs.writeFileSync(AUSWEIS_TOKEN_FILE, '{}', 'utf8');
   function loadAusweisTokens()  { try { return JSON.parse(fs.readFileSync(AUSWEIS_TOKEN_FILE, 'utf8')); } catch { return {}; } }
   function saveAusweisTokens(d) { fs.writeFileSync(AUSWEIS_TOKEN_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+  const SHOP_MGR_TOK_FILE_W = path.join(DATA_DIR, 'shop_mgr_tokens.json');
+  function loadShopMgrToksW() { try { return JSON.parse(fs.readFileSync(SHOP_MGR_TOK_FILE_W,'utf8')); } catch { return {}; } }
+  function saveShopMgrToksW(d) { fs.writeFileSync(SHOP_MGR_TOK_FILE_W, JSON.stringify(d,null,2),'utf8'); }
+  const SHOPS_FILE_W = path.join(DATA_DIR, 'shops.json');
+  function loadShopsW() { try { return JSON.parse(fs.readFileSync(SHOPS_FILE_W,'utf8')); } catch { return {kwik:[],baumarkt:[],angler:[],schwarz:[],team:[]}; } }
+  function saveShopsW(d) { fs.writeFileSync(SHOPS_FILE_W, JSON.stringify(d,null,2),'utf8'); }
   function saveCodes(d)   { fs.writeFileSync(CODES_FILE,   JSON.stringify(d, null, 2), 'utf8'); }
   function loadAusweis()  { try { return JSON.parse(fs.readFileSync(AUSWEIS_FILE, 'utf8')); } catch { return {}; } }
   function saveAusweis(d) { fs.writeFileSync(AUSWEIS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
@@ -2244,6 +2250,242 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
   function loadSessions(){ try{return JSON.parse(fs.readFileSync(LAPD_SESS_FILE,'utf8'));}catch{return {};} }
   function saveSessions(d){ fs.writeFileSync(LAPD_SESS_FILE,JSON.stringify(d)); }
   function isLapdAuth(req){ return !!(req.session && req.session.lapd && req.session.lapd.userId); }
+
+  // ─── SHOP-MANAGER ──────────────────────────────────────────────────────────
+  app.get('/shop-manager/:token', (req, res) => {
+    const toks = loadShopMgrToksW();
+    const entry = toks[req.params.token];
+    if (!entry || entry.expiresAt < Date.now()) {
+      return res.status(403).send(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Abgelaufen</title>
+      <style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#111;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;}
+      .box{text-align:center;padding:40px;background:#1a1a1a;border-radius:12px;border:1px solid #333;}h1{color:#E65100;margin-bottom:12px;}p{color:#aaa;}</style></head>
+      <body><div class="box"><h1>❌ Link abgelaufen</h1><p>Bitte benutze /shop-add erneut im Discord.</p></div></body></html>`);
+    }
+    const SHOP_META_W = {
+      kwik:     { name: 'Kwik-E-Markt', emoji: '🏪', color: '#F4A400' },
+      baumarkt: { name: 'Baumarkt',     emoji: '🔨', color: '#A0522D' },
+      angler:   { name: 'Angler Shop',  emoji: '🎣', color: '#006994' },
+      schwarz:  { name: 'Schwarzmarkt', emoji: '🌑', color: '#555' },
+      team:     { name: 'Team-Shop',    emoji: '⭐', color: '#E65100' },
+    };
+    const shopCards = Object.entries(SHOP_META_W).map(([id, m]) =>
+      `<div class="shop-card" data-shop="${id}" onclick="selectShop('${id}')" style="--shop-color:${m.color}">
+        <span class="shop-emoji">${m.emoji}</span>
+        <span class="shop-name">${m.name}</span>
+      </div>`
+    ).join('');
+    res.send(`<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop-Manager — Paradise City Roleplay</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; padding: 24px 16px; }
+    .container { max-width: 680px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 32px; }
+    .header h1 { font-size: 1.8rem; color: #E65100; margin-bottom: 6px; }
+    .header p { color: #888; font-size: 0.9rem; }
+    .section-label { font-size: 0.75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #666; margin-bottom: 10px; }
+    /* Shop Selector */
+    .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-bottom: 28px; }
+    .shop-card { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 10px; padding: 14px 10px; cursor: pointer; text-align: center; transition: border-color .15s, transform .1s; user-select: none; }
+    .shop-card:hover { border-color: #444; transform: translateY(-2px); }
+    .shop-card.selected { border-color: var(--shop-color, #E65100); background: #1e1e1e; }
+    .shop-emoji { display: block; font-size: 1.8rem; margin-bottom: 6px; }
+    .shop-name { font-size: 0.78rem; color: #ccc; font-weight: 600; }
+    /* Items */
+    .items-section { background: #141414; border: 1px solid #2a2a2a; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .item-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .item-row input[type="text"] { flex: 2; background: #1f1f1f; border: 1px solid #333; border-radius: 8px; padding: 9px 12px; color: #e0e0e0; font-size: 0.9rem; outline: none; transition: border-color .15s; }
+    .item-row input[type="number"] { flex: 1; background: #1f1f1f; border: 1px solid #333; border-radius: 8px; padding: 9px 12px; color: #e0e0e0; font-size: 0.9rem; outline: none; transition: border-color .15s; }
+    .item-row input:focus { border-color: #E65100; }
+    .remove-btn { background: none; border: 1px solid #333; border-radius: 8px; color: #666; cursor: pointer; padding: 9px 12px; font-size: 1rem; transition: color .15s, border-color .15s; flex-shrink: 0; }
+    .remove-btn:hover { color: #e04040; border-color: #e04040; }
+    .add-row-btn { background: none; border: 1px dashed #333; border-radius: 8px; color: #666; cursor: pointer; padding: 9px 16px; font-size: 0.85rem; width: 100%; margin-top: 4px; transition: color .15s, border-color .15s; }
+    .add-row-btn:hover { color: #E65100; border-color: #E65100; }
+    .col-labels { display: flex; gap: 10px; margin-bottom: 6px; font-size: 0.72rem; color: #555; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+    .col-labels .c1 { flex: 2; padding-left: 12px; }
+    .col-labels .c2 { flex: 1; padding-left: 12px; }
+    .col-labels .c3 { width: 44px; flex-shrink: 0; }
+    /* Submit */
+    .submit-btn { width: 100%; padding: 14px; background: #E65100; color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background .15s, opacity .15s; }
+    .submit-btn:hover { background: #bf4500; }
+    .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+    /* Toast */
+    .toast { position: fixed; top: 20px; right: 20px; background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 14px 20px; font-size: 0.9rem; max-width: 320px; z-index: 999; opacity: 0; transform: translateY(-10px); transition: opacity .2s, transform .2s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { border-color: #22c55e; color: #22c55e; }
+    .toast.error { border-color: #e04040; color: #e04040; }
+    .no-shop { text-align: center; color: #555; font-size: 0.9rem; padding: 30px 0; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🏪 Shop-Manager</h1>
+    <p>Wähle einen Shop und füge mehrere Items gleichzeitig hinzu</p>
+  </div>
+
+  <div class="section-label">Shop auswählen</div>
+  <div class="shop-grid">${shopCards}</div>
+
+  <div class="items-section" id="itemsSection">
+    <div class="no-shop" id="noShopHint">← Zuerst einen Shop auswählen</div>
+    <div id="itemsContainer" style="display:none">
+      <div class="col-labels"><span class="c1">Item-Name</span><span class="c2">Preis ($)</span><span class="c3"></span></div>
+      <div id="itemRows"></div>
+      <button class="add-row-btn" onclick="addRow()">+ Zeile hinzufügen</button>
+    </div>
+  </div>
+
+  <button class="submit-btn" id="submitBtn" onclick="submitItems()" disabled>Items speichern</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  let selectedShop = null;
+  const TOKEN = '${req.params.token}';
+  let rowId = 0;
+
+  function selectShop(shopId) {
+    document.querySelectorAll('.shop-card').forEach(c => c.classList.remove('selected'));
+    document.querySelector('[data-shop="' + shopId + '"]').classList.add('selected');
+    selectedShop = shopId;
+    document.getElementById('noShopHint').style.display = 'none';
+    document.getElementById('itemsContainer').style.display = '';
+    document.getElementById('submitBtn').disabled = false;
+    if (document.getElementById('itemRows').children.length === 0) addRow();
+  }
+
+  function addRow() {
+    const id = rowId++;
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.id = 'row-' + id;
+    row.innerHTML =
+      '<input type="text" placeholder="Item-Name" class="item-name" />' +
+      '<input type="number" placeholder="Preis" min="1" class="item-price" />' +
+      '<button class="remove-btn" onclick="removeRow(' + id + ')">✕</button>';
+    document.getElementById('itemRows').appendChild(row);
+    row.querySelector('.item-name').focus();
+  }
+
+  function removeRow(id) {
+    const row = document.getElementById('row-' + id);
+    if (row) row.remove();
+  }
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + type + ' show';
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  async function submitItems() {
+    if (!selectedShop) return showToast('Bitte zuerst einen Shop auswählen.', 'error');
+    const rows = document.querySelectorAll('#itemRows .item-row');
+    const items = [];
+    let hasError = false;
+    rows.forEach(row => {
+      const name = row.querySelector('.item-name').value.trim();
+      const preis = parseInt(row.querySelector('.item-price').value);
+      if (!name || !preis || preis < 1) { hasError = true; return; }
+      items.push({ name, preis });
+    });
+    if (hasError || items.length === 0) return showToast('Bitte alle Felder korrekt ausfüllen.', 'error');
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Wird gespeichert...';
+
+    try {
+      const res = await fetch('/api/shop-manager', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: TOKEN, shopId: selectedShop, items })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast('✅ ' + data.count + ' Item(s) gespeichert!', 'success');
+        document.getElementById('itemRows').innerHTML = '';
+        addRow();
+      } else {
+        showToast('❌ ' + (data.error || 'Fehler'), 'error');
+      }
+    } catch(e) {
+      showToast('❌ Netzwerkfehler', 'error');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Items speichern';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') submitItems(); });
+</script>
+</body>
+</html>`);
+  });
+
+  app.post('/api/shop-manager', express.json(), async (req, res) => {
+    const { token, shopId, items } = req.body || {};
+    if (!token || !shopId || !Array.isArray(items) || items.length === 0)
+      return res.json({ ok: false, error: 'Ungültige Anfrage' });
+
+    const toks = loadShopMgrToksW();
+    const entry = toks[token];
+    if (!entry || entry.expiresAt < Date.now())
+      return res.json({ ok: false, error: 'Token abgelaufen' });
+
+    const VALID_SHOPS = ['kwik','baumarkt','angler','schwarz','team'];
+    if (!VALID_SHOPS.includes(shopId))
+      return res.json({ ok: false, error: 'Unbekannter Shop' });
+
+    const shops = loadShopsW();
+    if (!shops[shopId]) shops[shopId] = [];
+    let added = 0;
+    const skipped = [];
+    for (const { name, preis } of items) {
+      if (!name || typeof name !== 'string' || !Number.isInteger(preis) || preis < 1) continue;
+      const cleanName = name.trim().slice(0, 80);
+      if (shops[shopId].find(i => i.name.toLowerCase() === cleanName.toLowerCase())) {
+        skipped.push(cleanName); continue;
+      }
+      shops[shopId].push({ name: cleanName, preis }); added++;
+    }
+    saveShopsW(shops);
+
+    // Shop-Embed aktualisieren (falls Callback verfügbar)
+    if (typeof shopCb.updateShopEmbed === 'function') {
+      shopCb.updateShopEmbed(shopId).catch(() => {});
+    }
+
+    // Discord-Log
+    try {
+      const LOG_CH = '1490878131240829028';
+      const ch = await client.channels.fetch(LOG_CH).catch(() => null);
+      if (ch) {
+        const { EmbedBuilder } = require('discord.js');
+        const SHOP_NAMES = { kwik:'Kwik-E-Markt', baumarkt:'Baumarkt', angler:'Angler Shop', schwarz:'Schwarzmarkt', team:'Team-Shop' };
+        const itemList = items.slice(0,15).map(i => `**${i.name}** — ${Number(i.preis).toLocaleString('de-DE')} $`).join('\n');
+        await ch.send({ embeds: [new EmbedBuilder()
+          .setColor(0xE65100)
+          .setTitle('🏪 Shop-Manager: Items hinzugefügt')
+          .addFields(
+            { name: 'Shop',  value: SHOP_NAMES[shopId] || shopId, inline: true },
+            { name: 'Hinzugefügt', value: String(added), inline: true },
+            { name: 'Übersprungen', value: skipped.length > 0 ? skipped.join(', ') : '—', inline: true },
+            { name: 'Von', value: entry.userTag, inline: false },
+            { name: 'Items', value: itemList || '—', inline: false }
+          ).setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Shop-Manager' })
+        ]});
+      }
+    } catch(e) { console.error('[SHOP-MGR LOG]', e.message); }
+
+    return res.json({ ok: true, count: added, skipped: skipped.length });
+  });
+  // ─── END SHOP-MANAGER ──────────────────────────────────────────────────────
   app.use((req,res,next)=>{
     if(!req.session.lapd){
       const m=(req.headers.cookie||'').match(/lapd_sid=([a-f0-9]+)/);
