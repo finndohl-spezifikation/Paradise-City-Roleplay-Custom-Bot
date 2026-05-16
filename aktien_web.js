@@ -31,38 +31,45 @@ module.exports = function registerAktienRoutes(app, express, DATA_DIR) {
     return (!e || e.expiresAt < Date.now()) ? null : e;
   }
 
-  // ── GET /aktien?token=xxx ──────────────────────────────────────────────────
-  app.get('/aktien', (req, res) => {
-    const token = req.query.token || '';
-    const entry = validateToken(token);
-    if (!entry) {
-      return res.send('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Aktienmarkt</title>'
-        + '<style>body{background:#0d1117;color:#e0e0e0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px}</style>'
-        + '</head><body><div style="font-size:3em">\u{1F4CA}</div>'
-        + '<h2 style="color:#f85149">Link ung\u00fcltig oder abgelaufen</h2>'
-        + '<p style="color:#8b949e">Bitte generiere einen neuen Link mit <b>/aktien</b> in Discord.</p></body></html>');
-    }
-    const aktien   = loadAktienW();
-    const portfolio= loadPortfolioW();
-    const konto    = getKontoAK(entry.userId);
-    const balance  = konto.konto || 0;
-    const userPort = portfolio[entry.userId] || {};
-    const stocks   = STOCKS_META.map(s => {
+  function getStocks() {
+    const aktien = loadAktienW();
+    return STOCKS_META.map(s => {
       const d = aktien[s.id] || { price: s.startPrice, history: [] };
       return { id:s.id, name:s.name, emoji:s.emoji, colorHex:s.colorHex, price:d.price, history:d.history.slice(-24) };
     });
-    res.send(buildPage(token, stocks, userPort, balance));
+  }
+
+  // ── GET /aktien ────────────────────────────────────────────────────────────
+  // Public: no token required → read-only view
+  // Private: valid token → full trading UI
+  app.get('/aktien', (req, res) => {
+    const token = req.query.token || '';
+    const entry = validateToken(token);
+    const stocks = getStocks();
+
+    if (!entry) {
+      // Public read-only mode
+      return res.send(buildPage('', stocks, {}, 0, false));
+    }
+
+    // Authenticated trading mode
+    const portfolio = loadPortfolioW();
+    const konto     = getKontoAK(entry.userId);
+    return res.send(buildPage(token, stocks, portfolio[entry.userId] || {}, konto.konto || 0, true));
   });
 
   // ── GET /api/aktien/data ───────────────────────────────────────────────────
+  // Public: returns stock data without portfolio/balance
   app.get('/api/aktien/data', (req, res) => {
-    const entry = validateToken(req.query.token || '');
-    if (!entry) return res.json({ ok:false, error:'Ungültiger Token' });
-    const aktien   = loadAktienW();
-    const portfolio= loadPortfolioW();
-    const konto    = getKontoAK(entry.userId);
-    res.json({ ok:true, balance:konto.konto||0, portfolio:portfolio[entry.userId]||{},
-      stocks:STOCKS_META.map(s => { const d=aktien[s.id]||{price:s.startPrice,history:[]}; return {...s,price:d.price,history:d.history.slice(-24)}; }) });
+    const token = req.query.token || '';
+    const entry = validateToken(token);
+    const stocks = getStocks();
+    if (!entry) {
+      return res.json({ ok:true, loggedIn:false, stocks });
+    }
+    const portfolio = loadPortfolioW();
+    const konto     = getKontoAK(entry.userId);
+    return res.json({ ok:true, loggedIn:true, balance:konto.konto||0, portfolio:portfolio[entry.userId]||{}, stocks });
   });
 
   // ── POST /api/aktien/buy ───────────────────────────────────────────────────
@@ -70,7 +77,7 @@ module.exports = function registerAktienRoutes(app, express, DATA_DIR) {
     const { token, stockId, amount } = req.body || {};
     if (!token || !stockId || !amount || amount < 1) return res.json({ ok:false, error:'Ungültige Anfrage' });
     const entry = validateToken(token);
-    if (!entry) return res.json({ ok:false, error:'Token abgelaufen \u2014 bitte /aktien neu ausführen' });
+    if (!entry) return res.json({ ok:false, error:'Token abgelaufen \u2014 bitte öffne die Seite erneut über den Button im Discord-Channel.' });
     const stock = STOCKS_META.find(s => s.id === stockId);
     if (!stock) return res.json({ ok:false, error:'Unbekannte Aktie' });
     const aktien= loadAktienW();
@@ -92,7 +99,7 @@ module.exports = function registerAktienRoutes(app, express, DATA_DIR) {
     const { token, stockId, amount } = req.body || {};
     if (!token || !stockId || !amount || amount < 1) return res.json({ ok:false, error:'Ungültige Anfrage' });
     const entry = validateToken(token);
-    if (!entry) return res.json({ ok:false, error:'Token abgelaufen \u2014 bitte /aktien neu ausführen' });
+    if (!entry) return res.json({ ok:false, error:'Token abgelaufen \u2014 bitte öffne die Seite erneut über den Button im Discord-Channel.' });
     const stock = STOCKS_META.find(s => s.id === stockId);
     if (!stock) return res.json({ ok:false, error:'Unbekannte Aktie' });
     const portfolio = loadPortfolioW();
@@ -113,16 +120,17 @@ module.exports = function registerAktienRoutes(app, express, DATA_DIR) {
 };
 
 // ── Page builder ─────────────────────────────────────────────────────────────
-function buildPage(token, stocks, portfolio, balance) {
+function buildPage(token, stocks, portfolio, balance, loggedIn) {
   const sj  = JSON.stringify(stocks);
   const pj  = JSON.stringify(portfolio);
   const bal = Number(balance)||0;
+  const lg  = !!loggedIn;
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Paradise City \u2014 Aktienmarkt</title>
+<title>Paradise City — Aktienmarkt</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -132,6 +140,7 @@ header h1{font-size:1.25em;font-weight:700;color:#fff;letter-spacing:1px}
 header h1 span{color:#3b82f6}
 .bal{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:8px 18px;font-size:.95em;color:#8b949e}
 .bal b{color:#22c55e;font-size:1.1em}
+.badge-pub{background:#1e293b;border:1px solid #3b82f6;color:#3b82f6;border-radius:10px;padding:8px 16px;font-size:.85em;font-weight:600}
 .ticker-bar{background:#111827;border-bottom:1px solid #21262d;padding:6px 0;overflow:hidden;white-space:nowrap}
 .ti{display:inline-block;animation:tick 35s linear infinite}
 @keyframes tick{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
@@ -159,6 +168,7 @@ header h1 span{color:#3b82f6}
 .bs{background:#ef4444;color:#fff}.bs:hover{background:#b91c1c}
 .msg{font-size:.8em;margin-top:6px;min-height:16px;font-weight:600}
 .mo{color:#22c55e}.me{color:#ef4444}
+.login-hint{background:#0f1d2e;border:1px solid #1d4ed8;border-radius:10px;padding:10px 14px;font-size:.82em;color:#60a5fa;margin-top:6px;text-align:center}
 .footer{text-align:center;padding:22px;color:#484f58;font-size:.78em}
 @media(max-width:480px){.grid{padding:12px;grid-template-columns:1fr}}
 </style>
@@ -166,13 +176,16 @@ header h1 span{color:#3b82f6}
 <body>
 <header>
   <h1>&#x1F4CA; Paradise City <span>Aktienmarkt</span></h1>
-  <div class="bal">&#x1F4B0; Kontostand: <b id="bd">${bal.toLocaleString('de-DE')}&nbsp;$</b></div>
+  ${lg
+    ? '<div class="bal">&#x1F4B0; Kontostand: <b id=\"bd\">' + bal.toLocaleString('de-DE') + '&nbsp;$</b></div>'
+    : '<div class="badge-pub">&#x1F441;&#xFE0F; Live-Ansicht &mdash; Klicke den Channel-Button zum Handeln</div>'
+  }
 </header>
 <div class="ticker-bar"><div class="ti" id="ti">Lade...</div></div>
 <div class="grid" id="sg"></div>
 <div class="footer">Paradise City Roleplay &bull; Kurse aktualisieren sich st&uuml;ndlich</div>
 <script>
-var TK=${JSON.stringify(token)},ST=${sj},PT=${pj},BAL=${bal},CH={};
+var TK=${JSON.stringify(token)},ST=${sj},PT=${pj},BAL=${bal},LG=${lg},CH={};
 function f(n){return(+n).toLocaleString('de-DE');}
 function ticker(){
   var h=ST.map(function(s){
@@ -184,10 +197,20 @@ function ticker(){
   document.getElementById('ti').innerHTML=h+h;
 }
 function card(s){
-  var own=PT[s.id]||0,hi=s.history,pv=hi.length>1?hi[hi.length-2].price:s.price;
+  var own=LG?(PT[s.id]||0):null,hi=s.history,pv=hi.length>1?hi[hi.length-2].price:s.price;
   var d=s.price-pv,pc=pv?((d/pv)*100).toFixed(2):'0.00',si=d>=0?'+':'',cl=d>0?'up':d<0?'dn':'fl';
-  var ar=d>0?'\\u25b2':d<0?'\\u25bc':'\\u25a0';
+  var ar=d>0?'\u25b2':d<0?'\u25bc':'\u25a0';
   var el=document.createElement('div'); el.className='card';
+  var tradeHtml = LG
+    ? '<div class="oi">Im Besitz: <b id="o_'+s.id+'">'+(own===null?'–':f(own))+'</b> Aktien '
+      +'<span class="ov" id="ov_'+s.id+'">(\u2248 '+f((own||0)*s.price)+' $)</span></div>'
+      +'<div class="tr">'
+      +'<input type="number" id="i_'+s.id+'" min="1" step="1" placeholder="Anzahl">'
+      +'<button class="btn bb" id="bb_'+s.id+'">Kaufen</button>'
+      +'<button class="btn bs" id="bs_'+s.id+'">Verkaufen</button>'
+      +'</div>'
+      +'<div class="msg" id="m_'+s.id+'"></div>'
+    : '<div class="login-hint">&#x1F517; Klicke den <b>\u201eZum Aktienmarkt\u201c</b>-Button im Discord-Channel um zu handeln.</div>';
   el.innerHTML=
     '<div class="ch"><div class="cem">'+s.emoji+'</div><div>'
     +'<div class="ct">'+s.name+'</div>'
@@ -195,19 +218,12 @@ function card(s){
     +'<div class="cc '+cl+'" id="c_'+s.id+'">'+ar+' '+si+f(d)+' $ ('+si+pc+'%)</div>'
     +'</div></div>'
     +'<div class="cw"><canvas id="ch_'+s.id+'"></canvas></div>'
-    +'<div class="cb">'
-    +'<div class="oi">Im Besitz: <b id="o_'+s.id+'">'+f(own)+'</b> Aktien '
-    +'<span class="ov" id="ov_'+s.id+'">(&#x2248; '+f(own*s.price)+' $)</span></div>'
-    +'<div class="tr">'
-    +'<input type="number" id="i_'+s.id+'" min="1" step="1" placeholder="Anzahl">'
-    +'<button class="btn bb" id="bb_'+s.id+'">Kaufen</button>'
-    +'<button class="btn bs" id="bs_'+s.id+'">Verkaufen</button>'
-    +'</div>'
-    +'<div class="msg" id="m_'+s.id+'"></div>'
-    +'</div>';
+    +'<div class="cb">'+tradeHtml+'</div>';
   document.getElementById('sg').appendChild(el);
-  document.getElementById('bb_'+s.id).onclick=function(){trade(s.id,'buy');};
-  document.getElementById('bs_'+s.id).onclick=function(){trade(s.id,'sell');};
+  if(LG){
+    document.getElementById('bb_'+s.id).onclick=function(){trade(s.id,'buy');};
+    document.getElementById('bs_'+s.id).onclick=function(){trade(s.id,'sell');};
+  }
   var ctx=document.getElementById('ch_'+s.id);
   var lbl=s.history.map(function(_,i){return i===s.history.length-1?'Jetzt':'-'+(s.history.length-1-i)+'h';});
   var pr=s.history.map(function(h){return h.price;});
@@ -216,8 +232,8 @@ function card(s){
 async function trade(id,ac){
   var inp=document.getElementById('i_'+id),msg=document.getElementById('m_'+id);
   var amt=parseInt(inp.value,10);
-  if(!amt||amt<1){msg.className='msg me';msg.textContent='Bitte eine g\\u00fcltige Anzahl eingeben.';return;}
-  msg.className='msg';msg.textContent='\\u23f3 Verarbeite...';
+  if(!amt||amt<1){msg.className='msg me';msg.textContent='Bitte eine g\u00fcltige Anzahl eingeben.';return;}
+  msg.className='msg';msg.textContent='\u23f3 Verarbeite...';
   try{
     var r=await fetch('/api/aktien/'+ac,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TK,stockId:id,amount:amt})});
     var j=await r.json();
@@ -226,12 +242,12 @@ async function trade(id,ac){
       document.getElementById('bd').innerHTML=f(BAL)+'&nbsp;$';
       document.getElementById('o_'+id).textContent=f(j.owned);
       var s=ST.find(function(x){return x.id===id;});
-      document.getElementById('ov_'+id).innerHTML='(&#x2248; '+f(j.owned*(s?s.price:0))+' $)';
+      document.getElementById('ov_'+id).innerHTML='(\u2248 '+f(j.owned*(s?s.price:0))+' $)';
       msg.className='msg mo';
-      msg.textContent=ac==='buy'?'\\u2705 '+f(amt)+' Aktien gekauft \\u2014 '+f(j.cost)+' $ abgezogen':'\\u2705 '+f(amt)+' Aktien verkauft \\u2014 '+f(j.revenue)+' $ gutgeschrieben';
+      msg.textContent=ac==='buy'?'\u2705 '+f(amt)+' Aktien gekauft \u2014 '+f(j.cost)+' $ abgezogen':'\u2705 '+f(amt)+' Aktien verkauft \u2014 '+f(j.revenue)+' $ gutgeschrieben';
       inp.value='';
-    }else{msg.className='msg me';msg.textContent='\\u274c '+j.error;}
-  }catch(e){msg.className='msg me';msg.textContent='\\u274c Verbindungsfehler.';}
+    }else{msg.className='msg me';msg.textContent='\u274c '+j.error;}
+  }catch(e){msg.className='msg me';msg.textContent='\u274c Verbindungsfehler.';}
 }
 ticker(); ST.forEach(card);
 <\/script>
