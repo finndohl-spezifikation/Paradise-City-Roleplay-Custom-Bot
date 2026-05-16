@@ -100,17 +100,22 @@ async function updateAktienPrices() {
       const ch = await client.channels.fetch(s.channel).catch(() => null);
       if (!ch) continue;
       const link = `${WEBAPP_URL}/aktien`;
+      const _aktBtn = new ButtonBuilder()
+        .setLabel('🌐 Zum Aktienmarkt')
+        .setStyle(ButtonStyle.Link)
+        .setURL(link);
+      const _aktRow = new ActionRowBuilder().addComponents(_aktBtn);
       await ch.send({ embeds: [new EmbedBuilder()
         .setColor(embedCol)
         .setTitle(`${s.emoji} ${s.name} — Aktueller Kurs`)
+        .setDescription(`Aktuelle Kursinformationen für **${s.name}** auf dem Paradise City Aktienmarkt.`)
         .addFields(
-          { name: '💰 Kurs',               value: `**${newPrice.toLocaleString('de-DE')} $**`,               inline: true },
-          { name: `${trend} Änderung`,      value: `${sign}${diff.toLocaleString('de-DE')} $ (${sign}${diffPct}%)`, inline: true },
-          { name: '📊 Handeln',             value: `[➜ Zum Aktienmarkt](${link})`,                           inline: false }
+          { name: '💰 Aktueller Kurs', value: `**${newPrice.toLocaleString('de-DE')} $**`, inline: true },
+          { name: `${trend} Änderung`,   value: `${sign}${diff.toLocaleString('de-DE')} $ (${sign}${diffPct}%)`, inline: true }
         )
         .setTimestamp()
         .setFooter({ text: 'Paradise City Roleplay • Aktienmarkt' })
-      ]});
+      ], components: [_aktRow]});
     } catch(e) { console.error('[AKTIEN]', s.id, e.message); }
   }
   saveAktien(d);
@@ -1251,10 +1256,6 @@ client.once('ready', async () => {
         .setDescription('Zeigt dein Lager an')
         .addUserOption(opt => opt.setName('spieler').setDescription('Lager eines anderen Spielers').setRequired(false))
         .toJSON(),
-    new SlashCommandBuilder()
-      .setName('aktien')
-      .setDescription('Oeffnet deinen persoenlichen Aktienmarkt-Link')
-      .toJSON(),
     new SlashCommandBuilder().setName('teamshop').setDescription('Oeffnet den Team-Shop').toJSON(),
     new SlashCommandBuilder()
       .setName('shop-add')
@@ -4464,24 +4465,6 @@ client.on('interactionCreate', async (interaction) => {
           new ButtonBuilder().setCustomId('ts_next:0').setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1),
         );
         return interaction.reply({ embeds: [buildTeamShopEmbed(items, 0)], components: [row], ephemeral: true });
-      }
-      if (commandName === 'aktien') {
-        const { EmbedBuilder: _EBa } = require('discord.js');
-        const tok = crypto.randomBytes(16).toString('hex');
-        const toks = loadAktienToks();
-        // Alte Token dieses Users bereinigen
-        for (const [k, v] of Object.entries(toks)) { if (v.expiresAt < Date.now()) delete toks[k]; }
-        toks[tok] = { userId: interaction.user.id, userTag: interaction.user.tag, createdAt: Date.now(), expiresAt: Date.now() + 4 * 60 * 60 * 1000 };
-        saveAktienToks(toks);
-        const _WA2 = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
-        const aktienUrl = `${_WA2}/aktien?token=${tok}`;
-        return interaction.reply({ embeds: [new _EBa()
-          .setColor(0x1565C0)
-          .setTitle('📊 Paradise City — Aktienmarkt')
-          .setDescription('Hier ist dein persönlicher Zugang zum Aktienmarkt.\nKaufe und verkaufe Aktien direkt über den Link.\n\n⏳ Der Link ist **4 Stunden** gültig.')
-          .addFields({ name: '🔗 Zum Aktienmarkt', value: `[➜ Jetzt öffnen](${aktienUrl})`, inline: false })
-          .setFooter({ text: 'Paradise City Roleplay • Aktienmarkt' })
-        ], ephemeral: true });
       }
             if (commandName === 'shop-add') {
         const tok = require('crypto').randomBytes(16).toString('hex');
