@@ -922,60 +922,17 @@ async function updateLapdTeamOverview() {
 client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
   client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
-  // ─── GLOBAL EMBED RESEND (Revert zu Paradise City) ───────────────────────
+  // ─── EINMALIG: Team-Overview-Embed neu senden (v_paradise_4) ───────────────
   {
-    const EMBED_RESEND_VER = 'v_paradise_3';
     const setup = loadSetup();
-    if (setup.globalEmbedVersion !== EMBED_RESEND_VER) {
-      console.log('[RESEND] Paradise City Revert — lösche Cryptik-Embeds und sende neu...');
-      const STATIC_CHANNELS = [
-        '1490878156582686853', '1490878159032422433', '1490878159804174470',
-        '1490882546144383156', '1490882548266696849', '1490882549499564184',
-        '1490882567690518579', '1490885002030874775', '1490889784753782784',
-        '1490890346668888194', '1490890348254200049', '1490890349382734044',
-        '1492314171373649983',
-        FRAK_OVERVIEW_CH, TEAM_OVERVIEW_CH, LAPD_TEAM_CH, LAPD_TICKET_PANEL_CH,
-      ];
-      for (const chId of STATIC_CHANNELS) {
-        try {
-          const ch = await client.channels.fetch(chId).catch(() => null);
-          if (!ch || !ch.messages) continue;
-          const msgs = await ch.messages.fetch({ limit: 100 }).catch(() => null);
-          if (!msgs) continue;
-          const botMsgs = msgs.filter(m => m.author.id === client.user.id);
-          for (const [, m] of botMsgs) { await m.delete().catch(() => {}); }
-          console.log('[RESEND]', botMsgs.size, 'Nachrichten in', chId, 'gelöscht.');
-        } catch (e) { console.error('[RESEND] Fehler', chId, e.message); }
-      }
-      delete setup.einreiseEmbedV4Sent; delete setup.startpunktEmbedSent;
-      delete setup.starterpaketEmbedSent; delete setup.regelwerkEmbed1SentV2;
-      delete setup.regelwerkEmbed2SentV2; delete setup.fraktionsregelwerkEmbedV4;
-      delete setup.safeZonesEmbedSent; delete setup.ticketPanelSent;
-      delete setup.pingRollenEmbedSent; delete setup.rubbellosEmbedSent2;
-      delete setup.lapdTicketPanelSent; delete setup.frakOverviewMsgId;
-      delete setup.teamOverviewMsgId; delete setup.lapdTeamMsgId;
-      delete setup.lohnlisteMsgId; delete setup.lohnbueroMsgId;
-      delete setup.bankingMsgId; delete setup.rechnungenMsgId;
-      try {
-        const atmFile  = path.join(DATA_DIR, 'atm_raub.json');
-        const shopFile = path.join(DATA_DIR, 'shop_raub.json');
-        if (fs.existsSync(atmFile))  { const d=JSON.parse(fs.readFileSync(atmFile,'utf8'));  delete d._infoEmbedSent; fs.writeFileSync(atmFile,  JSON.stringify(d,null,2),'utf8'); }
-        if (fs.existsSync(shopFile)) { const d=JSON.parse(fs.readFileSync(shopFile,'utf8')); delete d._infoEmbedSent; fs.writeFileSync(shopFile, JSON.stringify(d,null,2),'utf8'); }
-      } catch(e) { console.error('[RESEND] Raub-Flags:', e.message); }
-      for (const shopId of Object.keys(SHOP_CHANNELS)) {
-        try {
-          const sCh = await client.channels.fetch(shopId).catch(() => null);
-          if (!sCh) continue;
-          const sMsgs = await sCh.messages.fetch({ limit: 100 }).catch(() => null);
-          if (sMsgs) { const bm = sMsgs.filter(m => m.author.id === client.user.id); for (const [,m] of bm) { await m.delete().catch(()=>{}); } }
-        } catch(e) {}
-      }
-      setup.globalEmbedVersion = EMBED_RESEND_VER;
+    if (setup.globalEmbedVersion !== 'v_paradise_4') {
+      delete setup.teamOverviewMsgId;
+      setup.globalEmbedVersion = 'v_paradise_4';
       saveSetup(setup);
-      console.log('[RESEND] Fertig. Paradise City Embeds werden neu gesendet...');
+      console.log('[FIX] Team-Overview-Embed wird neu gesendet.');
     }
   }
-  // ─── END GLOBAL EMBED RESEND ─────────────────────────────────────────────
+  // ─── END EINMALIG ────────────────────────────────────────────────────────
 
   for (const guild of client.guilds.cache.values()) {
     await buildInviteCache(guild);
