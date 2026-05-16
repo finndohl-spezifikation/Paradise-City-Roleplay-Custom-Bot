@@ -1279,7 +1279,7 @@ client.once('ready', async () => {
 
     new SlashCommandBuilder()
       .setName('fesseln')
-      .setDescription('Fessle einen anderen Spieler mit einem Kabelbinder (aus Baumarkt)')
+      .setDescription('Fessle einen anderen Spieler mit Handschellen (aus Baumarkt)')
       .addUserOption(o => o.setName('spieler').setDescription('Welchen Spieler möchtest du fesseln?').setRequired(true))
       .toJSON(),
     ];
@@ -5398,7 +5398,7 @@ client.on('interactionCreate', async (interaction) => {
   // hatHandy: NUR Inventar prüfen — Item-Name muss "handy" enthalten
   function hatHandy(uid) {
     const inv = _getUserInv(uid);
-    return Object.keys(inv).some(n => n.toLowerCase().includes('handy'));
+    return Object.keys(inv).some(n => n.toLowerCase().includes('smartphone'));
   }
   // hatHandyAn: Handy eingeschaltet = Rolle vorhanden UND Item noch im Inventar
   function hatHandyAn(m, uid) {
@@ -5716,7 +5716,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
       const d=_loadAtm(); if(d._infoEmbedSent) return;
       const ch=await client.channels.fetch(ATM_INFO_CH).catch(()=>null); if(!ch) return;
       await ch.send({embeds:[new EmbedBuilder().setColor(0xE65100).setTitle('🏧 ATM-Raub — Informationen')
-        .setDescription('**💰 Beute:** 3.000$ – 10.000$ *(zufällig)*\n**📍 Ort:** Alle ATMs im gesamten Staat erlaubt\n**👤 Spieler:** Ab 1 Person möglich\n**👮 Beamte:** Mindestens 2 Officers im Dienst\n\n**🔧 Benötigte Items**\n> **Brecheisen** → 10 Min.\n> ┗ 🔨〢𝘉𝘢𝘶𝘮𝘢𝘳𝘬𝘵\n\n> **Sprengstoff** → 5 Min.\n> ┗ 👥〢𝘚𝘤𝘩𝘸𝘢𝘳𝘻𝘮𝘢𝘳𝘬𝘵\n\n**📋 Ablauf**\n1. Raub In-Game durchführen\n2. Foto als Beweis in <#1490894309145313330> senden\n3. Werkzeug in der DM auswählen\n4. Team bestätigt Erfolg oder Fehlschlag')
+        .setDescription('**💰 Beute:** 3.000$ – 10.000$ *(zufällig)*\n**📍 Ort:** Alle ATMs im gesamten Staat erlaubt\n**👤 Spieler:** Ab 1 Person möglich\n**👮 Beamte:** Mindestens 2 Officers im Dienst\n\n**🔧 Benötigte Items**\n> **Brechstange** → 10 Min.\n> ┗ 🔨〢𝘉𝘢𝘶𝘮𝘢𝘳𝘬𝘵\n\n> **Automaten Sprengstoff** → 5 Min.\n> ┗ 👥〢𝘚𝘤𝘩𝘸𝘢𝘳𝘻𝘮𝘢𝘳𝘬𝘵\n\n**📋 Ablauf**\n1. Raub In-Game durchführen\n2. Foto als Beweis in <#1490894309145313330> senden\n3. Werkzeug in der DM auswählen\n4. Team bestätigt Erfolg oder Fehlschlag')
         .setFooter({text:'Paradise City Roleplay • Raubüberfälle'}).setTimestamp()]});
       d._infoEmbedSent=true; _saveAtm(d);
     } catch(e){console.error('[ATM-INFO]',e.message);}
@@ -5743,12 +5743,12 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
       await msg.delete().catch(()=>{}); return;
     }
     const inv=(_loadInv()[msg.author.id])||{};
-    const bKey=Object.keys(inv).find(k=>k.toLowerCase().includes('brecheisen'));
+    const bKey=Object.keys(inv).find(k=>k.toLowerCase().includes('brechstange'));
     const sKey=Object.keys(inv).find(k=>k.toLowerCase().includes('sprengstoff')||k.toLowerCase().includes('sprengung')||k.toLowerCase().includes('explosiv'));
     const hasB=bKey&&(inv[bKey]||0)>0, hasS=sKey&&(inv[sKey]||0)>0;
     if (!hasB&&!hasS) {
       const list=Object.keys(inv).length?Object.entries(inv).map(([k,v])=>`• **${k}** — ${v}x`).join('\n'):'_Inventar leer_';
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('❌ Kein Werkzeug').setDescription('Du hast weder **Brecheisen** noch **Sprengstoff** im Inventar.\n\n**Dein Inventar:**\n'+list).setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('❌ Kein Werkzeug').setDescription('Du hast weder **Brechstange** noch **Automaten Sprengstoff** im Inventar.\n\n**Dein Inventar:**\n'+list).setFooter({text:'Paradise City Roleplay'})]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
 
@@ -5757,8 +5757,8 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
       .addFields({name:'👤 Spieler',value:`<@${msg.author.id}> (${msg.author.username})`,inline:true},{name:'📸 Beweis',value:msg.attachments.first()?.url||'-',inline:false})
       .setTimestamp().setFooter({text:'Paradise City Roleplay • ATM-Raub Log'})).catch(()=>{});
     const opts=[];
-    if(hasB) opts.push({label:'🔨 Brecheisen (10 Min.)',description:'Aus dem Baumarkt',value:'brecheisen'});
-    if(hasS) opts.push({label:'💣 Sprengstoff (5 Min.)',description:'Vom Schwarzmarkt',value:'sprengstoff'});
+    if(hasB) opts.push({label:'🔨 Brechstange (10 Min.)',description:'Aus dem Baumarkt',value:'brecheisen'});
+    if(hasS) opts.push({label:'💣 Automaten Sprengstoff (5 Min.)',description:'Vom Schwarzmarkt',value:'sprengstoff'});
     const row=new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId(`atm_tool:${msg.author.id}`).setPlaceholder('Werkzeug auswählen').addOptions(opts));
     try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE65100).setTitle('🏧 ATM-Raub — Werkzeug auswählen').setDescription('Wähle dein Werkzeug. Es wird sofort aus dem Inventar entfernt.').setFooter({text:'Paradise City Roleplay • ATM-Raub'})],components:[row]});}
     catch{}
@@ -5776,7 +5776,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
     const durMs=tool==='sprengstoff'?5*60*1000:10*60*1000;
     const durLabel=tool==='sprengstoff'?'5 Minuten':'10 Minuten';
     const allInv=_loadInv(), inv=allInv[userId]||{};
-    const finder=tool==='sprengstoff'?(k)=>k.toLowerCase().includes('sprengstoff')||k.toLowerCase().includes('sprengung')||k.toLowerCase().includes('explosiv'):(k)=>k.toLowerCase().includes('brecheisen');
+    const finder=tool==='sprengstoff'?(k)=>k.toLowerCase().includes('sprengstoff')||k.toLowerCase().includes('sprengung')||k.toLowerCase().includes('explosiv'):(k)=>k.toLowerCase().includes('brechstange');
     const fKey=Object.keys(inv).find(finder);
     if (!fKey||(inv[fKey]||0)<=0) {
       const list=Object.keys(inv).length?Object.entries(inv).map(([k,v])=>`• **${k}** — ${v}x`).join('\n'):'_Inventar leer_';
@@ -6089,15 +6089,15 @@ client.on('interactionCreate', async (interaction) => {
     const inv = allInv[interaction.user.id] || {};
 
     // Kabelbinder suchen (case-insensitive)
-    const kbKey = Object.keys(inv).find(k => k.toLowerCase().includes('kabelbinder'));
+    const kbKey = Object.keys(inv).find(k => k.toLowerCase().includes('handschellen') || k.toLowerCase().includes('fesseln'));
     if (!kbKey || (inv[kbKey] || 0) <= 0) {
       const list = Object.keys(inv).length
         ? Object.entries(inv).map(([k,v]) => `• **${k}** — ${v}x`).join('\n')
         : '_Inventar leer_';
       return interaction.reply({ embeds: [new EmbedBuilder()
         .setColor(0xff4400)
-        .setTitle('❌ Kein Kabelbinder')
-        .setDescription(`Du hast keinen **Kabelbinder** im Inventar. Kaufe einen im 🔨〢𝘉𝘢𝘶𝘮𝘢𝘳𝘬𝘵.\n\n**Dein Inventar:**\n${list}`)
+        .setTitle('❌ Keine Handschellen')
+        .setDescription(`Du hast keine **Handschellen** im Inventar. Kaufe welche im 🔨〢𝘉𝘢𝘶𝘮𝘢𝘳𝘬𝘵.\n\n**Dein Inventar:**\n${list}`)
         .setFooter({ text: 'Paradise City Roleplay' })], ephemeral: true });
     }
 
@@ -6123,7 +6123,7 @@ client.on('interactionCreate', async (interaction) => {
       .addFields(
         { name: '🔒 Gefesselt von', value: `<@${interaction.user.id}>`, inline: true },
         { name: '👤 Gefesselter',   value: `<@${target.id}>`,           inline: true },
-        { name: '🪢 Werkzeug',      value: kbKey,                        inline: false },
+        { name: '🔒 Werkzeug',      value: kbKey,                        inline: false },
       )
       .setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })
       .setTimestamp();
@@ -6149,7 +6149,7 @@ client.on('interactionCreate', async (interaction) => {
       .addFields(
         { name: '🔒 Von',          value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true },
         { name: '👤 Gefesselter',  value: `<@${target.id}> (${target.username})`,                     inline: true },
-        { name: '🪢 Kabelbinder',  value: kbKey, inline: false }
+        { name: '🔒 Handschellen', value: kbKey, inline: false }
       ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })).catch(()=>{});
   });
 
@@ -6200,7 +6200,7 @@ client.on('interactionCreate', async (interaction) => {
       .addFields(
         { name: '🔓 Entfesselt von', value: `<@${fesselerId}> (${f.fesselerName})`, inline: true },
         { name: '👤 Spieler',        value: `<@${targetId}> (${f.targetName})`,      inline: true },
-        { name: '🪢 Kabelbinder zurück', value: f.kbKey, inline: false }
+        { name: '🔒 Handschellen zurück', value: f.kbKey, inline: false }
       ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })).catch(()=>{});
   });
 }
