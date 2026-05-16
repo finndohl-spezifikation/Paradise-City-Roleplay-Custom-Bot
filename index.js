@@ -1027,6 +1027,8 @@ client.once('ready', async () => {
   initAktien();
   // ─── Stündliche Aktienkurse aktualisieren ─────────────────────────────────
   setInterval(() => { updateAktienPrices().catch(e => console.error('[AKTIEN INTERVAL]', e.message)); }, 60 * 60 * 1000);
+  // Sofort beim Start einmal senden (5s Verzögerung damit alle Channels geladen sind)
+  setTimeout(() => { updateAktienPrices().catch(e => console.error('[AKTIEN START]', e.message)); }, 5000);
 
   for (const guild of client.guilds.cache.values()) {
     await buildInviteCache(guild);
