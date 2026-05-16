@@ -330,8 +330,12 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       try {
         const msg = await ch.messages.fetch(setup.lohnlisteMsgId);
         await msg.edit({ embeds: [embed], components: [] });
+        return;
       } catch {}
     }
+    const sentL = await ch.send({ embeds: [embed], components: [] });
+    setup.lohnlisteMsgId = sentL.id;
+    saveSetup(setup);
   }
 
   // ─── LOHNBÜRO EMBED ─────────────────────────────────────────────────────────
@@ -350,8 +354,12 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       try {
         const msg = await ch.messages.fetch(setup.lohnbueroMsgId);
         await msg.edit({ embeds: [embed], components: [row] });
+        return;
       } catch {}
     }
+    const sentLB = await ch.send({ embeds: [embed], components: [row] });
+    setup.lohnbueroMsgId = sentLB.id;
+    saveSetup(setup);
   }
 
   // ─── ONLINE BANKING EMBED ────────────────────────────────────────────────────
@@ -370,8 +378,12 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       try {
         const msg = await ch.messages.fetch(setup.bankingMsgId);
         await msg.edit({ embeds: [embed], components: [row] });
+        return;
       } catch {}
     }
+    const sentB = await ch.send({ embeds: [embed], components: [row] });
+    setup.bankingMsgId = sentB.id;
+    saveSetup(setup);
   }
 
   // ─── RECHNUNGEN EMBED ───────────────────────────────────────────────────────
@@ -390,8 +402,12 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       try {
         const msg = await ch.messages.fetch(setup.rechnungenMsgId);
         await msg.edit({ embeds: [embed], components: [row] });
+        return;
       } catch {}
     }
+    const sentR = await ch.send({ embeds: [embed], components: [row] });
+    setup.rechnungenMsgId = sentR.id;
+    saveSetup(setup);
   }
   async function updateShopEmbed(shopId) {
       const m = SHOP_META[shopId];
@@ -904,7 +920,7 @@ client.once('ready', async () => {
   client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
   // ─── GLOBAL EMBED RESEND (Revert zu Paradise City) ───────────────────────
   {
-    const EMBED_RESEND_VER = 'v_paradise_2';
+    const EMBED_RESEND_VER = 'v_paradise_3';
     const setup = loadSetup();
     if (setup.globalEmbedVersion !== EMBED_RESEND_VER) {
       console.log('[RESEND] Paradise City Revert — lösche Cryptik-Embeds und sende neu...');
@@ -913,7 +929,7 @@ client.once('ready', async () => {
         '1490882546144383156', '1490882548266696849', '1490882549499564184',
         '1490882567690518579', '1490885002030874775', '1490889784753782784',
         '1490890346668888194', '1490890348254200049', '1490890349382734044',
-        '1492314171373649983', '1490894308088352961', '1490894310118392012',
+        '1492314171373649983',
         FRAK_OVERVIEW_CH, TEAM_OVERVIEW_CH, LAPD_TEAM_CH, LAPD_TICKET_PANEL_CH,
       ];
       for (const chId of STATIC_CHANNELS) {
