@@ -99,11 +99,10 @@ async function updateAktienPrices() {
     try {
       const ch = await client.channels.fetch(s.channel).catch(() => null);
       if (!ch) continue;
-      const link = `${WEBAPP_URL}/aktien`;
       const _aktBtn = new ButtonBuilder()
-        .setLabel('🌐 Zum Aktienmarkt')
-        .setStyle(ButtonStyle.Link)
-        .setURL(link);
+        .setCustomId(`aktien_handeln:${s.id}`)
+        .setLabel('📊 Aktien kaufen / verkaufen')
+        .setStyle(ButtonStyle.Primary);
       const _aktRow = new ActionRowBuilder().addComponents(_aktBtn);
       await ch.send({ embeds: [new EmbedBuilder()
         .setColor(embedCol)
@@ -6301,6 +6300,40 @@ client.on('interactionCreate', async (interaction) => {
   });
 }
 // ─── END VERSTECKEN / FESSELN SYSTEM ─────────────────────────────────────────
+
+
+// ─── AKTIEN HANDELN BUTTON ────────────────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isButton()) return;
+  if (!interaction.customId.startsWith('aktien_handeln:')) return;
+
+  const WEBAPP_URL_AH = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
+  const tok = require('crypto').randomBytes(16).toString('hex');
+  const toks = loadAktienToks();
+  // Abgelaufene Token bereinigen
+  for (const [k, v] of Object.entries(toks)) { if (v.expiresAt < Date.now()) delete toks[k]; }
+  toks[tok] = { userId: interaction.user.id, userTag: interaction.user.tag, createdAt: Date.now(), expiresAt: Date.now() + 4 * 60 * 60 * 1000 };
+  saveAktienToks(toks);
+
+  const aktienUrl = `${WEBAPP_URL_AH}/aktien?token=${tok}`;
+  const linkBtn = new ButtonBuilder()
+    .setLabel('🌐 Jetzt öffnen')
+    .setStyle(ButtonStyle.Link)
+    .setURL(aktienUrl);
+  const linkRow = new ActionRowBuilder().addComponents(linkBtn);
+
+  return interaction.reply({
+    embeds: [new EmbedBuilder()
+      .setColor(0x3b82f6)
+      .setTitle('📊 Dein persönlicher Aktienmarkt-Zugang')
+      .setDescription('Klicke den Button um deinen Aktienmarkt zu öffnen.\nDu kannst Aktien kaufen, verkaufen und dein Portfolio einsehen.\n\n⏳ Link gültig für **4 Stunden**.')
+      .setFooter({ text: 'Paradise City Roleplay • Aktienmarkt' })
+    ],
+    components: [linkRow],
+    ephemeral: true
+  });
+});
+// ─── END AKTIEN HANDELN BUTTON ────────────────────────────────────────────────
 
 // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
