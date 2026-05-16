@@ -32,6 +32,91 @@ let _shopCb = {};
 const SHOP_MGR_TOK_FILE = path.join(DATA_DIR, 'shop_mgr_tokens.json');
 function loadShopMgrToks() { try { return JSON.parse(fs.readFileSync(SHOP_MGR_TOK_FILE,'utf8')); } catch { return {}; } }
 function saveShopMgrToks(d) { fs.writeFileSync(SHOP_MGR_TOK_FILE, JSON.stringify(d,null,2),'utf8'); }
+// ─── AKTIEN SYSTEM ────────────────────────────────────────────────────────────
+const AKTIEN_FILE     = path.join(DATA_DIR, 'aktien.json');
+const PORTFOLIO_FILE  = path.join(DATA_DIR, 'aktien_portfolio.json');
+const AKTIEN_TOK_FILE = path.join(DATA_DIR, 'aktien_tokens.json');
+function loadAktien()      { try { return JSON.parse(fs.readFileSync(AKTIEN_FILE,'utf8')); } catch { return {}; } }
+function saveAktien(d)     { fs.writeFileSync(AKTIEN_FILE, JSON.stringify(d,null,2),'utf8'); }
+function loadPortfolio()   { try { return JSON.parse(fs.readFileSync(PORTFOLIO_FILE,'utf8')); } catch { return {}; } }
+function savePortfolio(d)  { fs.writeFileSync(PORTFOLIO_FILE, JSON.stringify(d,null,2),'utf8'); }
+function loadAktienToks()  { try { return JSON.parse(fs.readFileSync(AKTIEN_TOK_FILE,'utf8')); } catch { return {}; } }
+function saveAktienToks(d) { fs.writeFileSync(AKTIEN_TOK_FILE, JSON.stringify(d,null,2),'utf8'); }
+
+const AKTIEN_STOCKS = [
+  { id:'maze',       name:'Maze Bank',   emoji:'🏦', color:0x1565C0, channel:'1493359040045125844', startPrice:350  },
+  { id:'benefactor', name:'Benefactor',  emoji:'🚗', color:0x2E7D32, channel:'1493359230118527078', startPrice:1200 },
+  { id:'goldwand',   name:'Goldwand',    emoji:'🏆', color:0xF9A825, channel:'1493360407224516648', startPrice:650  },
+  { id:'diamond',    name:'The Diamond', emoji:'💎', color:0x6A1B9A, channel:'1493360555401154700', startPrice:2800 },
+];
+
+function initAktien() {
+  const d = loadAktien();
+  let changed = false;
+  for (const s of AKTIEN_STOCKS) {
+    if (!d[s.id]) {
+      d[s.id] = { price: s.startPrice, history: [{ price: s.startPrice, ts: Date.now() }] };
+      changed = true;
+    }
+  }
+  if (changed) saveAktien(d);
+}
+
+function nextAktienPrice(cur) {
+  const r = Math.random();
+  let pct;
+  if (r < 0.002) {
+    return Math.random() < 0.5
+      ? Math.floor(Math.random() * 50000 + 50000)
+      : Math.floor(Math.random() * 200 + 100);
+  } else if (r < 0.017) {
+    pct = (Math.random() * 0.2 + 0.4) * (Math.random() < 0.5 ? 1 : -1);
+  } else if (r < 0.09) {
+    pct = (Math.random() * 0.15 + 0.2) * (Math.random() < 0.5 ? 1 : -1);
+  } else {
+    pct = (Math.random() * 0.09 + 0.03) * (Math.random() < 0.5 ? 1 : -1);
+  }
+  const next = Math.round(cur * (1 + pct));
+  return Math.max(100, Math.min(100000, next));
+}
+
+async function updateAktienPrices() {
+  const d = loadAktien();
+  const { EmbedBuilder } = require('discord.js');
+  const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
+  for (const s of AKTIEN_STOCKS) {
+    if (!d[s.id]) d[s.id] = { price: s.startPrice, history: [] };
+    const oldPrice = d[s.id].price;
+    const newPrice = nextAktienPrice(oldPrice);
+    const diff     = newPrice - oldPrice;
+    const diffPct  = oldPrice > 0 ? ((diff / oldPrice) * 100).toFixed(2) : '0.00';
+    const trend    = diff >= 0 ? '📈' : '📉';
+    const embedCol = diff >= 0 ? 0x22c55e : 0xef4444;
+    const sign     = diff >= 0 ? '+' : '';
+    d[s.id].price = newPrice;
+    d[s.id].history.push({ price: newPrice, ts: Date.now() });
+    if (d[s.id].history.length > 48) d[s.id].history = d[s.id].history.slice(-48);
+    try {
+      const ch = await client.channels.fetch(s.channel).catch(() => null);
+      if (!ch) continue;
+      const link = `${WEBAPP_URL}/aktien`;
+      await ch.send({ embeds: [new EmbedBuilder()
+        .setColor(embedCol)
+        .setTitle(`${s.emoji} ${s.name} — Aktueller Kurs`)
+        .addFields(
+          { name: '💰 Kurs',               value: `**${newPrice.toLocaleString('de-DE')} $**`,               inline: true },
+          { name: `${trend} Änderung`,      value: `${sign}${diff.toLocaleString('de-DE')} $ (${sign}${diffPct}%)`, inline: true },
+          { name: '📊 Handeln',             value: `[➜ Zum Aktienmarkt](${link})`,                           inline: false }
+        )
+        .setTimestamp()
+        .setFooter({ text: 'Paradise City Roleplay • Aktienmarkt' })
+      ]});
+    } catch(e) { console.error('[AKTIEN]', s.id, e.message); }
+  }
+  saveAktien(d);
+}
+// ─── END AKTIEN DATEN ─────────────────────────────────────────────────────────
+
 const lapdTokens    = new Map(); // LAPD: token -> { memberId, uname, ranks, expires }
 const LOG_SHOP_CH  = '1490878131240829028';
 const LOG_MONEY_CH = '1490878138429997087';
@@ -934,6 +1019,10 @@ client.once('ready', async () => {
   }
   // ─── END EINMALIG ────────────────────────────────────────────────────────
 
+  initAktien();
+  // ─── Stündliche Aktienkurse aktualisieren ─────────────────────────────────
+  setInterval(() => { updateAktienPrices().catch(e => console.error('[AKTIEN INTERVAL]', e.message)); }, 60 * 60 * 1000);
+
   for (const guild of client.guilds.cache.values()) {
     await buildInviteCache(guild);
   }
@@ -1162,6 +1251,10 @@ client.once('ready', async () => {
         .setDescription('Zeigt dein Lager an')
         .addUserOption(opt => opt.setName('spieler').setDescription('Lager eines anderen Spielers').setRequired(false))
         .toJSON(),
+    new SlashCommandBuilder()
+      .setName('aktien')
+      .setDescription('Oeffnet deinen persoenlichen Aktienmarkt-Link')
+      .toJSON(),
     new SlashCommandBuilder().setName('teamshop').setDescription('Oeffnet den Team-Shop').toJSON(),
     new SlashCommandBuilder()
       .setName('shop-add')
@@ -4372,7 +4465,25 @@ client.on('interactionCreate', async (interaction) => {
         );
         return interaction.reply({ embeds: [buildTeamShopEmbed(items, 0)], components: [row], ephemeral: true });
       }
-      if (commandName === 'shop-add') {
+      if (commandName === 'aktien') {
+        const { EmbedBuilder: _EBa } = require('discord.js');
+        const tok = crypto.randomBytes(16).toString('hex');
+        const toks = loadAktienToks();
+        // Alte Token dieses Users bereinigen
+        for (const [k, v] of Object.entries(toks)) { if (v.expiresAt < Date.now()) delete toks[k]; }
+        toks[tok] = { userId: interaction.user.id, userTag: interaction.user.tag, createdAt: Date.now(), expiresAt: Date.now() + 4 * 60 * 60 * 1000 };
+        saveAktienToks(toks);
+        const _WA2 = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
+        const aktienUrl = `${_WA2}/aktien?token=${tok}`;
+        return interaction.reply({ embeds: [new _EBa()
+          .setColor(0x1565C0)
+          .setTitle('📊 Paradise City — Aktienmarkt')
+          .setDescription('Hier ist dein persönlicher Zugang zum Aktienmarkt.\nKaufe und verkaufe Aktien direkt über den Link.\n\n⏳ Der Link ist **4 Stunden** gültig.')
+          .addFields({ name: '🔗 Zum Aktienmarkt', value: `[➜ Jetzt öffnen](${aktienUrl})`, inline: false })
+          .setFooter({ text: 'Paradise City Roleplay • Aktienmarkt' })
+        ], ephemeral: true });
+      }
+            if (commandName === 'shop-add') {
         const tok = require('crypto').randomBytes(16).toString('hex');
         const toks = loadShopMgrToks();
         // Token 1h gültig
