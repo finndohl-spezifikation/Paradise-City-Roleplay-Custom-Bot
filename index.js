@@ -42,6 +42,9 @@ function loadPortfolio()   { try { return JSON.parse(fs.readFileSync(PORTFOLIO_F
 function savePortfolio(d)  { fs.writeFileSync(PORTFOLIO_FILE, JSON.stringify(d,null,2),'utf8'); }
 function loadAktienToks()  { try { return JSON.parse(fs.readFileSync(AKTIEN_TOK_FILE,'utf8')); } catch { return {}; } }
 function saveAktienToks(d) { fs.writeFileSync(AKTIEN_TOK_FILE, JSON.stringify(d,null,2),'utf8'); }
+const AKTIEN_MSG_FILE = path.join(DATA_DIR, 'aktien_messages.json');
+function loadAktienMsgs()  { try { return JSON.parse(fs.readFileSync(AKTIEN_MSG_FILE,'utf8')); } catch { return {}; } }
+function saveAktienMsgs(d) { fs.writeFileSync(AKTIEN_MSG_FILE, JSON.stringify(d,null,2),'utf8'); }
 
 const AKTIEN_STOCKS = [
   { id:'maze',       name:'Maze Bank',   emoji:'🏦', color:0x1565C0, channel:'1493359040045125844', startPrice:350  },
@@ -104,7 +107,7 @@ async function updateAktienPrices() {
         .setLabel('📊 Aktien kaufen / verkaufen')
         .setStyle(ButtonStyle.Primary);
       const _aktRow = new ActionRowBuilder().addComponents(_aktBtn);
-      await ch.send({ embeds: [new EmbedBuilder()
+      const _embed = new EmbedBuilder()
         .setColor(embedCol)
         .setTitle(`${s.emoji} ${s.name} — Aktueller Kurs`)
         .setDescription(`Aktuelle Kursinformationen für **${s.name}** auf dem Paradise City Aktienmarkt.`)
@@ -113,8 +116,23 @@ async function updateAktienPrices() {
           { name: `${trend} Änderung`,   value: `${sign}${diff.toLocaleString('de-DE')} $ (${sign}${diffPct}%)`, inline: true }
         )
         .setTimestamp()
-        .setFooter({ text: 'Paradise City Roleplay • Aktienmarkt' })
-      ], components: [_aktRow]});
+        .setFooter({ text: 'Paradise City Roleplay • Aktienmarkt' });
+      const _msgs = loadAktienMsgs();
+      const _existingId = _msgs[s.id];
+      let _sent = null;
+      if (_existingId) {
+        // Versuche bestehende Nachricht zu editieren
+        _sent = await ch.messages.fetch(_existingId).catch(() => null);
+        if (_sent) {
+          await _sent.edit({ embeds: [_embed], components: [_aktRow] }).catch(() => { _sent = null; });
+        }
+      }
+      if (!_sent) {
+        // Neue Nachricht senden und ID speichern
+        _sent = await ch.send({ embeds: [_embed], components: [_aktRow] });
+        _msgs[s.id] = _sent.id;
+        saveAktienMsgs(_msgs);
+      }
     } catch(e) { console.error('[AKTIEN]', s.id, e.message); }
   }
   saveAktien(d);
