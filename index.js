@@ -4395,16 +4395,17 @@ client.on('interactionCreate', async (interaction) => {
           const target   = interaction.options.getUser('an-wen');
           if (target.id === user.id) return interaction.reply({ content: '❌ Du kannst dir nicht selbst Items übergeben.', ephemeral: true });
           const inv = getUserInv(user.id);
-          if (!inv[itemName] || inv[itemName] < menge) return interaction.reply({ content: `❌ Du hast nicht genug **${itemName}** (hast: ${inv[itemName] ?? 0}x).`, ephemeral: true });
-          inv[itemName] -= menge;
-          if (inv[itemName] <= 0) delete inv[itemName];
+          const foundKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
+          if (!foundKey || inv[foundKey] < menge) return interaction.reply({ content: `❌ Du hast nicht genug **${itemName}** im Inventar (hast: ${foundKey ? inv[foundKey] : 0}x).`, ephemeral: true });
+          inv[foundKey] -= menge;
+          if (inv[foundKey] <= 0) delete inv[foundKey];
           setUserInv(user.id, inv);
           const targetInv = getUserInv(target.id);
-          targetInv[itemName] = (targetInv[itemName] || 0) + menge;
+          targetInv[foundKey] = (targetInv[foundKey] || 0) + menge;
           setUserInv(target.id, targetInv);
           return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
             .setColor(0x57F287).setTitle('📦  Übergabe erfolgreich')
-            .setDescription(`<@${user.id}> hat **${menge}x ${itemName}** an <@${target.id}> übergeben.`)
+            .setDescription(`<@${user.id}> hat **${menge}x ${foundKey}** an <@${target.id}> übergeben.`)
             .setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
           ]});
         }
@@ -4415,13 +4416,14 @@ client.on('interactionCreate', async (interaction) => {
           const itemName = interaction.options.getString('item');
           const menge    = interaction.options.getInteger('menge');
           const inv = getUserInv(user.id);
-          if (!inv[itemName] || inv[itemName] < menge) return interaction.reply({ content: `❌ Du hast nicht genug **${itemName}** (hast: ${inv[itemName] ?? 0}x).`, ephemeral: true });
-          inv[itemName] -= menge;
-          if (inv[itemName] <= 0) delete inv[itemName];
+          const foundKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
+          if (!foundKey || inv[foundKey] < menge) return interaction.reply({ content: `❌ Du hast nicht genug **${itemName}** im Inventar (hast: ${foundKey ? inv[foundKey] : 0}x).`, ephemeral: true });
+          inv[foundKey] -= menge;
+          if (inv[foundKey] <= 0) delete inv[foundKey];
           setUserInv(user.id, inv);
           return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
             .setColor(0xE65100).setTitle('✅  Item verwendet')
-            .setDescription(`Du hast **${menge}x ${itemName}** verwendet.`)
+            .setDescription(`Du hast **${menge}x ${foundKey}** verwendet.`)
             .setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
           ]});
         }
