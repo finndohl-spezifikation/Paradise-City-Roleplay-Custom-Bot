@@ -100,6 +100,16 @@ async function updateAktienPrices() {
     d[s.id].history.push({ price: newPrice, ts: Date.now() });
     if (d[s.id].history.length > 48) d[s.id].history = d[s.id].history.slice(-48);
     try {
+      const _msgs = loadAktienMsgs();
+      if (_msgs[s.id]) {
+        // Embed existiert bereits — nichts tun
+        const ch = await client.channels.fetch(s.channel).catch(() => null);
+        if (ch) {
+          const _existing = await ch.messages.fetch(_msgs[s.id]).catch(() => null);
+          if (_existing) continue; // Nachricht vorhanden → überspringen
+        }
+      }
+      // Kein gespeichertes Embed → einmalig senden
       const ch = await client.channels.fetch(s.channel).catch(() => null);
       if (!ch) continue;
       const _aktBtn = new ButtonBuilder()
@@ -108,31 +118,14 @@ async function updateAktienPrices() {
         .setStyle(ButtonStyle.Primary);
       const _aktRow = new ActionRowBuilder().addComponents(_aktBtn);
       const _embed = new EmbedBuilder()
-        .setColor(embedCol)
-        .setTitle(`${s.emoji} ${s.name} — Aktueller Kurs`)
-        .setDescription(`Aktuelle Kursinformationen für **${s.name}** auf dem Paradise City Aktienmarkt.`)
-        .addFields(
-          { name: '💰 Aktueller Kurs', value: `**${newPrice.toLocaleString('de-DE')} $**`, inline: true },
-          { name: `${trend} Änderung`,   value: `${sign}${diff.toLocaleString('de-DE')} $ (${sign}${diffPct}%)`, inline: true }
-        )
-        .setTimestamp()
+        .setColor(s.color)
+        .setTitle(`${s.emoji} ${s.name} — Aktienmarkt`)
+        .setDescription(`Klicke den Button um **${s.name}** Aktien zu kaufen oder zu verkaufen.`)
         .setFooter({ text: 'Paradise City Roleplay • Aktienmarkt' });
-      const _msgs = loadAktienMsgs();
-      const _existingId = _msgs[s.id];
-      let _sent = null;
-      if (_existingId) {
-        // Versuche bestehende Nachricht zu editieren
-        _sent = await ch.messages.fetch(_existingId).catch(() => null);
-        if (_sent) {
-          await _sent.edit({ embeds: [_embed], components: [_aktRow] }).catch(() => { _sent = null; });
-        }
-      }
-      if (!_sent) {
-        // Neue Nachricht senden und ID speichern
-        _sent = await ch.send({ embeds: [_embed], components: [_aktRow] });
-        _msgs[s.id] = _sent.id;
-        saveAktienMsgs(_msgs);
-      }
+      const _sent = await ch.send({ embeds: [_embed], components: [_aktRow] });
+      const _msgs2 = loadAktienMsgs();
+      _msgs2[s.id] = _sent.id;
+      saveAktienMsgs(_msgs2);
     } catch(e) { console.error('[AKTIEN]', s.id, e.message); }
   }
   saveAktien(d);
