@@ -706,7 +706,8 @@ const DARK_ORANGE = 0xE65100;
 
 // Entfernt custom Discord Emojis (<:name:id> und <a:name:id>) aus Text für Anzeige
 function stripCustomEmoji(text) {
-  return text.replace(/<a?:[^:]+:\d+>/g, '').trim();
+  // Remove custom emoji codes, then strip any leftover separator (e.g. " | " or "| ")
+  return text.replace(/<a?:[^:]+:\d+>/g, '').replace(/^\s*\|\s*/, '').trim();
 }
 
 // Rollen die von ALLEN Filterregeln ausgenommen sind
