@@ -706,8 +706,8 @@ const DARK_ORANGE = 0xE65100;
 
 // Entfernt custom Discord Emojis (<:name:id> und <a:name:id>) aus Text für Anzeige
 function stripCustomEmoji(text) {
-  // Remove custom emoji codes, then strip any leftover separator (e.g. " | " or "| ")
-  return text.replace(/<a?:[^:]+:\d+>/g, '').replace(/^\s*\|\s*/, '').trim();
+  const cleaned = text.replace(/<a?:[^:]+:\d+>/g, '').replace(/^\s*\|\s*/, '').trim();
+  return cleaned.length > 0 ? cleaned : text.trim();
 }
 
 // Rollen die von ALLEN Filterregeln ausgenommen sind
@@ -3497,7 +3497,8 @@ client.on('interactionCreate', async (interaction) => {
           const choices = allItems
             .filter(n => n.toLowerCase().includes(focused))
             .slice(0, 25)
-            .map(n => ({ name: stripCustomEmoji(n) + (n !== stripCustomEmoji(n) ? '' : ''), value: n }));
+            .map(n => { const nm = stripCustomEmoji(n).slice(0,100); return nm ? { name: nm, value: n.slice(0,100) } : null; })
+            .filter(Boolean);
           return interaction.respond(choices);
         }
         if (cmd === 'item-remove') {
@@ -3522,7 +3523,8 @@ client.on('interactionCreate', async (interaction) => {
           const choices = allItems
             .filter(n => n.toLowerCase().includes(focused))
             .slice(0, 25)
-            .map(n => ({ name: stripCustomEmoji(n), value: n }));
+            .map(n => { const nm = stripCustomEmoji(n).slice(0,100); return nm ? { name: nm, value: n.slice(0,100) } : null; })
+            .filter(Boolean);
           return interaction.respond(choices);
         }
         if (cmd === 'teamshop-delete') {
