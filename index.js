@@ -3898,8 +3898,7 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.reply({ content: `❌ **${target.tag}** hat bereits einen Ausweis. Erst mit \`/ausweis-delete\` löschen.`, ephemeral: true });
       }
       if (art === 'illegal') {
-        return interaction.reply({ content: '❌ Illegale Bewohner erhalten **keinen Ausweis**.
-Die Illegale Einzel- und Gruppeneinreise berechtigt nicht zur Ausweiserstellung.', ephemeral: true });
+        return interaction.reply({ content: '❌ Illegale Bewohner erhalten **keinen Ausweis**.\nDie Illegale Einzel- und Gruppeneinreise berechtigt nicht zur Ausweiserstellung.', ephemeral: true });
       }
       // Legal: DM mit Ausweis-Link
       const tokens = loadAusweisTokens();
