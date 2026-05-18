@@ -109,23 +109,7 @@ async function updateAktienPrices() {
           if (_existing) continue; // Nachricht vorhanden → überspringen
         }
       }
-      // Kein gespeichertes Embed → einmalig senden
-      const ch = await client.channels.fetch(s.channel).catch(() => null);
-      if (!ch) continue;
-      const _aktBtn = new ButtonBuilder()
-        .setCustomId(`aktien_handeln:${s.id}`)
-        .setLabel('📊 Aktien kaufen / verkaufen')
-        .setStyle(ButtonStyle.Primary);
-      const _aktRow = new ActionRowBuilder().addComponents(_aktBtn);
-      const _embed = new EmbedBuilder()
-        .setColor(s.color)
-        .setTitle(`${s.emoji} ${s.name} — Aktienmarkt`)
-        .setDescription(`Klicke den Button um **${s.name}** Aktien zu kaufen oder zu verkaufen.`)
-        .setFooter({ text: 'Paradise City Roleplay • Aktienmarkt' });
-      const _sent = await ch.send({ embeds: [_embed], components: [_aktRow] });
-      const _msgs2 = loadAktienMsgs();
-      _msgs2[s.id] = _sent.id;
-      saveAktienMsgs(_msgs2);
+      // Kein Embed vorhanden → nichts tun (kein Neu-Senden)
     } catch(e) { console.error('[AKTIEN]', s.id, e.message); }
   }
   saveAktien(d);
@@ -3914,15 +3898,8 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.reply({ content: `❌ **${target.tag}** hat bereits einen Ausweis. Erst mit \`/ausweis-delete\` löschen.`, ephemeral: true });
       }
       if (art === 'illegal') {
-        // Illegal: Modal direkt anzeigen
-        const modal = new ModalBuilder().setCustomId(`ausweis_create_ill:${target.id}`).setTitle('🚫 Illegale Einreise — Charakter');
-        modal.addComponents(
-          new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('ill_vorname').setLabel('RP Vorname').setStyle(TextInputStyle.Short).setRequired(true)),
-          new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('ill_nachname').setLabel('RP Nachname').setStyle(TextInputStyle.Short).setRequired(true)),
-          new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('ill_psn').setLabel('PSN Name').setStyle(TextInputStyle.Short).setRequired(true)),
-          new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('ill_geschlecht').setLabel('Geschlecht (Männlich / Weiblich)').setStyle(TextInputStyle.Short).setRequired(true)),
-        );
-        return interaction.showModal(modal);
+        return interaction.reply({ content: '❌ Illegale Bewohner erhalten **keinen Ausweis**.
+Die Illegale Einzel- und Gruppeneinreise berechtigt nicht zur Ausweiserstellung.', ephemeral: true });
       }
       // Legal: DM mit Ausweis-Link
       const tokens = loadAusweisTokens();
@@ -5208,8 +5185,9 @@ ${transText}`;
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** an <@${targetId}> überwiesen.`, ephemeral: true });
     }
-  // ── AUSWEIS CREATE (ILLEGAL) Modal ────────────────────────────────────────
+  // ── AUSWEIS CREATE (ILLEGAL) Modal — DEAKTIVIERT (Illegale erhalten keinen Ausweis) ──
   if (interaction.isModalSubmit() && interaction.customId.startsWith('ausweis_create_ill:')) {
+    return interaction.reply({ content: '❌ Illegale Bewohner erhalten keinen Ausweis.', ephemeral: true });
     const targetId   = interaction.customId.split(':')[1];
     const illVor     = interaction.fields.getTextInputValue('ill_vorname').trim();
     const illNach    = interaction.fields.getTextInputValue('ill_nachname').trim();
@@ -6025,10 +6003,22 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
   function _giveBier(uid, amount) {
     try {
-      const invPath = path.join(DATA_DIR, 'inventar.json');
+      const invPath  = path.join(DATA_DIR, 'inventar.json');
+      const shopsPath = path.join(__dirname, 'data', 'shops.json');
       const all = (() => { try{return JSON.parse(fs.readFileSync(invPath,'utf8'));}catch{return{};} })();
       if (!all[uid]) all[uid] = {};
-      const bierKey = Object.keys(all[uid]).find(k => k.toLowerCase().includes('bier')) || 'Bier';
+      // Exakten Item-Key aus Kwik-E-Markt holen
+      let bierKey = 'Bier';
+      try {
+        const shops = JSON.parse(fs.readFileSync(shopsPath,'utf8'));
+        const kwikItem = (shops.kwik || []).find(i => i.name && i.name.toLowerCase().includes('bier'));
+        if (kwikItem) bierKey = kwikItem.name;
+        else {
+          // Fallback: im Inventar des Spielers suchen
+          const existing = Object.keys(all[uid]).find(k => k.toLowerCase().includes('bier'));
+          if (existing) bierKey = existing;
+        }
+      } catch {}
       all[uid][bierKey] = (all[uid][bierKey] || 0) + amount;
       fs.writeFileSync(invPath, JSON.stringify(all, null, 2), 'utf8');
     } catch(e) { console.error('[BAR-BIER]', e.message); }
