@@ -1125,6 +1125,390 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     });
 
     // ── GET / — Root Redirect ────────────────────────────────────────────────
+    // ─── DARKCOIN TOKEN HELPERS ──────────────────────────────────────────────────
+    const KRYPTO_TOK_FILE_W = path.join(DATA_DIR, 'krypto_tokens.json');
+    const KONTO_FILE_KW     = path.join(DATA_DIR, 'konto.json');
+
+    function loadKryptoToksW() { try { return JSON.parse(fs.readFileSync(KRYPTO_TOK_FILE_W,'utf8')); } catch { return {}; } }
+    function validateKryptoTokW(token) { const t=loadKryptoToksW(); const e=t[token]; return (!e||e.expiresAt<Date.now())?null:e; }
+    function getKontoKW(uid) { try { const d=JSON.parse(fs.readFileSync(KONTO_FILE_KW,'utf8')); return d[uid]||{konto:0,schwarz:0}; } catch { return {konto:0,schwarz:0}; } }
+    function setKontoKW(uid,obj) { let d={}; try{d=JSON.parse(fs.readFileSync(KONTO_FILE_KW,'utf8'));}catch{} d[uid]=obj; fs.writeFileSync(KONTO_FILE_KW,JSON.stringify(d,null,2),'utf8'); }
+    function loadKryptoW() { try { return JSON.parse(fs.readFileSync(path.join(DATA_DIR,'krypto.json'),'utf8')); } catch { return {}; } }
+    function saveKryptoW(d) { fs.writeFileSync(path.join(DATA_DIR,'krypto.json'),JSON.stringify(d,null,2),'utf8'); }
+    function getWalletW(uid) { const d=loadKryptoW(); return d[uid]||{dc:0}; }
+    function getKryptoRateW() { try { return JSON.parse(fs.readFileSync(path.join(DATA_DIR,'krypto_rate.json'),'utf8')).rate||100; } catch { return 100; } }
+
+    // CSS shared for krypto pages
+    const KRYPTO_CSS = `
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Courier New',monospace;background:#0a0a0a;color:#d1d5db;min-height:100vh;padding:20px}
+.wrap{max-width:680px;margin:0 auto}
+.header{background:linear-gradient(135deg,#78350f,#b45309);padding:20px 24px;border-radius:12px 12px 0 0;display:flex;align-items:center;gap:12px}
+.header-icon{font-size:2em}
+.header h1{color:#fef3c7;font-size:1.1em;letter-spacing:2px;text-transform:uppercase}
+.header h2{color:#fbbf24;font-size:.8em;margin-top:3px;font-weight:400}
+.card{background:#111;border:1px solid #1f2937;border-top:none;border-radius:0 0 12px 12px;padding:24px}
+.balance-box{background:#0a0a0a;border:1px solid #f59e0b;border-radius:8px;padding:20px;text-align:center;margin-bottom:20px}
+.balance-label{color:#9ca3af;font-size:.75em;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.balance-val{color:#f59e0b;font-size:2.2em;font-weight:700}
+.balance-sub{color:#6b7280;font-size:.8em;margin-top:4px}
+.section{margin-bottom:20px}
+.section-title{color:#f59e0b;font-size:.75em;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;border-bottom:1px solid #1f2937;padding-bottom:6px}
+.form-group{margin-bottom:12px}
+label{display:block;color:#9ca3af;font-size:.8em;margin-bottom:4px}
+input[type=text],input[type=number],select{width:100%;padding:10px 12px;background:#0a0a0a;border:1px solid #374151;border-radius:6px;color:#e5e7eb;font-size:.9em;font-family:inherit;outline:none;transition:border .15s}
+input:focus,select:focus{border-color:#f59e0b}
+.btn{width:100%;padding:12px;border:none;border-radius:6px;font-size:.9em;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:opacity .15s}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:#b45309;color:#fff}
+.btn-primary:hover:not(:disabled){background:#92400e}
+.btn-sell{background:#1e3a5f;color:#93c5fd}
+.btn-sell:hover:not(:disabled){background:#1e40af}
+.btn-transfer{background:#1a2e1a;color:#86efac;border:1px solid #166534}
+.btn-transfer:hover:not(:disabled){background:#166534}
+.alert{border-radius:6px;padding:12px 14px;font-size:.85em;margin-bottom:14px;display:none}
+.alert.show{display:block}
+.alert-ok{background:#052e16;border:1px solid #166534;color:#86efac}
+.alert-err{background:#2d0a0a;border:1px solid #991b1b;color:#fca5a5}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1f2937;font-size:.85em}
+.info-row:last-child{border-bottom:none}
+.info-label{color:#6b7280}
+.info-val{color:#e5e7eb;font-family:monospace}
+.rate-box{background:#111827;border:1px solid #374151;border-radius:6px;padding:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;font-size:.85em}
+.rate-num{color:#f59e0b;font-weight:700;font-size:1.1em}
+.tabs{display:flex;margin-bottom:18px;border-bottom:2px solid #1f2937}
+.tab{padding:8px 18px;cursor:pointer;font-size:.8em;letter-spacing:1px;text-transform:uppercase;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab.active{color:#f59e0b;border-bottom-color:#f59e0b}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.user-list{max-height:160px;overflow-y:auto;border:1px solid #374151;border-radius:6px;margin-top:4px}
+.user-item{padding:8px 12px;cursor:pointer;font-size:.82em;border-bottom:1px solid #1f2937;transition:background .1s;color:#9ca3af}
+.user-item:last-child{border-bottom:none}
+.user-item:hover{background:#1f2937;color:#f59e0b}
+.user-item.selected{background:#1c1500;color:#f59e0b;font-weight:700}
+.footer{text-align:center;color:#374151;font-size:.72em;margin-top:16px}
+`;
+
+    // ── GET /krypto/wallet ─────────────────────────────────────────────────────
+    app.get('/krypto/wallet', (req, res) => {
+      const token = req.query.token || '';
+      const entry = validateKryptoTokW(token);
+      if (!entry || entry.type !== 'wallet') {
+        return res.status(403).send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Link abgelaufen</title><style>body{font-family:monospace;background:#0a0a0a;color:#ef4444;display:flex;justify-content:center;align-items:center;height:100vh;text-align:center}</style></head><body><div><div style="font-size:2em;margin-bottom:12px">⛔</div><div>Link abgelaufen oder ungültig.<br>Bitte öffne das Wallet erneut über Discord.</div></div></body></html>`);
+      }
+      const uid = entry.userId;
+      const wallet = getWalletW(uid);
+      const rate = getKryptoRateW();
+      const schwarzwert = Math.round(wallet.dc * rate);
+      // Get all other wallets for transfer target list
+      const allWallets = loadKryptoW();
+      const others = Object.entries(allWallets).filter(([id]) => id !== uid).map(([id, w]) => ({ id, dc: w.dc||0 }));
+
+      res.send(`<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DarkCoin Wallet</title><style>${KRYPTO_CSS}</style></head>
+<body><div class="wrap">
+  <div class="header"><div class="header-icon">💰</div><div><h1>DarkCoin Wallet</h1><h2>Paradise City • Schattennetz</h2></div></div>
+  <div class="card">
+    <div class="balance-box">
+      <div class="balance-label">Mein Guthaben</div>
+      <div class="balance-val">${wallet.dc.toFixed(4)} 𝔇C</div>
+      <div class="balance-sub">≈ ${schwarzwert.toLocaleString('de-DE')} $ Schwarzgeld • Kurs: 1 𝔇C = ${rate.toLocaleString('de-DE')} $</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('info')">ℹ️ Info</div>
+      <div class="tab" onclick="switchTab('transfer')">📤 Überweisung</div>
+    </div>
+
+    <div id="tab-info" class="tab-panel active">
+      <div class="section">
+        <div class="section-title">Wallet Details</div>
+        <div class="info-row"><span class="info-label">DarkCoin Balance</span><span class="info-val" style="color:#f59e0b">${wallet.dc.toFixed(8)} 𝔇C</span></div>
+        <div class="info-row"><span class="info-label">Schwarzgeld-Wert</span><span class="info-val">${schwarzwert.toLocaleString('de-DE')} $</span></div>
+        <div class="info-row"><span class="info-label">Aktueller Kurs</span><span class="info-val">1 𝔇C = ${rate.toLocaleString('de-DE')} $</span></div>
+        <div class="info-row"><span class="info-label">Discord User ID</span><span class="info-val" style="font-size:.8em;color:#6b7280">${uid}</span></div>
+      </div>
+    </div>
+
+    <div id="tab-transfer" class="tab-panel">
+      <div class="section">
+        <div class="section-title">𝔇C überweisen</div>
+        <div id="alert" class="alert"></div>
+        ${others.length > 0 ? `
+        <div class="form-group">
+          <label>Empfänger auswählen</label>
+          <div class="user-list" id="userList">
+            ${others.map(o => `<div class="user-item" data-id="${o.id}" onclick="selectUser(this,'${o.id}')">
+              Discord ID: ${o.id}&nbsp;&nbsp;<span style="color:#6b7280;font-size:.85em">(${o.dc.toFixed(4)} 𝔇C)</span>
+            </div>`).join('')}
+          </div>
+          <input type="hidden" id="targetId" value="">
+        </div>` : `<p style="color:#6b7280;font-size:.85em;margin-bottom:12px">Keine anderen Wallets gefunden. Warte bis andere Spieler ihr Wallet geöffnet haben.</p>`}
+        <div class="form-group">
+          <label>Betrag (𝔇C)</label>
+          <input type="number" id="transferAmt" min="0.0001" step="0.0001" placeholder="z.B. 1.5" oninput="calcTransfer()">
+        </div>
+        <div id="transferInfo" style="color:#9ca3af;font-size:.8em;margin-bottom:10px;display:none">
+          Du überweist: <span id="txAmt" style="color:#f59e0b"></span> 𝔇C
+        </div>
+        <button class="btn btn-transfer" id="btnTransfer" onclick="doTransfer()" disabled>📤 ÜBERWEISUNG SENDEN</button>
+      </div>
+    </div>
+
+    <div class="footer">Paradise City Roleplay • DarkCoin System<br>Dieser Link ist 15 Minuten gültig.</div>
+  </div>
+</div>
+<script>
+const TOKEN = '${token}';
+let selectedUid = '';
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['info','transfer'][i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+function selectUser(el, uid) {
+  document.querySelectorAll('.user-item').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedUid = uid;
+  document.getElementById('targetId').value = uid;
+  calcTransfer();
+}
+function calcTransfer() {
+  const amt = parseFloat(document.getElementById('transferAmt').value)||0;
+  const ok = amt > 0 && selectedUid;
+  document.getElementById('btnTransfer').disabled = !ok;
+  document.getElementById('transferInfo').style.display = amt>0 ? 'block':'none';
+  document.getElementById('txAmt').textContent = amt.toFixed(4);
+}
+function showAlert(msg, ok) {
+  const el = document.getElementById('alert');
+  el.textContent = msg;
+  el.className = 'alert show ' + (ok ? 'alert-ok' : 'alert-err');
+}
+async function doTransfer() {
+  const amt = parseFloat(document.getElementById('transferAmt').value);
+  if (!amt || !selectedUid) return;
+  document.getElementById('btnTransfer').disabled = true;
+  try {
+    const r = await fetch('/api/krypto/transfer', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: TOKEN, targetUserId: selectedUid, amount: amt })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      showAlert('✓ Überweisung erfolgreich! Neues Guthaben: ' + d.dc.toFixed(4) + ' 𝔇C', true);
+      document.getElementById('transferAmt').value = '';
+      selectedUid = '';
+      setTimeout(()=>location.reload(), 2000);
+    } else {
+      showAlert('❌ ' + (d.error||'Fehler'), false);
+      document.getElementById('btnTransfer').disabled = false;
+    }
+  } catch(e) { showAlert('❌ Verbindungsfehler', false); document.getElementById('btnTransfer').disabled = false; }
+}
+</script>
+</body></html>`);
+    });
+
+    // ── GET /krypto/exchange ───────────────────────────────────────────────────
+    app.get('/krypto/exchange', (req, res) => {
+      const token = req.query.token || '';
+      const entry = validateKryptoTokW(token);
+      if (!entry || entry.type !== 'exchange') {
+        return res.status(403).send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Link abgelaufen</title><style>body{font-family:monospace;background:#0a0a0a;color:#ef4444;display:flex;justify-content:center;align-items:center;height:100vh;text-align:center}</style></head><body><div><div style="font-size:2em;margin-bottom:12px">⛔</div><div>Link abgelaufen oder ungültig.<br>Bitte öffne die Tauschbörse erneut über Discord.</div></div></body></html>`);
+      }
+      const uid = entry.userId;
+      const wallet = getWalletW(uid);
+      const konto = getKontoKW(uid);
+      const rate = getKryptoRateW();
+
+      res.send(`<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DarkCoin Tauschbörse</title><style>${KRYPTO_CSS}</style></head>
+<body><div class="wrap">
+  <div class="header"><div class="header-icon">⚖️</div><div><h1>DarkCoin Tauschbörse</h1><h2>Paradise City • Schattennetz</h2></div></div>
+  <div class="card">
+    <div class="rate-box">
+      <span style="color:#9ca3af">Aktueller Kurs</span>
+      <span class="rate-num">1 𝔇C = ${rate.toLocaleString('de-DE')} $</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
+      <div class="balance-box" style="margin:0">
+        <div class="balance-label">Bankgeld</div>
+        <div class="balance-val" style="font-size:1.5em;color:#60a5fa">${(konto.konto||0).toLocaleString('de-DE')} $</div>
+      </div>
+      <div class="balance-box" style="margin:0">
+        <div class="balance-label">DarkCoin</div>
+        <div class="balance-val" style="font-size:1.5em">${wallet.dc.toFixed(4)} 𝔇C</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('buy')">🏦 Kaufen</div>
+      <div class="tab" onclick="switchTab('sell')">💱 Verkaufen</div>
+    </div>
+
+    <div id="tab-buy" class="tab-panel active">
+      <div id="alert-buy" class="alert"></div>
+      <div class="form-group">
+        <label>Bankgeld ausgeben ($)</label>
+        <input type="number" id="buyKonto" min="1" step="1" placeholder="z.B. 5000" oninput="calcBuy()">
+      </div>
+      <div id="buyInfo" style="color:#9ca3af;font-size:.8em;margin-bottom:12px;display:none">
+        Du bekommst ca. <span id="buyDc" style="color:#f59e0b"></span> 𝔇C
+      </div>
+      <button class="btn btn-primary" id="btnBuy" onclick="doBuy()" disabled>🏦 JETZT KAUFEN</button>
+    </div>
+
+    <div id="tab-sell" class="tab-panel">
+      <div id="alert-sell" class="alert"></div>
+      <div class="form-group">
+        <label>DarkCoin verkaufen (𝔇C)</label>
+        <input type="number" id="sellDc" min="0.0001" step="0.0001" placeholder="z.B. 1.5" oninput="calcSell()">
+      </div>
+      <div id="sellInfo" style="color:#9ca3af;font-size:.8em;margin-bottom:12px;display:none">
+        Du bekommst ca. <span id="sellKonto" style="color:#60a5fa"></span> $
+      </div>
+      <button class="btn btn-sell" id="btnSell" onclick="doSell()" disabled>💱 JETZT VERKAUFEN</button>
+    </div>
+
+    <div class="footer">Paradise City Roleplay • DarkCoin System<br>Dieser Link ist 15 Minuten gültig.</div>
+  </div>
+</div>
+<script>
+const TOKEN = '${token}';
+const RATE = ${rate};
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['buy','sell'][i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+function calcBuy() {
+  const konto = parseFloat(document.getElementById('buyKonto').value)||0;
+  document.getElementById('btnBuy').disabled = konto < 1;
+  document.getElementById('buyInfo').style.display = konto>0?'block':'none';
+  document.getElementById('buyDc').textContent = (konto/RATE).toFixed(6);
+}
+function calcSell() {
+  const dc = parseFloat(document.getElementById('sellDc').value)||0;
+  document.getElementById('btnSell').disabled = dc <= 0;
+  document.getElementById('sellInfo').style.display = dc>0?'block':'none';
+  document.getElementById('sellKonto').textContent = Math.floor(dc*RATE).toLocaleString('de-DE');
+}
+function showAlert(tab, msg, ok) {
+  const el = document.getElementById('alert-'+tab);
+  el.textContent = msg;
+  el.className = 'alert show ' + (ok?'alert-ok':'alert-err');
+}
+async function doBuy() {
+  const konto = parseFloat(document.getElementById('buyKonto').value);
+  if (!konto || konto < 1) return;
+  document.getElementById('btnBuy').disabled = true;
+  try {
+    const r = await fetch('/api/krypto/buy', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: TOKEN, kontoAmount: konto })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      showAlert('buy', '✓ ' + d.bought.toFixed(4) + ' 𝔇C gekauft! Neues Wallet: ' + d.dc.toFixed(4) + ' 𝔇C', true);
+      document.getElementById('buyKonto').value = '';
+      setTimeout(()=>location.reload(), 2500);
+    } else {
+      showAlert('buy', '❌ ' + (d.error||'Fehler'), false);
+      document.getElementById('btnBuy').disabled = false;
+    }
+  } catch(e) { showAlert('buy','❌ Verbindungsfehler',false); document.getElementById('btnBuy').disabled=false; }
+}
+async function doSell() {
+  const dc = parseFloat(document.getElementById('sellDc').value);
+  if (!dc) return;
+  document.getElementById('btnSell').disabled = true;
+  try {
+    const r = await fetch('/api/krypto/sell', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: TOKEN, dcAmount: dc })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      showAlert('sell', '✓ ' + d.sold.toFixed(4) + ' 𝔇C verkauft! +' + d.payout.toLocaleString('de-DE') + ' $ Bankgeld', true);
+      document.getElementById('sellDc').value = '';
+      setTimeout(()=>location.reload(), 2500);
+    } else {
+      showAlert('sell', '❌ ' + (d.error||'Fehler'), false);
+      document.getElementById('btnSell').disabled = false;
+    }
+  } catch(e) { showAlert('sell','❌ Verbindungsfehler',false); document.getElementById('btnSell').disabled=false; }
+}
+</script>
+</body></html>`);
+    });
+
+    // ── POST /api/krypto/transfer ──────────────────────────────────────────────
+    app.post('/api/krypto/transfer', express.json(), (req, res) => {
+      const { token, targetUserId, amount } = req.body||{};
+      const entry = validateKryptoTokW(token);
+      if (!entry || entry.type !== 'wallet') return res.json({ ok:false, error:'Link abgelaufen' });
+      const amt = Number(amount);
+      if (!amt || amt <= 0 || !targetUserId) return res.json({ ok:false, error:'Ungültige Eingabe' });
+      if (entry.userId === targetUserId) return res.json({ ok:false, error:'Du kannst nicht an dich selbst überweisen' });
+      const krypto = loadKryptoW();
+      const sender = krypto[entry.userId]||{dc:0};
+      if ((sender.dc||0) < amt) return res.json({ ok:false, error:'Nicht genug DarkCoin. Guthaben: ' + (sender.dc||0).toFixed(4) + ' 𝔇C' });
+      sender.dc = (sender.dc||0) - amt;
+      const recv = krypto[targetUserId]||{dc:0};
+      recv.dc = (recv.dc||0) + amt;
+      krypto[entry.userId] = sender;
+      krypto[targetUserId] = recv;
+      saveKryptoW(krypto);
+      res.json({ ok:true, dc: sender.dc });
+    });
+
+    // ── POST /api/krypto/buy (Konto → DC) ─────────────────────────────────────
+    app.post('/api/krypto/buy', express.json(), (req, res) => {
+      const { token, kontoAmount } = req.body||{};
+      const entry = validateKryptoTokW(token);
+      if (!entry || entry.type !== 'exchange') return res.json({ ok:false, error:'Link abgelaufen' });
+      const konto_amt = Number(kontoAmount);
+      if (!konto_amt || konto_amt < 1) return res.json({ ok:false, error:'Ungültiger Betrag' });
+      const uid = entry.userId;
+      const kontoData = getKontoKW(uid);
+      if ((kontoData.konto||0) < konto_amt) return res.json({ ok:false, error:'Nicht genug Bankgeld. Verfügbar: ' + (kontoData.konto||0).toLocaleString('de-DE') + ' $' });
+      const rate = getKryptoRateW();
+      const dc_bought = konto_amt / rate;
+      kontoData.konto = (kontoData.konto||0) - konto_amt;
+      setKontoKW(uid, kontoData);
+      const krypto = loadKryptoW();
+      if (!krypto[uid]) krypto[uid]={dc:0};
+      krypto[uid].dc = (krypto[uid].dc||0) + dc_bought;
+      saveKryptoW(krypto);
+      res.json({ ok:true, bought: dc_bought, dc: krypto[uid].dc, konto: kontoData.konto });
+    });
+
+    // ── POST /api/krypto/sell (DC → Konto) ────────────────────────────────────
+    app.post('/api/krypto/sell', express.json(), (req, res) => {
+      const { token, dcAmount } = req.body||{};
+      const entry = validateKryptoTokW(token);
+      if (!entry || entry.type !== 'exchange') return res.json({ ok:false, error:'Link abgelaufen' });
+      const dc_amt = Number(dcAmount);
+      if (!dc_amt || dc_amt <= 0) return res.json({ ok:false, error:'Ungültiger Betrag' });
+      const uid = entry.userId;
+      const krypto = loadKryptoW();
+      if (!krypto[uid]) krypto[uid]={dc:0};
+      if ((krypto[uid].dc||0) < dc_amt) return res.json({ ok:false, error:'Nicht genug DarkCoin. Guthaben: ' + (krypto[uid].dc||0).toFixed(4) + ' 𝔇C' });
+      const rate = getKryptoRateW();
+      const payout = Math.floor(dc_amt * rate);
+      krypto[uid].dc = (krypto[uid].dc||0) - dc_amt;
+      saveKryptoW(krypto);
+      const kontoData = getKontoKW(uid);
+      kontoData.konto = (kontoData.konto||0) + payout;
+      setKontoKW(uid, kontoData);
+      res.json({ ok:true, sold: dc_amt, payout, dc: krypto[uid].dc, konto: kontoData.konto });
+    });
+
     // ─── DARKCOIN WALLET API ─────────────────────────────────────────────────────
     app.get('/api/krypto/wallet/:uid', (req, res) => {
       const secret = req.headers['x-darknet-secret'] || req.query.secret;
