@@ -1346,7 +1346,7 @@ client.once('ready', async () => {
       .setDescription('Markiert einen Raubüberfall als fehlgeschlagen (kein Cooldown)')
       .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
       .addStringOption(o => o.setName('typ').setDescription('Art des Raubs').setRequired(true)
-        .addChoices({ name: 'ATM-Raub', value: 'atm' },{ name: 'Shop-Raub', value: 'shop' },{ name: 'Bar-Raub', value: 'bar' },{ name: 'Humane Labs Raub', value: 'humane' }))
+        .addChoices({ name: 'ATM-Raub', value: 'atm' },{ name: 'Shop-Raub', value: 'shop' },{ name: 'Bar-Raub', value: 'bar' },{ name: 'Humane Labs Raub', value: 'humane' },{ name: 'Staatsbank Raub', value: 'staatsbank' }))
       .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
       .toJSON(),
 
@@ -1355,7 +1355,7 @@ client.once('ready', async () => {
       .setDescription('Setzt den Raub-Cooldown eines Spielers manuell zurück')
       .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
       .addStringOption(o => o.setName('typ').setDescription('Art des Raubs').setRequired(true)
-        .addChoices({ name: 'ATM-Raub', value: 'atm' },{ name: 'Shop-Raub', value: 'shop' },{ name: 'Bar-Raub', value: 'bar' },{ name: 'Humane Labs Raub', value: 'humane' }))
+        .addChoices({ name: 'ATM-Raub', value: 'atm' },{ name: 'Shop-Raub', value: 'shop' },{ name: 'Bar-Raub', value: 'bar' },{ name: 'Humane Labs Raub', value: 'humane' },{ name: 'Staatsbank Raub', value: 'staatsbank' }))
       .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
       .toJSON(),
 
@@ -6178,6 +6178,88 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 }
 // ─── END HUMANE LABS RAUB SYSTEM ─────────────────────────────────────────────────
 
+// ─── STAATSBANK RAUB SYSTEM ────────────────────────────────────────────────────────────────────────────────
+{
+  const STAATSBANK_INFO_CH = '1490894317462753280';
+  const STAATSBANK_RAUB_CH = '1490894320604020806';
+  const STAATSBANK_FILE    = path.join(DATA_DIR, 'staatsbank_raub.json');
+  const STAATSBANK_DUR_MS  = 30 * 60 * 1000;
+  function _loadStaatsbank() { try{return JSON.parse(fs.readFileSync(STAATSBANK_FILE,'utf8'));}catch{return{};} }
+  function _saveStaatsbank(d){ fs.writeFileSync(STAATSBANK_FILE,JSON.stringify(d,null,2),'utf8'); }
+
+  client.once('ready', async () => {
+    try {
+      const d = _loadStaatsbank(); if (d._infoEmbedSentV2) return;
+      const ch = await client.channels.fetch(STAATSBANK_INFO_CH).catch(() => null); if (!ch) return;
+      await ch.send({ embeds: [new EmbedBuilder()
+        .setColor(0xf59e0b)
+        .setTitle('🏦 Staatsbank Raub')
+        .setDescription('> Der Raub, auf den jeder gewartet hat — überfallt die Staatsbank von LA!')
+        .addFields(
+          {name:'💰 Beute',value:'75.000 – 105.000 $ Schwarzgeld',inline:true},
+          {name:'👥 Spieler',value:'Mind. 4 Personen',inline:true},
+          {name:'👮 Beamte',value:'Mind. 5 Officers',inline:true},
+          {name:'⏱️ Dauer',value:'30 Minuten',inline:true},
+          {name:'​',value:'​',inline:true},
+          {name:'​',value:'​',inline:true},
+          {name:'📋 Ablauf',value:'**1.** Raub In-Game mit min. 4 Spielern starten\n**2.** Foto als Beweis in <#1490894320604020806> senden\n**3.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
+        )
+        .setFooter({ text: 'Paradise City Roleplay • Raubüberfalle' }).setTimestamp()] });
+      d._infoEmbedSentV2 = true; _saveStaatsbank(d);
+    } catch(e) { console.error('[STAATSBANK-INFO]', e.message); }
+  });
+
+  client.on('messageCreate', async (msg) => {
+    if (msg.author.bot || msg.channelId !== STAATSBANK_RAUB_CH) return;
+    if (!msg.attachments.some(a => a.contentType && a.contentType.startsWith('image/'))) {
+      await msg.delete().catch(() => {}); return;
+    }
+    const d = _loadStaatsbank(), entry = d[msg.author.id] || {}, now = Date.now();
+    if (entry.active) {
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Staatsbank Raub').setDescription('Du hast bereits einen **aktiven Staatsbank Raub**! Warte bis dieser abgeschlossen ist.').setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      await msg.delete().catch(() => {}); return;
+    }
+    if (entry.cooldownUntil && now < entry.cooldownUntil) {
+      const rem = Math.ceil((entry.cooldownUntil - now) / 60000), h = Math.floor(rem / 60), m = rem % 60;
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription('Du kannst einen Staatsbank Raub nur **alle 24 Stunden** machen.\nVerbleibend: **' + h + 'h ' + m + 'm**').setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      await msg.delete().catch(() => {}); return;
+    }
+    const onDuty = _getOnDuty();
+    if (onDuty < 5) {
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription('Mindestens **5 LAPD Officers** müssen im Dienst sein.\nAktuell: **' + onDuty + '**').setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      await msg.delete().catch(() => {}); return;
+    }
+
+    d[msg.author.id] = d[msg.author.id] || {};
+    d[msg.author.id].active = { startedAt: now, duration: STAATSBANK_DUR_MS, username: msg.author.username };
+    _saveStaatsbank(d);
+
+    try { const n = _loadRaubNotrufe(); n.push({ id: now + 'sb', ts: now, type: 'staatsbank_raub', title: '🏦 Staatsbank Raubüberfall', caller: msg.author.username, userId: msg.author.id, location: 'Staatsbank Los Angeles', description: 'Staatsbank Raub von **' + msg.author.username + '** (30 Minuten)', status: 'offen' }); _saveRaubNotrufe(n); } catch(e) { console.error('[STAATSBANK-NOTRUF]', e.message); }
+
+    sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0xf59e0b).setTitle('🏦 Staatsbank Raub gestartet')
+      .addFields({ name: '👤 Spieler', value: '<@' + msg.author.id + '> (' + msg.author.username + ')', inline: true }, { name: '⏱️ Dauer', value: '30 Minuten', inline: true }, { name: '📸 Beweis', value: msg.attachments.first()?.url || '-', inline: false })
+      .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Staatsbank Log' })).catch(() => {});
+
+    try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Staatsbank Raub gestartet!').setDescription('Dein Staatsbank Raub wurde gestartet!\n\n**Dauer:** 30 Minuten\n**Beute:** 75.000 – 105.000 $ Schwarzgeld\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.').setFooter({ text: 'Paradise City Roleplay • Staatsbank' }).setTimestamp()] }); } catch {}
+    await msg.delete().catch(() => {});
+
+    const uid = msg.author.id;
+    setTimeout(async () => {
+      const cur = _loadStaatsbank(); if (!cur[uid]?.active) return;
+      const beute = Math.floor(Math.random() * 30001) + 75000;
+      const k = _getKonto(uid); k.schwarz = (k.schwarz || 0) + beute; _setKonto(uid, k);
+      cur[uid].active = null; cur[uid].cooldownUntil = Date.now() + 24 * 60 * 60 * 1000; _saveStaatsbank(cur);
+      try { const n = _loadRaubNotrufe(), x = n.find(y => y.userId === uid && y.type === 'staatsbank_raub' && y.status === 'offen'); if (x) { x.status = 'geschlossen'; _saveRaubNotrufe(n); } } catch {}
+      sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x22c55e).setTitle('🏦 Staatsbank Raub abgeschlossen')
+        .addFields({ name: '👤 Spieler', value: '<@' + uid + '>', inline: true }, { name: '💰 Beute', value: beute.toLocaleString('de-CH') + ' $ Schwarzgeld', inline: true })
+        .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Staatsbank Log' })).catch(() => {});
+      try { const u = await client.users.fetch(uid).catch(() => null); if (u) { const dm = await u.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('💰 Staatsbank Raub erfolgreich!').setDescription('**Beute:** ' + beute.toLocaleString('de-CH') + ' $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.').setFooter({ text: 'Paradise City Roleplay • Staatsbank' }).setTimestamp()] }); } } catch {}
+    }, STAATSBANK_DUR_MS);
+  });
+}
+// ─── END STAATSBANK RAUB SYSTEM ──────────────────────────────────────────────────────────────────────────────────────
+
+
 
 // ─── RAUB ADMIN COMMANDS (/raub-fail, /raub-cooldown) ─────────────────────────
 client.on('interactionCreate', async (interaction) => {
@@ -6186,9 +6268,9 @@ client.on('interactionCreate', async (interaction) => {
 
   const typ      = interaction.options.getString('typ');       // 'atm' | 'shop'
   const target   = interaction.options.getUser('spieler');
-  const typLabel = typ==='humane'?'Humane Labs Raub':typ==='bar'?'Bar-Raub':typ==='shop'?'Shop-Raub':'ATM-Raub';
-  const nType    = typ==='humane'?'humane_raub':typ==='bar'?'bar_raub':typ==='shop'?'shop_raub':'atm_raub';
-  const rFile    = path.join(DATA_DIR, typ==='humane'?'humane_raub.json':typ==='bar'?'bar_raub.json':typ==='shop'?'shop_raub.json':'atm_raub.json');
+  const typLabel = typ==='staatsbank'?'Staatsbank Raub':typ==='humane'?'Humane Labs Raub':typ==='bar'?'Bar-Raub':typ==='shop'?'Shop-Raub':'ATM-Raub';
+  const nType    = typ==='staatsbank'?'staatsbank_raub':typ==='humane'?'humane_raub':typ==='bar'?'bar_raub':typ==='shop'?'shop_raub':'atm_raub';
+  const rFile    = path.join(DATA_DIR, typ==='staatsbank'?'staatsbank_raub.json':typ==='humane'?'humane_raub.json':typ==='bar'?'bar_raub.json':typ==='shop'?'shop_raub.json':'atm_raub.json');
   function _lrf(){ try{return JSON.parse(fs.readFileSync(rFile,'utf8'));}catch{return{};} }
   function _srf(d){ fs.writeFileSync(rFile,JSON.stringify(d,null,2),'utf8'); }
 
