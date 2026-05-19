@@ -6180,7 +6180,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
 // ─── STAATSBANK RAUB SYSTEM ────────────────────────────────────────────────────────────────────────────────
 {
-  const STAATSBANK_INFO_CH = '1490894317462753280';
+  const STAATSBANK_INFO_CH = '1490894319027097751';
   const STAATSBANK_RAUB_CH = '1490894320604020806';
   const STAATSBANK_FILE    = path.join(DATA_DIR, 'staatsbank_raub.json');
   const STAATSBANK_DUR_MS  = 30 * 60 * 1000;
