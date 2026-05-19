@@ -1,0 +1,42 @@
+# fly.toml — Paradise City Roleplay Bot
+# Vor dem ersten Deploy: fly launch --no-deploy (App-Namen wählen), dann fly deploy
+# WICHTIG: App-Namen unten anpassen (muss auf Fly.io eindeutig sein)
+
+app = "paradise-city-rp"
+primary_region = "fra"  # Frankfurt
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  NODE_ENV = "production"
+  # WEBAPP_URL wird automatisch aus dem App-Namen gesetzt
+  # Setze WEBAPP_URL als Secret: fly secrets set WEBAPP_URL=https://paradise-city-rp.fly.dev
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.http_checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "10s"
+    path = "/"
+
+[mounts]
+  source = "bot_data"
+  destination = "/app/data"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
