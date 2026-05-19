@@ -6189,7 +6189,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
   client.once('ready', async () => {
     try {
-      const d = _loadStaatsbank(); if (d._infoEmbedSentV2) return;
+      const d = _loadStaatsbank(); if (d._infoEmbedSentV3) return;
       const ch = await client.channels.fetch(STAATSBANK_INFO_CH).catch(() => null); if (!ch) return;
       await ch.send({ embeds: [new EmbedBuilder()
         .setColor(0xf59e0b)
@@ -6205,7 +6205,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
           {name:'📋 Ablauf',value:'**1.** Raub In-Game mit min. 4 Spielern starten\n**2.** Foto als Beweis in <#1490894320604020806> senden\n**3.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
         )
         .setFooter({ text: 'Paradise City Roleplay • Raubüberfalle' }).setTimestamp()] });
-      d._infoEmbedSentV2 = true; _saveStaatsbank(d);
+      d._infoEmbedSentV3 = true; _saveStaatsbank(d);
     } catch(e) { console.error('[STAATSBANK-INFO]', e.message); }
   });
 
