@@ -1064,7 +1064,8 @@ client.once('ready', async () => {
 
       new SlashCommandBuilder()
         .setName('ausweis')
-        .setDescription('Zeigt deinen Ausweis an (nur im Ausweis-Kanal)')
+        .setDescription('Zeigt einen Ausweis an (eigener oder einer anderen Person)')
+        .addUserOption(opt => opt.setName('person').setDescription('Person (optional — leer lassen für eigenen Ausweis)').setRequired(false))
         .toJSON(),
 
     new SlashCommandBuilder()
@@ -1089,11 +1090,7 @@ client.once('ready', async () => {
       .addUserOption(opt => opt.setName('mitglied').setDescription('Mitglied dessen Ausweis gelöscht werden soll').setRequired(true))
       .toJSON(),
 
-    new SlashCommandBuilder()
-      .setName('ausweise')
-      .setDescription('Zeigt den offiziellen Ausweis einer Person an')
-      .addUserOption(opt => opt.setName('person').setDescription('Mitglied dessen Ausweis angezeigt werden soll').setRequired(true))
-      .toJSON(),
+
 
     new SlashCommandBuilder()
       .setName('warn')
@@ -3838,18 +3835,20 @@ client.on('interactionCreate', async (interaction) => {
       const AUSWEIS_CH = '1490882590012604538';
       if (interaction.channel.id !== AUSWEIS_CH)
         return interaction.reply({ content: '❌ Dieser Befehl ist nur in <#' + AUSWEIS_CH + '> verfügbar.', ephemeral: true });
+      const target      = interaction.options.getUser('person') || user;
       const ausweisData = loadAusweis();
-      const eintrag     = ausweisData[user.id];
-      if (!eintrag)
-        return interaction.reply({ content: '❌ Du hast noch keinen Ausweis. Bitte reise zuerst legal ein.', ephemeral: true });
-      const domain8 = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
-        const viewLink = `https://${domain8}/ausweis/view/${user.id}`;
-        return interaction.reply({
-          content: `🆔 **Dein offizieller Ausweis:**
-🔗 [${eintrag.vorname} ${eintrag.nachname} — Ausweis öffnen](${viewLink})
-*Nur für dich sichtbar. Der Link ist dauerhaft gültig.*`,
-          ephemeral: true
-        });
+      const eintrag     = ausweisData[target.id];
+      if (!eintrag || eintrag.typ === 'illegal')
+        return interaction.reply({ content: target.id === user.id ? '❌ Du hast noch keinen Ausweis. Bitte reise zuerst legal ein.' : `❌ **${target.username}** hat noch keinen Ausweis.`, ephemeral: true });
+      const domainAW = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
+      const viewLink = `https://${domainAW}/ausweis/view/${target.id}`;
+      const isSelf = target.id === user.id;
+      return interaction.reply({
+        content: isSelf
+          ? `🆔 **Dein offizieller Ausweis:**\n🔗 [${eintrag.vorname} ${eintrag.nachname} — Ausweis öffnen](${viewLink})\n*Nur für dich sichtbar. Der Link ist dauerhaft gültig.*`
+          : `🆔 **Ausweis von ${target.username}:**\n🔗 [${eintrag.vorname} ${eintrag.nachname} — Ausweis öffnen](${viewLink})`,
+        ephemeral: true
+      });
     }
 
     // /abstimmung
@@ -3955,21 +3954,7 @@ client.on('interactionCreate', async (interaction) => {
     }
   
 
-      // /ausweise
-      if (commandName === 'ausweise') {
-        const target = interaction.options.getUser('person');
-        const ausweisData = loadAusweis();
-        const eintrag     = ausweisData[target.id];
-        if (!eintrag)
-          return interaction.reply({ content: `❌ **${target.username}** hat noch keinen Ausweis.`, ephemeral: true });
-        const domainAW = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
-        const linkAW   = `https://${domainAW}/ausweis/view/${target.id}`;
-        return interaction.reply({
-          content: `🆔 **Ausweis von ${target.username}:**
-🔗 [${eintrag.vorname} ${eintrag.nachname} — Ausweis öffnen](${linkAW})`,
-          ephemeral: true
-        });
-      }
+
 
         // /event
         if (commandName === 'event') {
@@ -5186,7 +5171,6 @@ ${transText}`;
     }
   // ── AUSWEIS CREATE (ILLEGAL) Modal — DEAKTIVIERT (Illegale erhalten keinen Ausweis) ──
   if (interaction.isModalSubmit() && interaction.customId.startsWith('ausweis_create_ill:')) {
-    return interaction.reply({ content: '❌ Illegale Bewohner erhalten keinen Ausweis.', ephemeral: true });
     const targetId   = interaction.customId.split(':')[1];
     const illVor     = interaction.fields.getTextInputValue('ill_vorname').trim();
     const illNach    = interaction.fields.getTextInputValue('ill_nachname').trim();
