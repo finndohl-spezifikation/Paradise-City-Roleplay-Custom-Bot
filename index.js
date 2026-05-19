@@ -46,6 +46,69 @@ const AKTIEN_MSG_FILE = path.join(DATA_DIR, 'aktien_messages.json');
 function loadAktienMsgs()  { try { return JSON.parse(fs.readFileSync(AKTIEN_MSG_FILE,'utf8')); } catch { return {}; } }
 function saveAktienMsgs(d) { fs.writeFileSync(AKTIEN_MSG_FILE, JSON.stringify(d,null,2),'utf8'); }
 
+const KRYPTO_FILE      = path.join(DATA_DIR, 'krypto.json');
+const KRYPTO_RATE_FILE = path.join(DATA_DIR, 'krypto_rate.json');
+const KRYPTO_WALLET_CH = '1506366880284283072';
+const KRYPTO_EXCH_CH   = '1506366922793423009';
+const KRYPTO_RATES_CH  = '1506366949997678752';
+
+function loadKrypto()      { try { return JSON.parse(fs.readFileSync(KRYPTO_FILE,'utf8')); } catch { return {}; } }
+function saveKrypto(d)     { fs.writeFileSync(KRYPTO_FILE, JSON.stringify(d,null,2),'utf8'); }
+function getWallet(uid)    { const d=loadKrypto(); return d[uid]||{dc:0}; }
+function setWallet(uid,w)  { const d=loadKrypto(); d[uid]=w; saveKrypto(d); }
+function loadKryptoRate()  { try { return JSON.parse(fs.readFileSync(KRYPTO_RATE_FILE,'utf8')); } catch { return {rate:100,history:[]}; } }
+function saveKryptoRate(d) { fs.writeFileSync(KRYPTO_RATE_FILE, JSON.stringify(d,null,2),'utf8'); }
+
+function nextKryptoRate(cur) {
+  const r=Math.random();
+  let pct;
+  if(r<0.01){ pct=(Math.random()*0.3+0.2)*(Math.random()<0.5?1:-1); }
+  else if(r<0.1){ pct=(Math.random()*0.1+0.05)*(Math.random()<0.5?1:-1); }
+  else{ pct=(Math.random()*0.04+0.01)*(Math.random()<0.5?1:-1); }
+  return Math.max(10,Math.min(10000,Math.round(cur*(1+pct))));
+}
+
+async function updateKryptoRate() {
+  const rateData = loadKryptoRate();
+  const cur = rateData.rate||100;
+  const newRate = nextKryptoRate(cur);
+  rateData.rate = newRate;
+  rateData.history.push({ rate:newRate, ts:Date.now() });
+  if(rateData.history.length>48) rateData.history=rateData.history.slice(-48);
+  saveKryptoRate(rateData);
+  // Update rates embed
+  try {
+    const ch = await client.channels.fetch(KRYPTO_RATES_CH).catch(()=>null);
+    if(!ch) return;
+    const { EmbedBuilder } = require('discord.js');
+    const DARKNET_URL_K = process.env.DARKNET_URL||'';
+    const ratesUrl = DARKNET_URL_K ? (DARKNET_URL_K.endsWith('/')?DARKNET_URL_K:DARKNET_URL_K+'/') + 'crypto/rates' : '';
+    const prev = rateData.history.length>=2?rateData.history[rateData.history.length-2].rate:cur;
+    const diff = newRate-prev;
+    const trend = diff>=0?'📈':'📉';
+    const embed = new EmbedBuilder()
+      .setColor(diff>=0?0x22c55e:0xef4444)
+      .setTitle('⬛ DarkCoin (𝔇C) — Aktueller Kurs')
+      .setDescription(`${trend} **1 𝔇C = ${newRate.toLocaleString('de-DE')} Schwarzgeld**`)
+      .addFields(
+        { name:'24h Hoch', value:Math.max(...rateData.history.map(h=>h.rate)).toLocaleString('de-DE')+' $', inline:true },
+        { name:'24h Tief', value:Math.min(...rateData.history.map(h=>h.rate)).toLocaleString('de-DE')+' $', inline:true },
+        { name:'Änderung', value:(diff>=0?'+':'')+diff+' $ ('+(prev>0?(diff/prev*100).toFixed(2):0)+'%)', inline:true }
+      )
+      .setFooter({ text:'Paradise City Darknet • Kurse aktualisieren sich stündlich' })
+      .setTimestamp();
+    const btnRow = ratesUrl ? [new (require('discord.js').ActionRowBuilder)().addComponents(
+      new (require('discord.js').ButtonBuilder)().setLabel('📊 Kurschart öffnen').setStyle(require('discord.js').ButtonStyle.Link).setURL(ratesUrl)
+    )] : [];
+    // Find existing pinned embed and edit, else send
+    const msgs = await ch.messages.fetch({limit:5}).catch(()=>null);
+    const existing = msgs?.find(m=>m.author.id===client.user.id&&m.embeds.length>0);
+    if(existing) await existing.edit({embeds:[embed],components:btnRow}).catch(()=>{});
+    else await ch.send({embeds:[embed],components:btnRow}).catch(()=>{});
+  } catch(e){ console.error('[KRYPTO RATE]',e.message); }
+}
+
+
 const AKTIEN_STOCKS = [
   { id:'maze',       name:'Maze Bank',   emoji:'🏦', color:0x1565C0, channel:'1493359040045125844', startPrice:350  },
   { id:'benefactor', name:'Benefactor',  emoji:'🚗', color:0x2E7D32, channel:'1493359230118527078', startPrice:1200 },
@@ -1022,6 +1085,9 @@ client.once('ready', async () => {
   initAktien();
   // ─── Stündliche Aktienkurse aktualisieren ─────────────────────────────────
   setInterval(() => { updateAktienPrices().catch(e => console.error('[AKTIEN INTERVAL]', e.message)); }, 60 * 60 * 1000);
+  // ─── Stündliche DarkCoin-Kurse aktualisieren ─────────────────────────────
+  setInterval(() => { updateKryptoRate().catch(e => console.error('[KRYPTO INTERVAL]', e.message)); }, 60 * 60 * 1000);
+  setTimeout(() => { updateKryptoRate().catch(e => console.error('[KRYPTO START]', e.message)); }, 8000);
   // Sofort beim Start einmal senden (5s Verzögerung damit alle Channels geladen sind)
   setTimeout(() => { updateAktienPrices().catch(e => console.error('[AKTIEN START]', e.message)); }, 5000);
 
@@ -1177,6 +1243,12 @@ client.once('ready', async () => {
         .setDescription('Sendet einen Vorschlag in den Vorschläge-Kanal')
         .addStringOption(opt => opt.setName('text').setDescription('Dein Vorschlag').setRequired(true))
         .toJSON(),
+
+
+    new SlashCommandBuilder()
+      .setName('krypto-setup')
+      .setDescription('Sendet die DarkCoin-Embeds in die entsprechenden Kanäle')
+      .toJSON(),
 
       new SlashCommandBuilder()
         .setName('vorschlag-yes')
@@ -6656,6 +6728,71 @@ client.once('ready', async () => {
 // ─── END DARKNET EMBED ────────────────────────────────────────────────────────
 
 
+
+
+// ─── KRYPTO SETUP (sendet/aktualisiert die 3 Embeds) ────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+  if (interaction.commandName !== 'krypto-setup') return;
+  if (!interaction.member.permissions.has(require('discord.js').PermissionFlagsBits.Administrator)) {
+    return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+  }
+  await interaction.deferReply({ ephemeral: true });
+  const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+  const DARKNET_URL_S = process.env.DARKNET_URL || '';
+  const base = DARKNET_URL_S.endsWith('/') ? DARKNET_URL_S : DARKNET_URL_S + '/';
+
+  // 1. Wallet-Channel
+  try {
+    const ch1 = await client.channels.fetch(KRYPTO_WALLET_CH).catch(()=>null);
+    if(ch1) {
+      const embed1 = new EmbedBuilder()
+        .setColor(0xf59e0b)
+        .setTitle('💰 DarkCoin Wallet')
+        .setDescription('Verwalte dein anonymes DarkCoin-Guthaben direkt über das Darknet.
+
+**Klicke den Button** um dein persönliches Wallet zu öffnen.')
+        .addFields(
+          { name:'Was ist DarkCoin (𝔇C)?', value:'Die anonyme Kryptowährung des Schattennetzes. Nur im Darknet verwendbar.', inline:false },
+          { name:'Sicherheit', value:'Dein Wallet ist mit deinem Discord-Konto verknüpft. Kein anderer hat Zugriff.', inline:false }
+        )
+        .setFooter({ text:'Paradise City Darknet • DarkCoin System' }).setTimestamp();
+      const btn1 = new ButtonBuilder().setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Link).setURL(base + 'crypto');
+      await ch1.send({ embeds:[embed1], components:[new ActionRowBuilder().addComponents(btn1)] }).catch(()=>{});
+    }
+  } catch(e){ console.error('[KRYPTO SETUP W]',e.message); }
+
+  // 2. Tauschbörse-Channel
+  try {
+    const ch2 = await client.channels.fetch(KRYPTO_EXCH_CH).catch(()=>null);
+    if(ch2) {
+      const rateData = loadKryptoRate();
+      const embed2 = new EmbedBuilder()
+        .setColor(0xf59e0b)
+        .setTitle('⚖️ DarkCoin Tauschbörse')
+        .setDescription('Tausche **Schwarzgeld ↔ DarkCoin** zu aktuellen Kursen.
+
+Der Kurs schwankt stündlich basierend auf Angebot und Nachfrage im Schattennetz.')
+        .addFields(
+          { name:'Aktueller Kurs', value:`1 𝔇C = **${rateData.rate.toLocaleString('de-DE')} Schwarzgeld**`, inline:false },
+          { name:'Kaufen', value:'Schwarzgeld → DarkCoin', inline:true },
+          { name:'Verkaufen', value:'DarkCoin → Schwarzgeld', inline:true }
+        )
+        .setFooter({ text:'Paradise City Darknet • Kurse aktualisieren stündlich' }).setTimestamp();
+      const btns2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setLabel('⚖️ Jetzt tauschen').setStyle(ButtonStyle.Link).setURL(base + 'crypto'),
+        new ButtonBuilder().setLabel('📊 Kurse ansehen').setStyle(ButtonStyle.Link).setURL(base + 'crypto/rates')
+      );
+      await ch2.send({ embeds:[embed2], components:[btns2] }).catch(()=>{});
+    }
+  } catch(e){ console.error('[KRYPTO SETUP E]',e.message); }
+
+  // 3. Rates-Channel (initial embed, wird stündlich aktualisiert)
+  await updateKryptoRate().catch(()=>{});
+
+  await interaction.editReply({ content: '✅ DarkCoin Embeds wurden gesendet!' });
+});
+// ─── END KRYPTO SETUP ─────────────────────────────────────────────────────────
 
 // ─── DARKNET BETRETEN BUTTON ─────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
