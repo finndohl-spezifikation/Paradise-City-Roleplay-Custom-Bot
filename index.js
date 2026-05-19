@@ -6749,9 +6749,7 @@ client.on('interactionCreate', async (interaction) => {
       const embed1 = new EmbedBuilder()
         .setColor(0xf59e0b)
         .setTitle('💰 DarkCoin Wallet')
-        .setDescription('Verwalte dein anonymes DarkCoin-Guthaben direkt über das Darknet.
-
-**Klicke den Button** um dein persönliches Wallet zu öffnen.')
+        .setDescription('Verwalte dein anonymes DarkCoin-Guthaben direkt über das Darknet.\n\n**Klicke den Button** um dein persönliches Wallet zu öffnen.')
         .addFields(
           { name:'Was ist DarkCoin (𝔇C)?', value:'Die anonyme Kryptowährung des Schattennetzes. Nur im Darknet verwendbar.', inline:false },
           { name:'Sicherheit', value:'Dein Wallet ist mit deinem Discord-Konto verknüpft. Kein anderer hat Zugriff.', inline:false }
@@ -6770,9 +6768,7 @@ client.on('interactionCreate', async (interaction) => {
       const embed2 = new EmbedBuilder()
         .setColor(0xf59e0b)
         .setTitle('⚖️ DarkCoin Tauschbörse')
-        .setDescription('Tausche **Schwarzgeld ↔ DarkCoin** zu aktuellen Kursen.
-
-Der Kurs schwankt stündlich basierend auf Angebot und Nachfrage im Schattennetz.')
+        .setDescription('Tausche **Schwarzgeld ↔ DarkCoin** zu aktuellen Kursen.\n\nDer Kurs schwankt stündlich basierend auf Angebot und Nachfrage im Schattennetz.')
         .addFields(
           { name:'Aktueller Kurs', value:`1 𝔇C = **${rateData.rate.toLocaleString('de-DE')} Schwarzgeld**`, inline:false },
           { name:'Kaufen', value:'Schwarzgeld → DarkCoin', inline:true },
