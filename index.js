@@ -4582,10 +4582,10 @@ client.on('interactionCreate', async (interaction) => {
             return interaction.reply({ content: `❌ <@${target.id}> hat bereits einmalig Startgeld erhalten.`, ephemeral: true });
           }
           let betrag = 0, art = '', isSchwarz = false;
-          if (typ === 'legal')         { betrag = 5000;  art = 'Legal (Konto)';            isSchwarz = false; }
-          if (typ === 'illegal')       { betrag = 5000;  art = 'Illegal (Schwarzgeld)';    isSchwarz = true; }
+          if (typ === 'legal')         { betrag = 5000;  art = 'Legal (Konto)';             isSchwarz = false; }
+          if (typ === 'illegal')       { betrag = 5000;  art = 'Illegal (Konto)';             isSchwarz = false; }
           if (typ === 'gruppe_legal')  { betrag = 10000; art = 'Gruppeneinreise (Konto)';  isSchwarz = false; }
-          if (typ === 'gruppe_illegal'){ betrag = 10000; art = 'Gruppeneinreise (Schwarzgeld)'; isSchwarz = true; }
+          if (typ === 'gruppe_illegal'){ betrag = 10000; art = 'Gruppeneinreise (Konto)';  isSchwarz = false; }
 
           const k = getKonto(target.id);
           if (isSchwarz) k.schwarz += betrag;
