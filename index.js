@@ -6625,8 +6625,7 @@ client.once('ready', async () => {
   try {
     const DARKNET_CH   = '1490890321276702723';
     const DARKNET_ROLE = '1490855730767597738';
-    const domain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0].trim();
-    const darknetUrl = `https://${domain}/darknet/`;
+    const darknetUrl = process.env.DARKNET_URL || 'https://16cd9644-22f4-4c03-92aa-8284a86d3ed0-00-g05a1qe457wb.worf.replit.dev/darknet/';
 
     const ch = await client.channels.fetch(DARKNET_CH).catch(() => null);
     if (!ch) return;
