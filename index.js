@@ -4683,6 +4683,7 @@ Link: ${link}`, ephemeral: true });
         }
 
         if (commandName === 'charakter-reset') {
+        await interaction.deferReply({ ephemeral: true });
         const target = interaction.options.getUser('spieler');
         const uid    = target.id;
 
@@ -4715,14 +4716,14 @@ Link: ${link}`, ephemeral: true });
             }
           } catch {}
 
-        await interaction.reply({
+        await interaction.editReply({
           embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🔄 Charakter zurückgesetzt')
             .setDescription(`<@${uid}> wurde vollständig zurückgesetzt.`)
             .addFields(
               { name: '🗑️ Gelöscht', value: 'Konto · Bargeld · Inventar · Lager · Ausweis · Transaktionen · Rechnungen · Lohnlog · Nickname', inline: false },
             )
             .setFooter({ text: `Durchgeführt von ${interaction.user.tag}` }).setTimestamp()
-          ], ephemeral: true
+          ]
         });
         return;
       }
