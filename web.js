@@ -1125,6 +1125,53 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     });
 
     // ── GET / — Root Redirect ────────────────────────────────────────────────
+    // ─── DARKCOIN WALLET API ─────────────────────────────────────────────────────
+    app.get('/api/krypto/wallet/:uid', (req, res) => {
+      const secret = req.headers['x-darknet-secret'] || req.query.secret;
+      if (secret !== (process.env.DARKNET_ADMIN_SECRET||'darknet_admin_2025')) return res.status(403).json({error:'Forbidden'});
+      const uid = req.params.uid;
+      let krypto = {};
+      try { krypto = JSON.parse(fs.readFileSync(path.join(DATA_DIR,'krypto.json'),'utf8')); } catch {}
+      const wallet = krypto[uid] || { dc: 0 };
+      res.json({ discordUserId: uid, dc: wallet.dc || 0 });
+    });
+
+    app.post('/api/krypto/wallet/:uid/deduct', express.json(), (req, res) => {
+      const secret = req.headers['x-darknet-secret'];
+      if (secret !== (process.env.DARKNET_ADMIN_SECRET||'darknet_admin_2025')) return res.status(403).json({error:'Forbidden'});
+      const uid = req.params.uid;
+      const amount = Number(req.body?.amount);
+      if (!amount || amount <= 0) return res.status(400).json({error:'Ungültiger Betrag'});
+      let krypto = {};
+      try { krypto = JSON.parse(fs.readFileSync(path.join(DATA_DIR,'krypto.json'),'utf8')); } catch {}
+      if (!krypto[uid]) krypto[uid] = { dc: 0 };
+      if ((krypto[uid].dc||0) < amount) return res.status(400).json({error:'Nicht genug DarkCoin', dc: krypto[uid].dc||0});
+      krypto[uid].dc = (krypto[uid].dc||0) - amount;
+      fs.writeFileSync(path.join(DATA_DIR,'krypto.json'), JSON.stringify(krypto,null,2),'utf8');
+      res.json({ discordUserId: uid, dc: krypto[uid].dc });
+    });
+
+    app.post('/api/krypto/wallet/:uid/credit', express.json(), (req, res) => {
+      const secret = req.headers['x-darknet-secret'];
+      if (secret !== (process.env.DARKNET_ADMIN_SECRET||'darknet_admin_2025')) return res.status(403).json({error:'Forbidden'});
+      const uid = req.params.uid;
+      const amount = Number(req.body?.amount);
+      if (!amount || amount <= 0) return res.status(400).json({error:'Ungültiger Betrag'});
+      let krypto = {};
+      try { krypto = JSON.parse(fs.readFileSync(path.join(DATA_DIR,'krypto.json'),'utf8')); } catch {}
+      if (!krypto[uid]) krypto[uid] = { dc: 0 };
+      krypto[uid].dc = (krypto[uid].dc||0) + amount;
+      fs.writeFileSync(path.join(DATA_DIR,'krypto.json'), JSON.stringify(krypto,null,2),'utf8');
+      res.json({ discordUserId: uid, dc: krypto[uid].dc });
+    });
+
+    app.get('/api/krypto/rate', (req, res) => {
+      let rateData = { rate: 100, history: [] };
+      try { rateData = JSON.parse(fs.readFileSync(path.join(DATA_DIR,'krypto_rate.json'),'utf8')); } catch {}
+      res.json(rateData);
+    });
+    // ─── END DARKCOIN WALLET API ──────────────────────────────────────────────────
+
     app.get('/', (req, res) => res.redirect('/einreise'));
 
     // ── GET /einreise — Auswahlseite ─────────────────────────────────────────
