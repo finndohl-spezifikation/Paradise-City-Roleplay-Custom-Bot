@@ -59,6 +59,24 @@ function setWallet(uid,w)  { const d=loadKrypto(); d[uid]=w; saveKrypto(d); }
 function loadKryptoRate()  { try { return JSON.parse(fs.readFileSync(KRYPTO_RATE_FILE,'utf8')); } catch { return {rate:100,history:[]}; } }
 function saveKryptoRate(d) { fs.writeFileSync(KRYPTO_RATE_FILE, JSON.stringify(d,null,2),'utf8'); }
 
+const KRYPTO_TOK_FILE = path.join(DATA_DIR, 'krypto_tokens.json');
+function loadKryptoToks() { try { return JSON.parse(fs.readFileSync(KRYPTO_TOK_FILE,'utf8')); } catch { return {}; } }
+function saveKryptoToks(d) { fs.writeFileSync(KRYPTO_TOK_FILE, JSON.stringify(d,null,2),'utf8'); }
+function genKryptoToken(userId, type) {
+  const token = require('crypto').randomBytes(20).toString('hex');
+  const toks = loadKryptoToks();
+  // Expire old tokens for this user+type
+  for (const [k,v] of Object.entries(toks)) { if(v.userId===userId&&v.type===type) delete toks[k]; }
+  toks[token] = { userId, type, expiresAt: Date.now() + 15*60*1000 };
+  saveKryptoToks(toks);
+  return token;
+}
+function validateKryptoToken(token) {
+  const toks = loadKryptoToks();
+  const e = toks[token];
+  return (!e || e.expiresAt < Date.now()) ? null : e;
+}
+
 function nextKryptoRate(cur) {
   const r=Math.random();
   let pct;
@@ -6730,7 +6748,7 @@ client.once('ready', async () => {
 
 
 
-// ─── KRYPTO SETUP (sendet/aktualisiert die 3 Embeds) ────────────────────────
+// ─── KRYPTO SETUP ────────────────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
   if (interaction.commandName !== 'krypto-setup') return;
@@ -6739,56 +6757,97 @@ client.on('interactionCreate', async (interaction) => {
   }
   await interaction.deferReply({ ephemeral: true });
   const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
-  const DARKNET_URL_S = process.env.DARKNET_URL || '';
-  const base = DARKNET_URL_S.endsWith('/') ? DARKNET_URL_S : DARKNET_URL_S + '/';
+  const botApiUrl = process.env.BOT_API_URL || '';
+  const rateData = loadKryptoRate();
 
-  // 1. Wallet-Channel
+  // 1. Wallet-Channel — interaktiver Button
   try {
     const ch1 = await client.channels.fetch(KRYPTO_WALLET_CH).catch(()=>null);
     if(ch1) {
       const embed1 = new EmbedBuilder()
         .setColor(0xf59e0b)
-        .setTitle('💰 DarkCoin Wallet')
-        .setDescription('Verwalte dein anonymes DarkCoin-Guthaben direkt über das Darknet.\n\n**Klicke den Button** um dein persönliches Wallet zu öffnen.')
+        .setTitle('💰 DarkCoin — Mein Wallet')
+        .setDescription('Sieh dein persönliches DarkCoin-Guthaben ein und überweise 𝔇C an andere Spieler.\n\nKlicke auf den Button — du erhältst einen privaten Link der nur für dich gilt.')
         .addFields(
-          { name:'Was ist DarkCoin (𝔇C)?', value:'Die anonyme Kryptowährung des Schattennetzes. Nur im Darknet verwendbar.', inline:false },
-          { name:'Sicherheit', value:'Dein Wallet ist mit deinem Discord-Konto verknüpft. Kein anderer hat Zugriff.', inline:false }
+          { name:'💡 Was ist DarkCoin (𝔇C)?', value:'Die anonyme Kryptowährung des Schattennetzes. Nur im Darknet verwendbar.', inline:false },
+          { name:`📈 Aktueller Kurs`, value:`1 𝔇C = **${rateData.rate.toLocaleString('de-DE')} $**`, inline:true },
+          { name:'🔒 Sicherheit', value:'Dein Wallet ist nur für dich sichtbar.', inline:true }
         )
-        .setFooter({ text:'Paradise City Darknet • DarkCoin System' }).setTimestamp();
-      const btn1 = new ButtonBuilder().setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Link).setURL(base + 'crypto');
-      await ch1.send({ embeds:[embed1], components:[new ActionRowBuilder().addComponents(btn1)] }).catch(()=>{});
+        .setFooter({ text:'Paradise City • DarkCoin System' }).setTimestamp();
+      const row1 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('krypto_wallet').setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Primary)
+      );
+      await ch1.send({ embeds:[embed1], components:[row1] }).catch(()=>{});
     }
   } catch(e){ console.error('[KRYPTO SETUP W]',e.message); }
 
-  // 2. Tauschbörse-Channel
+  // 2. Tauschbörse-Channel — interaktiver Button
   try {
     const ch2 = await client.channels.fetch(KRYPTO_EXCH_CH).catch(()=>null);
     if(ch2) {
-      const rateData = loadKryptoRate();
       const embed2 = new EmbedBuilder()
         .setColor(0xf59e0b)
-        .setTitle('⚖️ DarkCoin Tauschbörse')
-        .setDescription('Tausche **Schwarzgeld ↔ DarkCoin** zu aktuellen Kursen.\n\nDer Kurs schwankt stündlich basierend auf Angebot und Nachfrage im Schattennetz.')
+        .setTitle('⚖️ DarkCoin — Tauschbörse')
+        .setDescription('Tausche dein Bankgeld in DarkCoin um — oder verkaufe deine 𝔇C zurück in Bankgeld.\n\nKlicke auf den Button für deinen persönlichen Zugang.')
         .addFields(
-          { name:'Aktueller Kurs', value:`1 𝔇C = **${rateData.rate.toLocaleString('de-DE')} Schwarzgeld**`, inline:false },
-          { name:'Kaufen', value:'Schwarzgeld → DarkCoin', inline:true },
-          { name:'Verkaufen', value:'DarkCoin → Schwarzgeld', inline:true }
+          { name:'📈 Aktueller Kurs', value:`1 𝔇C = **${rateData.rate.toLocaleString('de-DE')} $**`, inline:true },
+          { name:'🏦 Bankgeld → 𝔇C', value:'Kaufe DarkCoin mit deinem Bankkonto', inline:true },
+          { name:'💱 𝔇C → Bankgeld', value:'Verkaufe DarkCoin zurück in Bankgeld', inline:true }
         )
-        .setFooter({ text:'Paradise City Darknet • Kurse aktualisieren stündlich' }).setTimestamp();
-      const btns2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setLabel('⚖️ Jetzt tauschen').setStyle(ButtonStyle.Link).setURL(base + 'crypto'),
-        new ButtonBuilder().setLabel('📊 Kurse ansehen').setStyle(ButtonStyle.Link).setURL(base + 'crypto/rates')
+        .setFooter({ text:'Paradise City • DarkCoin System • Kurse aktualisieren stündlich' }).setTimestamp();
+      const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('krypto_exchange').setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Primary)
       );
-      await ch2.send({ embeds:[embed2], components:[btns2] }).catch(()=>{});
+      await ch2.send({ embeds:[embed2], components:[row2] }).catch(()=>{});
     }
   } catch(e){ console.error('[KRYPTO SETUP E]',e.message); }
 
-  // 3. Rates-Channel (initial embed, wird stündlich aktualisiert)
+  // 3. Kurse-Channel — Link-Button (direkt, kein Token)
   await updateKryptoRate().catch(()=>{});
 
-  await interaction.editReply({ content: '✅ DarkCoin Embeds wurden gesendet!' });
+  await interaction.editReply({ content: '✅ DarkCoin Embeds gesendet!' });
 });
 // ─── END KRYPTO SETUP ─────────────────────────────────────────────────────────
+
+// ─── KRYPTO BUTTON INTERACTIONS ───────────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isButton()) return;
+  const botApiUrl = process.env.BOT_API_URL || '';
+  if (!botApiUrl) return;
+
+  // Wallet öffnen
+  if (interaction.customId === 'krypto_wallet') {
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const token = genKryptoToken(interaction.user.id, 'wallet');
+      const url = botApiUrl.endsWith('/') ? botApiUrl + 'krypto/wallet?token=' + token : botApiUrl + '/krypto/wallet?token=' + token;
+      const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+      const btn = new ButtonBuilder().setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Link).setURL(url);
+      await interaction.editReply({
+        content: '🔑 Dein persönlicher Wallet-Link ist **15 Minuten** gültig:',
+        components: [new ActionRowBuilder().addComponents(btn)]
+      });
+    } catch(e) { await interaction.editReply({ content: '❌ Fehler: ' + e.message }); }
+    return;
+  }
+
+  // Tauschbörse öffnen
+  if (interaction.customId === 'krypto_exchange') {
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const token = genKryptoToken(interaction.user.id, 'exchange');
+      const url = botApiUrl.endsWith('/') ? botApiUrl + 'krypto/exchange?token=' + token : botApiUrl + '/krypto/exchange?token=' + token;
+      const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+      const btn = new ButtonBuilder().setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Link).setURL(url);
+      await interaction.editReply({
+        content: '🔑 Dein persönlicher Tauschbörse-Link ist **15 Minuten** gültig:',
+        components: [new ActionRowBuilder().addComponents(btn)]
+      });
+    } catch(e) { await interaction.editReply({ content: '❌ Fehler: ' + e.message }); }
+    return;
+  }
+});
+// ─── END KRYPTO BUTTON INTERACTIONS ───────────────────────────────────────────
 
 // ─── DARKNET BETRETEN BUTTON ─────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
