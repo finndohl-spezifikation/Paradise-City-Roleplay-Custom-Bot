@@ -6812,7 +6812,7 @@ client.on('interactionCreate', async (interaction) => {
   }
   await interaction.deferReply({ ephemeral: true });
   const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
-  const botApiUrl = process.env.BOT_API_URL || '';
+  const WEBAPP_URL_KS = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/,'');
   const rateData = loadKryptoRate();
 
   // 1. Wallet-Channel — interaktiver Button
@@ -6867,16 +6867,17 @@ client.on('interactionCreate', async (interaction) => {
 // ─── KRYPTO BUTTON INTERACTIONS ───────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
-  const botApiUrl = process.env.BOT_API_URL || '';
-  if (!botApiUrl) return;
+  if (interaction.customId !== 'krypto_wallet' && interaction.customId !== 'krypto_exchange') return;
+
+  const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/, '');
+  const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 
   // Wallet öffnen
   if (interaction.customId === 'krypto_wallet') {
     await interaction.deferReply({ ephemeral: true });
     try {
       const token = genKryptoToken(interaction.user.id, 'wallet');
-      const url = botApiUrl.endsWith('/') ? botApiUrl + 'krypto/wallet?token=' + token : botApiUrl + '/krypto/wallet?token=' + token;
-      const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+      const url = WEBAPP_URL + '/krypto/wallet?token=' + token;
       const btn = new ButtonBuilder().setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Link).setURL(url);
       await interaction.editReply({
         content: '🔑 Dein persönlicher Wallet-Link ist **15 Minuten** gültig:',
@@ -6891,8 +6892,7 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.deferReply({ ephemeral: true });
     try {
       const token = genKryptoToken(interaction.user.id, 'exchange');
-      const url = botApiUrl.endsWith('/') ? botApiUrl + 'krypto/exchange?token=' + token : botApiUrl + '/krypto/exchange?token=' + token;
-      const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+      const url = WEBAPP_URL + '/krypto/exchange?token=' + token;
       const btn = new ButtonBuilder().setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Link).setURL(url);
       await interaction.editReply({
         content: '🔑 Dein persönlicher Tauschbörse-Link ist **15 Minuten** gültig:',
