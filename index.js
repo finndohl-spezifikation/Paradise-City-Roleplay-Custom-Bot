@@ -6638,15 +6638,11 @@ client.once('ready', async () => {
       }
     }
 
-    const linkBtn = new ButtonBuilder()
-      .setLabel('DARKNET BETRETEN')
-      .setStyle(ButtonStyle.Link)
-      .setURL(darknetUrl);
-    const discordLinkBtn = new ButtonBuilder()
-      .setCustomId('darknet_link_discord')
-      .setLabel('🔗 DISCORD VERKNÜPFEN')
-      .setStyle(ButtonStyle.Secondary);
-    const row = new ActionRowBuilder().addComponents(linkBtn, discordLinkBtn);
+    const enterBtn = new ButtonBuilder()
+      .setCustomId('darknet_betreten')
+      .setLabel('⬛ DARKNET BETRETEN')
+      .setStyle(ButtonStyle.Success);
+    const row = new ActionRowBuilder().addComponents(enterBtn);
 
     await ch.send({
       embeds: [new EmbedBuilder()
@@ -6676,16 +6672,17 @@ client.once('ready', async () => {
 
 
 
-// ─── DARKNET DISCORD LINK BUTTON ─────────────────────────────────────────────
+// ─── DARKNET BETRETEN BUTTON ─────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
-  if (interaction.customId !== 'darknet_link_discord') return;
+  if (interaction.customId !== 'darknet_betreten') return;
 
   await interaction.deferReply({ ephemeral: true });
   try {
     const apiBase = process.env.DARKNET_URL
       ? process.env.DARKNET_URL.replace(/darknet\/?$/, '').replace(/\/$/, '')
       : 'https://16cd9644-22f4-4c03-92aa-8284a86d3ed0-00-g05a1qe457wb.worf.replit.dev';
+    const darknetUrl = process.env.DARKNET_URL || 'https://16cd9644-22f4-4c03-92aa-8284a86d3ed0-00-g05a1qe457wb.worf.replit.dev/darknet/';
     const adminSecret = process.env.DARKNET_ADMIN_SECRET || 'darknet_admin_2025';
 
     const res = await fetch(apiBase + '/api/darknet/discord/token', {
@@ -6694,41 +6691,30 @@ client.on('interactionCreate', async (interaction) => {
       body: JSON.stringify({ discordUserId: interaction.user.id, secret: adminSecret }),
     });
     if (!res.ok) {
-      await interaction.editReply({ content: '❌ Fehler beim Generieren des Tokens. Versuche es später erneut.' });
+      // Fallback: open without auto-link
+      const fallbackBtn = new ButtonBuilder().setLabel('⬛ DARKNET ÖFFNEN').setStyle(ButtonStyle.Link).setURL(darknetUrl);
+      await interaction.editReply({ content: '> Verbindung hergestellt.', components: [new ActionRowBuilder().addComponents(fallbackBtn)] });
       return;
     }
     const { token } = await res.json();
-    const darknetUrl = process.env.DARKNET_URL || 'https://16cd9644-22f4-4c03-92aa-8284a86d3ed0-00-g05a1qe457wb.worf.replit.dev/darknet/';
-
-    const embed = new EmbedBuilder()
-      .setColor(0x00ff41)
-      .setTitle('// DARKNET — DISCORD VERKNÜPFEN //')
-      .setDescription(
-        '```\n> Token generiert.\n> 15 Minuten gültig.\n```\n' +
-        '**Dein Verknüpfungs-Token:**\n```\n' + token + '\n```\n\n' +
-        '**Anleitung:**\n' +
-        '1. Darknet öffnen\n' +
-        '2. Einstellungen → Discord verknüpfen\n' +
-        '3. Token eingeben & bestätigen\n\n' +
-        '*Gib diesen Token niemals weiter!*'
-      )
-      .setFooter({ text: 'Nur für dich sichtbar • Token verfällt nach 15 Minuten' });
+    const base = darknetUrl.endsWith('/') ? darknetUrl : darknetUrl + '/';
+    const personalUrl = base + '?dc=' + token;
 
     const openBtn = new ButtonBuilder()
-      .setLabel('DARKNET ÖFFNEN')
+      .setLabel('⬛ DARKNET ÖFFNEN')
       .setStyle(ButtonStyle.Link)
-      .setURL(darknetUrl);
+      .setURL(personalUrl);
 
     await interaction.editReply({
-      embeds: [embed],
+      content: '```\n> Verbindung wird aufgebaut...\n> Identität wird verschleiert...\n> Persönlicher Zugang bereit.\n```',
       components: [new ActionRowBuilder().addComponents(openBtn)],
     });
   } catch (e) {
-    console.error('[DARKNET LINK DISCORD]', e.message);
+    console.error('[DARKNET BETRETEN]', e.message);
     await interaction.editReply({ content: '❌ Interner Fehler.' });
   }
 });
-// ─── END DARKNET DISCORD LINK BUTTON ─────────────────────────────────────────
+// ─── END DARKNET BETRETEN BUTTON ─────────────────────────────────────────────
 
 // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
