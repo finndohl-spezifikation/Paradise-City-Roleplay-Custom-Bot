@@ -1106,6 +1106,61 @@ client.once('ready', async () => {
   // ─── Stündliche DarkCoin-Kurse aktualisieren ─────────────────────────────
   setInterval(() => { updateKryptoRate().catch(e => console.error('[KRYPTO INTERVAL]', e.message)); }, 60 * 60 * 1000);
   setTimeout(() => { updateKryptoRate().catch(e => console.error('[KRYPTO START]', e.message)); }, 8000);
+
+  // ─── AUTO: Krypto-Embeds beim Start senden (version-basiert) ─────────────
+  setTimeout(async () => {
+    try {
+      const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+      const setup = loadSetup();
+      if (setup.kryptoEmbedVersion === 'v1') return; // bereits gesendet
+      const rateData = loadKryptoRate();
+
+      // Channel 1: Wallet
+      const ch1 = await client.channels.fetch(KRYPTO_WALLET_CH).catch(() => null);
+      if (ch1) {
+        const embed1 = new EmbedBuilder()
+          .setColor(0xf59e0b)
+          .setTitle('💰 DarkCoin — Mein Wallet')
+          .setDescription('Sieh dein persönliches DarkCoin-Guthaben ein und überweise 𝔇C an andere Spieler.\n\nKlicke auf den Button — du erhältst einen privaten Link der nur für dich gilt.')
+          .addFields(
+            { name: '💡 Was ist DarkCoin (𝔇C)?', value: 'Die anonyme Kryptowährung des Schattennetzes. Nur im Darknet verwendbar.', inline: false },
+            { name: '📈 Aktueller Kurs', value: `1 𝔇C = **${rateData.rate.toLocaleString('de-DE')} $**`, inline: true },
+            { name: '🔒 Sicherheit', value: 'Dein Wallet ist nur für dich sichtbar.', inline: true }
+          )
+          .setFooter({ text: 'Paradise City • DarkCoin System' }).setTimestamp();
+        const row1 = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('krypto_wallet').setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Primary)
+        );
+        await ch1.send({ embeds: [embed1], components: [row1] }).catch(e => console.error('[KRYPTO EMBED W]', e.message));
+      }
+
+      // Channel 2: Tauschbörse
+      const ch2 = await client.channels.fetch(KRYPTO_EXCH_CH).catch(() => null);
+      if (ch2) {
+        const embed2 = new EmbedBuilder()
+          .setColor(0xf59e0b)
+          .setTitle('⚖️ DarkCoin — Tauschbörse')
+          .setDescription('Tausche dein Bankgeld in DarkCoin um — oder verkaufe deine 𝔇C zurück in Bankgeld.\n\nKlicke auf den Button für deinen persönlichen Zugang.')
+          .addFields(
+            { name: '📈 Aktueller Kurs', value: `1 𝔇C = **${rateData.rate.toLocaleString('de-DE')} $**`, inline: true },
+            { name: '🏦 Bankgeld → 𝔇C', value: 'Kaufe DarkCoin mit deinem Bankkonto', inline: true },
+            { name: '💱 𝔇C → Bankgeld', value: 'Verkaufe DarkCoin zurück in Bankgeld', inline: true }
+          )
+          .setFooter({ text: 'Paradise City • DarkCoin System • Kurse aktualisieren stündlich' }).setTimestamp();
+        const row2 = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('krypto_exchange').setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Primary)
+        );
+        await ch2.send({ embeds: [embed2], components: [row2] }).catch(e => console.error('[KRYPTO EMBED E]', e.message));
+      }
+
+      // Channel 3: Kurse (wird von updateKryptoRate() befüllt)
+
+      setup.kryptoEmbedVersion = 'v1';
+      saveSetup(setup);
+      console.log('[KRYPTO] Embeds erfolgreich gesendet.');
+    } catch (e) { console.error('[KRYPTO AUTO-EMBED]', e.message); }
+  }, 12000);
+  // ─── END AUTO Krypto-Embeds ───────────────────────────────────────────────
   // Sofort beim Start einmal senden (5s Verzögerung damit alle Channels geladen sind)
   setTimeout(() => { updateAktienPrices().catch(e => console.error('[AKTIEN START]', e.message)); }, 5000);
 
