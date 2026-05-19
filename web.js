@@ -1081,6 +1081,49 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       }
     });
 
+    // ── POST /api/schwarz/:uid/deduct — Schwarzgeld abziehen (Darknet-Kauf) ──
+    app.post('/api/schwarz/:uid/deduct', (req, res) => {
+      const adminSecret = process.env.DARKNET_ADMIN_SECRET || 'darknet_admin_2025';
+      const secret = req.headers['x-darknet-secret'] || req.query.secret;
+      if (secret !== adminSecret) return res.status(403).json({ error: 'Forbidden' });
+      try {
+        const uid = req.params.uid;
+        const amount = parseInt(req.body?.amount, 10);
+        if (!uid || isNaN(amount) || amount <= 0) return res.status(400).json({ error: 'Invalid params' });
+        const kf = path.join(DATA_DIR, 'konto.json');
+        const konto = JSON.parse(fs.readFileSync(kf, 'utf8'));
+        const data = konto[uid] ?? { konto: 0, schwarz: 0 };
+        if ((data.schwarz ?? 0) < amount) return res.status(400).json({ error: 'Nicht genug Schwarzgeld', schwarz: data.schwarz ?? 0 });
+        data.schwarz = (data.schwarz ?? 0) - amount;
+        konto[uid] = data;
+        fs.writeFileSync(kf, JSON.stringify(konto, null, 2));
+        res.json({ discordUserId: uid, schwarz: data.schwarz });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // ── POST /api/schwarz/:uid/credit — Schwarzgeld gutschreiben (Darknet-Verkauf) ──
+    app.post('/api/schwarz/:uid/credit', (req, res) => {
+      const adminSecret = process.env.DARKNET_ADMIN_SECRET || 'darknet_admin_2025';
+      const secret = req.headers['x-darknet-secret'] || req.query.secret;
+      if (secret !== adminSecret) return res.status(403).json({ error: 'Forbidden' });
+      try {
+        const uid = req.params.uid;
+        const amount = parseInt(req.body?.amount, 10);
+        if (!uid || isNaN(amount) || amount <= 0) return res.status(400).json({ error: 'Invalid params' });
+        const kf = path.join(DATA_DIR, 'konto.json');
+        const konto = JSON.parse(fs.readFileSync(kf, 'utf8'));
+        const data = konto[uid] ?? { konto: 0, schwarz: 0 };
+        data.schwarz = (data.schwarz ?? 0) + amount;
+        konto[uid] = data;
+        fs.writeFileSync(kf, JSON.stringify(konto, null, 2));
+        res.json({ discordUserId: uid, schwarz: data.schwarz });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
     // ── GET / — Root Redirect ────────────────────────────────────────────────
     app.get('/', (req, res) => res.redirect('/einreise'));
 
