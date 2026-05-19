@@ -1065,6 +1065,22 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         }
       });
 
+    // ── GET /api/schwarz/:uid — Schwarzgeld balance for Darknet ────────────
+    app.get('/api/schwarz/:uid', (req, res) => {
+      const adminSecret = process.env.DARKNET_ADMIN_SECRET || 'darknet_admin_2025';
+      const secret = req.headers['x-darknet-secret'] || req.query.secret;
+      if (secret !== adminSecret) return res.status(403).json({ error: 'Forbidden' });
+      try {
+        const kf = path.join(DATA_DIR, 'konto.json');
+        const konto = JSON.parse(fs.readFileSync(kf, 'utf8'));
+        const uid = req.params.uid;
+        const data = konto[uid] ?? { konto: 0, schwarz: 0 };
+        res.json({ discordUserId: uid, schwarz: data.schwarz ?? 0 });
+      } catch {
+        res.json({ discordUserId: req.params.uid, schwarz: 0 });
+      }
+    });
+
     // ── GET / — Root Redirect ────────────────────────────────────────────────
     app.get('/', (req, res) => res.redirect('/einreise'));
 
