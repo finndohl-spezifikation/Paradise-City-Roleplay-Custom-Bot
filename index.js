@@ -5194,10 +5194,10 @@ ${transText}`;
         await _member.setNickname(`${illVor} ${illNach} | ${illPsn}`).catch(() => {});
       }
     } catch {}
-    // Startgeld (5000 Schwarzgeld, einmalig)
+    // Startgeld (5000 $, einmalig auf Konto)
     try {
       const _k = getKonto(targetId);
-      if (!_k._startgeld) { _k.schwarz += 5000; _k._startgeld = true; setKonto(targetId, _k); addTrans(targetId, { ts: Date.now(), text: '+5.000 $ Startgeld (Illegale Einreise)', betrag: 5000 }); }
+      if (!_k._startgeld) { _k.konto += 5000; _k._startgeld = true; setKonto(targetId, _k); addTrans(targetId, { ts: Date.now(), text: '+5.000 $ Startgeld (Illegale Einreise)', betrag: 5000 }); }
     } catch {}
     return interaction.reply({
       embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🚫 Illegale Einreise registriert')
