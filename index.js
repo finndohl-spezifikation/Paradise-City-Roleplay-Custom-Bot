@@ -6619,6 +6619,59 @@ client.on('interactionCreate', async (interaction) => {
 });
 // ─── END AKTIEN HANDELN BUTTON ────────────────────────────────────────────────
 
+
+// ─── DARKNET EMBED ────────────────────────────────────────────────────────────
+client.once('ready', async () => {
+  try {
+    const DARKNET_CH   = '1490890321276702723';
+    const DARKNET_ROLE = '1490855730767597738';
+    const domain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0].trim();
+    const darknetUrl = `https://${domain}/darknet/`;
+
+    const ch = await client.channels.fetch(DARKNET_CH).catch(() => null);
+    if (!ch) return;
+
+    // Delete all existing bot messages in channel so embed stays fresh
+    const msgs = await ch.messages.fetch({ limit: 20 }).catch(() => null);
+    if (msgs) {
+      for (const msg of msgs.values()) {
+        if (msg.author.id === client.user.id) await msg.delete().catch(() => {});
+      }
+    }
+
+    const linkBtn = new ButtonBuilder()
+      .setLabel('DARKNET BETRETEN')
+      .setStyle(ButtonStyle.Link)
+      .setURL(darknetUrl);
+    const row = new ActionRowBuilder().addComponents(linkBtn);
+
+    await ch.send({
+      embeds: [new EmbedBuilder()
+        .setColor(0x00ff41)
+        .setTitle('// DARKNET — ANONYMES NETZWERK //')
+        .setDescription(
+          '```\n> Verbindung wird aufgebaut...\n> Identität wird verschleiert...\n> Zugang gesichert.\n```\n' +
+          '**Willkommen im Darknet.** Hier gibt es keine Namen, nur Aliase.\n\n' +
+          `**Zugang:** Nur für <@&${DARKNET_ROLE}>\n` +
+          '**Features:**\n' +
+          '`▸` Anonyme Gruppen-Kommunikation\n' +
+          '`▸` Verschlüsselte Direktnachrichten\n' +
+          '`▸` Black Market — Angebote posten & kaufen\n' +
+          '`▸` Live Netzwerk-Statistiken\n\n' +
+          '*Keine Logs. Keine Spuren. Kein Mitleid.*'
+        )
+        .setFooter({ text: 'Paradise City Roleplay • Darknet v1.0 — ENCRYPTED' })
+        .setTimestamp()
+      ],
+      components: [row]
+    });
+  } catch (e) {
+    console.error('[DARKNET EMBED]', e.message);
+  }
+});
+// ─── END DARKNET EMBED ────────────────────────────────────────────────────────
+
+
 // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
   console.error('[UNHANDLED REJECTION]', reason);
