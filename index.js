@@ -2300,7 +2300,6 @@ client.once('ready', async () => {
 🎟️  Lottoschein
 🎫  20% Rabatt beim Autohaus
 
-──────────────────────────────
 🛒 Kaufe ein Rubbellos im **Kwik-E-Markt** für **1.000 $**.
 ▶️ Drücke den Button um dein Rubbellos einzulösen.
 
@@ -4931,7 +4930,6 @@ Link: ${link}`, ephemeral: true });
 🎟️  20% Gutschein Autohaus
 🏎️  **SPORTWAGEN** *(Hauptgewinn — Ticket erstellen!)*
 
-──────────────────────────────
 🛒 Kaufe ein Rubbellos im **Kwik-E-Markt** für **1.000 $**.
 ▶️ Drücke den Button um dein Rubbellos einzulösen.
 
@@ -7138,7 +7136,6 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 // ─── END KRYPTO BUTTON INTERACTIONS ───────────────────────────────────────────
-──
 
 // ─── DARKNET BETRETEN BUTTON ─────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
