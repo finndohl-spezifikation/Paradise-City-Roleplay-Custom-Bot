@@ -115,14 +115,11 @@ async function updateKryptoRate() {
       )
       .setFooter({ text:'Paradise City Darknet • Kurse aktualisieren sich stündlich' })
       .setTimestamp();
-    const btnRow = ratesUrl ? [new (require('discord.js').ActionRowBuilder)().addComponents(
-      new (require('discord.js').ButtonBuilder)().setLabel('📊 Kurschart öffnen').setStyle(require('discord.js').ButtonStyle.Link).setURL(ratesUrl)
-    )] : [];
-    // Find existing pinned embed and edit, else send
+    // Find existing pinned embed and edit, else send (no external button)
     const msgs = await ch.messages.fetch({limit:5}).catch(()=>null);
     const existing = msgs?.find(m=>m.author.id===client.user.id&&m.embeds.length>0);
-    if(existing) await existing.edit({embeds:[embed],components:btnRow}).catch(()=>{});
-    else await ch.send({embeds:[embed],components:btnRow}).catch(()=>{});
+    if(existing) await existing.edit({embeds:[embed],components:[]}).catch(()=>{});
+    else await ch.send({embeds:[embed],components:[]}).catch(()=>{});
   } catch(e){ console.error('[KRYPTO RATE]',e.message); }
 }
 
@@ -3578,8 +3575,8 @@ client.on('interactionCreate', async (interaction) => {
         lapdTokens.set(token, { memberId: member.id, uname: member.user.username, displayName: member.displayName, ranks: memberRanks, expires });
         // Token nach Ablauf aufräumen
         setTimeout(() => lapdTokens.delete(token), 10 * 60 * 1000);
-        const domain  = (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.REPLIT_DOMAINS || 'localhost:8080').split(',')[0].trim();
-        const authUrl = 'https://' + domain + '/lapd/auth/' + token;
+        const _LAPD_BASE = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/,'');
+        const authUrl = _LAPD_BASE + '/lapd/auth/' + token;
         const LAPD_PW_B = { leitung:'LAPD_Chief_2025', befehl:'LAPD_Command_2025', detective:'LAPD_Detective_2025', officer:'LAPD_Officer_2025' };
         const rankLine  = memberRanks[0] ? memberRanks[0].name : 'Unbekannter Rang';
         const ebene     = memberRanks[0] ? memberRanks[0].ebene : 'officer';
@@ -6989,35 +6986,78 @@ client.on('interactionCreate', async (interaction) => {
 // ─── END KRYPTO SETUP ─────────────────────────────────────────────────────────
 
 // ─── KRYPTO BUTTON INTERACTIONS ───────────────────────────────────────────────
+// Button: Wallet öffnen → ephemeral embed (kein Browser)
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
-  if (interaction.customId !== 'krypto_wallet' && interaction.customId !== 'krypto_exchange') return;
+  if (interaction.customId !== 'krypto_wallet' && interaction.customId !== 'krypto_exchange' && interaction.customId !== 'krypto_pay') return;
 
-  const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/, '');
-  const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
-
-  // Wallet öffnen
+  // ── Wallet Button → ephemeral Embed mit Pay-Button ─────────────────────────
   if (interaction.customId === 'krypto_wallet') {
     await interaction.deferReply({ ephemeral: true });
     try {
-      const token = genKryptoToken(interaction.user.id, 'wallet');
-      const url = WEBAPP_URL + '/krypto/wallet?token=' + token;
-      const btn = new ButtonBuilder().setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Link).setURL(url);
+      const wallet = getWallet(interaction.user.id);
+      const rate   = loadKryptoRate().rate || 100;
+      const schwarzwert = Math.round(wallet.dc * rate);
+      const walletEmbed = new EmbedBuilder()
+        .setColor(0xf59e0b)
+        .setTitle('💰 DarkCoin Wallet')
+        .setDescription('Dein persönliches DarkCoin-Guthaben im Schattennetz.')
+        .addFields(
+          { name: '🪙 DarkCoin Balance',   value: wallet.dc.toFixed(4) + ' 𝔇C',                    inline: true },
+          { name: '💵 Schwarzgeld-Wert',   value: schwarzwert.toLocaleString('de-DE') + ' $',       inline: true },
+          { name: '📈 Aktueller Kurs',     value: '1 𝔇C = ' + rate.toLocaleString('de-DE') + ' $', inline: true }
+        )
+        .setFooter({ text: 'Paradise City Roleplay • DarkCoin System' })
+        .setTimestamp();
+      const payBtn = new ButtonBuilder()
+        .setCustomId('krypto_pay')
+        .setLabel('💸 Überweisung senden')
+        .setStyle(ButtonStyle.Primary);
       await interaction.editReply({
-        content: '🔑 Dein persönlicher Wallet-Link ist **15 Minuten** gültig:',
-        components: [new ActionRowBuilder().addComponents(btn)]
+        embeds: [walletEmbed],
+        components: [new ActionRowBuilder().addComponents(payBtn)]
       });
     } catch(e) { await interaction.editReply({ content: '❌ Fehler: ' + e.message }); }
     return;
   }
 
-  // Tauschbörse öffnen
+  // ── Pay Button → Modal öffnen ───────────────────────────────────────────────
+  if (interaction.customId === 'krypto_pay') {
+    try {
+      const modal = new ModalBuilder()
+        .setCustomId('krypto_pay_modal')
+        .setTitle('💸 DarkCoin Überweisung');
+      const recipientInput = new TextInputBuilder()
+        .setCustomId('krypto_pay_recipient')
+        .setLabel('Empfänger Discord ID')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('z.B. 123456789012345678')
+        .setRequired(true)
+        .setMinLength(15).setMaxLength(20);
+      const amountInput = new TextInputBuilder()
+        .setCustomId('krypto_pay_amount')
+        .setLabel('Betrag in 𝔇C')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('z.B. 1.5000')
+        .setRequired(true)
+        .setMaxLength(20);
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(recipientInput),
+        new ActionRowBuilder().addComponents(amountInput)
+      );
+      await interaction.showModal(modal);
+    } catch(e) { console.error('[KRYPTO PAY MODAL]', e.message); }
+    return;
+  }
+
+  // ── Tauschbörse Button ──────────────────────────────────────────────────────
   if (interaction.customId === 'krypto_exchange') {
     await interaction.deferReply({ ephemeral: true });
     try {
+      const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/, '');
       const token = genKryptoToken(interaction.user.id, 'exchange');
-      const url = WEBAPP_URL + '/krypto/exchange?token=' + token;
-      const btn = new ButtonBuilder().setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Link).setURL(url);
+      const url   = WEBAPP_URL + '/krypto/exchange?token=' + token;
+      const btn   = new ButtonBuilder().setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Link).setURL(url);
       await interaction.editReply({
         content: '🔑 Dein persönlicher Tauschbörse-Link ist **15 Minuten** gültig:',
         components: [new ActionRowBuilder().addComponents(btn)]
@@ -7026,7 +7066,75 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 });
+
+// ─── KRYPTO PAY MODAL SUBMIT ───────────────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isModalSubmit()) return;
+  if (interaction.customId !== 'krypto_pay_modal') return;
+
+  await interaction.deferReply({ ephemeral: true });
+  try {
+    const recipientId = interaction.fields.getTextInputValue('krypto_pay_recipient').trim();
+    const amountStr   = interaction.fields.getTextInputValue('krypto_pay_amount').trim().replace(',', '.');
+    const amount      = parseFloat(amountStr);
+    const senderId    = interaction.user.id;
+
+    if (!/^\d{15,20}$/.test(recipientId)) {
+      return interaction.editReply({ content: '❌ Ungültige Discord ID (muss eine 15-20-stellige Zahl sein).' });
+    }
+    if (recipientId === senderId) {
+      return interaction.editReply({ content: '❌ Du kannst nicht an dich selbst überweisen.' });
+    }
+    if (isNaN(amount) || amount <= 0 || amount < 0.0001) {
+      return interaction.editReply({ content: '❌ Ungültiger Betrag (mindestens 0.0001 𝔇C).' });
+    }
+
+    const senderWallet = getWallet(senderId);
+    if (senderWallet.dc < amount) {
+      return interaction.editReply({ content: '❌ Nicht genug DarkCoins. Du hast nur ' + senderWallet.dc.toFixed(4) + ' 𝔇C.' });
+    }
+
+    // Überweisung durchführen
+    senderWallet.dc = Math.round((senderWallet.dc - amount) * 1e8) / 1e8;
+    setWallet(senderId, senderWallet);
+    const recvWallet  = getWallet(recipientId);
+    recvWallet.dc     = Math.round((recvWallet.dc + amount) * 1e8) / 1e8;
+    setWallet(recipientId, recvWallet);
+
+    const rate        = loadKryptoRate().rate || 100;
+    const schwarzwert = Math.round(amount * rate);
+
+    const confirmEmbed = new EmbedBuilder()
+      .setColor(0x22c55e)
+      .setTitle('✅ Überweisung erfolgreich')
+      .addFields(
+        { name: 'Empfänger',        value: '<@' + recipientId + '>',                      inline: true },
+        { name: 'Betrag',           value: amount.toFixed(4) + ' 𝔇C',                    inline: true },
+        { name: 'Schwarzgeld-Wert', value: schwarzwert.toLocaleString('de-DE') + ' $',   inline: true },
+        { name: 'Neues Guthaben',   value: senderWallet.dc.toFixed(4) + ' 𝔇C',           inline: true }
+      )
+      .setTimestamp()
+      .setFooter({ text: 'Paradise City Roleplay • DarkCoin System' });
+    await interaction.editReply({ embeds: [confirmEmbed] });
+
+    // Empfänger per DM benachrichtigen
+    const notifyEmbed = new EmbedBuilder()
+      .setColor(0xf59e0b)
+      .setTitle('💰 DarkCoin erhalten')
+      .setDescription('Du hast **' + amount.toFixed(4) + ' 𝔇C** empfangen.')
+      .addFields({ name: 'Neues Guthaben', value: recvWallet.dc.toFixed(4) + ' 𝔇C', inline: true })
+      .setTimestamp()
+      .setFooter({ text: 'Paradise City Roleplay • DarkCoin System' });
+    client.users.fetch(recipientId).then(function(u) {
+      u.send({ embeds: [notifyEmbed] }).catch(function() {});
+    }).catch(function() {});
+  } catch(e) {
+    console.error('[KRYPTO PAY SUBMIT]', e.message);
+    await interaction.editReply({ content: '❌ Fehler bei der Überweisung: ' + e.message });
+  }
+});
 // ─── END KRYPTO BUTTON INTERACTIONS ───────────────────────────────────────────
+──
 
 // ─── DARKNET BETRETEN BUTTON ─────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
