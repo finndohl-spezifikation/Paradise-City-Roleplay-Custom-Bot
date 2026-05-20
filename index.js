@@ -2328,51 +2328,55 @@ client.once('ready', async () => {
       {
         const setupLapdT = loadSetup();
         if (!setupLapdT.lapdTicketPanelSent) {
-          // Also verify via channel that it doesn't already exist
+          // Verify via channel: skip if embed already exists
           let lapdAlreadyExists = false;
           try {
             const lapdCh2 = await client.channels.fetch(LAPD_TICKET_PANEL_CH);
-            const lapdMsgs = await lapdCh2.messages.fetch({ limit: 20 });
-            lapdAlreadyExists = lapdMsgs.some(function(m) {
-              return m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes('LAPD');
-            });
-            if (lapdAlreadyExists) { setupLapdT.lapdTicketPanelSent = true; saveSetup(setupLapdT); }
-          } catch(e2) {}
-          if (lapdAlreadyExists) {} else
-          const lapdPanelEmbed = new EmbedBuilder()
-            .setColor(0x1F51FF)
-            .setTitle('🏛️ LAPD — Kontakt')
-            .setDescription(
-              'Willkommen beim **LAPD Kontaktsystem** von Paradise City Roleplay.\n'
-              + 'Wähle eine Kategorie um fortzufahren.\n\n'
-              + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-              + '✉️ **E-Mail Schreiben** — Offizielle Anfrage an das LAPD\n'
-              + '⚠️ **Beschwerde Einreichen** — Beschwerde gegen LAPD-Mitglieder\n'
-              + '📋 **Anzeige Erstatten** — Strafanzeige erstatten\n'
-              + '📝 **Bewerbung** — Bewerbung beim LAPD einreichen\n'
-              + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-            )
-            .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' })
-            .setTimestamp();
-          const lapdSelect = new StringSelectMenuBuilder()
-            .setCustomId('lapd_ticket_select')
-            .setPlaceholder('📂 Kategorie auswählen...')
-            .addOptions(
-              new StringSelectMenuOptionBuilder().setLabel('✉️ E-Mail Schreiben').setValue('email').setDescription('Offizielle Anfrage an das LAPD senden'),
-              new StringSelectMenuOptionBuilder().setLabel('⚠️ Beschwerde Einreichen').setValue('beschwerde').setDescription('Beschwerde gegen ein LAPD-Mitglied'),
-              new StringSelectMenuOptionBuilder().setLabel('📋 Anzeige Erstatten').setValue('anzeige').setDescription('Strafanzeige erstatten'),
-              new StringSelectMenuOptionBuilder().setLabel('📝 Bewerbung').setValue('bewerbung').setDescription('Beim LAPD bewerben'),
-            );
-          const lapdPanelRow = new ActionRowBuilder().addComponents(lapdSelect);
-          try {
-            const lapdPanelCh = await client.channels.fetch(LAPD_TICKET_PANEL_CH);
-            if (lapdPanelCh) {
-              await lapdPanelCh.send({ embeds: [lapdPanelEmbed], components: [lapdPanelRow] });
-              setupLapdT.lapdTicketPanelSent = true;
-              saveSetup(setupLapdT);
-              console.log('✅ LAPD Ticket-Panel einmalig gesendet.');
+            if (lapdCh2) {
+              const lapdMsgs = await lapdCh2.messages.fetch({ limit: 20 });
+              lapdAlreadyExists = lapdMsgs.some(function(m) {
+                return m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes('LAPD');
+              });
+              if (lapdAlreadyExists) { setupLapdT.lapdTicketPanelSent = true; saveSetup(setupLapdT); }
             }
-          } catch (e) { console.error('LAPD Ticket-Panel Fehler:', e.message); }
+          } catch(e2) {}
+
+          if (!lapdAlreadyExists) {
+            const lapdPanelEmbed = new EmbedBuilder()
+              .setColor(0x1F51FF)
+              .setTitle('🏛️ LAPD — Kontakt')
+              .setDescription(
+                'Willkommen beim **LAPD Kontaktsystem** von Paradise City Roleplay.\n'
+                + 'Wähle eine Kategorie um fortzufahren.\n\n'
+                + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+                + '✉️ **E-Mail Schreiben** — Offizielle Anfrage an das LAPD\n'
+                + '⚠️ **Beschwerde Einreichen** — Beschwerde gegen LAPD-Mitglieder\n'
+                + '📋 **Anzeige Erstatten** — Strafanzeige erstatten\n'
+                + '📝 **Bewerbung** — Bewerbung beim LAPD einreichen\n'
+                + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+              )
+              .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' })
+              .setTimestamp();
+            const lapdSelect = new StringSelectMenuBuilder()
+              .setCustomId('lapd_ticket_select')
+              .setPlaceholder('📂 Kategorie auswählen...')
+              .addOptions(
+                new StringSelectMenuOptionBuilder().setLabel('✉️ E-Mail Schreiben').setValue('email').setDescription('Offizielle Anfrage an das LAPD senden'),
+                new StringSelectMenuOptionBuilder().setLabel('⚠️ Beschwerde Einreichen').setValue('beschwerde').setDescription('Beschwerde gegen ein LAPD-Mitglied'),
+                new StringSelectMenuOptionBuilder().setLabel('📋 Anzeige Erstatten').setValue('anzeige').setDescription('Strafanzeige erstatten'),
+                new StringSelectMenuOptionBuilder().setLabel('📝 Bewerbung').setValue('bewerbung').setDescription('Beim LAPD bewerben'),
+              );
+            const lapdPanelRow = new ActionRowBuilder().addComponents(lapdSelect);
+            try {
+              const lapdPanelCh = await client.channels.fetch(LAPD_TICKET_PANEL_CH);
+              if (lapdPanelCh) {
+                await lapdPanelCh.send({ embeds: [lapdPanelEmbed], components: [lapdPanelRow] });
+                setupLapdT.lapdTicketPanelSent = true;
+                saveSetup(setupLapdT);
+                console.log('\u2705 LAPD Ticket-Panel einmalig gesendet.');
+              }
+            } catch (e) { console.error('LAPD Ticket-Panel Fehler:', e.message); }
+          }
         }
       }
 
