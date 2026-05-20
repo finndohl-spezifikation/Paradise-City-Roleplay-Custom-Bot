@@ -502,6 +502,19 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         return;
       } catch {}
     }
+    // Fallback: check channel for existing embed
+    const msgs_lohnlisteMsgId = await ch.messages.fetch({ limit: 20 }).catch(() => null);
+    if (msgs_lohnlisteMsgId) {
+      const ex_lohnlisteMsgId = msgs_lohnlisteMsgId.find(function(m) {
+        return m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes('Lohnliste');
+      });
+      if (ex_lohnlisteMsgId) {
+        await ex_lohnlisteMsgId.edit({ embeds: [embed], components: [] }).catch(() => {});
+        setup.lohnlisteMsgId = ex_lohnlisteMsgId.id;
+        saveSetup(setup);
+        return;
+      }
+    }
     const sentL = await ch.send({ embeds: [embed], components: [] });
     setup.lohnlisteMsgId = sentL.id;
     saveSetup(setup);
@@ -525,6 +538,19 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         await msg.edit({ embeds: [embed], components: [row] });
         return;
       } catch {}
+    }
+    // Fallback: check channel for existing embed
+    const msgs_lohnbuero = await ch.messages.fetch({ limit: 20 }).catch(() => null);
+    if (msgs_lohnbuero) {
+      const ex_lohnbuero = msgs_lohnbuero.find(function(m) {
+        return m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes('Lohnbüro');
+      });
+      if (ex_lohnbuero) {
+        await ex_lohnbuero.edit({ embeds: [embed], components: [row] }).catch(() => {});
+        setup.lohnbueroMsgId = ex_lohnbuero.id;
+        saveSetup(setup);
+        return;
+      }
     }
     const sentLB = await ch.send({ embeds: [embed], components: [row] });
     setup.lohnbueroMsgId = sentLB.id;
@@ -550,6 +576,19 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         return;
       } catch {}
     }
+    // Fallback: check channel for existing embed
+    const msgs_bankingMsgId = await ch.messages.fetch({ limit: 20 }).catch(() => null);
+    if (msgs_bankingMsgId) {
+      const ex_bankingMsgId = msgs_bankingMsgId.find(function(m) {
+        return m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes('Online Banking');
+      });
+      if (ex_bankingMsgId) {
+        await ex_bankingMsgId.edit({ embeds: [embed], components: [row] }).catch(() => {});
+        setup.bankingMsgId = ex_bankingMsgId.id;
+        saveSetup(setup);
+        return;
+      }
+    }
     const sentB = await ch.send({ embeds: [embed], components: [row] });
     setup.bankingMsgId = sentB.id;
     saveSetup(setup);
@@ -573,6 +612,19 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         await msg.edit({ embeds: [embed], components: [row] });
         return;
       } catch {}
+    }
+    // Fallback: check channel for existing embed
+    const msgs_rechnungen = await ch.messages.fetch({ limit: 20 }).catch(() => null);
+    if (msgs_rechnungen) {
+      const ex_rechnungen = msgs_rechnungen.find(function(m) {
+        return m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes('Rechnungen');
+      });
+      if (ex_rechnungen) {
+        await ex_rechnungen.edit({ embeds: [embed], components: [row] }).catch(() => {});
+        setup.rechnungenMsgId = ex_rechnungen.id;
+        saveSetup(setup);
+        return;
+      }
     }
     const sentR = await ch.send({ embeds: [embed], components: [row] });
     setup.rechnungenMsgId = sentR.id;
@@ -2279,6 +2331,17 @@ client.once('ready', async () => {
       {
         const setupLapdT = loadSetup();
         if (!setupLapdT.lapdTicketPanelSent) {
+          // Also verify via channel that it doesn't already exist
+          let lapdAlreadyExists = false;
+          try {
+            const lapdCh2 = await client.channels.fetch(LAPD_TICKET_PANEL_CH);
+            const lapdMsgs = await lapdCh2.messages.fetch({ limit: 20 });
+            lapdAlreadyExists = lapdMsgs.some(function(m) {
+              return m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes('LAPD');
+            });
+            if (lapdAlreadyExists) { setupLapdT.lapdTicketPanelSent = true; saveSetup(setupLapdT); }
+          } catch(e2) {}
+          if (lapdAlreadyExists) {} else
           const lapdPanelEmbed = new EmbedBuilder()
             .setColor(0x1F51FF)
             .setTitle('🏛️ LAPD — Kontakt')
@@ -6812,18 +6875,9 @@ client.once('ready', async () => {
   try {
     const DARKNET_CH   = '1490890321276702723';
     const DARKNET_ROLE = '1490855730767597738';
-    const darknetUrl = process.env.DARKNET_URL || 'https://16cd9644-22f4-4c03-92aa-8284a86d3ed0-00-g05a1qe457wb.worf.replit.dev/darknet/';
 
     const ch = await client.channels.fetch(DARKNET_CH).catch(() => null);
     if (!ch) return;
-
-    // Delete all existing bot messages in channel so embed stays fresh
-    const msgs = await ch.messages.fetch({ limit: 20 }).catch(() => null);
-    if (msgs) {
-      for (const msg of msgs.values()) {
-        if (msg.author.id === client.user.id) await msg.delete().catch(() => {});
-      }
-    }
 
     const enterBtn = new ButtonBuilder()
       .setCustomId('darknet_betreten')
@@ -6831,26 +6885,39 @@ client.once('ready', async () => {
       .setStyle(ButtonStyle.Success);
     const row = new ActionRowBuilder().addComponents(enterBtn);
 
-    await ch.send({
-      embeds: [new EmbedBuilder()
-        .setColor(0x00ff41)
-        .setTitle('// DARKNET — ANONYMES NETZWERK //')
-        .setDescription(
-          '```\n> Verbindung wird aufgebaut...\n> Identität wird verschleiert...\n> Zugang gesichert.\n```\n' +
-          '**Willkommen im Darknet.** Hier gibt es keine Namen, nur Aliase.\n\n' +
-          `**Zugang:** Nur für <@&${DARKNET_ROLE}>\n` +
-          '**Features:**\n' +
-          '`▸` Anonyme Gruppen-Kommunikation\n' +
-          '`▸` Verschlüsselte Direktnachrichten\n' +
-          '`▸` Black Market — Angebote posten & kaufen\n' +
-          '`▸` Live Netzwerk-Statistiken\n\n' +
-          '*Keine Logs. Keine Spuren. Kein Mitleid.*'
-        )
-        .setFooter({ text: 'Paradise City Roleplay • Darknet v1.0 — ENCRYPTED' })
-        .setTimestamp()
-      ],
-      components: [row]
-    });
+    const darknetEmbed = new EmbedBuilder()
+      .setColor(0x00ff41)
+      .setTitle('// DARKNET — ANONYMES NETZWERK //')
+      .setDescription(
+        '```\n> Verbindung wird aufgebaut...\n> Identität wird verschleiert...\n> Zugang gesichert.\n```\n' +
+        '**Willkommen im Darknet.** Hier gibt es keine Namen, nur Aliase.\n\n' +
+        `**Zugang:** Nur für <@&${DARKNET_ROLE}>\n` +
+        '**Features:**\n' +
+        '`▸` Anonyme Gruppen-Kommunikation\n' +
+        '`▸` Verschlüsselte Direktnachrichten\n' +
+        '`▸` Black Market — Angebote posten & kaufen\n' +
+        '`▸` Live Netzwerk-Statistiken\n\n' +
+        '*Keine Logs. Keine Spuren. Kein Mitleid.*'
+      )
+      .setFooter({ text: 'Paradise City Roleplay • Darknet v1.0 — ENCRYPTED' })
+      .setTimestamp();
+
+    // Check if embed already exists → edit it, don't re-send
+    const msgs = await ch.messages.fetch({ limit: 20 }).catch(() => null);
+    if (msgs) {
+      const existing = msgs.find(function(m) {
+        return m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes('DARKNET');
+      });
+      if (existing) {
+        await existing.edit({ embeds: [darknetEmbed], components: [row] }).catch(() => {});
+        console.log('[DARKNET] Embed bereits vorhanden, aktualisiert.');
+        return;
+      }
+    }
+
+    // Send fresh embed
+    await ch.send({ embeds: [darknetEmbed], components: [row] });
+    console.log('[DARKNET] Embed neu gesendet.');
   } catch (e) {
     console.error('[DARKNET EMBED]', e.message);
   }
