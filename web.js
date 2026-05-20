@@ -1141,51 +1141,55 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     // CSS shared for krypto pages
     const KRYPTO_CSS = `
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Courier New',monospace;background:#0a0a0a;color:#d1d5db;min-height:100vh;padding:20px}
-.wrap{max-width:680px;margin:0 auto}
-.header{background:linear-gradient(135deg,#78350f,#b45309);padding:20px 24px;border-radius:12px 12px 0 0;display:flex;align-items:center;gap:12px}
-.header-icon{font-size:2em}
-.header h1{color:#fef3c7;font-size:1.1em;letter-spacing:2px;text-transform:uppercase}
-.header h2{color:#fbbf24;font-size:.8em;margin-top:3px;font-weight:400}
-.card{background:#111;border:1px solid #1f2937;border-top:none;border-radius:0 0 12px 12px;padding:24px}
-.balance-box{background:#0a0a0a;border:1px solid #f59e0b;border-radius:8px;padding:20px;text-align:center;margin-bottom:20px}
-.balance-label{color:#9ca3af;font-size:.75em;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
-.balance-val{color:#f59e0b;font-size:2.2em;font-weight:700}
-.balance-sub{color:#6b7280;font-size:.8em;margin-top:4px}
-.section{margin-bottom:20px}
-.section-title{color:#f59e0b;font-size:.75em;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;border-bottom:1px solid #1f2937;padding-bottom:6px}
-.form-group{margin-bottom:12px}
-label{display:block;color:#9ca3af;font-size:.8em;margin-bottom:4px}
-input[type=text],input[type=number],select{width:100%;padding:10px 12px;background:#0a0a0a;border:1px solid #374151;border-radius:6px;color:#e5e7eb;font-size:.9em;font-family:inherit;outline:none;transition:border .15s}
-input:focus,select:focus{border-color:#f59e0b}
-.btn{width:100%;padding:12px;border:none;border-radius:6px;font-size:.9em;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:opacity .15s}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-primary{background:#b45309;color:#fff}
-.btn-primary:hover:not(:disabled){background:#92400e}
-.btn-sell{background:#1e3a5f;color:#93c5fd}
-.btn-sell:hover:not(:disabled){background:#1e40af}
-.btn-transfer{background:#1a2e1a;color:#86efac;border:1px solid #166534}
-.btn-transfer:hover:not(:disabled){background:#166534}
-.alert{border-radius:6px;padding:12px 14px;font-size:.85em;margin-bottom:14px;display:none}
+body{background:#0d1117;color:#e0e0e0;font-family:'Segoe UI',sans-serif;min-height:100vh}
+header{background:linear-gradient(135deg,#1a1f2e,#0f1623);border-bottom:2px solid #f59e0b33;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header h1{font-size:1.2em;font-weight:700;color:#fff;letter-spacing:1px}
+header h1 span{color:#f59e0b}
+.hbadge{background:#1c1500;border:1px solid #f59e0b44;border-radius:10px;padding:7px 16px;font-size:.88em;color:#fbbf24;font-weight:600}
+.wrap{max-width:700px;margin:0 auto;padding:24px 16px}
+.bal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.bal-card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:18px 20px}
+.bal-card.main{border-color:#f59e0b44;background:linear-gradient(135deg,#1c1500,#161b22)}
+.bal-label{font-size:.72em;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.bal-val{font-size:1.7em;font-weight:800;color:#f59e0b}
+.bal-val.sub{font-size:1.25em;color:#22c55e}
+.bal-sub{font-size:.75em;color:#6b7280;margin-top:4px}
+.rate-bar{background:#111827;border:1px solid #21262d;border-radius:8px;padding:10px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;font-size:.82em;color:#8b949e}
+.rate-bar b{color:#f59e0b;font-size:1.05em}
+.tabs{display:flex;border-bottom:2px solid #21262d;margin-bottom:20px}
+.tab{padding:10px 20px;cursor:pointer;font-size:.82em;font-weight:600;letter-spacing:.5px;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab.active{color:#f59e0b;border-bottom-color:#f59e0b}
+.tab:hover:not(.active){color:#e0e0e0}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.section{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:18px 20px;margin-bottom:14px}
+.sec-title{font-size:.72em;color:#f59e0b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #21262d;display:flex;align-items:center;gap:8px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #1a1f2e;font-size:.87em}
+.info-row:last-child{border-bottom:none}
+.info-label{color:#6b7280}
+.info-val{color:#e0e0e0;font-weight:600;font-family:monospace}
+.info-val.gold{color:#f59e0b}
+.info-val.green{color:#22c55e}
+.form-group{margin-bottom:14px}
+label{display:block;font-size:.78em;color:#8b949e;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+input[type=text],input[type=number]{width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e0e0e0;font-size:.9em;font-family:inherit;outline:none;transition:border .15s}
+input:focus{border-color:#f59e0b}
+.user-list{max-height:180px;overflow-y:auto;border:1px solid #30363d;border-radius:8px;margin-top:6px}
+.user-item{padding:10px 14px;cursor:pointer;font-size:.83em;border-bottom:1px solid #1a1f2e;color:#9ca3af;transition:background .1s;display:flex;justify-content:space-between;align-items:center}
+.user-item:last-child{border-bottom:none}
+.user-item:hover{background:#1f2937;color:#f59e0b}
+.user-item.selected{background:#1c1500;color:#f59e0b;font-weight:700;border-left:3px solid #f59e0b}
+.btn{width:100%;padding:12px;border:none;border-radius:8px;font-size:.88em;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:all .15s;margin-top:4px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-transfer{background:#1c1500;color:#f59e0b;border:1px solid #f59e0b44}
+.btn-transfer:hover:not(:disabled){background:#f59e0b;color:#000}
+.alert{border-radius:8px;padding:12px 16px;font-size:.85em;margin-bottom:14px;display:none}
 .alert.show{display:block}
 .alert-ok{background:#052e16;border:1px solid #166534;color:#86efac}
 .alert-err{background:#2d0a0a;border:1px solid #991b1b;color:#fca5a5}
-.info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1f2937;font-size:.85em}
-.info-row:last-child{border-bottom:none}
-.info-label{color:#6b7280}
-.info-val{color:#e5e7eb;font-family:monospace}
-.rate-box{background:#111827;border:1px solid #374151;border-radius:6px;padding:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;font-size:.85em}
-.rate-num{color:#f59e0b;font-weight:700;font-size:1.1em}
-.tabs{display:flex;margin-bottom:18px;border-bottom:2px solid #1f2937}
-.tab{padding:8px 18px;cursor:pointer;font-size:.8em;letter-spacing:1px;text-transform:uppercase;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
-.tab.active{color:#f59e0b;border-bottom-color:#f59e0b}
-.tab-panel{display:none}.tab-panel.active{display:block}
-.user-list{max-height:160px;overflow-y:auto;border:1px solid #374151;border-radius:6px;margin-top:4px}
-.user-item{padding:8px 12px;cursor:pointer;font-size:.82em;border-bottom:1px solid #1f2937;transition:background .1s;color:#9ca3af}
-.user-item:last-child{border-bottom:none}
-.user-item:hover{background:#1f2937;color:#f59e0b}
-.user-item.selected{background:#1c1500;color:#f59e0b;font-weight:700}
-.footer{text-align:center;color:#374151;font-size:.72em;margin-top:16px}
+.tx-info{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 14px;font-size:.82em;color:#8b949e;margin-bottom:12px;display:none}
+.tx-info b{color:#f59e0b}
+.footer{text-align:center;color:#484f58;font-size:.72em;margin-top:24px;padding-top:16px;border-top:1px solid #21262d}
+@media(max-width:480px){.bal-grid{grid-template-columns:1fr}.wrap{padding:14px 10px}}
 `;
 
     // ── GET /krypto/wallet ─────────────────────────────────────────────────────
@@ -1193,93 +1197,128 @@ input:focus,select:focus{border-color:#f59e0b}
       const token = req.query.token || '';
       const entry = validateKryptoTokW(token);
       if (!entry || entry.type !== 'wallet') {
-        return res.status(403).send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Link abgelaufen</title><style>body{font-family:monospace;background:#0a0a0a;color:#ef4444;display:flex;justify-content:center;align-items:center;height:100vh;text-align:center}</style></head><body><div><div style="font-size:2em;margin-bottom:12px">⛔</div><div>Link abgelaufen oder ungültig.<br>Bitte öffne das Wallet erneut über Discord.</div></div></body></html>`);
+        return res.status(403).send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Link abgelaufen</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#e0e0e0;display:flex;justify-content:center;align-items:center;height:100vh;text-align:center}
+.box{background:#161b22;border:1px solid #ef444433;border-radius:14px;padding:40px 32px;max-width:360px}
+.icon{font-size:2.5em;margin-bottom:16px}h2{color:#ef4444;margin-bottom:8px}p{color:#6b7280;font-size:.88em}</style></head>
+<body><div class="box"><div class="icon">⛔</div><h2>Link abgelaufen</h2><p>Dieser Link ist nicht mehr gültig.<br>Bitte öffne das Wallet erneut über Discord.</p></div></body></html>`);
       }
       const uid = entry.userId;
       const wallet = getWalletW(uid);
       const rate = getKryptoRateW();
       const schwarzwert = Math.round(wallet.dc * rate);
-      // Get all other wallets for transfer target list
       const allWallets = loadKryptoW();
       const others = Object.entries(allWallets).filter(([id]) => id !== uid).map(([id, w]) => ({ id, dc: w.dc||0 }));
+      const dcFmt = wallet.dc.toFixed(4);
+      const swFmt = schwarzwert.toLocaleString('de-DE');
+      const rateFmt = rate.toLocaleString('de-DE');
 
       res.send(`<!DOCTYPE html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DarkCoin Wallet</title><style>${KRYPTO_CSS}</style></head>
-<body><div class="wrap">
-  <div class="header"><div class="header-icon">💰</div><div><h1>DarkCoin Wallet</h1><h2>Paradise City • Schattennetz</h2></div></div>
-  <div class="card">
-    <div class="balance-box">
-      <div class="balance-label">Mein Guthaben</div>
-      <div class="balance-val">${wallet.dc.toFixed(4)} 𝔇C</div>
-      <div class="balance-sub">≈ ${schwarzwert.toLocaleString('de-DE')} $ Schwarzgeld • Kurs: 1 𝔇C = ${rate.toLocaleString('de-DE')} $</div>
+<title>DarkCoin Wallet — Paradise City</title><style>${KRYPTO_CSS}</style></head>
+<body>
+<header>
+  <h1>💰 DarkCoin <span>Wallet</span></h1>
+  <div class="hbadge">⚡ Paradise City • Schattennetz</div>
+</header>
+<div class="wrap">
+  <div class="bal-grid">
+    <div class="bal-card main">
+      <div class="bal-label">🪙 DarkCoin Guthaben</div>
+      <div class="bal-val">${dcFmt} 𝔇C</div>
+      <div class="bal-sub">≈ ${swFmt} $ Schwarzgeld</div>
     </div>
-
-    <div class="tabs">
-      <div class="tab active" onclick="switchTab('info')">ℹ️ Info</div>
-      <div class="tab" onclick="switchTab('transfer')">📤 Überweisung</div>
+    <div class="bal-card">
+      <div class="bal-label">📈 Aktueller Kurs</div>
+      <div class="bal-val sub">1 𝔇C = ${rateFmt} $</div>
+      <div class="bal-sub">Aktualisiert stündlich</div>
     </div>
-
-    <div id="tab-info" class="tab-panel active">
-      <div class="section">
-        <div class="section-title">Wallet Details</div>
-        <div class="info-row"><span class="info-label">DarkCoin Balance</span><span class="info-val" style="color:#f59e0b">${wallet.dc.toFixed(8)} 𝔇C</span></div>
-        <div class="info-row"><span class="info-label">Schwarzgeld-Wert</span><span class="info-val">${schwarzwert.toLocaleString('de-DE')} $</span></div>
-        <div class="info-row"><span class="info-label">Aktueller Kurs</span><span class="info-val">1 𝔇C = ${rate.toLocaleString('de-DE')} $</span></div>
-        <div class="info-row"><span class="info-label">Discord User ID</span><span class="info-val" style="font-size:.8em;color:#6b7280">${uid}</span></div>
-      </div>
-    </div>
-
-    <div id="tab-transfer" class="tab-panel">
-      <div class="section">
-        <div class="section-title">𝔇C überweisen</div>
-        <div id="alert" class="alert"></div>
-        ${others.length > 0 ? `
-        <div class="form-group">
-          <label>Empfänger auswählen</label>
-          <div class="user-list" id="userList">
-            ${others.map(o => `<div class="user-item" data-id="${o.id}" onclick="selectUser(this,'${o.id}')">
-              Discord ID: ${o.id}&nbsp;&nbsp;<span style="color:#6b7280;font-size:.85em">(${o.dc.toFixed(4)} 𝔇C)</span>
-            </div>`).join('')}
-          </div>
-          <input type="hidden" id="targetId" value="">
-        </div>` : `<p style="color:#6b7280;font-size:.85em;margin-bottom:12px">Keine anderen Wallets gefunden. Warte bis andere Spieler ihr Wallet geöffnet haben.</p>`}
-        <div class="form-group">
-          <label>Betrag (𝔇C)</label>
-          <input type="number" id="transferAmt" min="0.0001" step="0.0001" placeholder="z.B. 1.5" oninput="calcTransfer()">
-        </div>
-        <div id="transferInfo" style="color:#9ca3af;font-size:.8em;margin-bottom:10px;display:none">
-          Du überweist: <span id="txAmt" style="color:#f59e0b"></span> 𝔇C
-        </div>
-        <button class="btn btn-transfer" id="btnTransfer" onclick="doTransfer()" disabled>📤 ÜBERWEISUNG SENDEN</button>
-      </div>
-    </div>
-
-    <div class="footer">Paradise City Roleplay • DarkCoin System<br>Dieser Link ist 15 Minuten gültig.</div>
   </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('info')">📊 Übersicht</div>
+    <div class="tab" onclick="switchTab('transfer')">📤 Überweisung</div>
+  </div>
+
+  <div id="tab-info" class="tab-panel active">
+    <div class="section">
+      <div class="sec-title">🪙 Wallet Details</div>
+      <div class="info-row"><span class="info-label">DarkCoin Balance</span><span class="info-val gold">${wallet.dc.toFixed(8)} 𝔇C</span></div>
+      <div class="info-row"><span class="info-label">Schwarzgeld-Wert</span><span class="info-val green">${swFmt} $</span></div>
+      <div class="info-row"><span class="info-label">Wechselkurs</span><span class="info-val">1 𝔇C = ${rateFmt} $</span></div>
+      <div class="info-row"><span class="info-label">Verfügbare Wallets</span><span class="info-val">${Object.keys(allWallets).length} Nutzer</span></div>
+      <div class="info-row"><span class="info-label">Discord ID</span><span class="info-val" style="font-size:.8em;color:#484f58">${uid}</span></div>
+    </div>
+    <div class="section">
+      <div class="sec-title">ℹ️ Was ist DarkCoin?</div>
+      <div style="font-size:.83em;color:#6b7280;line-height:1.6">
+        <b style="color:#f59e0b">DarkCoin (𝔇C)</b> ist die anonyme Kryptowährung des Schattennetzes in Paradise City.<br><br>
+        Nur im Darknet verwendbar — keine offiziellen Spuren, keine Banken.<br>
+        Der Kurs schwankt stündlich basierend auf Marktaktivitäten.
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-transfer" class="tab-panel">
+    <div class="section">
+      <div class="sec-title">📤 𝔇C überweisen</div>
+      <div id="alert" class="alert"></div>
+      ${others.length > 0 ? `
+      <div class="form-group">
+        <label>Empfänger auswählen</label>
+        <div class="user-list" id="userList">
+          ${others.map(o => `<div class="user-item" data-id="${o.id}" onclick="selectUser(this,'${o.id}')">
+            <span>Discord ID: ${o.id}</span>
+            <span style="color:#6b7280">${o.dc.toFixed(4)} 𝔇C</span>
+          </div>`).join('')}
+        </div>
+        <input type="hidden" id="targetId" value="">
+      </div>` : `
+      <div style="background:#111827;border:1px solid #21262d;border-radius:8px;padding:14px;text-align:center;color:#6b7280;font-size:.85em;margin-bottom:14px">
+        Keine anderen Wallets vorhanden.<br>Andere Spieler müssen zuerst ihr Wallet öffnen.
+      </div>`}
+      <div class="form-group">
+        <label>Betrag in 𝔇C</label>
+        <input type="number" id="transferAmt" min="0.0001" step="0.0001" placeholder="z.B. 1.5000" oninput="calcTransfer()">
+      </div>
+      <div id="txInfo" class="tx-info">
+        Du überweist: <b id="txAmt"></b> 𝔇C — verbleibend: <b id="txRest"></b> 𝔇C
+      </div>
+      <button class="btn btn-transfer" id="btnTransfer" onclick="doTransfer()" disabled>📤 Überweisung senden</button>
+    </div>
+  </div>
+
+  <div class="footer">Paradise City Roleplay • DarkCoin System • Dieser Link ist 15 Minuten gültig</div>
 </div>
 <script>
 const TOKEN = '${token}';
+const MY_DC = ${wallet.dc};
 let selectedUid = '';
 
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['info','transfer'][i]===name));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['info','transfer'][i] === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
 }
 function selectUser(el, uid) {
-  document.querySelectorAll('.user-item').forEach(x=>x.classList.remove('selected'));
+  document.querySelectorAll('.user-item').forEach(x => x.classList.remove('selected'));
   el.classList.add('selected');
   selectedUid = uid;
   document.getElementById('targetId').value = uid;
   calcTransfer();
 }
 function calcTransfer() {
-  const amt = parseFloat(document.getElementById('transferAmt').value)||0;
-  const ok = amt > 0 && selectedUid;
+  const amt = parseFloat(document.getElementById('transferAmt').value) || 0;
+  const ok = amt > 0 && amt <= MY_DC && selectedUid;
   document.getElementById('btnTransfer').disabled = !ok;
-  document.getElementById('transferInfo').style.display = amt>0 ? 'block':'none';
-  document.getElementById('txAmt').textContent = amt.toFixed(4);
+  const info = document.getElementById('txInfo');
+  if (amt > 0) {
+    info.style.display = 'block';
+    document.getElementById('txAmt').textContent = amt.toFixed(4);
+    document.getElementById('txRest').textContent = Math.max(0, MY_DC - amt).toFixed(4);
+  } else {
+    info.style.display = 'none';
+  }
 }
 function showAlert(msg, ok) {
   const el = document.getElementById('alert');
@@ -1292,7 +1331,7 @@ async function doTransfer() {
   document.getElementById('btnTransfer').disabled = true;
   try {
     const r = await fetch('/api/krypto/transfer', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ token: TOKEN, targetUserId: selectedUid, amount: amt })
     });
     const d = await r.json();
@@ -1300,18 +1339,22 @@ async function doTransfer() {
       showAlert('✓ Überweisung erfolgreich! Neues Guthaben: ' + d.dc.toFixed(4) + ' 𝔇C', true);
       document.getElementById('transferAmt').value = '';
       selectedUid = '';
-      setTimeout(()=>location.reload(), 2000);
+      document.querySelectorAll('.user-item').forEach(x => x.classList.remove('selected'));
+      setTimeout(() => location.reload(), 2000);
     } else {
-      showAlert('❌ ' + (d.error||'Fehler'), false);
+      showAlert('❌ ' + (d.error || 'Fehler bei der Überweisung'), false);
       document.getElementById('btnTransfer').disabled = false;
     }
-  } catch(e) { showAlert('❌ Verbindungsfehler', false); document.getElementById('btnTransfer').disabled = false; }
+  } catch(e) {
+    showAlert('❌ Verbindungsfehler — bitte erneut versuchen', false);
+    document.getElementById('btnTransfer').disabled = false;
+  }
 }
 </script>
 </body></html>`);
     });
 
-    // ── GET /krypto/exchange ───────────────────────────────────────────────────
+        // ── GET /krypto/exchange ───────────────────────────────────────────────────
     app.get('/krypto/exchange', (req, res) => {
       const token = req.query.token || '';
       const entry = validateKryptoTokW(token);
