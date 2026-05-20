@@ -2623,6 +2623,22 @@ async function doSell() {
       app._wCash   = (uid,amt) => { const d=_lb(); d[uid]=amt; _sb(d); };
       app._rInv    = uid => (_li()[uid]||{});
       app._wInv    = (uid,items) => { const d=_li(); d[uid]=items; _si(d); };
+      // Shop lookup helper for prize normalization
+      const SHOPS_FILE_W = path.join(DATA_DIR, 'shops.json');
+      function _lShops() { try { return JSON.parse(fs.readFileSync(SHOPS_FILE_W,'utf8')); } catch { return {}; } }
+      app._findShopItem = function(searchName) {
+        const allItems = Object.values(_lShops()).flat().map(function(i) { return i.name; }).filter(Boolean);
+        const q = (searchName||'').toLowerCase().trim();
+        const exact = allItems.find(function(n) { return n.toLowerCase() === q; });
+        if (exact) return exact;
+        const contains = allItems.find(function(n) { return n.toLowerCase().includes(q); });
+        if (contains) return contains;
+        const partOf = allItems.find(function(n) { return q.includes(n.toLowerCase()); });
+        if (partOf) return partOf;
+        const words = q.split(/\s+/).filter(function(w) { return w.length > 2; });
+        const wordMatch = allItems.find(function(n) { const nLow=n.toLowerCase(); return words.some(function(w){return nLow.includes(w);}); });
+        return wordMatch || searchName;
+      };
     })();
 
     // GET /rubbellos?token=XXX  — serves the scratch card page
@@ -2653,7 +2669,8 @@ async function doSell() {
           app._wCash(uid, app._rCash(uid) + prize.amount);
         } else if (prize.type === 'item') {
           const inv = app._rInv(uid);
-          inv[prize.item] = (inv[prize.item]||0) + (prize.menge||1);
+          const canonName = app._findShopItem(prize.item);
+          inv[canonName] = (inv[canonName]||0) + (prize.menge||1);
           app._wInv(uid, inv);
         }
         // ticket type: no auto-credit, user creates a support ticket
