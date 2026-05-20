@@ -615,6 +615,43 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
     function getUserLager(userId) { const d = loadLager(); return d[userId]   || {}; }
     function setUserInv(userId, items)   { const d = loadInv();   d[userId] = items;   saveInv(d); }
     function setUserLager(userId, items) { const d = loadLager(); d[userId] = items;   saveLager(d); }
+
+    // ─── ITEM HELPER: kanonischen Shop-Namen per Fuzzy finden ────────────────
+    function findShopItem(searchName) {
+      const shops = loadShops();
+      const allItems = Object.values(shops).flat().map(function(i) { return i.name; }).filter(Boolean);
+      const q = (searchName || '').toLowerCase().trim();
+      const exact = allItems.find(function(n) { return n.toLowerCase() === q; });
+      if (exact) return exact;
+      const contains = allItems.find(function(n) { return n.toLowerCase().includes(q); });
+      if (contains) return contains;
+      const partOf = allItems.find(function(n) { return q.includes(n.toLowerCase()); });
+      if (partOf) return partOf;
+      const words = q.split(/\s+/).filter(function(w) { return w.length > 2; });
+      const wordMatch = allItems.find(function(n) {
+        const nLow = n.toLowerCase();
+        return words.some(function(w) { return nLow.includes(w); });
+      });
+      return wordMatch || searchName;
+    }
+
+    // ─── ITEM HELPER: Item im Inventar per Fuzzy finden ─────────────────────
+    function findInvItem(inv, searchName) {
+      const q = (searchName || '').toLowerCase().trim();
+      const keys = Object.keys(inv);
+      const exact = keys.find(function(k) { return k.toLowerCase() === q; });
+      if (exact) return exact;
+      const contains = keys.find(function(k) { return k.toLowerCase().includes(q); });
+      if (contains) return contains;
+      const partOf = keys.find(function(k) { return q.includes(k.toLowerCase()); });
+      if (partOf) return partOf;
+      const words = q.split(/\s+/).filter(function(w) { return w.length > 2; });
+      return keys.find(function(k) {
+        const kLow = k.toLowerCase();
+        return words.some(function(w) { return kLow.includes(w); });
+      }) || null;
+    }
+    // ─── END ITEM HELPERS ────────────────────────────────────────────────────
     function buildInvEmbed(targetUser, page, store) {
       const items = Object.entries(store);
       const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
@@ -4556,19 +4593,21 @@ client.on('interactionCreate', async (interaction) => {
 
         // /item-give
         if (commandName === 'item-give') {
-          const target   = interaction.options.getUser('spieler');
-          const itemName = interaction.options.getString('item');
-          const menge    = interaction.options.getInteger('menge');
+          const target     = interaction.options.getUser('spieler');
+          const rawName    = interaction.options.getString('item');
+          const menge      = interaction.options.getInteger('menge');
+          const itemName   = findShopItem(rawName);
           const inv = getUserInv(target.id);
           inv[itemName] = (inv[itemName] || 0) + menge;
           setUserInv(target.id, inv);
           const items = loadItems();
           if (!items.includes(itemName)) { items.push(itemName); saveItems(items); }
+          const nameNote = itemName !== rawName ? ' *(normalisiert aus Shop)*' : '';
           return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
             .setColor(0x57F287).setTitle('📦  Item vergeben')
             .addFields(
               { name: 'Spieler', value: `<@${target.id}>`, inline: true },
-              { name: 'Item', value: `**${itemName}**`, inline: true },
+              { name: 'Item', value: `**${itemName}**${nameNote}`, inline: true },
               { name: 'Menge', value: `**${menge}x**`, inline: true }
             ).setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
           ], ephemeral: true });
@@ -4577,10 +4616,11 @@ client.on('interactionCreate', async (interaction) => {
         // /item-remove
         if (commandName === 'item-remove') {
           const target   = interaction.options.getUser('spieler');
-          const itemName = interaction.options.getString('item');
+          const rawName  = interaction.options.getString('item');
           const menge    = interaction.options.getInteger('menge');
           const inv = getUserInv(target.id);
-          if (!inv[itemName] || inv[itemName] < menge) return interaction.reply({ content: `❌ <@${target.id}> hat nicht genug **${itemName}** (hat: ${inv[itemName] ?? 0}x).`, ephemeral: true });
+          const itemName = findInvItem(inv, rawName) || rawName;
+          if (!inv[itemName] || inv[itemName] < menge) return interaction.reply({ content: `❌ <@${target.id}> hat nicht genug **${itemName}** im Inventar (hat: ${inv[itemName] ?? 0}x).`, ephemeral: true });
           inv[itemName] -= menge;
           if (inv[itemName] <= 0) delete inv[itemName];
           setUserInv(target.id, inv);
