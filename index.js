@@ -1644,7 +1644,7 @@ client.once('ready', async () => {
   }
   // ── Einmalig: Einreise-Embed mit Button senden ─────────────────────────────
   const setup = loadSetup();
-  if (!setup.einreiseEmbedV4Sent) {
+  if (!setup.einreiseEmbedV5Sent) {
     const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'http://localhost:8080')).replace(/\/$/, '');
     const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
     const LINE2 = '─────────────────────────────────────────';
@@ -1708,7 +1708,7 @@ client.once('ready', async () => {
       const einreiseCh = await client.channels.fetch('1490878156582686853');
       if (einreiseCh) {
         await einreiseCh.send({ embeds: [einreiseEmbed], components: [row] });
-        setup.einreiseEmbedV4Sent = true;
+        setup.einreiseEmbedV5Sent = true;
         saveSetup(setup);
         console.log('✅ Einreise-Embed v2 (mit Button) einmalig gesendet.');
       }
