@@ -1125,7 +1125,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
     });
 
     // ── GET / — Root Redirect ────────────────────────────────────────────────
-    // ─── DARKCOIN TOKEN HELPERS ──────────────────────────────────────────────────
+    // ─── PC COIN TOKEN HELPERS ──────────────────────────────────────────────────
     const KRYPTO_TOK_FILE_W = path.join(DATA_DIR, 'krypto_tokens.json');
     const KONTO_FILE_KW     = path.join(DATA_DIR, 'konto.json');
 
@@ -1215,22 +1215,22 @@ input:focus{border-color:#f59e0b}
 
       res.send(`<!DOCTYPE html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DarkCoin Wallet — Paradise City</title><style>${KRYPTO_CSS}</style></head>
+<title>PC Coin Wallet — Paradise City</title><style>${KRYPTO_CSS}</style></head>
 <body>
 <header>
-  <h1>💰 DarkCoin <span>Wallet</span></h1>
+  <h1>💰 PC Coin <span>Wallet</span></h1>
   <div class="hbadge">⚡ Paradise City • Schattennetz</div>
 </header>
 <div class="wrap">
   <div class="bal-grid">
     <div class="bal-card main">
-      <div class="bal-label">🪙 DarkCoin Guthaben</div>
-      <div class="bal-val">${dcFmt} 𝔇C</div>
+      <div class="bal-label">🪙 PC Coin Guthaben</div>
+      <div class="bal-val">${dcFmt} <:emoji_29:1507071093540782110></div>
       <div class="bal-sub">≈ ${swFmt} $ Schwarzgeld</div>
     </div>
     <div class="bal-card">
       <div class="bal-label">📈 Aktueller Kurs</div>
-      <div class="bal-val sub">1 𝔇C = ${rateFmt} $</div>
+      <div class="bal-val sub">1 <:emoji_29:1507071093540782110> = ${rateFmt} $</div>
       <div class="bal-sub">Aktualisiert stündlich</div>
     </div>
   </div>
@@ -1243,16 +1243,16 @@ input:focus{border-color:#f59e0b}
   <div id="tab-info" class="tab-panel active">
     <div class="section">
       <div class="sec-title">🪙 Wallet Details</div>
-      <div class="info-row"><span class="info-label">DarkCoin Balance</span><span class="info-val gold">${wallet.dc.toFixed(8)} 𝔇C</span></div>
+      <div class="info-row"><span class="info-label">PC Coin Balance</span><span class="info-val gold">${wallet.dc.toFixed(8)} <:emoji_29:1507071093540782110></span></div>
       <div class="info-row"><span class="info-label">Schwarzgeld-Wert</span><span class="info-val green">${swFmt} $</span></div>
-      <div class="info-row"><span class="info-label">Wechselkurs</span><span class="info-val">1 𝔇C = ${rateFmt} $</span></div>
+      <div class="info-row"><span class="info-label">Wechselkurs</span><span class="info-val">1 <:emoji_29:1507071093540782110> = ${rateFmt} $</span></div>
       <div class="info-row"><span class="info-label">Verfügbare Wallets</span><span class="info-val">${Object.keys(allWallets).length} Nutzer</span></div>
       <div class="info-row"><span class="info-label">Discord ID</span><span class="info-val" style="font-size:.8em;color:#484f58">${uid}</span></div>
     </div>
     <div class="section">
-      <div class="sec-title">ℹ️ Was ist DarkCoin?</div>
+      <div class="sec-title">ℹ️ Was ist PC Coin?</div>
       <div style="font-size:.83em;color:#6b7280;line-height:1.6">
-        <b style="color:#f59e0b">DarkCoin (𝔇C)</b> ist die anonyme Kryptowährung des Schattennetzes in Paradise City.<br><br>
+        <b style="color:#f59e0b">PC Coin (<:emoji_29:1507071093540782110>)</b> ist die anonyme Kryptowährung des Schattennetzes in Paradise City.<br><br>
         Nur im Darknet verwendbar — keine offiziellen Spuren, keine Banken.<br>
         Der Kurs schwankt stündlich basierend auf Marktaktivitäten.
       </div>
@@ -1261,7 +1261,7 @@ input:focus{border-color:#f59e0b}
 
   <div id="tab-transfer" class="tab-panel">
     <div class="section">
-      <div class="sec-title">📤 𝔇C überweisen</div>
+      <div class="sec-title">📤 <:emoji_29:1507071093540782110> überweisen</div>
       <div id="alert" class="alert"></div>
       ${others.length > 0 ? `
       <div class="form-group">
@@ -1269,7 +1269,7 @@ input:focus{border-color:#f59e0b}
         <div class="user-list" id="userList">
           ${others.map(o => `<div class="user-item" data-id="${o.id}" onclick="selectUser(this,'${o.id}')">
             <span>Discord ID: ${o.id}</span>
-            <span style="color:#6b7280">${o.dc.toFixed(4)} 𝔇C</span>
+            <span style="color:#6b7280">${o.dc.toFixed(4)} <:emoji_29:1507071093540782110></span>
           </div>`).join('')}
         </div>
         <input type="hidden" id="targetId" value="">
@@ -1278,17 +1278,17 @@ input:focus{border-color:#f59e0b}
         Keine anderen Wallets vorhanden.<br>Andere Spieler müssen zuerst ihr Wallet öffnen.
       </div>`}
       <div class="form-group">
-        <label>Betrag in 𝔇C</label>
+        <label>Betrag in <:emoji_29:1507071093540782110></label>
         <input type="number" id="transferAmt" min="0.0001" step="0.0001" placeholder="z.B. 1.5000" oninput="calcTransfer()">
       </div>
       <div id="txInfo" class="tx-info">
-        Du überweist: <b id="txAmt"></b> 𝔇C — verbleibend: <b id="txRest"></b> 𝔇C
+        Du überweist: <b id="txAmt"></b> <:emoji_29:1507071093540782110> — verbleibend: <b id="txRest"></b> <:emoji_29:1507071093540782110>
       </div>
       <button class="btn btn-transfer" id="btnTransfer" onclick="doTransfer()" disabled>📤 Überweisung senden</button>
     </div>
   </div>
 
-  <div class="footer">Paradise City Roleplay • DarkCoin System • Dieser Link ist 15 Minuten gültig</div>
+  <div class="footer">Paradise City Roleplay • PC Coin System • Dieser Link ist 15 Minuten gültig</div>
 </div>
 <script>
 const TOKEN = '${token}';
@@ -1336,7 +1336,7 @@ async function doTransfer() {
     });
     const d = await r.json();
     if (d.ok) {
-      showAlert('✓ Überweisung erfolgreich! Neues Guthaben: ' + d.dc.toFixed(4) + ' 𝔇C', true);
+      showAlert('✓ Überweisung erfolgreich! Neues Guthaben: ' + d.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', true);
       document.getElementById('transferAmt').value = '';
       selectedUid = '';
       document.querySelectorAll('.user-item').forEach(x => x.classList.remove('selected'));
@@ -1368,13 +1368,13 @@ async function doTransfer() {
 
       res.send(`<!DOCTYPE html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DarkCoin Tauschbörse</title><style>${KRYPTO_CSS}</style></head>
+<title>PC Coin Tauschbörse</title><style>${KRYPTO_CSS}</style></head>
 <body><div class="wrap">
-  <div class="header"><div class="header-icon">⚖️</div><div><h1>DarkCoin Tauschbörse</h1><h2>Paradise City • Schattennetz</h2></div></div>
+  <div class="header"><div class="header-icon">⚖️</div><div><h1>PC Coin Tauschbörse</h1><h2>Paradise City • Schattennetz</h2></div></div>
   <div class="card">
     <div class="rate-box">
       <span style="color:#9ca3af">Aktueller Kurs</span>
-      <span class="rate-num">1 𝔇C = ${rate.toLocaleString('de-DE')} $</span>
+      <span class="rate-num">1 <:emoji_29:1507071093540782110> = ${rate.toLocaleString('de-DE')} $</span>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
@@ -1383,8 +1383,8 @@ async function doTransfer() {
         <div class="balance-val" style="font-size:1.5em;color:#60a5fa">${(konto.konto||0).toLocaleString('de-DE')} $</div>
       </div>
       <div class="balance-box" style="margin:0">
-        <div class="balance-label">DarkCoin</div>
-        <div class="balance-val" style="font-size:1.5em">${wallet.dc.toFixed(4)} 𝔇C</div>
+        <div class="balance-label">PC Coin</div>
+        <div class="balance-val" style="font-size:1.5em">${wallet.dc.toFixed(4)} <:emoji_29:1507071093540782110></div>
       </div>
     </div>
 
@@ -1400,7 +1400,7 @@ async function doTransfer() {
         <input type="number" id="buyKonto" min="1" step="1" placeholder="z.B. 5000" oninput="calcBuy()">
       </div>
       <div id="buyInfo" style="color:#9ca3af;font-size:.8em;margin-bottom:12px;display:none">
-        Du bekommst ca. <span id="buyDc" style="color:#f59e0b"></span> 𝔇C
+        Du bekommst ca. <span id="buyDc" style="color:#f59e0b"></span> <:emoji_29:1507071093540782110>
       </div>
       <button class="btn btn-primary" id="btnBuy" onclick="doBuy()" disabled>🏦 JETZT KAUFEN</button>
     </div>
@@ -1408,7 +1408,7 @@ async function doTransfer() {
     <div id="tab-sell" class="tab-panel">
       <div id="alert-sell" class="alert"></div>
       <div class="form-group">
-        <label>DarkCoin verkaufen (𝔇C)</label>
+        <label>PC Coin verkaufen (<:emoji_29:1507071093540782110>)</label>
         <input type="number" id="sellDc" min="0.0001" step="0.0001" placeholder="z.B. 1.5" oninput="calcSell()">
       </div>
       <div id="sellInfo" style="color:#9ca3af;font-size:.8em;margin-bottom:12px;display:none">
@@ -1417,7 +1417,7 @@ async function doTransfer() {
       <button class="btn btn-sell" id="btnSell" onclick="doSell()" disabled>💱 JETZT VERKAUFEN</button>
     </div>
 
-    <div class="footer">Paradise City Roleplay • DarkCoin System<br>Dieser Link ist 15 Minuten gültig.</div>
+    <div class="footer">Paradise City Roleplay • PC Coin System<br>Dieser Link ist 15 Minuten gültig.</div>
   </div>
 </div>
 <script>
@@ -1457,7 +1457,7 @@ async function doBuy() {
     });
     const d = await r.json();
     if (d.ok) {
-      showAlert('buy', '✓ ' + d.bought.toFixed(4) + ' 𝔇C gekauft! Neues Wallet: ' + d.dc.toFixed(4) + ' 𝔇C', true);
+      showAlert('buy', '✓ ' + d.bought.toFixed(4) + ' <:emoji_29:1507071093540782110> gekauft! Neues Wallet: ' + d.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', true);
       document.getElementById('buyKonto').value = '';
       setTimeout(()=>location.reload(), 2500);
     } else {
@@ -1477,7 +1477,7 @@ async function doSell() {
     });
     const d = await r.json();
     if (d.ok) {
-      showAlert('sell', '✓ ' + d.sold.toFixed(4) + ' 𝔇C verkauft! +' + d.payout.toLocaleString('de-DE') + ' $ Bankgeld', true);
+      showAlert('sell', '✓ ' + d.sold.toFixed(4) + ' <:emoji_29:1507071093540782110> verkauft! +' + d.payout.toLocaleString('de-DE') + ' $ Bankgeld', true);
       document.getElementById('sellDc').value = '';
       setTimeout(()=>location.reload(), 2500);
     } else {
@@ -1500,7 +1500,7 @@ async function doSell() {
       if (entry.userId === targetUserId) return res.json({ ok:false, error:'Du kannst nicht an dich selbst überweisen' });
       const krypto = loadKryptoW();
       const sender = krypto[entry.userId]||{dc:0};
-      if ((sender.dc||0) < amt) return res.json({ ok:false, error:'Nicht genug DarkCoin. Guthaben: ' + (sender.dc||0).toFixed(4) + ' 𝔇C' });
+      if ((sender.dc||0) < amt) return res.json({ ok:false, error:'Nicht genug PC Coin. Guthaben: ' + (sender.dc||0).toFixed(4) + ' <:emoji_29:1507071093540782110>' });
       sender.dc = (sender.dc||0) - amt;
       const recv = krypto[targetUserId]||{dc:0};
       recv.dc = (recv.dc||0) + amt;
@@ -1541,7 +1541,7 @@ async function doSell() {
       const uid = entry.userId;
       const krypto = loadKryptoW();
       if (!krypto[uid]) krypto[uid]={dc:0};
-      if ((krypto[uid].dc||0) < dc_amt) return res.json({ ok:false, error:'Nicht genug DarkCoin. Guthaben: ' + (krypto[uid].dc||0).toFixed(4) + ' 𝔇C' });
+      if ((krypto[uid].dc||0) < dc_amt) return res.json({ ok:false, error:'Nicht genug PC Coin. Guthaben: ' + (krypto[uid].dc||0).toFixed(4) + ' <:emoji_29:1507071093540782110>' });
       const rate = getKryptoRateW();
       const payout = Math.floor(dc_amt * rate);
       krypto[uid].dc = (krypto[uid].dc||0) - dc_amt;
@@ -1552,7 +1552,7 @@ async function doSell() {
       res.json({ ok:true, sold: dc_amt, payout, dc: krypto[uid].dc, konto: kontoData.konto });
     });
 
-    // ─── DARKCOIN WALLET API ─────────────────────────────────────────────────────
+    // ─── PC COIN WALLET API ─────────────────────────────────────────────────────
     app.get('/api/krypto/wallet/:uid', (req, res) => {
       const secret = req.headers['x-darknet-secret'] || req.query.secret;
       if (secret !== (process.env.DARKNET_ADMIN_SECRET||'darknet_admin_2025')) return res.status(403).json({error:'Forbidden'});
@@ -1572,7 +1572,7 @@ async function doSell() {
       let krypto = {};
       try { krypto = JSON.parse(fs.readFileSync(path.join(DATA_DIR,'krypto.json'),'utf8')); } catch {}
       if (!krypto[uid]) krypto[uid] = { dc: 0 };
-      if ((krypto[uid].dc||0) < amount) return res.status(400).json({error:'Nicht genug DarkCoin', dc: krypto[uid].dc||0});
+      if ((krypto[uid].dc||0) < amount) return res.status(400).json({error:'Nicht genug PC Coin', dc: krypto[uid].dc||0});
       krypto[uid].dc = (krypto[uid].dc||0) - amount;
       fs.writeFileSync(path.join(DATA_DIR,'krypto.json'), JSON.stringify(krypto,null,2),'utf8');
       res.json({ discordUserId: uid, dc: krypto[uid].dc });
@@ -1597,7 +1597,7 @@ async function doSell() {
       try { rateData = JSON.parse(fs.readFileSync(path.join(DATA_DIR,'krypto_rate.json'),'utf8')); } catch {}
       res.json(rateData);
     });
-    // ─── END DARKCOIN WALLET API ──────────────────────────────────────────────────
+    // ─── END PC COIN WALLET API ──────────────────────────────────────────────────
 
     app.get('/', (req, res) => res.redirect('/einreise'));
 
