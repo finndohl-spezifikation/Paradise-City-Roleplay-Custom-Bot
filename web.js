@@ -1225,12 +1225,12 @@ input:focus{border-color:#f59e0b}
   <div class="bal-grid">
     <div class="bal-card main">
       <div class="bal-label">🪙 PC Coin Guthaben</div>
-      <div class="bal-val">${dcFmt} <:emoji_29:1507071093540782110></div>
-      <div class="bal-sub">≈ ${swFmt} $ Schwarzgeld</div>
+      <div class="bal-val" id="live-dc-bal">${dcFmt} 🪙</div>
+      <div class="bal-sub" id="live-sw-val">≈ ${swFmt} $ Schwarzgeld</div>
     </div>
     <div class="bal-card">
       <div class="bal-label">📈 Aktueller Kurs</div>
-      <div class="bal-val sub">1 <:emoji_29:1507071093540782110> = ${rateFmt} $</div>
+      <div class="bal-val sub" id="live-rate-val">1 🪙 = ${rateFmt} $</div>
       <div class="bal-sub">Aktualisiert stündlich</div>
     </div>
   </div>
@@ -1243,16 +1243,16 @@ input:focus{border-color:#f59e0b}
   <div id="tab-info" class="tab-panel active">
     <div class="section">
       <div class="sec-title">🪙 Wallet Details</div>
-      <div class="info-row"><span class="info-label">PC Coin Balance</span><span class="info-val gold">${wallet.dc.toFixed(8)} <:emoji_29:1507071093540782110></span></div>
-      <div class="info-row"><span class="info-label">Schwarzgeld-Wert</span><span class="info-val green">${swFmt} $</span></div>
-      <div class="info-row"><span class="info-label">Wechselkurs</span><span class="info-val">1 <:emoji_29:1507071093540782110> = ${rateFmt} $</span></div>
+      <div class="info-row"><span class="info-label">PC Coin Balance</span><span class="info-val gold" id="live-dc-detail">${wallet.dc.toFixed(8)} 🪙</span></div>
+      <div class="info-row"><span class="info-label">Schwarzgeld-Wert</span><span class="info-val green" id="live-sw-detail">${swFmt} $</span></div>
+      <div class="info-row"><span class="info-label">Wechselkurs</span><span class="info-val">1 🪙 = ${rateFmt} $</span></div>
       <div class="info-row"><span class="info-label">Verfügbare Wallets</span><span class="info-val">${Object.keys(allWallets).length} Nutzer</span></div>
       <div class="info-row"><span class="info-label">Discord ID</span><span class="info-val" style="font-size:.8em;color:#484f58">${uid}</span></div>
     </div>
     <div class="section">
       <div class="sec-title">ℹ️ Was ist PC Coin?</div>
       <div style="font-size:.83em;color:#6b7280;line-height:1.6">
-        <b style="color:#f59e0b">PC Coin (<:emoji_29:1507071093540782110>)</b> ist die anonyme Kryptowährung des Schattennetzes in Paradise City.<br><br>
+        <b style="color:#f59e0b">PC Coin (🪙)</b> ist die anonyme Kryptowährung des Schattennetzes in Paradise City.<br><br>
         Nur im Darknet verwendbar — keine offiziellen Spuren, keine Banken.<br>
         Der Kurs schwankt stündlich basierend auf Marktaktivitäten.
       </div>
@@ -1261,7 +1261,7 @@ input:focus{border-color:#f59e0b}
 
   <div id="tab-transfer" class="tab-panel">
     <div class="section">
-      <div class="sec-title">📤 <:emoji_29:1507071093540782110> überweisen</div>
+      <div class="sec-title">📤 🪙 überweisen</div>
       <div id="alert" class="alert"></div>
       ${others.length > 0 ? `
       <div class="form-group">
@@ -1269,7 +1269,7 @@ input:focus{border-color:#f59e0b}
         <div class="user-list" id="userList">
           ${others.map(o => `<div class="user-item" data-id="${o.id}" onclick="selectUser(this,'${o.id}')">
             <span>Discord ID: ${o.id}</span>
-            <span style="color:#6b7280">${o.dc.toFixed(4)} <:emoji_29:1507071093540782110></span>
+            <span style="color:#6b7280">${o.dc.toFixed(4)} 🪙</span>
           </div>`).join('')}
         </div>
         <input type="hidden" id="targetId" value="">
@@ -1278,11 +1278,11 @@ input:focus{border-color:#f59e0b}
         Keine anderen Wallets vorhanden.<br>Andere Spieler müssen zuerst ihr Wallet öffnen.
       </div>`}
       <div class="form-group">
-        <label>Betrag in <:emoji_29:1507071093540782110></label>
+        <label>Betrag in 🪙</label>
         <input type="number" id="transferAmt" min="0.0001" step="0.0001" placeholder="z.B. 1.5000" oninput="calcTransfer()">
       </div>
       <div id="txInfo" class="tx-info">
-        Du überweist: <b id="txAmt"></b> <:emoji_29:1507071093540782110> — verbleibend: <b id="txRest"></b> <:emoji_29:1507071093540782110>
+        Du überweist: <b id="txAmt"></b> 🪙 — verbleibend: <b id="txRest"></b> 🪙
       </div>
       <button class="btn btn-transfer" id="btnTransfer" onclick="doTransfer()" disabled>📤 Überweisung senden</button>
     </div>
@@ -1325,6 +1325,30 @@ function showAlert(msg, ok) {
   el.textContent = msg;
   el.className = 'alert show ' + (ok ? 'alert-ok' : 'alert-err');
 }
+
+// ── Live Balance Update (alle 10s) ───────────────────────────────────────────
+(function() {
+  function refreshBalance() {
+    fetch('/api/krypto/balance?token=' + TOKEN)
+      .then(function(r){ return r.json(); })
+      .then(function(d) {
+        if (!d.ok) return;
+        var balEl  = document.getElementById('live-dc-bal');
+        var swEl   = document.getElementById('live-sw-val');
+        var rateEl = document.getElementById('live-rate-val');
+        var detEl  = document.getElementById('live-dc-detail');
+        var swdEl  = document.getElementById('live-sw-detail');
+        if (balEl)  balEl.textContent  = d.dc.toFixed(4) + ' 🪙';
+        if (swEl)   swEl.textContent   = '≈ ' + d.schwarzwert.toLocaleString('de-DE') + ' $ Schwarzgeld';
+        if (rateEl) rateEl.textContent = '1 🪙 = ' + d.rate.toLocaleString('de-DE') + ' $';
+        if (detEl)  detEl.textContent  = d.dc.toFixed(8) + ' 🪙';
+        if (swdEl)  swdEl.textContent  = d.schwarzwert.toLocaleString('de-DE') + ' $';
+      }).catch(function() {});
+  }
+  setInterval(refreshBalance, 10000);
+  setTimeout(refreshBalance, 3000);
+})();
+
 async function doTransfer() {
   const amt = parseFloat(document.getElementById('transferAmt').value);
   if (!amt || !selectedUid) return;
@@ -1336,7 +1360,7 @@ async function doTransfer() {
     });
     const d = await r.json();
     if (d.ok) {
-      showAlert('✓ Überweisung erfolgreich! Neues Guthaben: ' + d.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', true);
+      showAlert('✓ Überweisung erfolgreich! Neues Guthaben: ' + d.dc.toFixed(4) + ' 🪙', true);
       document.getElementById('transferAmt').value = '';
       selectedUid = '';
       document.querySelectorAll('.user-item').forEach(x => x.classList.remove('selected'));
@@ -1374,7 +1398,7 @@ async function doTransfer() {
   <div class="card">
     <div class="rate-box">
       <span style="color:#9ca3af">Aktueller Kurs</span>
-      <span class="rate-num">1 <:emoji_29:1507071093540782110> = ${rate.toLocaleString('de-DE')} $</span>
+      <span class="rate-num">1 🪙 = ${rate.toLocaleString('de-DE')} $</span>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
@@ -1384,7 +1408,7 @@ async function doTransfer() {
       </div>
       <div class="balance-box" style="margin:0">
         <div class="balance-label">PC Coin</div>
-        <div class="balance-val" style="font-size:1.5em">${wallet.dc.toFixed(4)} <:emoji_29:1507071093540782110></div>
+        <div class="balance-val" style="font-size:1.5em">${wallet.dc.toFixed(4)} 🪙</div>
       </div>
     </div>
 
@@ -1400,7 +1424,7 @@ async function doTransfer() {
         <input type="number" id="buyKonto" min="1" step="1" placeholder="z.B. 5000" oninput="calcBuy()">
       </div>
       <div id="buyInfo" style="color:#9ca3af;font-size:.8em;margin-bottom:12px;display:none">
-        Du bekommst ca. <span id="buyDc" style="color:#f59e0b"></span> <:emoji_29:1507071093540782110>
+        Du bekommst ca. <span id="buyDc" style="color:#f59e0b"></span> 🪙
       </div>
       <button class="btn btn-primary" id="btnBuy" onclick="doBuy()" disabled>🏦 JETZT KAUFEN</button>
     </div>
@@ -1408,7 +1432,7 @@ async function doTransfer() {
     <div id="tab-sell" class="tab-panel">
       <div id="alert-sell" class="alert"></div>
       <div class="form-group">
-        <label>PC Coin verkaufen (<:emoji_29:1507071093540782110>)</label>
+        <label>PC Coin verkaufen (🪙)</label>
         <input type="number" id="sellDc" min="0.0001" step="0.0001" placeholder="z.B. 1.5" oninput="calcSell()">
       </div>
       <div id="sellInfo" style="color:#9ca3af;font-size:.8em;margin-bottom:12px;display:none">
@@ -1457,7 +1481,7 @@ async function doBuy() {
     });
     const d = await r.json();
     if (d.ok) {
-      showAlert('buy', '✓ ' + d.bought.toFixed(4) + ' <:emoji_29:1507071093540782110> gekauft! Neues Wallet: ' + d.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', true);
+      showAlert('buy', '✓ ' + d.bought.toFixed(4) + ' 🪙 gekauft! Neues Wallet: ' + d.dc.toFixed(4) + ' 🪙', true);
       document.getElementById('buyKonto').value = '';
       setTimeout(()=>location.reload(), 2500);
     } else {
@@ -1477,7 +1501,7 @@ async function doSell() {
     });
     const d = await r.json();
     if (d.ok) {
-      showAlert('sell', '✓ ' + d.sold.toFixed(4) + ' <:emoji_29:1507071093540782110> verkauft! +' + d.payout.toLocaleString('de-DE') + ' $ Bankgeld', true);
+      showAlert('sell', '✓ ' + d.sold.toFixed(4) + ' 🪙 verkauft! +' + d.payout.toLocaleString('de-DE') + ' $ Bankgeld', true);
       document.getElementById('sellDc').value = '';
       setTimeout(()=>location.reload(), 2500);
     } else {
@@ -1490,6 +1514,18 @@ async function doSell() {
 </body></html>`);
     });
 
+
+    // ── GET /api/krypto/balance — live balance für Wallet-Seite ───────────────
+    app.get('/api/krypto/balance', (req, res) => {
+      const token = req.query.token || '';
+      const entry = validateKryptoTokW(token);
+      if (!entry || entry.type !== 'wallet') return res.json({ ok: false, error: 'invalid token' });
+      const wallet = getWalletW(entry.userId);
+      const rate = getKryptoRateW();
+      const schwarzwert = Math.round(wallet.dc * rate);
+      res.json({ ok: true, dc: wallet.dc, rate, schwarzwert });
+    });
+
     // ── POST /api/krypto/transfer ──────────────────────────────────────────────
     app.post('/api/krypto/transfer', express.json(), (req, res) => {
       const { token, targetUserId, amount } = req.body||{};
@@ -1500,7 +1536,7 @@ async function doSell() {
       if (entry.userId === targetUserId) return res.json({ ok:false, error:'Du kannst nicht an dich selbst überweisen' });
       const krypto = loadKryptoW();
       const sender = krypto[entry.userId]||{dc:0};
-      if ((sender.dc||0) < amt) return res.json({ ok:false, error:'Nicht genug PC Coin. Guthaben: ' + (sender.dc||0).toFixed(4) + ' <:emoji_29:1507071093540782110>' });
+      if ((sender.dc||0) < amt) return res.json({ ok:false, error:'Nicht genug PC Coin. Guthaben: ' + (sender.dc||0).toFixed(4) + ' 🪙' });
       sender.dc = (sender.dc||0) - amt;
       const recv = krypto[targetUserId]||{dc:0};
       recv.dc = (recv.dc||0) + amt;
@@ -1541,7 +1577,7 @@ async function doSell() {
       const uid = entry.userId;
       const krypto = loadKryptoW();
       if (!krypto[uid]) krypto[uid]={dc:0};
-      if ((krypto[uid].dc||0) < dc_amt) return res.json({ ok:false, error:'Nicht genug PC Coin. Guthaben: ' + (krypto[uid].dc||0).toFixed(4) + ' <:emoji_29:1507071093540782110>' });
+      if ((krypto[uid].dc||0) < dc_amt) return res.json({ ok:false, error:'Nicht genug PC Coin. Guthaben: ' + (krypto[uid].dc||0).toFixed(4) + ' 🪙' });
       const rate = getKryptoRateW();
       const payout = Math.floor(dc_amt * rate);
       krypto[uid].dc = (krypto[uid].dc||0) - dc_amt;
