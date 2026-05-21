@@ -106,14 +106,14 @@ async function updateKryptoRate() {
     const trend = diff>=0?'📈':'📉';
     const embed = new EmbedBuilder()
       .setColor(diff>=0?0x22c55e:0xef4444)
-      .setTitle('⬛ DarkCoin (𝔇C) — Aktueller Kurs')
-      .setDescription(`${trend} **1 𝔇C = ${newRate.toLocaleString('de-DE')} Schwarzgeld**`)
+      .setTitle('<:emoji_29:1507071093540782110> PC Coin — Aktueller Kurs')
+      .setDescription(`${trend} **1 <:emoji_29:1507071093540782110> = ${newRate.toLocaleString('de-DE')} Schwarzgeld**`)
       .addFields(
         { name:'24h Hoch', value:Math.max(...rateData.history.map(h=>h.rate)).toLocaleString('de-DE')+' $', inline:true },
         { name:'24h Tief', value:Math.min(...rateData.history.map(h=>h.rate)).toLocaleString('de-DE')+' $', inline:true },
         { name:'Änderung', value:(diff>=0?'+':'')+diff+' $ ('+(prev>0?(diff/prev*100).toFixed(2):0)+'%)', inline:true }
       )
-      .setFooter({ text:'Paradise City Darknet • Kurse aktualisieren sich stündlich' })
+      .setFooter({ text:'Paradise City • PC Coin System • Kurse aktualisieren sich stündlich' })
       .setTimestamp();
     // Find existing pinned embed and edit, else send (no external button)
     const msgs = await ch.messages.fetch({limit:5}).catch(()=>null);
@@ -1212,18 +1212,17 @@ client.once('ready', async () => {
       // Channel 1: Wallet
       const ch1 = await client.channels.fetch(KRYPTO_WALLET_CH).catch(function() { return null; });
       if (ch1) {
-        const exists1 = await embedExistsInChannel(ch1, 'DarkCoin — Mein Wallet');
+        const exists1 = await embedExistsInChannel(ch1, 'PC Coin — Mein Wallet');
         if (!exists1) {
           const embed1 = new EmbedBuilder()
             .setColor(0xf59e0b)
-            .setTitle('💰 DarkCoin — Mein Wallet')
-            .setDescription('Sieh dein persönliches DarkCoin-Guthaben ein und überweise 𝔇C an andere Spieler.\n\nKlicke auf den Button — du erhältst einen privaten Link der nur für dich gilt.')
+            .setTitle('" + PC_EMOJI + " PC Coin — Mein Wallet')
+            .setDescription('Sieh dein persönliches PC Coin-Guthaben ein und überweise <:emoji_29:1507071093540782110> an andere Spieler.\n\nKlicke auf den Button um dein Wallet zu sehen.')
             .addFields(
-              { name: '💡 Was ist DarkCoin (𝔇C)?', value: 'Die anonyme Kryptowährung des Schattennetzes. Nur im Darknet verwendbar.', inline: false },
-              { name: '📈 Aktueller Kurs', value: '1 𝔇C = **' + rateData.rate.toLocaleString('de-DE') + ' $**', inline: true },
+              { name: '💡 Was ist PC Coin?', value: 'Die Kryptowährung von Paradise City. Überweise <:emoji_29:1507071093540782110> direkt an andere Spieler.', inline: false },
               { name: '🔒 Sicherheit', value: 'Dein Wallet ist nur für dich sichtbar.', inline: true }
             )
-            .setFooter({ text: 'Paradise City • DarkCoin System' }).setTimestamp();
+            .setFooter({ text: 'Paradise City • PC Coin System' }).setTimestamp();
           const row1 = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('krypto_wallet').setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Primary)
           );
@@ -1237,18 +1236,18 @@ client.once('ready', async () => {
       // Channel 2: Tauschbörse
       const ch2 = await client.channels.fetch(KRYPTO_EXCH_CH).catch(function() { return null; });
       if (ch2) {
-        const exists2 = await embedExistsInChannel(ch2, 'DarkCoin — Tauschbörse');
+        const exists2 = await embedExistsInChannel(ch2, 'PC Coin — Tauschbörse');
         if (!exists2) {
           const embed2 = new EmbedBuilder()
             .setColor(0xf59e0b)
-            .setTitle('⚖️ DarkCoin — Tauschbörse')
-            .setDescription('Tausche dein Bankgeld in DarkCoin um — oder verkaufe deine 𝔇C zurück in Bankgeld.\n\nKlicke auf den Button für deinen persönlichen Zugang.')
+            .setTitle('⚖️ PC Coin — Tauschbörse')
+            .setDescription('Tausche dein Bankgeld in PC Coin um — oder verkaufe deine <:emoji_29:1507071093540782110> zurück in Bankgeld.')
             .addFields(
-              { name: '📈 Aktueller Kurs', value: '1 𝔇C = **' + rateData.rate.toLocaleString('de-DE') + ' $**', inline: true },
-              { name: '🏦 Bankgeld → 𝔇C', value: 'Kaufe DarkCoin mit deinem Bankkonto', inline: true },
-              { name: '💱 𝔇C → Bankgeld', value: 'Verkaufe DarkCoin zurück in Bankgeld', inline: true }
+              { name: '📈 Aktueller Kurs', value: '1 <:emoji_29:1507071093540782110> = **' + rateData.rate.toLocaleString('de-DE') + ' $**', inline: true },
+              { name: '🏦 Bankgeld → PC Coin', value: 'Kaufe PC Coin mit deinem Bankkonto', inline: true },
+              { name: '💱 PC Coin → Bankgeld', value: 'Verkaufe PC Coin zurück in Bankgeld', inline: true }
             )
-            .setFooter({ text: 'Paradise City • DarkCoin System • Kurse aktualisieren stündlich' }).setTimestamp();
+            .setFooter({ text: 'Paradise City • PC Coin System • Kurse aktualisieren stündlich' }).setTimestamp();
           const row2 = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('krypto_exchange').setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Primary)
           );
@@ -6944,14 +6943,13 @@ client.on('interactionCreate', async (interaction) => {
     if(ch1) {
       const embed1 = new EmbedBuilder()
         .setColor(0xf59e0b)
-        .setTitle('💰 DarkCoin — Mein Wallet')
-        .setDescription('Sieh dein persönliches DarkCoin-Guthaben ein und überweise 𝔇C an andere Spieler.\n\nKlicke auf den Button — du erhältst einen privaten Link der nur für dich gilt.')
+        .setTitle('<:emoji_29:1507071093540782110> PC Coin — Mein Wallet')
+        .setDescription('Sieh dein persönliches PC Coin-Guthaben ein und überweise <:emoji_29:1507071093540782110> an andere Spieler.\n\nKlicke auf den Button um dein Wallet zu sehen.')
         .addFields(
-          { name:'💡 Was ist DarkCoin (𝔇C)?', value:'Die anonyme Kryptowährung des Schattennetzes. Nur im Darknet verwendbar.', inline:false },
-          { name:`📈 Aktueller Kurs`, value:`1 𝔇C = **${rateData.rate.toLocaleString('de-DE')} $**`, inline:true },
+          { name:'💡 Was ist PC Coin?', value:'Die Kryptowährung von Paradise City. Überweise <:emoji_29:1507071093540782110> direkt an andere Spieler.', inline:false },
           { name:'🔒 Sicherheit', value:'Dein Wallet ist nur für dich sichtbar.', inline:true }
         )
-        .setFooter({ text:'Paradise City • DarkCoin System' }).setTimestamp();
+        .setFooter({ text:'Paradise City • PC Coin System' }).setTimestamp();
       const row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('krypto_wallet').setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Primary)
       );
@@ -6965,14 +6963,14 @@ client.on('interactionCreate', async (interaction) => {
     if(ch2) {
       const embed2 = new EmbedBuilder()
         .setColor(0xf59e0b)
-        .setTitle('⚖️ DarkCoin — Tauschbörse')
-        .setDescription('Tausche dein Bankgeld in DarkCoin um — oder verkaufe deine 𝔇C zurück in Bankgeld.\n\nKlicke auf den Button für deinen persönlichen Zugang.')
+        .setTitle('⚖️ PC Coin — Tauschbörse')
+        .setDescription('Tausche dein Bankgeld in PC Coin um — oder verkaufe deine <:emoji_29:1507071093540782110> zurück in Bankgeld.')
         .addFields(
-          { name:'📈 Aktueller Kurs', value:`1 𝔇C = **${rateData.rate.toLocaleString('de-DE')} $**`, inline:true },
-          { name:'🏦 Bankgeld → 𝔇C', value:'Kaufe DarkCoin mit deinem Bankkonto', inline:true },
-          { name:'💱 𝔇C → Bankgeld', value:'Verkaufe DarkCoin zurück in Bankgeld', inline:true }
+          { name:'📈 Aktueller Kurs', value:`1 <:emoji_29:1507071093540782110> = **${rateData.rate.toLocaleString('de-DE')} $**`, inline:true },
+          { name:'🏦 Bankgeld → PC Coin', value:'Kaufe PC Coin mit deinem Bankkonto', inline:true },
+          { name:'💱 PC Coin → Bankgeld', value:'Verkaufe PC Coin zurück in Bankgeld', inline:true }
         )
-        .setFooter({ text:'Paradise City • DarkCoin System • Kurse aktualisieren stündlich' }).setTimestamp();
+        .setFooter({ text:'Paradise City • PC Coin System • Kurse aktualisieren stündlich' }).setTimestamp();
       const row2 = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('krypto_exchange').setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Primary)
       );
@@ -6983,7 +6981,7 @@ client.on('interactionCreate', async (interaction) => {
   // 3. Kurse-Channel — Link-Button (direkt, kein Token)
   await updateKryptoRate().catch(()=>{});
 
-  await interaction.editReply({ content: '✅ DarkCoin Embeds gesendet!' });
+  await interaction.editReply({ content: '✅ PC Coin Embeds gesendet!' });
 });
 // ─── END KRYPTO SETUP ─────────────────────────────────────────────────────────
 
@@ -6991,25 +6989,21 @@ client.on('interactionCreate', async (interaction) => {
 // Button: Wallet öffnen → ephemeral embed (kein Browser)
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
-  if (interaction.customId !== 'krypto_wallet' && interaction.customId !== 'krypto_exchange' && interaction.customId !== 'krypto_pay') return;
+  if (interaction.customId !== 'krypto_wallet' && interaction.customId !== 'krypto_exchange' && interaction.customId !== 'krypto_pay' && interaction.customId !== 'krypto_buy_btn' && interaction.customId !== 'krypto_sell_btn') return;
 
   // ── Wallet Button → ephemeral Embed mit Pay-Button ─────────────────────────
   if (interaction.customId === 'krypto_wallet') {
     await interaction.deferReply({ ephemeral: true });
     try {
       const wallet = getWallet(interaction.user.id);
-      const rate   = loadKryptoRate().rate || 100;
-      const schwarzwert = Math.round(wallet.dc * rate);
       const walletEmbed = new EmbedBuilder()
         .setColor(0xf59e0b)
-        .setTitle('💰 DarkCoin Wallet')
-        .setDescription('Dein persönliches DarkCoin-Guthaben im Schattennetz.')
+        .setTitle('<:emoji_29:1507071093540782110> PC Coin Wallet')
+        .setDescription('Dein persönliches PC Coin-Guthaben.')
         .addFields(
-          { name: '🪙 DarkCoin Balance',   value: wallet.dc.toFixed(4) + ' 𝔇C',                    inline: true },
-          { name: '💵 Schwarzgeld-Wert',   value: schwarzwert.toLocaleString('de-DE') + ' $',       inline: true },
-          { name: '📈 Aktueller Kurs',     value: '1 𝔇C = ' + rate.toLocaleString('de-DE') + ' $', inline: true }
+          { name: '<:emoji_29:1507071093540782110> PC Coin Balance', value: wallet.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', inline: true }
         )
-        .setFooter({ text: 'Paradise City Roleplay • DarkCoin System' })
+        .setFooter({ text: 'Paradise City • PC Coin System' })
         .setTimestamp();
       const payBtn = new ButtonBuilder()
         .setCustomId('krypto_pay')
@@ -7028,7 +7022,7 @@ client.on('interactionCreate', async (interaction) => {
     try {
       const modal = new ModalBuilder()
         .setCustomId('krypto_pay_modal')
-        .setTitle('💸 DarkCoin Überweisung');
+        .setTitle('💸 PC Coin Überweisung');
       const recipientInput = new TextInputBuilder()
         .setCustomId('krypto_pay_recipient')
         .setLabel('Empfänger Discord ID')
@@ -7038,7 +7032,7 @@ client.on('interactionCreate', async (interaction) => {
         .setMinLength(15).setMaxLength(20);
       const amountInput = new TextInputBuilder()
         .setCustomId('krypto_pay_amount')
-        .setLabel('Betrag in 𝔇C')
+        .setLabel('Betrag in PC Coin')
         .setStyle(TextInputStyle.Short)
         .setPlaceholder('z.B. 1.5000')
         .setRequired(true)
@@ -7056,13 +7050,26 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.customId === 'krypto_exchange') {
     await interaction.deferReply({ ephemeral: true });
     try {
-      const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/, '');
-      const token = genKryptoToken(interaction.user.id, 'exchange');
-      const url   = WEBAPP_URL + '/krypto/exchange?token=' + token;
-      const btn   = new ButtonBuilder().setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Link).setURL(url);
+      const uid_ex = interaction.user.id;
+      const wallet_ex = getWallet(uid_ex);
+      const rate_ex = loadKryptoRate().rate || 100;
+      const konto_ex = _getKonto(uid_ex);
+      const exEmbed = new EmbedBuilder()
+        .setColor(0xf59e0b)
+        .setTitle('⚖️ PC Coin — Tauschbörse')
+        .setDescription('Kaufe oder verkaufe <:emoji_29:1507071093540782110> direkt hier in Discord.')
+        .addFields(
+          { name: '📈 Aktueller Kurs', value: '1 <:emoji_29:1507071093540782110> = **' + rate_ex.toLocaleString('de-DE') + ' $**', inline: false },
+          { name: '<:emoji_29:1507071093540782110> PC Coin Guthaben', value: wallet_ex.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', inline: true },
+          { name: '🏦 Bankgeld', value: (konto_ex.konto || 0).toLocaleString('de-DE') + ' $', inline: true }
+        )
+        .setFooter({ text: 'Paradise City • PC Coin System' })
+        .setTimestamp();
+      const buyBtn_ex  = new ButtonBuilder().setCustomId('krypto_buy_btn').setLabel('🛒 PC Coin kaufen').setStyle(ButtonStyle.Success);
+      const sellBtn_ex = new ButtonBuilder().setCustomId('krypto_sell_btn').setLabel('💱 PC Coin verkaufen').setStyle(ButtonStyle.Danger);
       await interaction.editReply({
-        content: '🔑 Dein persönlicher Tauschbörse-Link ist **15 Minuten** gültig:',
-        components: [new ActionRowBuilder().addComponents(btn)]
+        embeds: [exEmbed],
+        components: [new ActionRowBuilder().addComponents(buyBtn_ex, sellBtn_ex)]
       });
     } catch(e) { await interaction.editReply({ content: '❌ Fehler: ' + e.message }); }
     return;
@@ -7088,12 +7095,12 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.editReply({ content: '❌ Du kannst nicht an dich selbst überweisen.' });
     }
     if (isNaN(amount) || amount <= 0 || amount < 0.0001) {
-      return interaction.editReply({ content: '❌ Ungültiger Betrag (mindestens 0.0001 𝔇C).' });
+      return interaction.editReply({ content: '❌ Ungültiger Betrag (mindestens 0.0001 PC Coin).' });
     }
 
     const senderWallet = getWallet(senderId);
     if (senderWallet.dc < amount) {
-      return interaction.editReply({ content: '❌ Nicht genug DarkCoins. Du hast nur ' + senderWallet.dc.toFixed(4) + ' 𝔇C.' });
+      return interaction.editReply({ content: '❌ Nicht genug PC Coin. Du hast nur ' + senderWallet.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>.' });
     }
 
     // Überweisung durchführen
@@ -7111,22 +7118,22 @@ client.on('interactionCreate', async (interaction) => {
       .setTitle('✅ Überweisung erfolgreich')
       .addFields(
         { name: 'Empfänger',        value: '<@' + recipientId + '>',                      inline: true },
-        { name: 'Betrag',           value: amount.toFixed(4) + ' 𝔇C',                    inline: true },
+        { name: 'Betrag',           value: amount.toFixed(4) + ' <:emoji_29:1507071093540782110>',    inline: true },
         { name: 'Schwarzgeld-Wert', value: schwarzwert.toLocaleString('de-DE') + ' $',   inline: true },
-        { name: 'Neues Guthaben',   value: senderWallet.dc.toFixed(4) + ' 𝔇C',           inline: true }
+        { name: 'Neues Guthaben',   value: senderWallet.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', inline: true }
       )
       .setTimestamp()
-      .setFooter({ text: 'Paradise City Roleplay • DarkCoin System' });
+      .setFooter({ text: 'Paradise City • PC Coin System' });
     await interaction.editReply({ embeds: [confirmEmbed] });
 
     // Empfänger per DM benachrichtigen
     const notifyEmbed = new EmbedBuilder()
       .setColor(0xf59e0b)
-      .setTitle('💰 DarkCoin erhalten')
-      .setDescription('Du hast **' + amount.toFixed(4) + ' 𝔇C** empfangen.')
-      .addFields({ name: 'Neues Guthaben', value: recvWallet.dc.toFixed(4) + ' 𝔇C', inline: true })
+      .setTitle('<:emoji_29:1507071093540782110> PC Coin erhalten')
+      .setDescription('Du hast **' + amount.toFixed(4) + ' <:emoji_29:1507071093540782110>** empfangen.')
+      .addFields({ name: 'Neues Guthaben', value: recvWallet.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', inline: true })
       .setTimestamp()
-      .setFooter({ text: 'Paradise City Roleplay • DarkCoin System' });
+      .setFooter({ text: 'Paradise City • PC Coin System' });
     client.users.fetch(recipientId).then(function(u) {
       u.send({ embeds: [notifyEmbed] }).catch(function() {});
     }).catch(function() {});
@@ -7136,6 +7143,113 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 // ─── END KRYPTO BUTTON INTERACTIONS ───────────────────────────────────────────
+// ─── KRYPTO TAUSCHBÖRSE BUTTONS (buy/sell) ───────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isButton()) return;
+  if (interaction.customId !== 'krypto_buy_btn' && interaction.customId !== 'krypto_sell_btn') return;
+  const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+
+  if (interaction.customId === 'krypto_buy_btn') {
+    try {
+      const modal = new ModalBuilder()
+        .setCustomId('krypto_buy_modal')
+        .setTitle('🛒 PC Coin kaufen');
+      const amtInput = new TextInputBuilder()
+        .setCustomId('krypto_buy_amount')
+        .setLabel('Betrag in Bankgeld ($)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('z.B. 5000')
+        .setRequired(true)
+        .setMaxLength(20);
+      modal.addComponents(new ActionRowBuilder().addComponents(amtInput));
+      await interaction.showModal(modal);
+    } catch(e) { console.error('[KRYPTO BUY BTN]', e.message); }
+    return;
+  }
+
+  if (interaction.customId === 'krypto_sell_btn') {
+    try {
+      const modal = new ModalBuilder()
+        .setCustomId('krypto_sell_modal')
+        .setTitle('💱 PC Coin verkaufen');
+      const amtInput = new TextInputBuilder()
+        .setCustomId('krypto_sell_amount')
+        .setLabel('Betrag in PC Coin')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('z.B. 1.5000')
+        .setRequired(true)
+        .setMaxLength(20);
+      modal.addComponents(new ActionRowBuilder().addComponents(amtInput));
+      await interaction.showModal(modal);
+    } catch(e) { console.error('[KRYPTO SELL BTN]', e.message); }
+    return;
+  }
+});
+
+// ─── KRYPTO TAUSCHBÖRSE MODAL SUBMIT ─────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isModalSubmit()) return;
+  if (interaction.customId !== 'krypto_buy_modal' && interaction.customId !== 'krypto_sell_modal') return;
+  await interaction.deferReply({ ephemeral: true });
+  const { EmbedBuilder } = require('discord.js');
+  const uid_ts = interaction.user.id;
+  const rate_ts = loadKryptoRate().rate || 100;
+  try {
+    if (interaction.customId === 'krypto_buy_modal') {
+      const amtStr = interaction.fields.getTextInputValue('krypto_buy_amount').trim().replace(',','.').replace(/[^0-9.]/g,'');
+      const bankgeld = parseFloat(amtStr);
+      if (isNaN(bankgeld) || bankgeld <= 0) return interaction.editReply({ content: '\u274c Ungültiger Betrag.' });
+      const kontoData_b = _getKonto(uid_ts);
+      if ((kontoData_b.konto || 0) < bankgeld) return interaction.editReply({ content: '\u274c Nicht genug Bankgeld. Du hast **' + (kontoData_b.konto || 0).toLocaleString('de-DE') + ' $**.' });
+      const dc_bought = Math.round((bankgeld / rate_ts) * 1e8) / 1e8;
+      kontoData_b.konto = Math.round(((kontoData_b.konto || 0) - bankgeld) * 100) / 100;
+      _setKonto(uid_ts, kontoData_b);
+      const wallet_b = getWallet(uid_ts);
+      wallet_b.dc = Math.round(((wallet_b.dc || 0) + dc_bought) * 1e8) / 1e8;
+      setWallet(uid_ts, wallet_b);
+      const confirmEmbed_b = new EmbedBuilder()
+        .setColor(0x22c55e)
+        .setTitle('\u2705 PC Coin gekauft')
+        .addFields(
+          { name: 'Bezahlt',                value: bankgeld.toLocaleString('de-DE') + ' $',                        inline: true },
+          { name: 'Erhalten',               value: dc_bought.toFixed(4) + ' <:emoji_29:1507071093540782110>',                 inline: true },
+          { name: 'Neues PC Coin Guthaben', value: wallet_b.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>',               inline: true },
+          { name: 'Verbleibendes Bankgeld', value: kontoData_b.konto.toLocaleString('de-DE') + ' $',              inline: true }
+        )
+        .setFooter({ text: 'Paradise City \u2022 PC Coin System' }).setTimestamp();
+      await interaction.editReply({ embeds: [confirmEmbed_b] });
+    }
+
+    if (interaction.customId === 'krypto_sell_modal') {
+      const amtStr_s = interaction.fields.getTextInputValue('krypto_sell_amount').trim().replace(',','.');
+      const dc_amt = parseFloat(amtStr_s);
+      if (isNaN(dc_amt) || dc_amt <= 0 || dc_amt < 0.0001) return interaction.editReply({ content: '\u274c Ungültiger Betrag (mindestens 0.0001 PC Coin).' });
+      const wallet_s = getWallet(uid_ts);
+      if ((wallet_s.dc || 0) < dc_amt) return interaction.editReply({ content: '\u274c Nicht genug PC Coin. Du hast **' + (wallet_s.dc || 0).toFixed(4) + ' <:emoji_29:1507071093540782110>**.' });
+      const payout = Math.round(dc_amt * rate_ts);
+      wallet_s.dc = Math.round(((wallet_s.dc || 0) - dc_amt) * 1e8) / 1e8;
+      setWallet(uid_ts, wallet_s);
+      const kontoData_s = _getKonto(uid_ts);
+      kontoData_s.konto = Math.round(((kontoData_s.konto || 0) + payout) * 100) / 100;
+      _setKonto(uid_ts, kontoData_s);
+      const confirmEmbed_s = new EmbedBuilder()
+        .setColor(0x22c55e)
+        .setTitle('\u2705 PC Coin verkauft')
+        .addFields(
+          { name: 'Verkauft',           value: dc_amt.toFixed(4) + ' <:emoji_29:1507071093540782110>',                inline: true },
+          { name: 'Erhalten',           value: payout.toLocaleString('de-DE') + ' $',                     inline: true },
+          { name: 'Neues PC Coin Guthaben', value: wallet_s.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>',      inline: true },
+          { name: 'Neues Bankgeld',     value: kontoData_s.konto.toLocaleString('de-DE') + ' $',          inline: true }
+        )
+        .setFooter({ text: 'Paradise City \u2022 PC Coin System' }).setTimestamp();
+      await interaction.editReply({ embeds: [confirmEmbed_s] });
+    }
+  } catch(e) {
+    console.error('[KRYPTO TAUSCH SUBMIT]', e.message);
+    await interaction.editReply({ content: '\u274c Fehler: ' + e.message });
+  }
+});
+
 
 // ─── DARKNET BETRETEN BUTTON ─────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
