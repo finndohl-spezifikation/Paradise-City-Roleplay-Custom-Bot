@@ -3123,6 +3123,18 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
       ).setTimestamp()
     );
   }
+
+  // ── Firmen-Auslastung: sofort aktualisieren bei Rollen-Änderung ────────────
+  {
+    const changedIds = [
+      ...addedRoles.keys(),
+      ...removedRoles.keys(),
+    ];
+    const firmenBetroffen = changedIds.some(id => FIRMEN_ROLE_IDS.includes(id));
+    if (firmenBetroffen) {
+      updateFirmenEmbed(client).catch(e => console.error('[FIRMEN UPDATE]', e.message));
+    }
+  }
 });
 
 // ─── NACHRICHTEN ─────────────────────────────────────────────────────────────
