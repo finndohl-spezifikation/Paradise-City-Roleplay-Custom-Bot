@@ -1171,6 +1171,71 @@ async function updateLapdTeamOverview() {
   } catch (e) { console.error('[LAPD Team-Embed] Fehler:', e.message); }
 }
 
+
+// ── Firmen-Auslastung Live Embed ─────────────────────────────────────────────
+const FIRMEN_AUSLASTUNG_CH  = '1490890354638192803';
+const FIRMEN_ROLE_IDS = [
+  '1490855751797969039',
+  '1490855752712327210',
+  '1490855754213753024',
+  '1490855758051409930',
+  '1490855756327686214',
+];
+const FIRMEN_MAX_MEMBERS = 20;
+
+function makeFirmenBar(count, max) {
+  const pct    = Math.min(100, Math.round((count / max) * 100));
+  const filled = Math.round(pct / 10);
+  const empty  = 10 - filled;
+  const bar    = '\u2588'.repeat(filled) + '\u2591'.repeat(empty);
+  const icon   = pct >= 80 ? '\uD83D\uDD34' : pct >= 50 ? '\uD83D\uDFE1' : '\uD83D\uDFE2';
+  return icon + ' `' + bar + '` **' + count + '/' + max + '** (' + pct + '%)';
+}
+
+async function updateFirmenEmbed(client) {
+  try {
+    const guild = client.guilds.cache.first();
+    if (!guild) return;
+    await guild.members.fetch();
+    const ch = await client.channels.fetch(FIRMEN_AUSLASTUNG_CH);
+    if (!ch) return;
+    const fields = [];
+    for (const roleId of FIRMEN_ROLE_IDS) {
+      const role = guild.roles.cache.get(roleId);
+      if (!role) continue;
+      const count = role.members.size;
+      fields.push({ name: '\uD83C\uDFE2 ' + role.name, value: makeFirmenBar(count, FIRMEN_MAX_MEMBERS), inline: false });
+    }
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const embed = new EmbedBuilder()
+      .setTitle('\uD83C\uDFE2 Firmen-Auslastung \u2014 Paradise City')
+      .setDescription('Echtzeit-\u00dcbersicht der aktiven Mitarbeiter in allen Firmen')
+      .addFields(fields)
+      .setColor(0x5865F2)
+      .setFooter({ text: 'Zuletzt aktualisiert: ' + timeStr + ' Uhr  \u2022  Alle 60 Sekunden' })
+      .setTimestamp();
+    const setupF = loadSetup();
+    if (!setupF.firmenEmbedMsgId) {
+      const msg = await ch.send({ embeds: [embed] });
+      setupF.firmenEmbedMsgId = msg.id;
+      saveSetup(setupF);
+    } else {
+      try {
+        const msg = await ch.messages.fetch(setupF.firmenEmbedMsgId);
+        await msg.edit({ embeds: [embed] });
+      } catch (_) {
+        const msg = await ch.send({ embeds: [embed] });
+        setupF.firmenEmbedMsgId = msg.id;
+        saveSetup(setupF);
+      }
+    }
+  } catch (e) {
+    console.error('[FIRMEN EMBED]', e.message);
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
   client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
@@ -1192,6 +1257,10 @@ client.once('ready', async () => {
   // ─── Stündliche DarkCoin-Kurse aktualisieren ─────────────────────────────
   setInterval(() => { updateKryptoRate().catch(e => console.error('[KRYPTO INTERVAL]', e.message)); }, 60 * 60 * 1000);
   setTimeout(() => { updateKryptoRate().catch(e => console.error('[KRYPTO START]', e.message)); }, 8000);
+  // ─── Firmen-Auslastung: Start + alle 60s ────────────────────────────────────
+  setTimeout(() => { updateFirmenEmbed(client).catch(e => console.error('[FIRMEN START]', e.message)); }, 6000);
+  setInterval(() => { updateFirmenEmbed(client).catch(e => console.error('[FIRMEN INTERVAL]', e.message)); }, 60 * 1000);
+
 
   // ─── AUTO: Krypto-Embeds beim Start senden (channel-check) ──────────────
   setTimeout(async () => {
