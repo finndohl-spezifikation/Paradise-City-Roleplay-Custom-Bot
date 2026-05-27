@@ -214,6 +214,7 @@ const LOTTO_CH        = '1492636063817138216';
 const HANDY_CH         = '1490890317199708160';
 const ROLE_HANDY_AN    = '1490855780797251744';
 const ROLE_HANDY_AUS   = '1490855781778722976';
+const MONEY_GIF        = '<a:paradisemoney:1318615288254058547>';
 const ROLE_APP_INSTA   = '1490855786698641428';
 const ROLE_APP_EBAY    = '1490855785159331850';
 const ROLE_APP_PARSHIP = '1490855785159331850';
@@ -561,10 +562,17 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
     if (!ch) return;
     const embed = new EmbedBuilder()
       .setColor(0xE65100)
-      .setTitle('🏧 Online Banking')
-      .setDescription('Klicke den Button um dein persönliches Online-Banking zu öffnen.\nDort siehst du deinen Bargeld- und Kontostand, die letzten Transaktionen und kannst Geld einzahlen, auszahlen oder überweisen.');
+      .setTitle(`\u{1F3E7} Online Banking ${MONEY_GIF}`)
+      .setDescription(
+        `Klicke den Button um dein persönliches **Online-Banking** zu öffnen.\n` +
+        `${MONEY_GIF} Bargeld- & Kontostand einsehen\n` +
+        `${MONEY_GIF} Letzte Transaktionen\n` +
+        `${MONEY_GIF} Ein-/Auszahlen & Überweisen\n\n` +
+        '*Sicher. Schnell. Paradise City.*'
+      )
+      .setFooter({ text: 'Paradise City Roleplay • Banking System' }).setTimestamp();
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('banking_open').setLabel('🏧 Online Banking öffnen').setStyle(ButtonStyle.Primary)
+      new ButtonBuilder().setCustomId('banking_open').setLabel('\u{1F3E7} Online Banking öffnen').setStyle(ButtonStyle.Primary)
     );
     if (setup.bankingMsgId) {
       try {
@@ -4846,20 +4854,20 @@ client.on('interactionCreate', async (interaction) => {
           if (typ === 'bargeld') {
             const cur = getCash(target.id);
             setCash(target.id, cur + betrag);
-            addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Bargeld (Admin)`, betrag });
+            addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Bargeld (Admin)`, betrag });
           } else {
             const k = getKonto(target.id);
             if (typ === 'konto') k.konto += betrag;
             else k.schwarz += betrag;
             setKonto(target.id, k);
-            addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ ${typ === 'konto' ? 'Kontogeld' : 'Schwarzgeld'} (Admin)`, betrag });
+            addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} ${MONEY_GIF} ${typ === 'konto' ? 'Kontogeld' : 'Schwarzgeld'} (Admin)`, betrag });
           }
           const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : 'Schwarzgeld';
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Geld hinzugefügt (/money-add)')
-            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`+${betrag.toLocaleString('de-CH')} $`, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
+            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`+${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
-          return interaction.reply({ content: `✅ <@${target.id}> hat **${betrag.toLocaleString('de-CH')} $ ${typLabel}** erhalten.`, ephemeral: true });
+          return interaction.reply({ content: `✅ <@${target.id}> hat **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ` ${typLabel}** erhalten.`, ephemeral: true });
         }
 
         // ─── MONEY-REMOVE ───────────────────────────────────────────────────────
@@ -4871,20 +4879,20 @@ client.on('interactionCreate', async (interaction) => {
             const cur = getCash(target.id);
             const neu = Math.max(0, cur - betrag);
             setCash(target.id, neu);
-            addTrans(target.id, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ Bargeld (Admin)`, betrag: -betrag });
+            addTrans(target.id, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Bargeld (Admin)`, betrag: -betrag });
           } else {
             const k = getKonto(target.id);
             if (typ === 'konto') k.konto = Math.max(0, k.konto - betrag);
             else k.schwarz = Math.max(0, k.schwarz - betrag);
             setKonto(target.id, k);
-            addTrans(target.id, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ ${typ === 'konto' ? 'Kontogeld' : 'Schwarzgeld'} (Admin)`, betrag: -betrag });
+            addTrans(target.id, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} ${MONEY_GIF} ${typ === 'konto' ? 'Kontogeld' : 'Schwarzgeld'} (Admin)`, betrag: -betrag });
           }
           const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : 'Schwarzgeld';
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Geld abgezogen (/money-remove)')
-            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`-${betrag.toLocaleString('de-CH')} $`, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
+            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`-${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
-          return interaction.reply({ content: `✅ <@${target.id}> wurden **${betrag.toLocaleString('de-CH')} $ ${typLabel}** abgezogen.`, ephemeral: true });
+          return interaction.reply({ content: `✅ <@${target.id}> wurden **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ` ${typLabel}** abgezogen.`, ephemeral: true });
         }
 
         // ─── BARGELD (nur Finanzkanal) ───────────────────────────────────────────
@@ -4895,7 +4903,7 @@ client.on('interactionCreate', async (interaction) => {
           }
           const target = interaction.options.getUser('spieler');
           const cash   = getCash(target.id);
-          return interaction.reply({ content: `💵 **${target.username}** hat **${cash.toLocaleString('de-CH')} $** Bargeld.`, ephemeral: true });
+          return interaction.reply({ content: `💵 **${target.username}** hat **${cash.toLocaleString('de-CH')} ${MONEY_GIF}** Bargeld.`, ephemeral: true });
         }
 
         // ─── RECHNUNG-CREATE ────────────────────────────────────────────────────
@@ -4910,9 +4918,9 @@ client.on('interactionCreate', async (interaction) => {
           saveRechnungen(rechnungen);
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Rechnung erstellt')
-            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true },{ name:'Beschreibung', value:beschreibung },{ name:'Erstellt von', value:`<@${interaction.user.id}>` })
+            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true },{ name:'Beschreibung', value:beschreibung },{ name:'Erstellt von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
-          return interaction.reply({ content: `✅ Rechnung über **${betrag.toLocaleString('de-CH')} $** für <@${target.id}> erstellt.`, ephemeral: true });
+          return interaction.reply({ content: `✅ Rechnung über **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** für <@${target.id}> erstellt.`, ephemeral: true });
         }
 
   
@@ -4937,15 +4945,14 @@ client.on('interactionCreate', async (interaction) => {
           else k.konto += betrag;
           k._startgeld = true;
           setKonto(target.id, k);
-          addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Startgeld (${art})`, betrag });
+          addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Startgeld (${art})`, betrag });
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Einreise-Startgeld')
-            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Art', value:art, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true },{ name:'Vergeben von', value:`<@${interaction.user.id}>` })
+            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Art', value:art, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true },{ name:'Vergeben von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
           return interaction.reply({
             embeds: [new EmbedBuilder().setColor(0x43A047).setTitle('💵 Startgeld vergeben')
-              .setDescription(`<@${target.id}> hat **${betrag.toLocaleString('de-CH')} $** als ${isSchwarz ? 'Schwarzgeld' : 'Kontogeld'} erhalten.
-**Einreiseart:** ${art}`)
+              .setDescription(`<@${target.id}> hat **${betrag.toLocaleString('de-CH')} ${MONEY_GIF}** als ${isSchwarz ? 'Schwarzgeld' : 'Kontogeld'} erhalten.\n**Einreiseart:** ${art}`)
             ], ephemeral: true
           });
         }
@@ -5225,17 +5232,15 @@ client.on('interactionCreate', async (interaction) => {
       setKonto(uid, k);
       lohnlog[uid] = now;
       saveLohnlog(lohnlog);
-      addTrans(uid, { ts: now, text: `+${lohnklasse.betrag.toLocaleString('de-CH')} $ Lohn (${lohnklasse.label})`, betrag: lohnklasse.betrag });
+      addTrans(uid, { ts: now, text: `+${lohnklasse.betrag.toLocaleString('de-CH')} ${MONEY_GIF} Lohn (${lohnklasse.label})`, betrag: lohnklasse.betrag });
       sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
         .setTitle('💰 Geld-Log: Lohn abgeholt')
-        .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Klasse', value:lohnklasse.label, inline:true },{ name:'Betrag', value:`${lohnklasse.betrag.toLocaleString('de-CH')} $`, inline:true })
+        .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Klasse', value:lohnklasse.label, inline:true },{ name:'Betrag', value:`${lohnklasse.betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true })
         .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
 
       return interaction.reply({
         embeds: [new EmbedBuilder().setColor(0x43A047).setTitle('💵 Lohn abgeholt').setDescription(
-          `Du hast **${lohnklasse.betrag.toLocaleString('de-CH')} $** als **${lohnklasse.label}** erhalten.
-
-Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} $**`
+          `Du hast **${lohnklasse.betrag.toLocaleString('de-CH')} ${MONEY_GIF}** als **${lohnklasse.label}** erhalten.\n\nNeuer Kontostand: **${k.konto.toLocaleString('de-CH')} ${MONEY_GIF}**`
         )], ephemeral: true
       });
     }
@@ -5246,57 +5251,60 @@ Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} $**`
       const member = await interaction.guild.members.fetch(uid).catch(() => null);
       const k = getKonto(uid);
       const bar = getCash(uid);
-      const trans = getLastTrans(uid, 5);
+      const trans = getLastTrans(uid, 10);
       const hasSchwarz = member?.roles.cache.has(SCHWARZ_ROLE) ?? false;
-      const transText = trans.length
-        ? trans.map(t => `• ${t.text} — <t:${Math.floor(t.ts/1000)}:R>`).join('\n')
-        : '_Keine Transaktionen_';
 
-      let desc = `💵 **Bargeld:** ${bar.toLocaleString('de-CH')} $
-`;
-      desc += `🏦 **Kontostand:** ${k.konto.toLocaleString('de-CH')} $
-`;
-      if (hasSchwarz) desc += `🖤 **Schwarzgeld-Wallet:** ${k.schwarz.toLocaleString('de-CH')} $
-`;
-      desc += `
-📋 **Letzte Transaktionen:**
-${transText}`;
+      // Build transaction history text (show up to 10 in embed)
+      const transText = trans.length
+        ? trans.map((t, i) => `\`\`${String(i+1).padStart(2)}\`\` ${t.text} — <t:${Math.floor(t.ts/1000)}:R>`).slice(0, 10).join('\n')
+        : '_Keine Transaktionen vorhanden_';
+
+      const embed = new EmbedBuilder()
+        .setColor(0xE65100)
+        .setTitle(`\u{1F3E7}  Dein Online Banking  ${MONEY_GIF}`)
+        .setDescription(`Willkommen in deiner **Paradise City Bank**.\nHier verwaltest du dein Vermögen sicher und übersichtlich.`)
+        .addFields(
+          { name: `${MONEY_GIF} Bargeld`, value: `\`\`\u{1F9F1}\n${bar.toLocaleString('de-CH')} ${MONEY_GIF}\u{1F9F1}\`\``, inline: true },
+          { name: `${MONEY_GIF} Kontostand`, value: `\`\`\u{1F9F1}\n${k.konto.toLocaleString('de-CH')} ${MONEY_GIF}\u{1F9F1}\`\``, inline: true },
+          ...(hasSchwarz ? [{ name: `\u{1F5A4} Schwarzgeld`, value: `\`\`\u{1F9F1}\n${k.schwarz.toLocaleString('de-CH')} ${MONEY_GIF}\u{1F9F1}\`\``, inline: true }] : [])
+        )
+        .addFields(
+          { name: `\u{1F4CB} Letzte Transaktionen`, value: transText }
+        )
+        .setFooter({ text: `Paradise City Bank • ${interaction.user.tag} • Sicher & Verschlüsselt` })
+        .setTimestamp();
 
       const rows = [];
       const row1 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('bank_einzahlen').setLabel('💰 Einzahlen').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId('bank_auszahlen').setLabel('💸 Auszahlen').setStyle(ButtonStyle.Danger),
-        new ButtonBuilder().setCustomId('bank_ueberweisen').setLabel('📤 Überweisen').setStyle(ButtonStyle.Primary)
+        new ButtonBuilder().setCustomId('bank_einzahlen').setLabel(`\u{1F4B0} Einzahlen`).setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('bank_auszahlen').setLabel(`\u{1F4B8} Auszahlen`).setStyle(ButtonStyle.Danger),
+        new ButtonBuilder().setCustomId('bank_ueberweisen').setLabel(`\u{1F4E4} Überweisen`).setStyle(ButtonStyle.Primary)
       );
       rows.push(row1);
       if (hasSchwarz) {
         const row2 = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId('bank_schwarz_send').setLabel('🖤 Schwarzgeld verschicken').setStyle(ButtonStyle.Secondary)
+          new ButtonBuilder().setCustomId('bank_schwarz_send').setLabel(`\u{1F5A4} Schwarzgeld senden`).setStyle(ButtonStyle.Secondary)
         );
         rows.push(row2);
       }
 
-      return interaction.reply({
-        embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🏧 Dein Online Banking').setDescription(desc)],
-        components: rows,
-        ephemeral: true
-      });
+      return interaction.reply({ embeds: [embed], components: rows, ephemeral: true });
     }
 
     // ─── BANKING: Einzahlen Modal ────────────────────────────────────────────
     if (interaction.isButton() && interaction.customId === 'bank_einzahlen') {
       const modal = new ModalBuilder().setCustomId('bank_modal_einzahlen').setTitle('💰 Bargeld einzahlen');
       modal.addComponents(new ActionRowBuilder().addComponents(
-        new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 1000')
+        new TextInputBuilder().setCustomId('bank_betrag').setLabel(`Betrag ${MONEY_GIF}`).setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 1000')
       ));
       return interaction.showModal(modal);
     }
 
     // ─── BANKING: Auszahlen Modal ────────────────────────────────────────────
     if (interaction.isButton() && interaction.customId === 'bank_auszahlen') {
-      const modal = new ModalBuilder().setCustomId('bank_modal_auszahlen').setTitle('💸 Kontogeld auszahlen');
+      const modal = new ModalBuilder().setCustomId('bank_modal_auszahlen').setTitle(`💸 Kontogeld auszahlen ${MONEY_GIF}`);
       modal.addComponents(new ActionRowBuilder().addComponents(
-        new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 1000')
+        new TextInputBuilder().setCustomId('bank_betrag').setLabel(`Betrag ${MONEY_GIF}`).setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 1000')
       ));
       return interaction.showModal(modal);
     }
@@ -5320,7 +5328,7 @@ ${transText}`;
       const targetId = interaction.values[0];
       if (targetId === interaction.user.id) return interaction.reply({ content: '❌ Du kannst nicht an dich selbst überweisen.', ephemeral: true });
       const modal = new ModalBuilder().setCustomId(`bank_modal_ueb:${targetId}`).setTitle('📤 Betrag überweisen');
-      modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')));
+      modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('bank_betrag').setLabel(`Betrag ${MONEY_GIF}`).setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')));
       return interaction.showModal(modal);
     }
 
@@ -5328,8 +5336,8 @@ ${transText}`;
     if (interaction.isUserSelectMenu() && interaction.customId === 'bank_sel_schw') {
       const targetId = interaction.values[0];
       if (targetId === interaction.user.id) return interaction.reply({ content: '❌ Du kannst nicht an dich selbst senden.', ephemeral: true });
-      const modal = new ModalBuilder().setCustomId(`bank_modal_schw:${targetId}`).setTitle('🖤 Schwarzgeld senden');
-      modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag ($)').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')));
+      const modal = new ModalBuilder().setCustomId(`bank_modal_schw:${targetId}`).setTitle(`🖤 Schwarzgeld senden ${MONEY_GIF}`);
+      modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('bank_betrag').setLabel(`Betrag ${MONEY_GIF}`).setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')));
       return interaction.showModal(modal);
     }
     // ─── RECHNUNGEN OPEN ────────────────────────────────────────────────────
@@ -5342,8 +5350,7 @@ ${transText}`;
       const embed = new EmbedBuilder().setColor(0xE65100).setTitle('🧾 Deine Rechnungen');
       let desc = '';
       meine.forEach((r, i) => {
-        desc += `**${i+1}. ${r.beschreibung}** — ${r.betrag.toLocaleString('de-CH')} $
-`;
+        desc += `**${i+1}. ${r.beschreibung}** — ${r.betrag.toLocaleString('de-CH')} ${MONEY_GIF}\n`;
       });
       embed.setDescription(desc);
 
@@ -5352,13 +5359,13 @@ ${transText}`;
       if (meine.length <= 5) {
         const row = new ActionRowBuilder();
         meine.forEach((r, i) => {
-          row.addComponents(new ButtonBuilder().setCustomId(`rechnung_pay:${r.id}`).setLabel(`${i+1}. bezahlen (${r.betrag.toLocaleString('de-CH')} $)`).setStyle(ButtonStyle.Primary));
+          row.addComponents(new ButtonBuilder().setCustomId(`rechnung_pay:${r.id}`).setLabel(`${i+1}. bezahlen (${r.betrag.toLocaleString('de-CH')} ${MONEY_GIF})`).setStyle(ButtonStyle.Primary));
         });
         rows.push(row);
       } else {
         // Use select menu for many invoices
         const sel = new StringSelectMenuBuilder().setCustomId('rechnung_pay_select').setPlaceholder('Rechnung auswählen')
-          .addOptions(meine.map((r, i) => ({ label: `${i+1}. ${r.beschreibung}`, description: `${r.betrag.toLocaleString('de-CH')} $`, value: r.id })));
+          .addOptions(meine.map((r, i) => ({ label: `${i+1}. ${r.beschreibung}`, description: `${r.betrag.toLocaleString('de-CH')} ${MONEY_GIF}`, value: r.id })));
         rows.push(new ActionRowBuilder().addComponents(sel));
       }
       // Pay all button
@@ -5379,13 +5386,13 @@ ${transText}`;
       const rechnung = meine.find(r => r.id === rId);
       if (!rechnung) return interaction.reply({ content: '❌ Rechnung nicht gefunden.', ephemeral: true });
       const k = getKonto(uid);
-      if (k.konto < rechnung.betrag) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} $**, benötigt: **${rechnung.betrag.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      if (k.konto < rechnung.betrag) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} ${MONEY_GIF}**, benötigt: **${rechnung.betrag.toLocaleString('de-CH')} ${MONEY_GIF}**.`, ephemeral: true });
       k.konto -= rechnung.betrag;
       setKonto(uid, k);
       alle[uid] = meine.filter(r => r.id !== rId);
       saveRechnungen(alle);
-      addTrans(uid, { ts: Date.now(), text: `-${rechnung.betrag.toLocaleString('de-CH')} $ Rechnung: ${rechnung.beschreibung}`, betrag: -rechnung.betrag });
-      return interaction.reply({ content: `✅ Rechnung **${rechnung.beschreibung}** über **${rechnung.betrag.toLocaleString('de-CH')} $** bezahlt.`, ephemeral: true });
+      addTrans(uid, { ts: Date.now(), text: `-${rechnung.betrag.toLocaleString('de-CH')} ${MONEY_GIF} Rechnung: ${rechnung.beschreibung}`, betrag: -rechnung.betrag });
+      return interaction.reply({ content: `✅ Rechnung **${rechnung.beschreibung}** über **${rechnung.betrag.toLocaleString('de-CH')} ${MONEY_GIF}** bezahlt.`, ephemeral: true });
     }
 
     // ─── ALLE RECHNUNGEN BEZAHLEN ───────────────────────────────────────────
@@ -5396,13 +5403,13 @@ ${transText}`;
       if (!meine.length) return interaction.reply({ content: '✅ Keine offenen Rechnungen.', ephemeral: true });
       const total = meine.reduce((s, r) => s + r.betrag, 0);
       const k = getKonto(uid);
-      if (k.konto < total) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} $**, benötigt: **${total.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      if (k.konto < total) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} ${MONEY_GIF}**, benötigt: **${total.toLocaleString('de-CH')} ${MONEY_GIF}**.`, ephemeral: true });
       k.konto -= total;
       setKonto(uid, k);
       alle[uid] = [];
       saveRechnungen(alle);
-      addTrans(uid, { ts: Date.now(), text: `-${total.toLocaleString('de-CH')} $ Alle Rechnungen beglichen`, betrag: -total });
-      return interaction.reply({ content: `✅ Alle **${meine.length}** Rechnungen über insgesamt **${total.toLocaleString('de-CH')} $** bezahlt.`, ephemeral: true });
+      addTrans(uid, { ts: Date.now(), text: `-${total.toLocaleString('de-CH')} ${MONEY_GIF} Alle Rechnungen beglichen`, betrag: -total });
+      return interaction.reply({ content: `✅ Alle **${meine.length}** Rechnungen über insgesamt **${total.toLocaleString('de-CH')} ${MONEY_GIF}** bezahlt.`, ephemeral: true });
     }
 
     // ─── RECHNUNG SELECT MENU ───────────────────────────────────────────────
@@ -5419,8 +5426,8 @@ ${transText}`;
       setKonto(uid, k);
       alle[uid] = meine.filter(r => r.id !== rId);
       saveRechnungen(alle);
-      addTrans(uid, { ts: Date.now(), text: `-${rechnung.betrag.toLocaleString('de-CH')} $ Rechnung: ${rechnung.beschreibung}`, betrag: -rechnung.betrag });
-      return interaction.reply({ content: `✅ Rechnung **${rechnung.beschreibung}** über **${rechnung.betrag.toLocaleString('de-CH')} $** bezahlt.`, ephemeral: true });
+      addTrans(uid, { ts: Date.now(), text: `-${rechnung.betrag.toLocaleString('de-CH')} ${MONEY_GIF} Rechnung: ${rechnung.beschreibung}`, betrag: -rechnung.betrag });
+      return interaction.reply({ content: `✅ Rechnung **${rechnung.beschreibung}** über **${rechnung.betrag.toLocaleString('de-CH')} ${MONEY_GIF}** bezahlt.`, ephemeral: true });
     }
 
     // Regular shop: open session
@@ -5463,17 +5470,17 @@ ${transText}`;
       const betrag = parseInt(interaction.fields.getTextInputValue('bank_betrag').replace(/[^0-9]/g,''));
       if (isNaN(betrag) || betrag <= 0) return interaction.reply({ content: '❌ Ungültiger Betrag.', ephemeral: true });
       const bar = getCash(uid);
-      if (bar < betrag) return interaction.reply({ content: `❌ Nicht genug Bargeld. Du hast **${bar.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      if (bar < betrag) return interaction.reply({ content: `❌ Nicht genug Bargeld. Du hast **${bar.toLocaleString('de-CH')} ` + MONEY_GIF + `**.`, ephemeral: true });
       setCash(uid, bar - betrag);
       const k = getKonto(uid);
       k.konto += betrag;
       setKonto(uid, k);
-      addTrans(uid, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Einzahlung`, betrag });
+      addTrans(uid, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Einzahlung`, betrag });
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Einzahlung (Bargeld→Konto)')
-          .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true })
+          .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
-      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** erfolgreich eingezahlt. Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} $**`, ephemeral: true });
+      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** erfolgreich eingezahlt. Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} ` + MONEY_GIF + `**`, ephemeral: true });
     }
 
     if (interaction.isModalSubmit() && interaction.customId === 'bank_modal_auszahlen') {
@@ -5481,16 +5488,16 @@ ${transText}`;
       const betrag = parseInt(interaction.fields.getTextInputValue('bank_betrag').replace(/[^0-9]/g,''));
       if (isNaN(betrag) || betrag <= 0) return interaction.reply({ content: '❌ Ungültiger Betrag.', ephemeral: true });
       const k = getKonto(uid);
-      if (k.konto < betrag) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      if (k.konto < betrag) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} ` + MONEY_GIF + `**.`, ephemeral: true });
       k.konto -= betrag;
       setKonto(uid, k);
       setCash(uid, getCash(uid) + betrag);
-      addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ Auszahlung`, betrag: -betrag });
+      addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Auszahlung`, betrag: -betrag });
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Auszahlung (Konto→Bargeld)')
-          .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true })
+          .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
-      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** ausgezahlt. Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} $**`, ephemeral: true });
+      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** ausgezahlt. Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} ` + MONEY_GIF + `**`, ephemeral: true });
     }
 
     if (interaction.isModalSubmit() && interaction.customId.startsWith('bank_modal_ueb:')) {
@@ -5500,19 +5507,19 @@ ${transText}`;
       if (isNaN(betrag) || betrag <= 0) return interaction.reply({ content: '❌ Ungültiger Betrag.', ephemeral: true });
       if (targetId === uid) return interaction.reply({ content: '❌ Du kannst nicht an dich selbst überweisen.', ephemeral: true });
       const k = getKonto(uid);
-      if (k.konto < betrag) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      if (k.konto < betrag) return interaction.reply({ content: `❌ Nicht genug Kontogeld. Du hast **${k.konto.toLocaleString('de-CH')} ` + MONEY_GIF + `**.`, ephemeral: true });
       k.konto -= betrag;
       setKonto(uid, k);
       const kt = getKonto(targetId);
       kt.konto += betrag;
       setKonto(targetId, kt);
-      addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ Überweisung an <@${targetId}>`, betrag: -betrag });
-      addTrans(targetId, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Überweisung von <@${uid}>`, betrag });
+      addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Überweisung an <@${targetId}>`, betrag: -betrag });
+      addTrans(targetId, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Überweisung von <@${uid}>`, betrag });
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Überweisung')
-          .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true })
+          .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
-      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** an <@${targetId}> überwiesen.`, ephemeral: true });
+      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** an <@${targetId}> überwiesen.`, ephemeral: true });
     }
   // ── AUSWEIS CREATE (ILLEGAL) Modal — DEAKTIVIERT (Illegale erhalten keinen Ausweis) ──
   if (interaction.isModalSubmit() && interaction.customId.startsWith('ausweis_create_ill:')) {
@@ -5562,19 +5569,19 @@ ${transText}`;
       const targetMember = await interaction.guild.members.fetch(targetId).catch(() => null);
       if (!targetMember?.roles.cache.has(SCHWARZ_ROLE)) return interaction.reply({ content: '❌ Der Empfänger hat keine Schwarzgeld-Rolle.', ephemeral: true });
       const k = getKonto(uid);
-      if (k.schwarz < betrag) return interaction.reply({ content: `❌ Nicht genug Schwarzgeld. Du hast **${k.schwarz.toLocaleString('de-CH')} $**.`, ephemeral: true });
+      if (k.schwarz < betrag) return interaction.reply({ content: `❌ Nicht genug Schwarzgeld. Du hast **${k.schwarz.toLocaleString('de-CH')} ${MONEY_GIF}**.`, ephemeral: true });
       k.schwarz -= betrag;
       setKonto(uid, k);
       const kt = getKonto(targetId);
       kt.schwarz += betrag;
       setKonto(targetId, kt);
-      addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} $ Schwarzgeld an <@${targetId}>`, betrag: -betrag });
-      addTrans(targetId, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} $ Schwarzgeld von <@${uid}>`, betrag });
+      addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Schwarzgeld an <@${targetId}>`, betrag: -betrag });
+      addTrans(targetId, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Schwarzgeld von <@${uid}>`, betrag });
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Schwarzgeld gesendet')
-          .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} $`, inline:true })
+          .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
-      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} $** Schwarzgeld an <@${targetId}> verschickt.`, ephemeral: true });
+      return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** Schwarzgeld an <@${targetId}> verschickt.`, ephemeral: true });
     }
 
     // Regular shop: modal -> add to cart
@@ -5704,7 +5711,7 @@ async function doLottoZiehung(client) {
       const k = getKonto(w.userId);
       k.konto += w.betrag;
       setKonto(w.userId, k);
-      addTrans(w.userId, { ts: now, text: `+${w.betrag.toLocaleString('de-CH')} $ Lotto-Gewinn (${w.label})`, betrag: w.betrag });
+      addTrans(w.userId, { ts: now, text: `+${w.betrag.toLocaleString('de-CH')} ${MONEY_GIF} Lotto-Gewinn (${w.label})`, betrag: w.betrag });
 
       // DM an Gewinner
       try {
@@ -7339,26 +7346,22 @@ client.on('interactionCreate', async (interaction) => {
 
   await interaction.deferReply({ ephemeral: true });
   try {
-    const apiBase = process.env.DARKNET_URL
-      ? process.env.DARKNET_URL.replace(/darknet\/?$/, '').replace(/\/$/, '')
-      : 'https://16cd9644-22f4-4c03-92aa-8284a86d3ed0-00-g05a1qe457wb.worf.replit.dev';
-    const darknetUrl = process.env.DARKNET_URL || 'https://16cd9644-22f4-4c03-92aa-8284a86d3ed0-00-g05a1qe457wb.worf.replit.dev/darknet/';
+    const WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
     const adminSecret = process.env.DARKNET_ADMIN_SECRET || 'darknet_admin_2025';
 
-    const res = await fetch(apiBase + '/api/darknet/discord/token', {
+    const res = await fetch(WEBAPP + '/api/darknet/discord/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ discordUserId: interaction.user.id, secret: adminSecret }),
     });
     if (!res.ok) {
       // Fallback: open without auto-link
-      const fallbackBtn = new ButtonBuilder().setLabel('⬛ DARKNET ÖFFNEN').setStyle(ButtonStyle.Link).setURL(darknetUrl);
+      const fallbackBtn = new ButtonBuilder().setLabel('⬛ DARKNET ÖFFNEN').setStyle(ButtonStyle.Link).setURL(WEBAPP + '/darknet');
       await interaction.editReply({ content: '> Verbindung hergestellt.', components: [new ActionRowBuilder().addComponents(fallbackBtn)] });
       return;
     }
     const { token } = await res.json();
-    const base = darknetUrl.endsWith('/') ? darknetUrl : darknetUrl + '/';
-    const personalUrl = base + '?dc=' + token;
+    const personalUrl = WEBAPP + '/darknet?dc=' + token;
 
     const openBtn = new ButtonBuilder()
       .setLabel('⬛ DARKNET ÖFFNEN')
@@ -7375,6 +7378,7 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 // ─── END DARKNET BETRETEN BUTTON ─────────────────────────────────────────────
+
 
 // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {

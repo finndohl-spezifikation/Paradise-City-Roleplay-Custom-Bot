@@ -662,6 +662,7 @@ function buildScratchPage(token, entry, scratchedCells) {
   }
   const rubbellosTokens = new Map();
   const lottoTokens = new Map();
+  const darknetTokens = new Map();
 
 // ─── LOTTO PAGE BUILDER ───────────────────────────────────────────────────────
 function buildLottoPage(token) {
@@ -1122,6 +1123,102 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
       } catch (e) {
         res.status(500).json({ error: e.message });
       }
+    });
+    // ── POST /api/darknet/discord/token ───────────────────────────────────────
+    app.post('/api/darknet/discord/token', express.json(), async (req, res) => {
+      const adminSecret = process.env.DARKNET_ADMIN_SECRET || 'darknet_admin_2025';
+      const secret = req.headers['x-darknet-secret'] || req.body?.secret || req.query?.secret;
+      if (secret !== adminSecret) return res.status(403).json({ error: 'Forbidden' });
+
+      const discordUserId = req.body?.discordUserId;
+      if (!discordUserId) return res.status(400).json({ error: 'discordUserId required' });
+
+      try {
+        const token = crypto.randomBytes(20).toString('hex');
+        const expiresAt = Date.now() + 10 * 60 * 1000; // 10 Minuten
+        darknetTokens.set(token, { discordUserId, expiresAt });
+        setTimeout(() => darknetTokens.delete(token), 10 * 60 * 1000);
+        res.json({ token });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // ── GET /darknet ───────────────────────────────────────────────────────────
+    app.get('/darknet', (req, res) => {
+      const token = req.query.dc;
+      let discordUserId = null;
+      if (token && darknetTokens.has(token)) {
+        const entry = darknetTokens.get(token);
+        if (entry.expiresAt > Date.now()) {
+          discordUserId = entry.discordUserId;
+        }
+      }
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(`<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>┳┻┻ DARKNET ┃ ANONYMES NETZWERK</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Courier New',monospace;background:#050505;color:#00ff41;min-height:100vh;padding:20px 0 40px;overflow-x:hidden}
+.wrap{max-width:800px;margin:0 auto;padding:0 16px}
+.matrix-bg{position:fixed;inset:0;z-index:0;opacity:.04;pointer-events:none;overflow:hidden}
+.matrix-bg span{position:absolute;color:#00ff41;font-size:14px;animation:rain 8s linear infinite}
+@keyframes rain{0%{transform:translateY(-100vh)}100%{transform:translateY(100vh)}}
+.glow{position:relative;z-index:1}
+.header{text-align:center;padding:30px 20px;border:1px solid #00ff41;border-radius:12px;margin-bottom:20px;background:#0a0a0a;box-shadow:0 0 20px rgba(0,255,65,.15)}
+.header h1{font-size:1.4em;letter-spacing:4px;margin-bottom:8px;text-shadow:0 0 10px rgba(0,255,65,.5)}
+.header .sub{color:#2ea043;font-size:.85em;letter-spacing:2px}
+.card{background:#0a0a0a;border:1px solid #1a4a1a;border-radius:10px;padding:20px;margin-bottom:16px;position:relative}
+.card h2{color:#00ff41;font-size:.95em;letter-spacing:2px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2::after{content:'';flex:1;height:1px;background:#00ff41;opacity:.3}
+.info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1a2a1a;font-size:.88em}
+.info-row:last-child{border-bottom:none}
+.info-label{color:#6b7280}
+.info-val{color:#00ff41;font-weight:700}
+.btn{width:100%;padding:14px;background:#001a00;border:1px solid #00ff41;color:#00ff41;border-radius:8px;font-size:1em;font-weight:700;letter-spacing:2px;cursor:pointer;margin-top:12px;transition:all .2s;font-family:'Courier New',monospace}
+.btn:hover{background:#00ff41;color:#000;box-shadow:0 0 15px rgba(0,255,65,.3)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#00ff41;box-shadow:0 0 8px #00ff41;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.footer{text-align:center;color:#333;font-size:.75em;margin-top:30px;letter-spacing:1px}
+.uid-box{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:8px 12px;font-size:.75em;color:#6b7280;word-break:break-all;margin-top:8px}
+.alert{background:#1a0a0a;border:1px solid #f85149;color:#f85149;padding:12px;border-radius:6px;margin-bottom:12px;font-size:.85em}
+${discordUserId ? '' : '.anon-warning{background:#1a1a00;border:1px solid #f59e0b;color:#f59e0b;padding:12px;border-radius:6px;margin-bottom:16px;font-size:.85em}'}
+</style>
+</head><body>
+<div class="matrix-bg"><span style="left:5%">01001010</span><span style="left:20%;animation-delay:2s">10110101</span><span style="left:35%;animation-delay:4s">01001110</span><span style="left:50%;animation-delay:1s">11010110</span><span style="left:65%;animation-delay:3s">00101101</span><span style="left:80%;animation-delay:5s">10101001</span><span style="left:95%;animation-delay:6s">01011010</span></div>
+<div class="glow wrap">
+<div class="header">
+<h1>┳┻┻ DARKNET ┻┻┳</h1>
+<div class="sub">ANONYMES NETZWERK &#x2022; ENCRYPTED</div>
+</div>
+${discordUserId
+  ? '<div class="card"><h2><span class="status-dot"></span>ZUGANG BESTÄTIGT</h2><div class="info-row"><span class="info-label">Alias-ID</span><span class="info-val">' + discordUserId.slice(0,6) + '***' + discordUserId.slice(-4) + '</span></div><div class="info-row"><span class="info-label">Verschlüsselung</span><span class="info-val">AES-256-GCM</span></div><div class="info-row"><span class="info-label">Tunnel</span><span class="info-val">Tor-Exit-Node #7B3F</span></div><div class="info-row"><span class="info-label">Status</span><span class="info-val" style="color:#2ea043">VERBUNDEN</span></div></div>'
+  : '<div class="anon-warning">&#x26a0; Unbestätigter Zugang. Einige Funktionen könnten eingeschränkt sein.</div><div class="card"><h2><span class="status-dot"></span>VERBINDUNG AKTIV</h2><div class="info-row"><span class="info-label">Verschlüsselung</span><span class="info-val">AES-256-GCM</span></div><div class="info-row"><span class="info-label">Tunnel</span><span class="info-val">Tor-Exit-Node #7B3F</span></div><div class="info-row"><span class="info-label">Status</span><span class="info-val" style="color:#f59e0b">ANONYM</span></div></div>'}
+<div class="card"><h2>NETZWERK-FEATURES</h2>
+<div class="info-row"><span class="info-label">💬 Black Market</span><span class="info-val">Online</span></div>
+<div class="info-row"><span class="info-label">🔐 Verschlüsselte DMs</span><span class="info-val">Online</span></div>
+<div class="info-row"><span class="info-label">📊 Live Statistiken</span><span class="info-val">Online</span></div>
+<div class="info-row"><span class="info-label">🪙 PC Coin Wallet</span><span class="info-val"><a href="/krypto/wallet" style="color:#00ff41">Öffnen &#x2192;</a></span></div>
+<div class="info-row"><span class="info-label">📊 Krypto-Kurse</span><span class="info-val"><a href="/krypto/exchange" style="color:#00ff41">Öffnen &#x2192;</a></span></div>
+</div>
+<div class="card"><h2>💰 SCHWARZGELD</h2>
+<div class="info-row"><span class="info-label">Aktueller Stand</span><span class="info-val" id="schwarz-bal">Lade...</span></div>
+</div>
+<div class="footer">
+Paradise City Roleplay &#x2022; Darknet v1.0 &#x2022; No Logs. No Traces. No Mercy.<br>
+Alle Transaktionen sind endgültig und nicht rückgängig.
+</div>
+</div>
+<script>
+${discordUserId
+  ? `fetch('/api/schwarz/${discordUserId}?secret=${process.env.DARKNET_ADMIN_SECRET || 'darknet_admin_2025'}').then(r=>r.json()).then(d=>{document.getElementById('schwarz-bal').textContent=(d.schwarz??0).toLocaleString('de-DE')+' €';}).catch(()=>{document.getElementById('schwarz-bal').textContent='--';});`
+  : `document.getElementById('schwarz-bal').textContent='Anonym — N/A';`}
+</script>
+</body></html>`);
     });
 
     // ── GET / — Root Redirect ────────────────────────────────────────────────
@@ -5141,5 +5238,6 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
 };
 module.exports.tokens      = rubbellosTokens;
 module.exports.lottoTokens = lottoTokens;
+module.exports.darknetTokens = darknetTokens;
 
 
