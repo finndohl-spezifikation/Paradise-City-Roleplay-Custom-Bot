@@ -4865,7 +4865,7 @@ client.on('interactionCreate', async (interaction) => {
           const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : 'Schwarzgeld';
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Geld hinzugefügt (/money-add)')
-            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`+${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
+            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`+${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
           return interaction.reply({ content: `✅ <@${target.id}> hat **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ` ${typLabel}** erhalten.`, ephemeral: true });
         }
@@ -4890,7 +4890,7 @@ client.on('interactionCreate', async (interaction) => {
           const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : 'Schwarzgeld';
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Geld abgezogen (/money-remove)')
-            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`-${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
+            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`-${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
           return interaction.reply({ content: `✅ <@${target.id}> wurden **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ` ${typLabel}** abgezogen.`, ephemeral: true });
         }
@@ -4918,7 +4918,7 @@ client.on('interactionCreate', async (interaction) => {
           saveRechnungen(rechnungen);
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Rechnung erstellt')
-            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true },{ name:'Beschreibung', value:beschreibung },{ name:'Erstellt von', value:`<@${interaction.user.id}>` })
+            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true },{ name:'Beschreibung', value:beschreibung },{ name:'Erstellt von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
           return interaction.reply({ content: `✅ Rechnung über **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** für <@${target.id}> erstellt.`, ephemeral: true });
         }
@@ -4948,7 +4948,7 @@ client.on('interactionCreate', async (interaction) => {
           addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Startgeld (${art})`, betrag });
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Einreise-Startgeld')
-            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Art', value:art, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true },{ name:'Vergeben von', value:`<@${interaction.user.id}>` })
+            .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Art', value:art, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true },{ name:'Vergeben von', value:`<@${interaction.user.id}>` })
             .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
           return interaction.reply({
             embeds: [new EmbedBuilder().setColor(0x43A047).setTitle('💵 Startgeld vergeben')
@@ -5235,7 +5235,7 @@ client.on('interactionCreate', async (interaction) => {
       addTrans(uid, { ts: now, text: `+${lohnklasse.betrag.toLocaleString('de-CH')} ${MONEY_GIF} Lohn (${lohnklasse.label})`, betrag: lohnklasse.betrag });
       sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
         .setTitle('💰 Geld-Log: Lohn abgeholt')
-        .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Klasse', value:lohnklasse.label, inline:true },{ name:'Betrag', value:`${lohnklasse.betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true })
+        .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Klasse', value:lohnklasse.label, inline:true },{ name:'Betrag', value:`${lohnklasse.betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true })
         .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
 
       return interaction.reply({
@@ -5478,7 +5478,7 @@ client.on('interactionCreate', async (interaction) => {
       addTrans(uid, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Einzahlung`, betrag });
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Einzahlung (Bargeld→Konto)')
-          .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true })
+          .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** erfolgreich eingezahlt. Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} ` + MONEY_GIF + `**`, ephemeral: true });
     }
@@ -5495,7 +5495,7 @@ client.on('interactionCreate', async (interaction) => {
       addTrans(uid, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Auszahlung`, betrag: -betrag });
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Auszahlung (Konto→Bargeld)')
-          .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true })
+          .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** ausgezahlt. Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} ` + MONEY_GIF + `**`, ephemeral: true });
     }
@@ -5517,7 +5517,7 @@ client.on('interactionCreate', async (interaction) => {
       addTrans(targetId, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Überweisung von <@${uid}>`, betrag });
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Überweisung')
-          .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true })
+          .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** an <@${targetId}> überwiesen.`, ephemeral: true });
     }
@@ -5579,7 +5579,7 @@ client.on('interactionCreate', async (interaction) => {
       addTrans(targetId, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Schwarzgeld von <@${uid}>`, betrag });
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Schwarzgeld gesendet')
-          .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `', inline:true })
+          .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true })
           .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** Schwarzgeld an <@${targetId}> verschickt.`, ephemeral: true });
     }
