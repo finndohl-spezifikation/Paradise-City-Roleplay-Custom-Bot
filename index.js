@@ -5264,9 +5264,9 @@ client.on('interactionCreate', async (interaction) => {
         .setTitle(`\u{1F3E7}  Dein Online Banking  ${MONEY_GIF}`)
         .setDescription(`Willkommen in deiner **Paradise City Bank**.\nHier verwaltest du dein Vermögen sicher und übersichtlich.`)
         .addFields(
-          { name: `${MONEY_GIF} Bargeld`, value: `\`\`\u{1F9F1}\n${bar.toLocaleString('de-CH')} ${MONEY_GIF}\u{1F9F1}\`\``, inline: true },
-          { name: `${MONEY_GIF} Kontostand`, value: `\`\`\u{1F9F1}\n${k.konto.toLocaleString('de-CH')} ${MONEY_GIF}\u{1F9F1}\`\``, inline: true },
-          ...(hasSchwarz ? [{ name: `\u{1F5A4} Schwarzgeld`, value: `\`\`\u{1F9F1}\n${k.schwarz.toLocaleString('de-CH')} ${MONEY_GIF}\u{1F9F1}\`\``, inline: true }] : [])
+          { name: `${MONEY_GIF} Bargeld`, value: `**${bar.toLocaleString('de-CH')}** ${MONEY_GIF}`, inline: true },
+          { name: `${MONEY_GIF} Kontostand`, value: `**${k.konto.toLocaleString('de-CH')}** ${MONEY_GIF}`, inline: true },
+          ...(hasSchwarz ? [{ name: `\u{1F5A4} Schwarzgeld`, value: `**${k.schwarz.toLocaleString('de-CH')}** ${MONEY_GIF}`, inline: true }] : [])
         )
         .addFields(
           { name: `\u{1F4CB} Letzte Transaktionen`, value: transText }
