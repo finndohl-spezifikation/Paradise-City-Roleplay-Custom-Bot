@@ -65,11 +65,26 @@ module.exports = function initDarknet(app, DATA_DIR, client, darknetTokens) {
     res.json({ ...user, discordUserId: uid, pcCoins: wallet.dc || 0 });
   });
 
+  const VERBOTENE_WOERTER = [
+    'hurensohn','hure','nutte','wichser','wichsen','fick','ficken','arschloch','arsch','scheiße','scheisse',
+    'scheiß','scheis','kacke','kackst','kacker','fotze','schwanz','penis','vagina','pussy','nigger','nigga',
+    'neger','nazi','hitler','faggot','faggot','bitch','bastard','idiot','vollidiot','depp','trottel','spast',
+    'spastiker','mongo','retard','behindert','pisser','pissen','pisst','kackwurst','schlampe','luder','miststück',
+    'wichse','hass','kanake','türkensau','judensau','penner','loser','fucker','fuck','asshole','shit','cunt',
+    'motherfucker','dickhead','cock','twat'
+  ];
+  function hatVulgaerWort(text) {
+    const clean = text.toLowerCase().replace(/[^a-zäöüß0-9]/g,'');
+    return VERBOTENE_WOERTER.some(w => clean.includes(w.replace(/[^a-zäöüß0-9]/g,'')));
+  }
+
   app.post('/api/darknet/user/username', (req, res) => {
     const uid = resolveUser(req);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
     const { username } = req.body || {};
     if (!username || username.length < 3 || username.length > 20) return res.status(400).json({ error: 'Ungültiger Nutzername' });
+    if (hatVulgaerWort(username)) return res.status(400).json({ error: 'Dieser Nutzername ist nicht erlaubt' });
+    if (!/^[a-zA-Z0-9äöüÄÖÜß_\-\.]+$/.test(username)) return res.status(400).json({ error: 'Nur Buchstaben, Zahlen, _, - und . erlaubt' });
     const users = loadUsers();
     const taken = Object.values(users).some(u => u.username === username);
     if (taken) return res.status(409).json({ error: 'Nutzername bereits vergeben' });
@@ -162,6 +177,19 @@ module.exports = function initDarknet(app, DATA_DIR, client, darknetTokens) {
         u.send('**Neuer Artikel im Darkweb verkauft!**\n**' + item.title + '**\nPreis: ' + item.price + ' PC Coins\nKäufer: ' + getOrCreateUser(uid).username + '\n' + WEBAPP + '/darknet/chats?dc=' + (req.query.dc||req.body?.dc||''));
       }).catch(()=>{});
     } catch {}
+  });
+
+  app.delete('/api/darknet/market/:id', (req, res) => {
+    const uid = resolveUser(req);
+    if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+    const market = loadMarket();
+    const idx = market.findIndex(m => m.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Nicht gefunden' });
+    if (market[idx].sellerId !== uid) return res.status(403).json({ error: 'Kein Zugriff' });
+    if (market[idx].status === 'sold') return res.status(400).json({ error: 'Verkaufte Artikel können nicht gelöscht werden' });
+    market.splice(idx, 1);
+    saveMarket(market);
+    res.json({ ok: true });
   });
 
   app.get('/api/darknet/chats', (req, res) => {
@@ -588,6 +616,7 @@ setInterval(loadStatus, 5000);
 <script>
 let allItems = [];
 let curCat = 'all';
+let myUserId = '';
 document.querySelectorAll('.dn-tab').forEach(t => {
   t.addEventListener('click', () => {
     document.querySelectorAll('.dn-tab').forEach(x => x.classList.remove('active'));
@@ -604,10 +633,16 @@ function render() {
   const el = document.getElementById('market-list');
   const catNames = {weapons:'Waffen',drugs:'Drogen',hacking:'Hacking',info:'Informationen',other:'Sonstiges'};
   const typeNames = {direct:'Direkt kaufen',meeting:'Persönliches Treffen'};
-  el.innerHTML = f.length ? f.map(i => \`
-    <div class="dn-item" style="flex-wrap:wrap">
+  el.innerHTML = f.length ? f.map(i => {
+    const isOwn = myUserId && i.sellerId === myUserId;
+    const aktionen = isOwn
+      ? \`<button class="dn-btn red" style="padding:5px 10px;font-size:.73em" onclick="loescheAngebot('\${i.id}')">🗑 Löschen</button>\`
+      : \`<button class="dn-btn" style="padding:5px 10px;font-size:.73em" onclick="kaufen('\${i.id}',\${i.price})">Kaufen</button>
+         <button class="dn-btn" style="padding:5px 10px;font-size:.73em;border-color:var(--sub);color:var(--sub)" onclick="preisvorschlag('\${i.id}')">Angebot</button>\`;
+    return \`
+    <div class="dn-item" style="flex-wrap:wrap\${isOwn?' border-color:var(--grn3)':''}">
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;color:var(--grn);font-size:.88em;margin-bottom:4px">\${i.title}</div>
+        <div style="font-weight:700;color:var(--grn);font-size:.88em;margin-bottom:4px">\${i.title}\${isOwn?' <span style="font-size:.7em;color:var(--sub)">[dein Angebot]</span>':''}</div>
         <div class="meta">\${i.description.slice(0,90)}\${i.description.length>90?'...':''}</div>
         <div class="dn-row" style="margin-top:6px;gap:4px">
           <span class="dn-tag">\${catNames[i.category]||i.category}</span>
@@ -617,15 +652,16 @@ function render() {
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-top:4px">
         <div class="price">\${i.price} 🪙</div>
-        <div class="dn-row" style="gap:4px">
-          <button class="dn-btn" style="padding:5px 10px;font-size:.73em" onclick="kaufen('\${i.id}',\${i.price})">Kaufen</button>
-          <button class="dn-btn" style="padding:5px 10px;font-size:.73em;border-color:var(--sub);color:var(--sub)" onclick="preisvorschlag('\${i.id}')">Angebot</button>
-        </div>
+        <div class="dn-row" style="gap:4px">\${aktionen}</div>
       </div>
-    </div>
-  \`).join('') : '<div style="text-align:center;color:var(--sub);padding:40px;font-size:.85em">> Keine Angebote gefunden.</div>';
+    </div>\`;
+  }).join('') : '<div style="text-align:center;color:var(--sub);padding:40px;font-size:.85em">> Keine Angebote gefunden.</div>';
 }
-async function load() { allItems = await apiFetch('/api/darknet/market'); render(); }
+async function load() {
+  [allItems] = await Promise.all([apiFetch('/api/darknet/market')]);
+  try { const u = await apiFetch('/api/darknet/user/me'); myUserId = u.discordUserId; } catch {}
+  render();
+}
 function toggleCreate() {
   const f = document.getElementById('create-form');
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
@@ -637,21 +673,36 @@ async function createItem() {
   const category = document.getElementById('m-cat').value;
   const purchaseType = document.getElementById('m-type').value;
   if (!title||!description||!price) return alert('Bitte alle Felder ausfüllen.');
-  await apiFetch('/api/darknet/market', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({dc:TOKEN,title,description,price,category,purchaseType}) });
-  document.getElementById('create-form').style.display = 'none';
-  load();
+  try {
+    await apiFetch('/api/darknet/market', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({dc:TOKEN,title,description,price,category,purchaseType}) });
+    document.getElementById('create-form').style.display = 'none';
+    document.getElementById('m-title').value=''; document.getElementById('m-desc').value=''; document.getElementById('m-price').value='';
+    load();
+  } catch(e) { alert('Fehler: ' + e.message); }
 }
 async function kaufen(id, preis) {
   if (!confirm('Artikel für ' + preis + ' PC Coins kaufen?')) return;
-  const r = await apiFetch('/api/darknet/market/'+id+'/buy', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dc:TOKEN}) });
-  alert('Gekauft! Chat geöffnet.');
-  location.href = '/darknet/chat/' + r.chatId + '?dc=' + TOKEN;
+  try {
+    const r = await apiFetch('/api/darknet/market/'+id+'/buy', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dc:TOKEN}) });
+    alert('Gekauft! Chat wurde geöffnet.');
+    location.href = '/darknet/chat/' + r.chatId + '?dc=' + TOKEN;
+  } catch(e) { alert('Fehler: ' + e.message); }
 }
 async function preisvorschlag(id) {
   const p = prompt('Dein Preisvorschlag in PC Coins:');
   if (!p || isNaN(p)) return;
-  await apiFetch('/api/darknet/market/'+id+'/offer', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dc:TOKEN,price:parseInt(p)}) });
-  alert('Preisvorschlag gesendet!');
+  try {
+    await apiFetch('/api/darknet/market/'+id+'/offer', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dc:TOKEN,price:parseInt(p)}) });
+    alert('Preisvorschlag gesendet!');
+  } catch(e) { alert('Fehler: ' + e.message); }
+}
+async function loescheAngebot(id) {
+  if (!confirm('Angebot wirklich löschen? Dies kann nicht rückgängig gemacht werden.')) return;
+  try {
+    await apiFetch('/api/darknet/market/'+id+'?dc='+TOKEN, { method:'DELETE' });
+    alert('Angebot gelöscht.');
+    load();
+  } catch(e) { alert('Fehler: ' + e.message); }
 }
 if(TOKEN) load(); else document.getElementById('market-list').innerHTML = '<div class="dn-alert">Anmeldung erforderlich — nutze den Discord-Button.</div>';
 </script>`;
@@ -697,11 +748,10 @@ async function loadAccount() {
     '<div class="dn-stat"><span class="key">Alias-ID</span><span class="val">' + user.discordUserId.slice(0,4) + '***' + user.discordUserId.slice(-4) + '</span></div>' +
     '<div class="dn-stat"><span class="key">Mitglied seit</span><span class="val">' + new Date(user.createdAt).toLocaleDateString('de-DE') + '</span></div>';
   const market = await apiFetch('/api/darknet/market');
-  // alle eigenen (auch verkaufte)
-  const allOwn = (await apiFetch('/api/darknet/market?_all=1').catch(()=>[]));
   const listings = market.filter(i => i.sellerId === user.discordUserId);
   document.getElementById('my-listings').innerHTML = listings.length
-    ? listings.map(i => '<div class="dn-item"><div><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">' + i.price + ' 🪙 · ' + (i.status==='active'?'● Aktiv':'● Verkauft') + '</div></div></div>').join('')
+    ? listings.map(i => '<div class="dn-item" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">' + i.price + ' 🪙 · ' + (i.status==='active'?'● Aktiv':'● Verkauft') + '</div></div>' +
+      (i.status==='active' ? '<button class="dn-btn red" style="padding:4px 10px;font-size:.72em;margin-top:4px" onclick="loescheAngebot(\''+i.id+'\')">🗑 Löschen</button>' : '') + '</div>').join('')
     : '<div style="color:var(--sub);font-size:.8em">Keine aktiven Angebote.</div>';
   const sold  = listings.filter(i=>i.status==='sold');
   document.getElementById('my-sales').innerHTML = sold.length
@@ -717,6 +767,14 @@ async function saveUsername() {
   try {
     await apiFetch('/api/darknet/user/username', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dc:TOKEN,username}) });
     alert('Alias gespeichert!');
+    loadAccount();
+  } catch(e) { alert('Fehler: ' + e.message); }
+}
+async function loescheAngebot(id) {
+  if (!confirm('Angebot wirklich löschen? Dies kann nicht rückgängig gemacht werden.')) return;
+  try {
+    await apiFetch('/api/darknet/market/'+id+'?dc='+TOKEN, { method:'DELETE' });
+    alert('Angebot gelöscht.');
     loadAccount();
   } catch(e) { alert('Fehler: ' + e.message); }
 }
