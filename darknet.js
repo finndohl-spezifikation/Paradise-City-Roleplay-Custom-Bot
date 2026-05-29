@@ -666,7 +666,12 @@ function toggleCreate() {
   const f = document.getElementById('create-form');
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
 }
+function requireToken() {
+  if (!TOKEN) { alert('Du musst dich zuerst einloggen — nutze den Discord-Button um das Darknet zu betreten.'); return false; }
+  return true;
+}
 async function createItem() {
+  if (!requireToken()) return;
   const title = document.getElementById('m-title').value.trim();
   const description = document.getElementById('m-desc').value.trim();
   const price = parseInt(document.getElementById('m-price').value);
@@ -681,6 +686,7 @@ async function createItem() {
   } catch(e) { alert('Fehler: ' + e.message); }
 }
 async function kaufen(id, preis) {
+  if (!requireToken()) return;
   if (!confirm('Artikel für ' + preis + ' PC Coins kaufen?')) return;
   try {
     const r = await apiFetch('/api/darknet/market/'+id+'/buy', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dc:TOKEN}) });
@@ -689,6 +695,7 @@ async function kaufen(id, preis) {
   } catch(e) { alert('Fehler: ' + e.message); }
 }
 async function preisvorschlag(id) {
+  if (!requireToken()) return;
   const p = prompt('Dein Preisvorschlag in PC Coins:');
   if (!p || isNaN(p)) return;
   try {
@@ -704,7 +711,10 @@ async function loescheAngebot(id) {
     load();
   } catch(e) { alert('Fehler: ' + e.message); }
 }
-if(TOKEN) load(); else document.getElementById('market-list').innerHTML = '<div class="dn-alert">Anmeldung erforderlich — nutze den Discord-Button.</div>';
+// Markt IMMER laden — alle sollen Angebote sehen
+load();
+// Auto-Refresh alle 15 Sekunden, damit neue Angebote sofort erscheinen
+setInterval(load, 15000);
 </script>`;
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.send(page('SCHWARZMARKT', 'market', token, body));
