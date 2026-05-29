@@ -706,7 +706,7 @@ async function preisvorschlag(id) {
 async function loescheAngebot(id) {
   if (!confirm('Angebot wirklich löschen? Dies kann nicht rückgängig gemacht werden.')) return;
   try {
-    await apiFetch('/api/darknet/market/'+id+'?dc='+TOKEN, { method:'DELETE' });
+    await apiFetch('/api/darknet/market/'+id, { method:'DELETE' });
     alert('Angebot gelöscht.');
     load();
   } catch(e) { alert('Fehler: ' + e.message); }
@@ -783,7 +783,7 @@ async function saveUsername() {
 async function loescheAngebot(id) {
   if (!confirm('Angebot wirklich löschen? Dies kann nicht rückgängig gemacht werden.')) return;
   try {
-    await apiFetch('/api/darknet/market/'+id+'?dc='+TOKEN, { method:'DELETE' });
+    await apiFetch('/api/darknet/market/'+id, { method:'DELETE' });
     alert('Angebot gelöscht.');
     loadAccount();
   } catch(e) { alert('Fehler: ' + e.message); }
