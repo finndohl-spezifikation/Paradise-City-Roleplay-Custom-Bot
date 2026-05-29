@@ -6979,13 +6979,14 @@ client.once('ready', async () => {
         '**Willkommen im Darknet.** Hier gibt es keine Namen, nur Aliase.\n\n' +
         `**Zugang:** Nur für <@&${DARKNET_ROLE}>\n` +
         '**Features:**\n' +
-        '`▸` Anonyme Gruppen-Kommunikation\n' +
-        '`▸` Verschlüsselte Direktnachrichten\n' +
-        '`▸` Black Market — Angebote posten & kaufen\n' +
-        '`▸` Live Netzwerk-Statistiken\n\n' +
+        '`▸` Schwarzmarkt — Angebote erstellen, kaufen, handeln\n' +
+        '`▸` PC Coin Krypto-Integration — echte Wallet-Balance\n' +
+        '`▸` Verschlüsselte Chats (DMs & Gruppen)\n' +
+        '`▸` Preisverhandlungen & persönliche Treffen\n' +
+        '`▸` Automatische Verkaufs-Benachrichtigungen\n\n' +
         '*Keine Logs. Keine Spuren. Kein Mitleid.*'
       )
-      .setFooter({ text: 'Paradise City Roleplay • Darknet v1.0 — ENCRYPTED' })
+      .setFooter({ text: 'Paradise City Roleplay • Darknet v2.0 — ENCRYPTED' })
       .setTimestamp();
 
     // Check if embed already exists → edit it, don't re-send
