@@ -6970,11 +6970,12 @@ client.once('ready', async () => {
     const ch = await client.channels.fetch(DARKNET_CH).catch(() => null);
     if (!ch) return;
 
-    const enterBtn = new ButtonBuilder()
-      .setCustomId('darknet_betreten')
+    const WEBAPP_DN = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
+    const linkBtn = new ButtonBuilder()
       .setLabel('⬛ DARKNET BETRETEN')
-      .setStyle(ButtonStyle.Success);
-    const row = new ActionRowBuilder().addComponents(enterBtn);
+      .setStyle(ButtonStyle.Link)
+      .setURL(WEBAPP_DN + '/darknet');
+    const row = new ActionRowBuilder().addComponents(linkBtn);
 
     const darknetEmbed = new EmbedBuilder()
       .setColor(0x00ff41)
@@ -7002,12 +7003,11 @@ client.once('ready', async () => {
       });
       if (existing) {
         await existing.edit({ embeds: [darknetEmbed], components: [row] }).catch(() => {});
-        console.log('[DARKNET] Embed bereits vorhanden, aktualisiert.');
+        console.log('[DARKNET] Embed aktualisiert.');
         return;
       }
     }
 
-    // Send fresh embed
     await ch.send({ embeds: [darknetEmbed], components: [row] });
     console.log('[DARKNET] Embed neu gesendet.');
   } catch (e) {
