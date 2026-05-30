@@ -5255,28 +5255,28 @@ client.on('interactionCreate', async (interaction) => {
       const uid = interaction.user.id;
       const member = await interaction.guild.members.fetch(uid).catch(() => null);
       const k = getKonto(uid);
-      const bar = getCash(uid);
-      const trans = getLastTrans(uid, 10);
+      const trans = getLastTrans(uid, 50);
       const hasSchwarz = member?.roles.cache.has(SCHWARZ_ROLE) ?? false;
 
-      // Build transaction history text (show up to 10 in embed)
-      const transText = trans.length
-        ? trans.map((t, i) => `\`\`${String(i+1).padStart(2)}\`\` ${t.text} — <t:${Math.floor(t.ts/1000)}:R>`).slice(0, 10).join('\n')
-        : '_Keine Transaktionen vorhanden_';
+      // Nur Ausgaben (negatives betrag) anzeigen
+      const ausgaben = trans.filter(t => typeof t.betrag === 'number' && t.betrag < 0).slice(0, 8);
+      const transText = ausgaben.length
+        ? ausgaben.map(t => `${MONEY_GIF} **${Math.abs(t.betrag).toLocaleString('de-CH')} $** — <t:${Math.floor(t.ts/1000)}:R>`).join('\n')
+        : '_Keine Ausgaben vorhanden_';
+
+      const balFelder = [
+        { name: `${MONEY_GIF} Kontostand`, value: `**${k.konto.toLocaleString('de-CH')} $**`, inline: true },
+        ...(hasSchwarz ? [{ name: `🖤 Schwarzgeld`, value: `**${(k.schwarz||0).toLocaleString('de-CH')} $**`, inline: true }] : []),
+      ];
 
       const embed = new EmbedBuilder()
         .setColor(0xE65100)
-        .setTitle(`\u{1F3E7}  Dein Online Banking  ${MONEY_GIF}`)
-        .setDescription(`Willkommen in deiner **Paradise City Bank**.\nHier verwaltest du dein Vermögen sicher und übersichtlich.`)
+        .setTitle(`🏧  Online Banking  ${MONEY_GIF}`)
+        .addFields(...balFelder)
         .addFields(
-          { name: `${MONEY_GIF} Bargeld`, value: `**${bar.toLocaleString('de-CH')}** ${MONEY_GIF}`, inline: true },
-          { name: `${MONEY_GIF} Kontostand`, value: `**${k.konto.toLocaleString('de-CH')}** ${MONEY_GIF}`, inline: true },
-          ...(hasSchwarz ? [{ name: `\u{1F5A4} Schwarzgeld`, value: `**${k.schwarz.toLocaleString('de-CH')}** ${MONEY_GIF}`, inline: true }] : [])
+          { name: `📤 Letzte Ausgaben`, value: transText }
         )
-        .addFields(
-          { name: `\u{1F4CB} Letzte Transaktionen`, value: transText }
-        )
-        .setFooter({ text: `Paradise City Bank • ${interaction.user.tag} • Sicher & Verschlüsselt` })
+        .setFooter({ text: `Paradise City Bank • Sicher & Verschlüsselt` })
         .setTimestamp();
 
       const rows = [];
