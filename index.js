@@ -7413,22 +7413,21 @@ client.on('interactionCreate', async (interaction) => {
   await interaction.deferReply({ ephemeral: true });
   try {
     const WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
-    const adminSecret = process.env.DARKNET_ADMIN_SECRET || 'darknet_admin_2025';
 
-    const res = await fetch(WEBAPP + '/api/darknet/discord/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ discordUserId: interaction.user.id, secret: adminSecret }),
-    });
-    if (!res.ok) {
-      // Fallback: open without auto-link
-      const fallbackBtn = new ButtonBuilder().setLabel('⬛ DARKNET ÖFFNEN').setStyle(ButtonStyle.Link).setURL(WEBAPP + '/darknet');
-      await interaction.editReply({ content: '> Verbindung hergestellt.', components: [new ActionRowBuilder().addComponents(fallbackBtn)] });
+    // Token direkt in die geteilte Map schreiben — kein HTTP-Call nötig
+    const webMod = require('./web');
+    const tokenMap = webMod.darknetTokens;
+    if (!tokenMap) {
+      console.error('[DARKNET BETRETEN] darknetTokens Map nicht verfügbar');
+      await interaction.editReply({ content: '❌ Darknet-System nicht bereit. Bitte kurz warten.' });
       return;
     }
-    const { token } = await res.json();
-    const personalUrl = WEBAPP + '/darknet?dc=' + token;
+    const token = crypto.randomBytes(20).toString('hex');
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 Stunden
+    tokenMap.set(token, { discordUserId: interaction.user.id, expiresAt });
+    setTimeout(() => tokenMap.delete(token), 24 * 60 * 60 * 1000);
 
+    const personalUrl = WEBAPP + '/darknet?dc=' + token;
     const openBtn = new ButtonBuilder()
       .setLabel('⬛ DARKNET ÖFFNEN')
       .setStyle(ButtonStyle.Link)
@@ -7440,7 +7439,7 @@ client.on('interactionCreate', async (interaction) => {
     });
   } catch (e) {
     console.error('[DARKNET BETRETEN]', e.message);
-    await interaction.editReply({ content: '❌ Interner Fehler.' });
+    await interaction.editReply({ content: '❌ Interner Fehler: ' + e.message });
   }
 });
 // ─── END DARKNET BETRETEN BUTTON ─────────────────────────────────────────────
