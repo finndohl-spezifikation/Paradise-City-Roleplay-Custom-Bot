@@ -1502,6 +1502,11 @@ client.once('ready', async () => {
       .setDescription('Sendet die DarkCoin-Embeds in die entsprechenden Kanäle')
       .toJSON(),
 
+    new SlashCommandBuilder()
+      .setName('darknet-setup')
+      .setDescription('Aktualisiert das Darknet-Embed im Darknet-Kanal (Admin)')
+      .toJSON(),
+
       new SlashCommandBuilder()
         .setName('vorschlag-yes')
         .setDescription('Nimmt einen Vorschlag an')
@@ -7010,6 +7015,66 @@ client.once('ready', async () => {
   }
 });
 // ─── END DARKNET EMBED ────────────────────────────────────────────────────────
+
+// ─── DARKNET SETUP COMMAND ───────────────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+  if (interaction.commandName !== 'darknet-setup') return;
+  if (!interaction.member.permissions.has(require('discord.js').PermissionFlagsBits.Administrator)) {
+    return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+  }
+  await interaction.deferReply({ ephemeral: true });
+  try {
+    const DARKNET_CH   = '1490890321276702723';
+    const DARKNET_ROLE = '1490855730767597738';
+
+    const ch = await client.channels.fetch(DARKNET_CH).catch(() => null);
+    if (!ch) return interaction.editReply({ content: '❌ Darknet-Kanal nicht gefunden.' });
+
+    const enterBtn = new ButtonBuilder()
+      .setCustomId('darknet_betreten')
+      .setLabel('⬛ DARKNET BETRETEN')
+      .setStyle(ButtonStyle.Success);
+    const row = new ActionRowBuilder().addComponents(enterBtn);
+
+    const darknetEmbed = new EmbedBuilder()
+      .setColor(0x00ff41)
+      .setTitle('// DARKNET — ANONYMES NETZWERK //')
+      .setDescription(
+        '```\n> Verbindung wird aufgebaut...\n> Identität wird verschleiert...\n> Zugang gesichert.\n```\n' +
+        '**Willkommen im Darknet.** Hier gibt es keine Namen, nur Aliase.\n\n' +
+        `**Zugang:** Nur für <@&${DARKNET_ROLE}>\n` +
+        '**Features:**\n' +
+        '`▸` Schwarzmarkt — Angebote erstellen, kaufen, handeln\n' +
+        '`▸` PC Coin Krypto-Integration — echte Wallet-Balance\n' +
+        '`▸` Verschlüsselte Chats (DMs & Gruppen)\n' +
+        '`▸` Preisverhandlungen & persönliche Treffen\n' +
+        '`▸` Automatische Verkaufs-Benachrichtigungen\n\n' +
+        '*Keine Logs. Keine Spuren. Kein Mitleid.*'
+      )
+      .setFooter({ text: 'Paradise City Roleplay • Darknet v2.0 — ENCRYPTED' })
+      .setTimestamp();
+
+    // Bestehendes Embed suchen & bearbeiten, sonst neu senden
+    const msgs = await ch.messages.fetch({ limit: 20 }).catch(() => null);
+    if (msgs) {
+      const existing = msgs.find(m =>
+        m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes('DARKNET')
+      );
+      if (existing) {
+        await existing.edit({ embeds: [darknetEmbed], components: [row] });
+        return interaction.editReply({ content: '✅ Darknet-Embed aktualisiert.' });
+      }
+    }
+
+    await ch.send({ embeds: [darknetEmbed], components: [row] });
+    return interaction.editReply({ content: '✅ Darknet-Embed neu gesendet.' });
+  } catch (e) {
+    console.error('[DARKNET SETUP]', e.message);
+    return interaction.editReply({ content: '❌ Fehler: ' + e.message });
+  }
+});
+// ─── END DARKNET SETUP COMMAND ───────────────────────────────────────────────
 
 
 
