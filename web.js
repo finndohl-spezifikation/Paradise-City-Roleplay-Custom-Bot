@@ -664,6 +664,18 @@ function buildScratchPage(token, entry, scratchedCells) {
   const rubbellosTokens = new Map();
   const lottoTokens = new Map();
   const darknetTokens = new Map();
+  // Gespeicherte Darknet-Tokens beim Start wiederherstellen
+  try {
+    const _tokFile = path.join(DATA_DIR, 'darknet_tokens.json');
+    const _saved = JSON.parse(fs.readFileSync(_tokFile, 'utf8'));
+    const _now = Date.now();
+    Object.entries(_saved).forEach(([tok, entry]) => {
+      if (entry.expiresAt > _now) {
+        darknetTokens.set(tok, entry);
+        setTimeout(() => darknetTokens.delete(tok), entry.expiresAt - _now);
+      }
+    });
+  } catch {}
 
 // ─── LOTTO PAGE BUILDER ───────────────────────────────────────────────────────
 function buildLottoPage(token) {
@@ -1136,9 +1148,17 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
 
       try {
         const token = crypto.randomBytes(20).toString('hex');
-        const expiresAt = Date.now() + 10 * 60 * 1000; // 10 Minuten
+        const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 Stunden
         darknetTokens.set(token, { discordUserId, expiresAt });
-        setTimeout(() => darknetTokens.delete(token), 10 * 60 * 1000);
+        // Token in Datei speichern, damit er Neustarts überlebt
+        const tokFile = path.join(DATA_DIR, 'darknet_tokens.json');
+        let toks = {}; try { toks = JSON.parse(fs.readFileSync(tokFile,'utf8')); } catch {}
+        toks[token] = { discordUserId, expiresAt };
+        fs.writeFileSync(tokFile, JSON.stringify(toks, null, 2), 'utf8');
+        setTimeout(() => {
+          darknetTokens.delete(token);
+          try { const t=JSON.parse(fs.readFileSync(tokFile,'utf8')); delete t[token]; fs.writeFileSync(tokFile,JSON.stringify(t,null,2),'utf8'); } catch {}
+        }, 24 * 60 * 60 * 1000);
         res.json({ token });
       } catch (e) {
         res.status(500).json({ error: e.message });

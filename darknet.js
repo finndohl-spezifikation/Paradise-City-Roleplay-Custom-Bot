@@ -658,9 +658,14 @@ function render() {
   }).join('') : '<div style="text-align:center;color:var(--sub);padding:40px;font-size:.85em">> Keine Angebote gefunden.</div>';
 }
 async function load() {
-  [allItems] = await Promise.all([apiFetch('/api/darknet/market')]);
-  try { const u = await apiFetch('/api/darknet/user/me'); myUserId = u.discordUserId; } catch {}
-  render();
+  try {
+    allItems = await apiFetch('/api/darknet/market');
+    try { const u = await apiFetch('/api/darknet/user/me'); myUserId = u.discordUserId; } catch {}
+    render();
+  } catch(e) {
+    document.getElementById('market-list').innerHTML =
+      '<div class="dn-alert">⚠ Markt konnte nicht geladen werden: ' + e.message + '<br><br>Bitte klicke erneut auf den DARKNET-Button in Discord.</div>';
+  }
 }
 function toggleCreate() {
   const f = document.getElementById('create-form');
@@ -750,33 +755,49 @@ setInterval(load, 15000);
   <div id="my-buys" class="dn-list"></div>
 </div>
 <script>
+function zeigeSessionFehler(bereich) {
+  const el = document.querySelector(bereich);
+  if (el) el.innerHTML = '<div class="dn-alert" style="margin-top:20px">⚠ Sitzung abgelaufen oder ungültig.<br><br><strong>Bitte klicke erneut auf den DARKNET-Button in Discord</strong>, um eine neue Sitzung zu starten.</div>';
+}
 async function loadAccount() {
-  const user = await apiFetch('/api/darknet/user/me');
-  document.getElementById('username').value = user.username||'';
-  document.getElementById('acc-coins').textContent = Number(user.pcCoins||0).toFixed(4) + ' 🪙';
-  document.getElementById('profile-info').innerHTML =
-    '<div class="dn-stat"><span class="key">Alias-ID</span><span class="val">' + user.discordUserId.slice(0,4) + '***' + user.discordUserId.slice(-4) + '</span></div>' +
-    '<div class="dn-stat"><span class="key">Mitglied seit</span><span class="val">' + new Date(user.createdAt).toLocaleDateString('de-DE') + '</span></div>';
-  const market = await apiFetch('/api/darknet/market');
-  const listings = market.filter(i => i.sellerId === user.discordUserId);
-  document.getElementById('my-listings').innerHTML = listings.length
-    ? listings.map(i => '<div class="dn-item" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">' + i.price + ' 🪙 · ' + (i.status==='active'?'● Aktiv':'● Verkauft') + '</div></div>' +
-      (i.status==='active' ? '<button class="dn-btn red" style="padding:4px 10px;font-size:.72em;margin-top:4px" onclick="loescheAngebot(\''+i.id+'\')">🗑 Löschen</button>' : '') + '</div>').join('')
-    : '<div style="color:var(--sub);font-size:.8em">Keine aktiven Angebote.</div>';
-  const sold  = listings.filter(i=>i.status==='sold');
-  document.getElementById('my-sales').innerHTML = sold.length
-    ? sold.map(i => '<div class="dn-item"><div><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">Verkauft für ' + i.price + ' 🪙 an ' + (i.buyerUsername||'---') + '</div></div></div>').join('')
-    : '<div style="color:var(--sub);font-size:.8em">Noch keine Verkäufe.</div>';
-  const bought = market.filter(i => i.buyerId === user.discordUserId);
-  document.getElementById('my-buys').innerHTML = bought.length
-    ? bought.map(i => '<div class="dn-item"><div><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">Gekauft für ' + i.price + ' 🪙 von ' + (i.sellerUsername||'---') + '</div></div></div>').join('')
-    : '<div style="color:var(--sub);font-size:.8em">Noch keine Einkäufe.</div>';
+  try {
+    const user = await apiFetch('/api/darknet/user/me');
+    document.getElementById('username').value = user.username||'';
+    document.getElementById('acc-coins').textContent = Number(user.pcCoins||0).toFixed(4) + ' 🪙';
+    document.getElementById('profile-info').innerHTML =
+      '<div class="dn-stat"><span class="key">Alias-ID</span><span class="val">' + user.discordUserId.slice(0,4) + '***' + user.discordUserId.slice(-4) + '</span></div>' +
+      '<div class="dn-stat"><span class="key">Mitglied seit</span><span class="val">' + new Date(user.createdAt).toLocaleDateString('de-DE') + '</span></div>';
+    try {
+      const market = await apiFetch('/api/darknet/market');
+      const listings = market.filter(i => i.sellerId === user.discordUserId);
+      document.getElementById('my-listings').innerHTML = listings.length
+        ? listings.map(i => '<div class="dn-item" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">' + i.price + ' 🪙 · ' + (i.status==='active'?'● Aktiv':'● Verkauft') + '</div></div>' +
+          (i.status==='active' ? '<button class="dn-btn red" style="padding:4px 10px;font-size:.72em;margin-top:4px" onclick="loescheAngebot(\''+i.id+'\')">🗑 Löschen</button>' : '') + '</div>').join('')
+        : '<div style="color:var(--sub);font-size:.8em">Keine aktiven Angebote.</div>';
+      const sold = listings.filter(i=>i.status==='sold');
+      document.getElementById('my-sales').innerHTML = sold.length
+        ? sold.map(i => '<div class="dn-item"><div><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">Verkauft für ' + i.price + ' 🪙 an ' + (i.buyerUsername||'---') + '</div></div></div>').join('')
+        : '<div style="color:var(--sub);font-size:.8em">Noch keine Verkäufe.</div>';
+      const bought = market.filter(i => i.buyerId === user.discordUserId);
+      document.getElementById('my-buys').innerHTML = bought.length
+        ? bought.map(i => '<div class="dn-item"><div><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">Gekauft für ' + i.price + ' 🪙 von ' + (i.sellerUsername||'---') + '</div></div></div>').join('')
+        : '<div style="color:var(--sub);font-size:.8em">Noch keine Einkäufe.</div>';
+    } catch(e) {
+      ['my-listings','my-sales','my-buys'].forEach(id => {
+        document.getElementById(id).innerHTML = '<div style="color:var(--sub);font-size:.8em">Fehler: ' + e.message + '</div>';
+      });
+    }
+  } catch(e) {
+    zeigeSessionFehler('.dn-wrap');
+  }
 }
 async function saveUsername() {
+  if (!TOKEN) return zeigeSessionFehler('.dn-wrap');
   const username = document.getElementById('username').value.trim();
+  if (!username || username.length < 3) return alert('Alias muss mindestens 3 Zeichen haben.');
   try {
     await apiFetch('/api/darknet/user/username', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dc:TOKEN,username}) });
-    alert('Alias gespeichert!');
+    alert('Alias gespeichert: ' + username);
     loadAccount();
   } catch(e) { alert('Fehler: ' + e.message); }
 }
@@ -788,7 +809,7 @@ async function loescheAngebot(id) {
     loadAccount();
   } catch(e) { alert('Fehler: ' + e.message); }
 }
-if(TOKEN) loadAccount(); else document.querySelector('.dn-wrap').innerHTML='<div class="dn-alert">Anmeldung erforderlich — nutze den Discord-Button.</div>';
+if(TOKEN) loadAccount(); else zeigeSessionFehler('.dn-wrap');
 </script>`;
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.send(page('KONTO', 'account', token, body));
