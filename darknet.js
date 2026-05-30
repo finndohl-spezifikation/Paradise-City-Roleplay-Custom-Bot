@@ -39,11 +39,15 @@ module.exports = function initDarknet(app, DATA_DIR, client, darknetTokens) {
   const adminSecret = process.env.DARKNET_ADMIN_SECRET || 'darknet_admin_2025';
 
   function resolveUser(req) {
+    // 1. Token-basiert (Discord-Button)
     const token = req.query.dc || req.body?.dc;
-    if (!token) return null;
-    const entry = darknetTokens.get(token);
-    if (!entry || entry.expiresAt < Date.now()) return null;
-    return entry.discordUserId;
+    if (token) {
+      const entry = darknetTokens.get(token);
+      if (entry && entry.expiresAt > Date.now()) return entry.discordUserId;
+    }
+    // 2. Session-basiert (direkter Seitenlink)
+    if (req.session && req.session.darknetUid) return req.session.darknetUid;
+    return null;
   }
 
   function getOrCreateUser(uid) {
@@ -63,6 +67,23 @@ module.exports = function initDarknet(app, DATA_DIR, client, darknetTokens) {
     const user = getOrCreateUser(uid);
     const wallet = getKrypto(uid);
     res.json({ ...user, discordUserId: uid, pcCoins: wallet.dc || 0 });
+  });
+
+  // ─── POST /darknet/login — Session-Login via Discord User ID ────────────────
+  app.post('/darknet/login', express.urlencoded({ extended: false }), (req, res) => {
+    const uid = (req.body.uid || '').trim().replace(/\D/g, '');
+    const back = req.body.back || '/darknet';
+    if (!uid || uid.length < 15 || uid.length > 20) {
+      return res.redirect('/darknet?loginerror=1');
+    }
+    req.session.darknetUid = uid;
+    req.session.save(() => res.redirect(back));
+  });
+
+  // ─── GET /darknet/logout ─────────────────────────────────────────────────────
+  app.get('/darknet/logout', (req, res) => {
+    if (req.session) req.session.darknetUid = null;
+    res.redirect('/darknet');
   });
 
   const VERBOTENE_WOERTER = [
@@ -473,13 +494,35 @@ ${DN_SCRIPTS}
   // ─── GET /darknet — Startseite ───────────────────────────────────────────────
   app.get('/darknet', (req, res) => {
     const token = req.query.dc || '';
-    let uid = null;
-    if (token && darknetTokens.has(token)) {
-      const e = darknetTokens.get(token);
-      if (e.expiresAt > Date.now()) uid = e.discordUserId;
+    const uid = resolveUser(req);
+    const loginError = req.query.loginerror === '1';
+
+    // Kein Login → Login-Formular anzeigen
+    if (!uid) {
+      const loginBody = `
+<div style="max-width:440px;margin:40px auto">
+  <div class="dn-section">
+    <h2>🔐 Identität verifizieren</h2>
+    ${loginError ? '<div class="dn-alert" style="margin-bottom:12px">⚠ Ungültige Discord User ID — bitte prüfen.</div>' : ''}
+    <p style="font-size:.8em;color:var(--sub);margin-bottom:16px;line-height:1.6">
+      Gib deine Discord User ID ein um das Darknet zu betreten.<br>
+      <span style="color:var(--grn3)">Einstellungen → Erweitert → Entwicklermodus an → Rechtsklick auf deinen Namen → ID kopieren</span>
+    </p>
+    <form method="POST" action="/darknet/login">
+      <input type="hidden" name="back" value="/darknet">
+      <div style="display:flex;gap:8px">
+        <input name="uid" placeholder="z.B. 123456789012345678" maxlength="20"
+          style="flex:1;background:var(--bg2);border:1px solid var(--brd);color:var(--txt);padding:10px 12px;border-radius:3px;font-family:inherit;font-size:.85em;outline:none">
+        <button type="submit" class="dn-btn">▶ EINLOGGEN</button>
+      </div>
+    </form>
+  </div>
+</div>`;
+      res.setHeader('Content-Type','text/html; charset=utf-8');
+      return res.send(page('LOGIN', 'home', token, loginBody));
     }
+
     const body = `
-${uid ? '' : '<div class="dn-alert">⚠ Anonymer Zugang — nutze den Discord-Button für vollen Zugriff.</div>'}
 <div class="dn-grid">
   <div class="dn-card" onclick="location.href='/darknet/market?dc=${token}'">
     <div class="icon">📦</div>
@@ -517,6 +560,9 @@ ${uid ? '' : '<div class="dn-alert">⚠ Anonymer Zugang — nutze den Discord-Bu
     <p>TOR-Exit-Node Routing. AES-256-GCM Verschlüsselung. Keine Spuren, keine Logs.</p>
     <div style="margin-top:10px;font-size:.72em;color:var(--grn3)">● AKTIV</div>
   </div>
+</div>
+<div style="text-align:right;margin-top:12px">
+  <a href="/darknet/logout" style="font-size:.72em;color:var(--sub);text-decoration:none">[ Abmelden ]</a>
 </div>`;
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.send(page('START', 'home', token, body));
