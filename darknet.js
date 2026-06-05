@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const express = require('express');
 
 module.exports = function initDarknet(app, DATA_DIR, client, darknetTokens) {
 
