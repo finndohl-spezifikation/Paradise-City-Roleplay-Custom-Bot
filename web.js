@@ -261,7 +261,7 @@ function charFields(prefix, idx, vals) {
   <div class="form-row">
     <div class="form-group">
       <label for="${prefix}geburtsdatum_${idx}">Geburtsdatum <span class="req">*</span></label>
-      <input type="text" id="${prefix}geburtsdatum_${idx}" name="${prefix}geburtsdatum_${idx}" placeholder="TT.MM.JJJJ" required data-date="1" inputmode="numeric" maxlength="10" autocomplete="off">
+      <input type="text" id="${prefix}geburtsdatum_${idx}" name="${prefix}geburtsdatum_${idx}" placeholder="TT.MM.JJJJ" required data-date="1" inputmode="numeric" maxlength="10" autocomplete="off" oninput="autoDateDot(this)">
     </div>
     <div class="form-group">
       <label for="${prefix}geburtsort_${idx}">Geburtsort <span class="req">*</span></label>
@@ -1812,7 +1812,7 @@ async function doSell() {
         const discordId = _lMember.id;
         const v = await validateApplicant(discordId);
         if (!v.ok) return errBack(v.reason);
-      const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0 } = req.body;
+      const vorname_0=(req.body.vorname_0||"").trim(), nachname_0=(req.body.nachname_0||"").trim(), geburtsdatum_0=(req.body.geburtsdatum_0||"").trim(), geburtsort_0=(req.body.geburtsort_0||"").trim(), nationalitaet_0=(req.body.nationalitaet_0||"").trim();
       const geschlecht_0 = (req.body.geschlecht_0 || '').trim();
       const psn_0 = (req.body.psn_0 || '').trim();
       if (!req.file) return errBack('Kein Passbild hochgeladen.');
@@ -2020,7 +2020,7 @@ async function doSell() {
       req.session['legalForm_'+uid]  = Object.assign({}, req.body);
       return res.redirect('/einreise/legal/'+tok);
     }
-    const { vorname_0, nachname_0, geburtsdatum_0, geburtsort_0, nationalitaet_0 } = req.body;
+    const vorname_0=(req.body.vorname_0||"").trim(), nachname_0=(req.body.nachname_0||"").trim(), geburtsdatum_0=(req.body.geburtsdatum_0||"").trim(), geburtsort_0=(req.body.geburtsort_0||"").trim(), nationalitaet_0=(req.body.nationalitaet_0||"").trim();
     const geschlecht_0 = (req.body.geschlecht_0 || '').trim();
     const psn_0 = (req.body.psn_0 || '').trim();
     if (!req.file) return errBack('Kein Passbild hochgeladen. Bitte füge ein Bild hinzu.');
