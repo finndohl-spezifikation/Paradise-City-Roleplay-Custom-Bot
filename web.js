@@ -4817,7 +4817,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
             +(!f.entzogen
               ? '<form method="POST" action="/lapd/dashboard/fs-entziehen/'+f.userId+'?tab=fuehrerscheine"><select name="dauer" style="background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:.8em"><option value="86400000">1 Tag</option><option value="259200000">3 Tage</option><option value="604800000">7 Tage</option><option value="1209600000">14 Tage</option><option value="2592000000">30 Tage</option><option value="0">Unbefristet</option></select><input name="grund" placeholder="Grund" style="background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:.8em;width:140px"><button type="submit" class="lbtn" style="background:#ef4444;border:none;padding:5px 12px">Entziehen</button></form>'
               : '<form method="POST" action="/lapd/dashboard/fs-zurueck/'+f.userId+'?tab=fuehrerscheine"><button type="submit" class="lbtn" style="background:#22c55e;border:none;padding:5px 12px">Zurückgeben</button></form>')
-            +'<form method="POST" action="/lapd/dashboard/fs-loeschen/'+f.userId+'?tab=fuehrerscheine" onsubmit="return confirm('Wirklich löschen?')"><button type="submit" class="lbtn" style="background:#7f1d1d;border:none;padding:5px 12px">Löschen</button></form>'
+            +'<form method="POST" action="/lapd/dashboard/fs-loeschen/'+f.userId+'?tab=fuehrerscheine" onsubmit="return confirm(\'Wirklich löschen?\')"><button type="submit" class="lbtn" style="background:#7f1d1d;border:none;padding:5px 12px">Löschen</button></form>'
             +'</div>'
           : '')
           +'</div></div>';
