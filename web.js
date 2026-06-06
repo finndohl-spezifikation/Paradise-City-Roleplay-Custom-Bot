@@ -4800,7 +4800,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
         const entzogen = f.entzogen ? '<span style="color:#ef4444;font-weight:700">⚠ ENTZOGEN</span>' : '<span style="color:#22c55e">✅ Aktiv</span>';
         const imgUrl = '/fuehrerschein/image/'+f.userId;
         return '<div class="ann-card" style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">'
-          +'<img src="'+imgUrl+'" style="width:220px;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'">'
+          +'<img src="'+imgUrl+'" style="width:220px;border-radius:6px;flex-shrink:0">'
           +'<div style="flex:1;min-width:200px">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
           +'<h4 style="margin:0">'+esc(f.vorname)+' '+esc(f.nachname)+'</h4>'
