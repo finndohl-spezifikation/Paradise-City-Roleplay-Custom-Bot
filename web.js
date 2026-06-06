@@ -4130,6 +4130,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
       +'<div class="nav-cat">Einsatz</div>'
       +nav('warrants','🔴','Fahndungen')
       +nav('beschlagnahme','🚔','Beschlagnahmungen')
+      +nav('fuehrerscheine','🚗','Führerscheine')
       +nav('notrufe','🚨','Notrufe')
       +nav('gps','\u{1F4E1}','GPS Tracker')
       +'</nav>'
@@ -4791,6 +4792,39 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
         +'</div></div>'
         +_buildGpsScript(s.userId, s.displayName, s.rankName, s.ebene);
 
+
+    } else if (tab === 'fuehrerscheine') {
+      const fsData = (() => { try { const d=require('fs').readFileSync(require('path').join(DATA_DIR,'fuehrerschein','lizenzen.json'),'utf8'); return JSON.parse(d); } catch { return {}; } })();
+      const fsList = Object.values(fsData).sort((a,b)=>(a.nachname||'').localeCompare(b.nachname||''));
+      const fsRows = fsList.length ? fsList.map(f=>{
+        const entzogen = f.entzogen ? '<span style="color:#ef4444;font-weight:700">⚠ ENTZOGEN</span>' : '<span style="color:#22c55e">✅ Aktiv</span>';
+        const imgUrl = '/fuehrerschein/image/'+f.userId;
+        return '<div class="ann-card" style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">'
+          +'<img src="'+imgUrl+'" style="width:220px;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'">'
+          +'<div style="flex:1;min-width:200px">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
+          +'<h4 style="margin:0">'+esc(f.vorname)+' '+esc(f.nachname)+'</h4>'
+          +entzogen
+          +'</div>'
+          +'<div class="info-card" style="margin-top:8px">'
+          +'<div class="info-row"><span class="info-l">Lizenz-Nr.</span><span class="info-v">'+esc(f.lizenznummer)+'</span></div>'
+          +'<div class="info-row"><span class="info-l">Klasse</span><span class="info-v">'+esc(f.klasse)+'</span></div>'
+          +'<div class="info-row"><span class="info-l">Ablauf</span><span class="info-v">'+esc(f.ablaufdatum)+'</span></div>'
+          +'<div class="info-row"><span class="info-l">PSN</span><span class="info-v">'+esc(f.psn)+'</span></div>'
+          +'<div class="info-row"><span class="info-l">Geburtsdatum</span><span class="info-v">'+esc(f.geburtsdatum)+'</span></div>'
+          +'</div>'
+          +(canMod ? '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'
+            +(!f.entzogen
+              ? '<form method="POST" action="/lapd/dashboard/fs-entziehen/'+f.userId+'?tab=fuehrerscheine"><select name="dauer" style="background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:.8em"><option value="86400000">1 Tag</option><option value="259200000">3 Tage</option><option value="604800000">7 Tage</option><option value="1209600000">14 Tage</option><option value="2592000000">30 Tage</option><option value="0">Unbefristet</option></select><input name="grund" placeholder="Grund" style="background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:.8em;width:140px"><button type="submit" class="lbtn" style="background:#ef4444;border:none;padding:5px 12px">Entziehen</button></form>'
+              : '<form method="POST" action="/lapd/dashboard/fs-zurueck/'+f.userId+'?tab=fuehrerscheine"><button type="submit" class="lbtn" style="background:#22c55e;border:none;padding:5px 12px">Zurückgeben</button></form>')
+            +'<form method="POST" action="/lapd/dashboard/fs-loeschen/'+f.userId+'?tab=fuehrerscheine" onsubmit="return confirm('Wirklich löschen?')"><button type="submit" class="lbtn" style="background:#7f1d1d;border:none;padding:5px 12px">Löschen</button></form>'
+            +'</div>'
+          : '')
+          +'</div></div>';
+      }).join('') : '<p style="color:#8b949e">Noch keine Führerscheine ausgestellt.</p>';
+
+      content += '<h3 style="margin:0 0 16px;color:#e65100">🚗 Führerscheine</h3>'+fsRows;
+
     }
 
     res.setHeader('Content-Type','text/html; charset=utf-8');
@@ -5008,6 +5042,54 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
       authorId:s.userId,authorName:s.displayName,rankName:s.rankName,ts:Date.now()});
     saveCrimes(list);
     dashRedir(res, tab, 'Straftat erfasst.', true);
+  });
+
+
+  // Führerschein entziehen
+  app.post('/lapd/dashboard/fs-entziehen/:userId', async (req, res) => {
+    const s = checkLapdSession(req, res); if (!s) return;
+    const { dauer, grund } = req.body;
+    const userId = req.params.userId;
+    const dauerMs = parseInt(dauer)||0;
+    const fsPath = require('path').join(DATA_DIR,'fuehrerschein','lizenzen.json');
+    try {
+      const all2 = JSON.parse(require('fs').readFileSync(fsPath,'utf8'));
+      if (all2[userId]) {
+        all2[userId].entzogen=true; all2[userId].entzogenBis=dauerMs?Date.now()+dauerMs:null; all2[userId].entzogenGrund=grund||'Kein Grund';
+        require('fs').writeFileSync(fsPath, JSON.stringify(all2,null,2));
+        try { const g=client.guilds.cache.first();const m=g?await g.members.fetch(userId).catch(()=>null):null; if(m) await m.roles.remove('1490855729635135489').catch(()=>{}); } catch {}
+        try { const u=await client.users.fetch(userId).catch(()=>null); if(u) { const {EmbedBuilder}=require('discord.js'); await u.send({embeds:[new EmbedBuilder().setColor(0xdc2626).setTitle('🚫 Führerschein entzogen').addFields({name:'Grund',value:grund||'Kein Grund'},{name:'Dauer',value:dauerMs?Math.round(dauerMs/86400000)+' Tag(e)':'Unbefristet'}).setTimestamp()]}).catch(()=>{}); } } catch {}
+      }
+    } catch {}
+    res.redirect('/lapd/dashboard?tab=fuehrerscheine&flash=1&msg='+encodeURIComponent('Führerschein entzogen'));
+  });
+
+  // Führerschein zurückgeben
+  app.post('/lapd/dashboard/fs-zurueck/:userId', async (req, res) => {
+    const s = checkLapdSession(req, res); if (!s) return;
+    const userId = req.params.userId;
+    const fsPath = require('path').join(DATA_DIR,'fuehrerschein','lizenzen.json');
+    try {
+      const all2 = JSON.parse(require('fs').readFileSync(fsPath,'utf8'));
+      if (all2[userId]) { all2[userId].entzogen=false; all2[userId].entzogenBis=null; require('fs').writeFileSync(fsPath, JSON.stringify(all2,null,2)); }
+      try { const g=client.guilds.cache.first();const m=g?await g.members.fetch(userId).catch(()=>null):null; if(m) await m.roles.add('1490855729635135489').catch(()=>{}); } catch {}
+      try { const u=await client.users.fetch(userId).catch(()=>null); if(u) { const {EmbedBuilder}=require('discord.js'); await u.send({embeds:[new EmbedBuilder().setColor(0x16a34a).setTitle('✅ Führerschein zurückgegeben').setDescription('Dein Führerschein wurde zurückgegeben.').setTimestamp()]}).catch(()=>{}); } } catch {}
+    } catch {}
+    res.redirect('/lapd/dashboard?tab=fuehrerscheine&flash=1&msg='+encodeURIComponent('Führerschein zurückgegeben'));
+  });
+
+  // Führerschein löschen
+  app.post('/lapd/dashboard/fs-loeschen/:userId', (req, res) => {
+    const s = checkLapdSession(req, res); if (!s) return;
+    const userId = req.params.userId;
+    const fsPath = require('path').join(DATA_DIR,'fuehrerschein','lizenzen.json');
+    try {
+      const all2 = JSON.parse(require('fs').readFileSync(fsPath,'utf8'));
+      delete all2[userId];
+      require('fs').writeFileSync(fsPath, JSON.stringify(all2,null,2));
+      for(const ext of ['jpg','png','webp']) { try { require('fs').unlinkSync(require('path').join(DATA_DIR,'fuehrerschein',userId+'_foto.'+ext)); } catch {} }
+    } catch {}
+    res.redirect('/lapd/dashboard?tab=fuehrerscheine&flash=1&msg='+encodeURIComponent('Führerschein gelöscht'));
   });
 
   app.post('/lapd/dashboard/del-crime/:id', (req,res) => {
