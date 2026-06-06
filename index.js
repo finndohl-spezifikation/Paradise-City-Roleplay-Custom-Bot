@@ -26,6 +26,21 @@ const fs   = require('fs');
 const path   = require('path');
 const crypto = require('crypto');
 
+// ─── Führerschein Inline Helpers ──────────────────────────────────────────────
+function _fsLoadFS() { try { return JSON.parse(require('fs').readFileSync(require('path').join(DATA_DIR,'fuehrerschein','lizenzen.json'),'utf8')); } catch { return {}; } }
+function _fsGenToken(userId, createdBy) {
+  const tok = require('crypto').randomBytes(24).toString('hex');
+  const tokFile = require('path').join(DATA_DIR,'fuehrerschein','tokens.json');
+  const dir = require('path').join(DATA_DIR,'fuehrerschein');
+  if (!require('fs').existsSync(dir)) require('fs').mkdirSync(dir, {recursive:true});
+  let toks = {}; try { toks = JSON.parse(require('fs').readFileSync(tokFile,'utf8')); } catch {}
+  for (const [k,v] of Object.entries(toks)) { if(v.userId===userId) delete toks[k]; }
+  toks[tok] = { userId, createdBy, expiresAt: Date.now() + 48*60*60*1000 };
+  require('fs').writeFileSync(tokFile, JSON.stringify(toks,null,2));
+  return tok;
+}
+
+
 // ─── Datenspeicherung ─────────────────────────────────────────────────────────
 const DATA_DIR      = path.join(__dirname, 'data');
 let _shopCb = {};
@@ -4411,7 +4426,7 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'fuehrerschein-create') {
       const target = interaction.options.getUser('mitglied');
       const domain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
-      const tok    = _fsApi.genToken(target.id, interaction.user.id);
+      const tok    = _fsGenToken(target.id, interaction.user.id);
       const link   = `https://${domain}/fuehrerschein/create/${tok}`;
       try {
         await target.send({ embeds: [new EmbedBuilder().setColor(0x003087)
@@ -4430,7 +4445,7 @@ client.on('interactionCreate', async (interaction) => {
       const FS_CHANNEL = '1490882590012604538';
       if (interaction.channelId !== FS_CHANNEL) return interaction.reply({ content: `❌ Dieser Command ist nur in <#${FS_CHANNEL}> erlaubt.`, ephemeral: true });
       const target = interaction.options.getUser('person') || user;
-      const all = _fsApi.loadFS();
+      const all = _fsLoadFS();
       const fsEntry = all[target.id];
       if (!fsEntry) return interaction.reply({ content: target.id === user.id ? '❌ Du hast noch keinen Führerschein.' : `❌ **${target.username}** hat keinen Führerschein.`, ephemeral: true });
       if (fsEntry.entzogen) return interaction.reply({ content: '🚫 Dieser Führerschein ist derzeit entzogen.', ephemeral: true });
@@ -4450,7 +4465,7 @@ client.on('interactionCreate', async (interaction) => {
     // /fuehrerschein-delete
     if (commandName === 'fuehrerschein-delete') {
       const target = interaction.options.getUser('mitglied');
-      const all2   = _fsApi.loadFS();
+      const all2   = _fsLoadFS();
       if (!all2[target.id]) return interaction.reply({ content: `❌ **${target.tag}** hat keinen Führerschein.`, ephemeral: true });
       await fetch(`http://localhost:${process.env.PORT||8080}/api/fuehrerschein/loeschen`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: target.id }) }).catch(()=>{});
       return interaction.reply({ content: `✅ Führerschein von **${target.tag}** gelöscht.`, ephemeral: true });
@@ -7627,9 +7642,7 @@ process.on('uncaughtException', (err) => {
 
 // ─── WEB SERVER ───────────────────────────────────────────────────────────────
 const _webMod = require('./web');
-const _fsMod  = require('./fuehrerschein');
 _webMod(client, DATA_DIR, lapdTokens, _shopCb);
-const _fsApi  = _fsMod(app, DATA_DIR, client, require('express'));
 
 // ─── LOGIN (mit Retry) ───────────────────────────────────────────────────────
 if (!process.env.DISCORD_TOKEN) {
