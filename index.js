@@ -1772,10 +1772,27 @@ client.once('ready', async () => {
     ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-  for (const guild of client.guilds.cache.values()) {
+  console.log('[COMMANDS] Guilds in cache:', client.guilds.cache.size, '| Commands to register:', commands.length);
+  if (client.guilds.cache.size === 0) {
+    // Fallback: fetch guilds first
+    console.log('[COMMANDS] Guild cache empty — fetching via REST...');
     try {
-      await rest.put(Routes.applicationGuildCommands(client.user.id, guild.id), { body: commands });
-    } catch (e) { console.error('Slash Command Fehler:', e.message); }
+      const guildList = await rest.get(Routes.userGuilds());
+      console.log('[COMMANDS] Found', guildList.length, 'guilds via REST');
+      for (const g of guildList) {
+        try {
+          const result = await rest.put(Routes.applicationGuildCommands(client.user.id, g.id), { body: commands });
+          console.log('[COMMANDS] ✅ Registered', result.length, 'commands in guild', g.id, g.name);
+        } catch (e) { console.error('[COMMANDS] ❌ Guild', g.id, ':', e.message); }
+      }
+    } catch (e) { console.error('[COMMANDS] REST guild fetch failed:', e.message); }
+  } else {
+    for (const guild of client.guilds.cache.values()) {
+      try {
+        const result = await rest.put(Routes.applicationGuildCommands(client.user.id, guild.id), { body: commands });
+        console.log('[COMMANDS] ✅ Registered', result.length, 'commands in guild:', guild.name, '('+guild.id+')');
+      } catch (e) { console.error('[COMMANDS] ❌ Slash Command Fehler in', guild.name, ':', e.message); }
+    }
   }
 
   await sendLog(CH.RESTART_LOG, new EmbedBuilder()
