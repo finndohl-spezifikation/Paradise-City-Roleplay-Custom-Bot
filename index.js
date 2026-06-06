@@ -4023,7 +4023,7 @@ client.on('interactionCreate', async (interaction) => {
       if (logCh) await logCh.send({ embeds: [new EmbedBuilder().setColor(0x16a34a).setTitle('✅ Unban')
         .addFields({ name:'Nutzer-ID', value: userId, inline:true },{ name:'Moderator', value:`${interaction.user.tag} (${interaction.user.id})`, inline:true },{ name:'Grund', value:grund })
         .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Mod Log' })] });
-      return interaction.reply({ embeds: [new EmbedBuilder().setColor(0x16a34a).setTitle('✅ Nutzer entbannt').setDescription(`Nutzer `${userId}` wurde vom Server entbannt.`).addFields({ name:'Grund', value:grund }).setTimestamp()], ephemeral: true });
+      return interaction.reply({ embeds: [new EmbedBuilder().setColor(0x16a34a).setTitle('✅ Nutzer entbannt').setDescription(`Nutzer ${userId} wurde vom Server entbannt.`).addFields({ name:'Grund', value:grund }).setTimestamp()], ephemeral: true });
     } catch (e) {
       return interaction.reply({ content: '❌ Unban fehlgeschlagen: ' + e.message, ephemeral: true });
     }
