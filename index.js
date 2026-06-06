@@ -1608,6 +1608,7 @@ client.once('ready', async () => {
           { name: 'Kontogeld',   value: 'konto' },
           { name: 'Bargeld',     value: 'bargeld' },
           { name: 'Schwarzgeld', value: 'schwarz' }
+          { name: 'PC Coins',     value: 'pc_coins' }
         ))
       .addIntegerOption(o => o.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
       .toJSON(),
@@ -1620,6 +1621,7 @@ client.once('ready', async () => {
           { name: 'Kontogeld',   value: 'konto' },
           { name: 'Bargeld',     value: 'bargeld' },
           { name: 'Schwarzgeld', value: 'schwarz' }
+          { name: 'PC Coins',     value: 'pc_coins' }
         ))
       .addIntegerOption(o => o.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
       .toJSON(),
@@ -1664,6 +1666,32 @@ client.once('ready', async () => {
       .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
       .addUserOption(opt => opt.setName('nutzer').setDescription('Welcher Nutzer soll gebannt werden?').setRequired(true))
       .addStringOption(opt => opt.setName('grund').setDescription('Grund für den permanenten Ban').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('unban')
+      .setDescription('Entbannt einen Nutzer vom Server')
+      .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+      .addStringOption(opt => opt.setName('nutzer_id').setDescription('Discord User-ID des gebannten Nutzers').setRequired(true))
+      .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Unban').setRequired(false))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('timeout')
+      .setDescription('Versetzt einen Spieler in einen Timeout')
+      .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+      .addUserOption(opt => opt.setName('spieler').setDescription('Welcher Spieler?').setRequired(true))
+      .addStringOption(opt => opt.setName('dauer').setDescription('Dauer des Timeouts').setRequired(true).addChoices(
+        { name: '5 Minuten',  value: '300000' },
+        { name: '10 Minuten', value: '600000' },
+        { name: '30 Minuten', value: '1800000' },
+        { name: '1 Stunde',   value: '3600000' },
+        { name: '6 Stunden',  value: '21600000' },
+        { name: '12 Stunden', value: '43200000' },
+        { name: '24 Stunden', value: '86400000' },
+        { name: '7 Tage',     value: '604800000' }
+      ))
+      .addStringOption(opt => opt.setName('grund').setDescription('Grund für den Timeout').setRequired(true))
       .toJSON(),
 
     // ─── ATM Raub Commands ──────────────────────────────────────────────────────
@@ -3953,6 +3981,53 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 
+
+  // ── /unban ──────────────────────────────────────────────────────────────────
+  if (commandName === 'unban') {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers) &&
+        !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      return interaction.reply({ content: '❌ Keine Berechtigung für Unbans.', ephemeral: true });
+    }
+    const userId = interaction.options.getString('nutzer_id').trim();
+    const grund  = interaction.options.getString('grund') || 'Kein Grund angegeben';
+    try {
+      await interaction.guild.members.unban(userId, grund);
+      const logCh = await client.channels.fetch(CH.MOD_LOG).catch(() => null);
+      if (logCh) await logCh.send({ embeds: [new EmbedBuilder().setColor(0x16a34a).setTitle('✅ Unban')
+        .addFields({ name:'Nutzer-ID', value: userId, inline:true },{ name:'Moderator', value:`${interaction.user.tag} (${interaction.user.id})`, inline:true },{ name:'Grund', value:grund })
+        .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Mod Log' })] });
+      return interaction.reply({ embeds: [new EmbedBuilder().setColor(0x16a34a).setTitle('✅ Nutzer entbannt').setDescription(`Nutzer `${userId}` wurde vom Server entbannt.`).addFields({ name:'Grund', value:grund }).setTimestamp()], ephemeral: true });
+    } catch (e) {
+      return interaction.reply({ content: '❌ Unban fehlgeschlagen: ' + e.message, ephemeral: true });
+    }
+  }
+
+  // ── /timeout ─────────────────────────────────────────────────────────────────
+  if (commandName === 'timeout') {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers) &&
+        !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      return interaction.reply({ content: '❌ Keine Berechtigung für Timeouts.', ephemeral: true });
+    }
+    const target = interaction.options.getUser('spieler');
+    const dauer  = parseInt(interaction.options.getString('dauer'));
+    const grund  = interaction.options.getString('grund');
+    if (target.id === interaction.user.id)
+      return interaction.reply({ content: '❌ Du kannst dich nicht selbst timeouten.', ephemeral: true });
+    try {
+      const member = await interaction.guild.members.fetch(target.id).catch(() => null);
+      if (!member) return interaction.reply({ content: '❌ Mitglied nicht gefunden.', ephemeral: true });
+      await member.timeout(dauer, grund);
+      const dauerLabel = dauer < 3600000 ? (dauer/60000)+' Min.' : dauer < 86400000 ? (dauer/3600000)+' Std.' : (dauer/86400000)+' Tage';
+      const logCh = await client.channels.fetch(CH.MOD_LOG).catch(() => null);
+      if (logCh) await logCh.send({ embeds: [new EmbedBuilder().setColor(0xf59e0b).setTitle('⏱️ Timeout')
+        .addFields({ name:'Spieler', value:`${target.tag} (${target.id})`, inline:true },{ name:'Moderator', value:`${interaction.user.tag}`, inline:true },{ name:'Dauer', value:dauerLabel, inline:true },{ name:'Grund', value:grund })
+        .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Mod Log' })] });
+      return interaction.reply({ embeds: [new EmbedBuilder().setColor(0xf59e0b).setTitle('⏱️ Timeout gesetzt').addFields({ name:'Spieler', value:`${target.tag}`, inline:true },{ name:'Dauer', value:dauerLabel, inline:true },{ name:'Grund', value:grund }).setTimestamp()], ephemeral: true });
+    } catch (e) {
+      return interaction.reply({ content: '❌ Timeout fehlgeschlagen: ' + e.message, ephemeral: true });
+    }
+  }
+
   if (commandName === 'teamwarn') {
     const target     = interaction.options.getUser('nutzer');
     const grund      = interaction.options.getString('grund');
@@ -4257,9 +4332,6 @@ client.on('interactionCreate', async (interaction) => {
       // Legal: DM mit Ausweis-Link
       const tokens = loadAusweisTokens();
       const pending = Object.values(tokens).find(t => t.userId === target.id && t.expiresAt > Date.now());
-      if (pending) {
-        return interaction.reply({ content: `❌ Für **${target.tag}** läuft bereits ein Erstellungslink. Token: \`${pending.token}\``, ephemeral: true });
-      }
       const tok    = genToken();
       const domain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
       const link   = `https://${domain}/ausweis/create/${tok}`;
@@ -4867,7 +4939,9 @@ client.on('interactionCreate', async (interaction) => {
             setKonto(target.id, k);
             addTrans(target.id, { ts: Date.now(), text: `+${betrag.toLocaleString('de-CH')} ${MONEY_GIF} ${typ === 'konto' ? 'Kontogeld' : 'Schwarzgeld'} (Admin)`, betrag });
           }
-          const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : 'Schwarzgeld';
+          } else if (typ === 'pc_coins') {
+            const w = getWallet(target.id); w.dc = (Number(w.dc)||0) + betrag; setWallet(target.id, w);
+          const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : typ === 'pc_coins' ? 'PC Coins' : 'Schwarzgeld';
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Geld hinzugefügt (/money-add)')
             .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`+${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
@@ -4892,7 +4966,9 @@ client.on('interactionCreate', async (interaction) => {
             setKonto(target.id, k);
             addTrans(target.id, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} ${MONEY_GIF} ${typ === 'konto' ? 'Kontogeld' : 'Schwarzgeld'} (Admin)`, betrag: -betrag });
           }
-          const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : 'Schwarzgeld';
+          } else if (typ === 'pc_coins') {
+            const w2 = getWallet(target.id); w2.dc = Math.max(0, (Number(w2.dc)||0) - betrag); setWallet(target.id, w2);
+          const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : typ === 'pc_coins' ? 'PC Coins' : 'Schwarzgeld';
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Geld abgezogen (/money-remove)')
             .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`-${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
@@ -5071,6 +5147,18 @@ Link: ${link}`, ephemeral: true });
               for (const r of ['1490855719853887569','1490855722534310003','1495982076703539310','1497051373672599622','1490855731950256128','1490855741647618251','1490855728473178282','1490855779694280876','1490855729635135489','1490855750329696446','1490855788829216940','1490855796932739093','1498392324277796965','1490855730767597738','1498393200426221679']) await member.roles.remove(r).catch(() => {});
             }
           } catch {}
+
+        // Log charakter-reset to channel
+        try {
+          const _rLogCh = await client.channels.fetch('1490878131240829028').catch(()=>null);
+          if (_rLogCh) await _rLogCh.send({ embeds: [new EmbedBuilder().setColor(0xE65100)
+            .setTitle('🔄 Charakter-Reset Protokoll')
+            .addFields(
+              { name: '👤 Spieler', value: `<@${uid}> — ${target.tag}`, inline: false },
+              { name: '🛡️ Durchgeführt von', value: `<@${interaction.user.id}> — ${interaction.user.tag}`, inline: false },
+              { name: '🕐 Zeitpunkt', value: `<t:${Math.floor(Date.now()/1000)}:F>`, inline: false }
+            ).setFooter({ text: "Paradise City Roleplay • Charakter-Reset" }).setTimestamp()] });
+        } catch {}
 
         await interaction.editReply({
           embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🔄 Charakter zurückgesetzt')
