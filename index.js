@@ -1634,7 +1634,7 @@ client.once('ready', async () => {
         .addChoices(
           { name: 'Kontogeld',   value: 'konto' },
           { name: 'Bargeld',     value: 'bargeld' },
-          { name: 'Schwarzgeld', value: 'schwarz' }
+          { name: 'Schwarzgeld', value: 'schwarz' },
           { name: 'PC Coins',     value: 'pc_coins' }
         ))
       .addIntegerOption(o => o.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
@@ -1647,7 +1647,7 @@ client.once('ready', async () => {
         .addChoices(
           { name: 'Kontogeld',   value: 'konto' },
           { name: 'Bargeld',     value: 'bargeld' },
-          { name: 'Schwarzgeld', value: 'schwarz' }
+          { name: 'Schwarzgeld', value: 'schwarz' },
           { name: 'PC Coins',     value: 'pc_coins' }
         ))
       .addIntegerOption(o => o.setName('betrag').setDescription('Betrag').setRequired(true).setMinValue(1))
