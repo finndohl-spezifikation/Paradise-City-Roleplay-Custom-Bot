@@ -402,11 +402,14 @@ async function apiFetch(url, opts={}) {
   if (!r.ok) { const e = await r.json().catch(()=>({error:r.statusText})); throw new Error(e.error||r.statusText); }
   return r.json();
 }
+function formatCoins(n) {
+  return Number(n||0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 async function refreshWallet() {
   try {
     const d = await apiFetch('/api/darknet/user/me');
     const el = document.getElementById('wallet-dc');
-    if (el) el.textContent = Number(d.pcCoins||0).toFixed(4) + ' 🪙';
+    if (el) el.textContent = formatCoins(d.pcCoins) + ' 🪙';
   } catch {}
 }
 // Nav token replace
@@ -698,7 +701,7 @@ function render() {
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-top:4px">
-        <div class="price">\${i.price} 🪙</div>
+        <div class="price">\${Number(i.price).toLocaleString('de-DE')} 🪙</div>
         <div class="dn-row" style="gap:4px">\${aktionen}</div>
       </div>
     </div>\`;
@@ -739,7 +742,7 @@ async function createItem() {
 }
 async function kaufen(id, preis) {
   if (!requireToken()) return;
-  if (!confirm('Artikel für ' + preis + ' PC Coins kaufen?')) return;
+  if (!confirm('Artikel für ' + Number(preis).toLocaleString('de-DE') + ' PC Coins kaufen?')) return;
   try {
     const r = await apiFetch('/api/darknet/market/'+id+'/buy', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dc:TOKEN}) });
     alert('Gekauft! Chat wurde geöffnet.');
@@ -810,7 +813,7 @@ async function loadAccount() {
   try {
     const user = await apiFetch('/api/darknet/user/me');
     document.getElementById('username').value = user.username||'';
-    document.getElementById('acc-coins').textContent = Number(user.pcCoins||0).toFixed(4) + ' 🪙';
+    document.getElementById('acc-coins').textContent = formatCoins(user.pcCoins) + ' 🪙';
     document.getElementById('profile-info').innerHTML =
       '<div class="dn-stat"><span class="key">Alias-ID</span><span class="val">' + user.discordUserId.slice(0,4) + '***' + user.discordUserId.slice(-4) + '</span></div>' +
       '<div class="dn-stat"><span class="key">Mitglied seit</span><span class="val">' + new Date(user.createdAt).toLocaleDateString('de-DE') + '</span></div>';
@@ -818,16 +821,16 @@ async function loadAccount() {
       const market = await apiFetch('/api/darknet/market');
       const listings = market.filter(i => i.sellerId === user.discordUserId);
       document.getElementById('my-listings').innerHTML = listings.length
-        ? listings.map(i => '<div class="dn-item" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">' + i.price + ' 🪙 · ' + (i.status==='active'?'● Aktiv':'● Verkauft') + '</div></div>' +
+        ? listings.map(i => '<div class="dn-item" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">' + Number(i.price).toLocaleString('de-DE') + ' 🪙 · ' + (i.status==='active'?'● Aktiv':'● Verkauft') + '</div></div>' +
           (i.status==='active' ? '<button class="dn-btn red" style="padding:4px 10px;font-size:.72em;margin-top:4px" onclick="loescheAngebot(\''+i.id+'\')">🗑 Löschen</button>' : '') + '</div>').join('')
         : '<div style="color:var(--sub);font-size:.8em">Keine aktiven Angebote.</div>';
       const sold = listings.filter(i=>i.status==='sold');
       document.getElementById('my-sales').innerHTML = sold.length
-        ? sold.map(i => '<div class="dn-item"><div><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">Verkauft für ' + i.price + ' 🪙 an ' + (i.buyerUsername||'---') + '</div></div></div>').join('')
+        ? sold.map(i => '<div class="dn-item"><div><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">Verkauft für ' + Number(i.price).toLocaleString('de-DE') + ' 🪙 an ' + (i.buyerUsername||'---') + '</div></div></div>').join('')
         : '<div style="color:var(--sub);font-size:.8em">Noch keine Verkäufe.</div>';
       const bought = market.filter(i => i.buyerId === user.discordUserId);
       document.getElementById('my-buys').innerHTML = bought.length
-        ? bought.map(i => '<div class="dn-item"><div><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">Gekauft für ' + i.price + ' 🪙 von ' + (i.sellerUsername||'---') + '</div></div></div>').join('')
+        ? bought.map(i => '<div class="dn-item"><div><div style="color:var(--grn);font-size:.85em">' + i.title + '</div><div class="meta">Gekauft für ' + Number(i.price).toLocaleString('de-DE') + ' 🪙 von ' + (i.sellerUsername||'---') + '</div></div></div>').join('')
         : '<div style="color:var(--sub);font-size:.8em">Noch keine Einkäufe.</div>';
     } catch(e) {
       ['my-listings','my-sales','my-buys'].forEach(id => {
