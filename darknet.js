@@ -481,13 +481,13 @@ function typeText(el, text, speed=18) {
 <title>${title} — DARKNET</title>
 ${DN_CSS}
 </head><body>
+${DN_SCRIPTS}
 <div class="matrix-rain"></div>
 ${dnHeader(active, token)}
 <div class="dn-wrap">
 ${body}
 </div>
 ${DN_WALLET_BAR}
-${DN_SCRIPTS}
 <script>if(TOKEN) refreshWallet();</script>
 </body></html>`;
   }
