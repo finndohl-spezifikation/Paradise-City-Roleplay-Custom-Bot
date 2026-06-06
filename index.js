@@ -1408,6 +1408,33 @@ client.once('ready', async () => {
       .addUserOption(opt => opt.setName('mitglied').setDescription('Mitglied dessen Ausweis gelöscht werden soll').setRequired(true))
       .toJSON(),
 
+    new SlashCommandBuilder()
+      .setName('fuehrerschein-create')
+      .setDescription('Erstellt einen Führerschein-Link für ein Mitglied')
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
+      .addUserOption(o => o.setName('mitglied').setDescription('Für wen?').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('fuehrerschein')
+      .setDescription('Ruft den eigenen Führerschein ab (nur im Führerschein-Kanal)')
+      .addUserOption(o => o.setName('person').setDescription('Person (optional)').setRequired(false))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('fuehrerschein-delete')
+      .setDescription('Löscht den Führerschein eines Mitglieds')
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
+      .addUserOption(o => o.setName('mitglied').setDescription('Mitglied').setRequired(true))
+      .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('fuehrerschein-edit')
+      .setDescription('Öffnet den Dashboard-Link zum Bearbeiten des Führerscheins')
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
+      .addUserOption(o => o.setName('mitglied').setDescription('Mitglied').setRequired(true))
+      .toJSON(),
+
 
 
     new SlashCommandBuilder()
@@ -4378,6 +4405,63 @@ client.on('interactionCreate', async (interaction) => {
           }
         } catch {}
         return interaction.reply({ content: `✅ Ausweis von **${target.tag}** wurde gelöscht und Rollen zurückgesetzt.`, ephemeral: true });
+    }
+
+    // /fuehrerschein-create
+    if (commandName === 'fuehrerschein-create') {
+      const target = interaction.options.getUser('mitglied');
+      const domain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
+      const tok    = _fsApi.genToken(target.id, interaction.user.id);
+      const link   = `https://${domain}/fuehrerschein/create/${tok}`;
+      try {
+        await target.send({ embeds: [new EmbedBuilder().setColor(0x003087)
+          .setTitle('🚗 Führerschein erstellen — Paradise City')
+          .setDescription('Du wurdest aufgefordert, deinen Führerschein auszufüllen.')
+          .addFields({ name: '🔗 Link', value: `[Hier klicken](${link})`, inline: false }, { name: '⏱️ Gültig bis', value: `<t:${Math.floor((Date.now()+172800000)/1000)}:F>`, inline: false })
+          .setFooter({ text: 'Paradise City Roleplay • Führerschein-Erstellung' }).setTimestamp()] });
+        return interaction.reply({ content: `✅ Führerschein-Link per DM an **${target.tag}** gesendet.`, ephemeral: true });
+      } catch {
+        return interaction.reply({ content: `❌ Konnte keine DM senden. DMs möglicherweise deaktiviert.\nLink: ${link}`, ephemeral: true });
+      }
+    }
+
+    // /fuehrerschein
+    if (commandName === 'fuehrerschein') {
+      const FS_CHANNEL = '1490882590012604538';
+      if (interaction.channelId !== FS_CHANNEL) return interaction.reply({ content: `❌ Dieser Command ist nur in <#${FS_CHANNEL}> erlaubt.`, ephemeral: true });
+      const target = interaction.options.getUser('person') || user;
+      const all = _fsApi.loadFS();
+      const fsEntry = all[target.id];
+      if (!fsEntry) return interaction.reply({ content: target.id === user.id ? '❌ Du hast noch keinen Führerschein.' : `❌ **${target.username}** hat keinen Führerschein.`, ephemeral: true });
+      if (fsEntry.entzogen) return interaction.reply({ content: '🚫 Dieser Führerschein ist derzeit entzogen.', ephemeral: true });
+      await interaction.deferReply();
+      try {
+        const domain2 = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
+        const imgUrl  = `https://${domain2}/fuehrerschein/image/${target.id}`;
+        const res2    = await fetch(imgUrl);
+        const buf2    = Buffer.from(await res2.arrayBuffer());
+        const att2    = new AttachmentBuilder(buf2, { name: `fuehrerschein_${fsEntry.lizenznummer}.png` });
+        await interaction.editReply({ files: [att2], embeds: [new EmbedBuilder().setColor(0x003087).setTitle(`🚗 Führerschein — ${fsEntry.vorname} ${fsEntry.nachname}`).addFields({ name:'Lizenz-Nr.', value:fsEntry.lizenznummer, inline:true },{ name:'Klasse', value:fsEntry.klasse, inline:true },{ name:'Ablauf', value:fsEntry.ablaufdatum, inline:true }).setImage(`attachment://fuehrerschein_${fsEntry.lizenznummer}.png`).setTimestamp()] });
+      } catch(e) {
+        await interaction.editReply({ content: '❌ Bild konnte nicht generiert werden: ' + e.message });
+      }
+    }
+
+    // /fuehrerschein-delete
+    if (commandName === 'fuehrerschein-delete') {
+      const target = interaction.options.getUser('mitglied');
+      const all2   = _fsApi.loadFS();
+      if (!all2[target.id]) return interaction.reply({ content: `❌ **${target.tag}** hat keinen Führerschein.`, ephemeral: true });
+      await fetch(`http://localhost:${process.env.PORT||8080}/api/fuehrerschein/loeschen`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: target.id }) }).catch(()=>{});
+      return interaction.reply({ content: `✅ Führerschein von **${target.tag}** gelöscht.`, ephemeral: true });
+    }
+
+    // /fuehrerschein-edit
+    if (commandName === 'fuehrerschein-edit') {
+      const target = interaction.options.getUser('mitglied');
+      const domain3 = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
+      const editLink = `https://${domain3}/lapd/dashboard?tab=fuehrerscheine`;
+      return interaction.reply({ content: `🔗 **Führerschein bearbeiten:**\n${editLink}\n\nDort im Tab **Führerscheine** den Eintrag von **${target.tag}** bearbeiten.`, ephemeral: true });
     }
   
 
@@ -7543,7 +7627,9 @@ process.on('uncaughtException', (err) => {
 
 // ─── WEB SERVER ───────────────────────────────────────────────────────────────
 const _webMod = require('./web');
+const _fsMod  = require('./fuehrerschein');
 _webMod(client, DATA_DIR, lapdTokens, _shopCb);
+const _fsApi  = _fsMod(app, DATA_DIR, client, require('express'));
 
 // ─── LOGIN (mit Retry) ───────────────────────────────────────────────────────
 if (!process.env.DISCORD_TOKEN) {
