@@ -5262,6 +5262,10 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
 
   // ── Start ────────────────────────────────────────────────────────────────
   const PORT = process.env.PORT || 8080;
+
+  // ── Führerschein-System ─────────────────────────────────────────────────
+  try { require('./fuehrerschein')(app, DATA_DIR, client, express); } catch(e) { console.error('[FUEHRERSCHEIN]', e.message); }
+
   app.listen(PORT, '0.0.0.0', () => console.log('Web-Server running on port '+PORT));
 
 };
