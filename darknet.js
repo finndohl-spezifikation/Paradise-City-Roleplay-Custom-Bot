@@ -166,7 +166,7 @@ module.exports = function initDarknet(app, DATA_DIR, client, darknetTokens) {
     if (item.status !== 'active') return res.status(400).json({ error: 'Bereits verkauft' });
     const buyerWallet  = getKrypto(uid);
     const sellerWallet = getKrypto(item.sellerId);
-    if (buyerWallet.dc < item.price) return res.status(400).json({ error: 'Nicht genug PC Coins' });
+    if (Number(buyerWallet.dc||0) < Number(item.price)) return res.status(400).json({ error: 'Nicht genug PC Coins' });
 
     buyerWallet.dc  -= item.price;
     sellerWallet.dc += item.price;
