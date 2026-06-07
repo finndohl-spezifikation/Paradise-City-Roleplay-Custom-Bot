@@ -52,7 +52,6 @@ const KATEGORIEN = [
   { id:'immobilien',       label:'Immobilien',         icon:'🏠' },
   { id:'kleidung',         label:'Kleidung & Mode',    icon:'👕' },
   { id:'elektronik',       label:'Elektronik',         icon:'💻' },
-  { id:'lebensmittel',     label:'Lebensmittel',       icon:'🍕' },
   { id:'moebel',           label:'Möbel & Wohnen',     icon:'🛋️' },
   { id:'sport',            label:'Sport & Freizeit',   icon:'⚽' },
   { id:'dienstleistungen', label:'Dienstleistungen',   icon:'🛠️' },
