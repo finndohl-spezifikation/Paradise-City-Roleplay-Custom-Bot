@@ -77,14 +77,15 @@ function validateToken(tok) {
 
 // ── categories ────────────────────────────────────────────────────────────────
 const CATS = [
-  { id:'fahrzeuge',   label:'🚗 Fahrzeuge',     icon:'🚗' },
-  { id:'immobilien',  label:'🏠 Immobilien',    icon:'🏠' },
-  { id:'waffen',      label:'🔫 Waffen',         icon:'🔫' },
-  { id:'kleidung',    label:'👕 Kleidung',       icon:'👕' },
-  { id:'drogen',      label:'💊 Drogen',         icon:'💊' },
-  { id:'elektronik',  label:'💻 Elektronik',     icon:'💻' },
+  { id:'fahrzeuge',        label:'🚗 Fahrzeuge',        icon:'🚗' },
+  { id:'immobilien',       label:'🏠 Immobilien',       icon:'🏠' },
+  { id:'kleidung',         label:'👕 Kleidung',         icon:'👕' },
+  { id:'elektronik',       label:'💻 Elektronik',       icon:'💻' },
+  { id:'lebensmittel',     label:'🍕 Lebensmittel',     icon:'🍕' },
+  { id:'moebel',           label:'🛋️ Möbel',            icon:'🛋️' },
+  { id:'sport',            label:'⚽ Sport & Freizeit', icon:'⚽' },
   { id:'dienstleistungen', label:'🛠️ Dienstleistungen', icon:'🛠️' },
-  { id:'sonstiges',   label:'📦 Sonstiges',      icon:'📦' },
+  { id:'sonstiges',        label:'📦 Sonstiges',        icon:'📦' },
 ];
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
@@ -502,6 +503,10 @@ module.exports = function initPcBay(app, DATA_DIR, client) {
 
     res.send(layout('PC Bay — Marketplace', `
 <div class="pb-wrap">
+  <div style="background:#1a1200;border:1px solid #854d0e;border-radius:10px;padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:10px;font-size:.85rem">
+    <span style="font-size:1.2rem">⚖️</span>
+    <span><strong style="color:#f59e0b">Nur legale Artikel!</strong> <span style="color:#aaa">Auf PC Bay dürfen ausschließlich legale Waren &amp; Dienstleistungen angeboten werden. Illegale Angebote werden gelöscht und gemeldet.</span></span>
+  </div>
   <div class="pb-hero">
     <div class="pb-hero-text">
       <h1>Kaufe &amp; Verkaufe auf <span>PC Bay</span></h1>
@@ -815,6 +820,9 @@ async function confirmBuy(id) {
     <div class="breadcrumb"><a href="/pcbay">PC Bay</a> <span>›</span> <span>Verkaufen</span></div>
     <div class="sell-card">
       <h2>🏪 Artikel verkaufen</h2>
+      <div style="background:#1a1200;border:1px solid #854d0e;border-radius:8px;padding:11px 14px;margin-bottom:18px;font-size:.83rem;color:#d97706">
+        ⚖️ <strong>Hinweis:</strong> Nur legale Artikel erlaubt. Keine Waffen, Drogen oder andere illegale Gegenstände.
+      </div>
       ${errMsg}
       <form method="post" action="/pcbay/api/sell" enctype="multipart/form-data">
         <div class="form-group">
@@ -893,6 +901,7 @@ drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag'
     if (!title||!description||!category||!price) return res.redirect('/pcbay/sell?err=Bitte alle Felder ausfüllen');
     const priceNum = parseFloat(price);
     if (isNaN(priceNum)||priceNum<=0) return res.redirect('/pcbay/sell?err=Ungültiger Preis');
+    if (!CATS.find(c=>c.id===category)) return res.redirect('/pcbay/sell?err=Ungültige Kategorie — Nur legale Artikel erlaubt');
 
     let imageId = null;
     if (req.file) {
