@@ -1691,13 +1691,14 @@ async function doSell() {
   #introBox{background:#161b22;border:2px solid #e65100;border-radius:16px;padding:32px 26px;max-width:460px;width:92%;animation:popIn .5s cubic-bezier(.34,1.56,.64,1)}
   @keyframes popIn{from{opacity:0;transform:scale(.6) translateY(60px)}to{opacity:1;transform:scale(1) translateY(0)}}
   @keyframes popOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.7) translateY(40px)}}
+  @keyframes slideDown{from{opacity:0;transform:translateY(-18px)}to{opacity:1;transform:translateY(0)}}
   .mo-title{color:#ffd180;font-size:1.05em;font-weight:700;text-align:center;margin-bottom:22px;letter-spacing:.5px}
   .mo-rule{display:flex;gap:12px;margin-bottom:13px;font-size:.87em;line-height:1.65;color:#c9d1d9;align-items:flex-start}
   .mo-num{background:#e65100;color:#fff;border-radius:50%;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78em;flex-shrink:0;margin-top:2px}
   .mo-wish{text-align:center;color:#3fb950;font-size:.86em;margin:18px 0 24px;font-weight:600;line-height:1.5}
-  #introBtn{display:block;margin:0 auto;padding:13px 40px;background:#e65100;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer;position:relative}
+  #introBtn{display:block;margin:0 auto;padding:13px 40px;background:#e65100;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer}
   /* Page */
-  .wrap{max-width:780px;margin:0 auto;padding:0 16px 40px}
+  .wrap{max-width:820px;margin:0 auto;padding:0 16px 60px}
   .authority{text-align:center;background:linear-gradient(135deg,#bf360c,#e65100);padding:26px 20px 22px;border-radius:14px 14px 0 0;margin-top:20px}
   .authority .seal{font-size:2.4em;margin-bottom:6px}
   .authority h1{color:#fff;font-size:1.05em;letter-spacing:3px;text-transform:uppercase;font-weight:700}
@@ -1706,11 +1707,40 @@ async function doSell() {
   .section-title{color:#ffd180;font-size:.78em;letter-spacing:2px;text-transform:uppercase;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
   .section-title::after{content:'';flex:1;height:1px;background:#e65100;opacity:.35}
   .select-grid{display:grid;gap:14px;margin-top:4px}
-  .select-card{background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:20px;cursor:pointer;transition:all .2s;display:block;text-decoration:none;color:inherit}
-  .select-card:hover{border-color:#e65100;background:#161b22}
-  .select-card .sc-icon{font-size:1.8em;margin-bottom:8px}
-  .select-card .sc-title{font-size:1em;font-weight:700;color:#fff;margin-bottom:4px}
-  .select-card .sc-desc{font-size:.8em;color:#8b949e;line-height:1.5}
+  .select-card{background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:20px;cursor:pointer;transition:all .25s;color:inherit;user-select:none}
+  .select-card:hover{border-color:#e65100;background:#1a1f2b;transform:translateY(-2px)}
+  .select-card.active{border-color:#e65100;background:#1a1f2b;box-shadow:0 0 0 3px rgba(230,81,0,.18)}
+  .sc-icon{font-size:1.8em;margin-bottom:8px}
+  .sc-title{font-size:1em;font-weight:700;color:#fff;margin-bottom:4px}
+  .sc-desc{font-size:.8em;color:#8b949e;line-height:1.5}
+  /* Form panel */
+  #formPanel{display:none;animation:slideDown .38s cubic-bezier(.22,1,.36,1);margin-top:20px}
+  #formPanel.visible{display:block}
+  .fp-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #30363d}
+  .fp-icon{font-size:1.6em}
+  .fp-title{font-size:1.1em;font-weight:700;color:#fff}
+  .fp-sub{font-size:.78em;color:#8b949e;margin-top:2px}
+  .back-btn{background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:6px 14px;font-size:.8em;cursor:pointer;margin-left:auto;transition:all .2s}
+  .back-btn:hover{border-color:#e65100;color:#e65100}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .form-row.one{grid-template-columns:1fr}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  label{font-size:.75em;color:#8b949e;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  .req{color:#e65100}
+  input,select,textarea{background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e0e0e0;padding:9px 12px;font-size:.9em;width:100%;font-family:inherit;transition:border-color .2s}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#e65100}
+  textarea{resize:vertical;min-height:70px}
+  .btn-submit{background:#e65100;color:#fff;border:none;border-radius:8px;padding:13px 28px;font-size:.95em;font-weight:700;cursor:pointer;width:100%;margin-top:8px;transition:background .2s}
+  .btn-submit:hover{background:#bf360c}
+  .sec-label{color:#ffd180;font-size:.72em;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+  .sec-label::after{content:'';flex:1;height:1px;background:#e65100;opacity:.3}
+  .file-wrap{background:#0d1117;border:2px dashed #30363d;border-radius:8px;padding:18px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative}
+  .file-wrap:hover{border-color:#e65100}
+  .file-wrap input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .file-wrap-label{font-size:.85em;color:#8b949e}
+  .file-name-display{font-size:.8em;color:#e65100;margin-top:6px;min-height:1em}
+  .warn-box{background:#1c1000;border:1px solid #e65100;border-radius:6px;padding:10px 14px;font-size:.78em;color:#ffb74d;margin-top:14px;line-height:1.5}
+  @media(max-width:560px){.form-row{grid-template-columns:1fr}}
   </style>
   </head><body>
   <div id="introOverlay">
@@ -1723,19 +1753,7 @@ async function doSell() {
       <button id="introBtn">Ich habe verstanden ✅</button>
     </div>
   </div>
-  <script>
-  (function(){
-    var btn=document.getElementById('introBtn');
-    var ov=document.getElementById('introOverlay');
-    var box=document.getElementById('introBox');
-    document.body.style.overflow='hidden';
-    function done(){
-        box.style.animation='popOut .35s ease forwards';
-        setTimeout(function(){ov.style.display='none';document.body.style.overflow='';},340);
-      }
-      btn.addEventListener('click',done);
-  })();
-  </script>
+
   <div class="wrap">
     <div class="authority">
       <div class="seal">🏛️</div>
@@ -1745,24 +1763,168 @@ async function doSell() {
     <div class="card">
       <p class="section-title">Einreiseweg wählen</p>
       <div class="select-grid">
-        <a class="select-card" href="/einreise/legal">
-            <div class="sc-icon">🟢</div>
-            <div class="sc-title">Legale Einreise</div>
-            <div class="sc-desc">Du reist offiziell ein und bist legal im Staat registriert. Du erhältst einen Ausweis und darfst staatliche Jobs ausführen. Illegale Aktivitäten sind verboten.</div>
-          </a>
-        <a class="select-card" href="/einreise/illegal">
-            <div class="sc-icon">🔴</div>
-            <div class="sc-title">Illegale Einreise</div>
-            <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du kannst illegale Aktivitäten ausführen — werde nicht erwischt.</div>
-          </a>
-        <a class="select-card" href="/einreise/gruppe">
+        <div class="select-card" onclick="selectType('legal',this)">
+          <div class="sc-icon">🟢</div>
+          <div class="sc-title">Legale Einreise</div>
+          <div class="sc-desc">Du reist offiziell ein und bist legal im Staat registriert. Du erhältst einen Ausweis und darfst staatliche Jobs ausführen.</div>
+        </div>
+        <div class="select-card" onclick="selectType('illegal',this)">
+          <div class="sc-icon">🔴</div>
+          <div class="sc-title">Illegale Einreise</div>
+          <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du kannst illegale Aktivitäten ausführen.</div>
+        </div>
+        <div class="select-card" onclick="selectType('gruppe',this)">
           <div class="sc-icon">🟡</div>
           <div class="sc-title">Gruppen Einreise</div>
           <div class="sc-desc">Ab mindestens 4 Personen. Alle müssen denselben Lebensweg wählen und erhalten exklusive Gruppen-Boni.</div>
-        </a>
+        </div>
+      </div>
+
+      <!-- Animated Form Panel -->
+      <div id="formPanel">
+        <div id="formInner"></div>
       </div>
     </div>
   </div>
+
+  <script>
+  (function(){
+    var btn=document.getElementById('introBtn');
+    var ov=document.getElementById('introOverlay');
+    var box=document.getElementById('introBox');
+    document.body.style.overflow='hidden';
+    btn.addEventListener('click',function(){
+      box.style.animation='popOut .35s ease forwards';
+      setTimeout(function(){ov.style.display='none';document.body.style.overflow='';},340);
+    });
+  })();
+
+  var FORMS = {
+    legal: {
+      icon: '🟢', title: 'Legale Einreise', sub: 'Ausweis wird erstellt — nur korrekte IC-Daten angeben',
+      action: '/einreise/legal',
+      html: \`
+        <div class="sec-label">💬 Discord Nutzername</div>
+        <div class="form-row one"><div class="form-group">
+          <label>Discord Nutzername <span class="req">*</span></label>
+          <input type="text" name="discord_username" placeholder="z.B. maxmustermann" required autocomplete="off">
+          <small style="color:#e8a000;margin-top:4px;display:block;font-size:.75em">⚠️ Groß- und Kleinschreibung beachten</small>
+        </div></div>
+        <div class="sec-label">📋 IC Charakter Daten</div>
+        <div class="form-row">
+          <div class="form-group"><label>Vorname <span class="req">*</span></label><input type="text" name="vorname_0" required maxlength="50"></div>
+          <div class="form-group"><label>Nachname <span class="req">*</span></label><input type="text" name="nachname_0" required maxlength="50"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Geburtsdatum <span class="req">*</span></label><input type="date" name="geburtsdatum_0" required></div>
+          <div class="form-group"><label>Geburtsort <span class="req">*</span></label><input type="text" name="geburtsort_0" required maxlength="100"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Nationalität <span class="req">*</span></label><input type="text" name="nationalitaet_0" required maxlength="100"></div>
+          <div class="form-group"><label>Geschlecht <span class="req">*</span></label>
+            <select name="geschlecht_0" required><option value="" disabled selected>Bitte wählen</option><option>Männlich</option><option>Weiblich</option></select>
+          </div>
+        </div>
+        <div class="form-row one"><div class="form-group"><label>PSN-Name <span class="req">*</span></label><input type="text" name="psn_0" required maxlength="50"></div></div>
+        <div class="sec-label">📷 Passbild</div>
+        <div class="form-group">
+          <div class="file-wrap" id="fotoWrap">
+            <input type="file" name="foto" accept="image/*" required onchange="showFileName(this,'fotoName')">
+            <div class="file-wrap-label">📷 Passbild hochladen<br><small>JPG / PNG — max. 8 MB</small></div>
+            <div class="file-name-display" id="fotoName"></div>
+          </div>
+        </div>
+        <div class="warn-box">⚠️ IC-Daten sind nach der Einreise nicht mehr änderbar — nur durch den Tod deines Charakters.</div>
+      \`
+    },
+    illegal: {
+      icon: '🔴', title: 'Illegale Einreise', sub: 'Kein Ausweis, keine staatlichen Jobs',
+      action: '/einreise/illegal',
+      html: \`
+        <div class="sec-label">💬 Discord Nutzername</div>
+        <div class="form-row one"><div class="form-group">
+          <label>Discord Nutzername <span class="req">*</span></label>
+          <input type="text" name="discord_username" placeholder="z.B. maxmustermann" required autocomplete="off">
+          <small style="color:#e8a000;margin-top:4px;display:block;font-size:.75em">⚠️ Groß- und Kleinschreibung beachten</small>
+        </div></div>
+        <div class="sec-label">📋 IC Charakter Daten</div>
+        <div class="form-row">
+          <div class="form-group"><label>Vorname <span class="req">*</span></label><input type="text" name="vorname_0" required maxlength="50"></div>
+          <div class="form-group"><label>Nachname <span class="req">*</span></label><input type="text" name="nachname_0" required maxlength="50"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Geburtsdatum <span class="req">*</span></label><input type="date" name="geburtsdatum_0" required></div>
+          <div class="form-group"><label>Geburtsort <span class="req">*</span></label><input type="text" name="geburtsort_0" required maxlength="100"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Nationalität <span class="req">*</span></label><input type="text" name="nationalitaet_0" required maxlength="100"></div>
+          <div class="form-group"><label>Geschlecht <span class="req">*</span></label>
+            <select name="geschlecht_0" required><option value="" disabled selected>Bitte wählen</option><option>Männlich</option><option>Weiblich</option></select>
+          </div>
+        </div>
+        <div class="form-row one"><div class="form-group"><label>PSN-Name <span class="req">*</span></label><input type="text" name="psn_0" required maxlength="50"></div></div>
+      \`
+    },
+    gruppe: {
+      icon: '🟡', title: 'Gruppen Einreise', sub: 'Min. 4 Personen — alle müssen denselben Lebensweg wählen',
+      action: '/einreise/gruppe',
+      html: \`
+        <div class="warn-box" style="margin-bottom:14px">🟡 Bitte gib alle Mitglieder der Gruppe auf der nächsten Seite an.</div>
+        <div class="sec-label">💬 Discord Nutzername (Gruppenleiter)</div>
+        <div class="form-row one"><div class="form-group">
+          <label>Discord Nutzername <span class="req">*</span></label>
+          <input type="text" name="discord_username" placeholder="z.B. maxmustermann" required autocomplete="off">
+        </div></div>
+      \`
+    }
+  };
+
+  function selectType(type, el) {
+    document.querySelectorAll('.select-card').forEach(function(c){ c.classList.remove('active'); });
+    el.classList.add('active');
+    var f = FORMS[type];
+    var panel = document.getElementById('formPanel');
+    var inner = document.getElementById('formInner');
+    inner.innerHTML = \`
+      <div class="fp-header">
+        <span class="fp-icon">\${f.icon}</span>
+        <div><div class="fp-title">\${f.title}</div><div class="fp-sub">\${f.sub}</div></div>
+        <button class="back-btn" type="button" onclick="closeForm()">← Zurück</button>
+      </div>
+      <form method="POST" action="\${f.action}" enctype="multipart/form-data">
+        \${f.html}
+        <button type="submit" class="btn-submit" style="margin-top:18px">✅ Einreise bestätigen</button>
+      </form>
+    \`;
+    panel.classList.remove('visible');
+    panel.style.display = 'block';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        panel.style.animation = 'none';
+        panel.offsetHeight;
+        panel.style.animation = 'slideDown .38s cubic-bezier(.22,1,.36,1)';
+        panel.classList.add('visible');
+        setTimeout(function(){ panel.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 80);
+      });
+    });
+
+    var fi = inner.querySelector('input[type=file]');
+    if(fi){ fi.addEventListener('change', function(){ showFileName(this, inner.querySelector('.file-name-display')); }); }
+  }
+
+  function showFileName(input, displayEl) {
+    if(typeof displayEl === 'string') displayEl = document.getElementById(displayEl);
+    if(!displayEl) return;
+    displayEl.textContent = input.files && input.files[0] ? '📎 ' + input.files[0].name : '';
+  }
+
+  function closeForm() {
+    var panel = document.getElementById('formPanel');
+    panel.style.animation = 'popOut .25s ease forwards';
+    setTimeout(function(){ panel.classList.remove('visible'); panel.style.display='none'; }, 240);
+    document.querySelectorAll('.select-card').forEach(function(c){ c.classList.remove('active'); });
+  }
+  </script>
   </body></html>`);
     });
 
@@ -4526,23 +4688,32 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
     } else if (tab === 'persons') {
       const persons = loadPersons().sort((a,b)=>b.ts-a.ts);
       const persHtml = persons.length
-        ? persons.map(p=>'<div class="ann-card">'
-          +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">'
-          +'<h4>'+esc(p.lastName)+', '+esc(p.firstName)+'</h4>'
-          +(canMod?'<form method="POST" action="/lapd/dashboard/del-person/'+esc(p.id)+'?tab=persons" style="display:inline"><button class="btn sm red" type="submit">Löschen</button></form>':'')
-          +'</div>'
-          +'<div class="info-card" style="margin-top:7px">'
-          +(p.dob?'<div class="info-row"><span class="info-l">Geburtsdatum</span><span class="info-v">'+esc(p.dob)+'</span></div>':'')
-          +(p.address?'<div class="info-row"><span class="info-l">Adresse</span><span class="info-v">'+esc(p.address)+'</span></div>':'')
-          +(p.nationality?'<div class="info-row"><span class="info-l">Staatsangeh.</span><span class="info-v">'+esc(p.nationality)+'</span></div>':'')
-          +(p.notes?'<div class="info-row"><span class="info-l">Notizen</span><span class="info-v">'+esc(p.notes)+'</span></div>':'')
-          +'</div>'
-          +'<div style="font-size:.68rem;color:#6b7280;margin-top:5px">Erfasst von '+esc(p.authorName)+' - '+dbFmtDate(p.ts)+'</div>'
-          +'</div>').join('')
+        ? persons.map((p,i)=>{
+            const detailId='pers-detail-'+i;
+            return '<div class="ann-card" style="padding:10px 14px">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
+              +'<button onclick="_toggleDetail(\''+detailId+'\')" style="background:none;border:none;cursor:pointer;text-align:left;flex:1;padding:0">'
+              +'<h4 style="color:#e0e0e0;font-size:.9rem;margin:0">🪪 '+esc(p.lastName)+', '+esc(p.firstName)+'</h4>'
+              +'</button>'
+              +'<div style="display:flex;gap:6px;align-items:center">'
+              +'<span style="font-size:.7rem;color:#4a6080">▼ Details</span>'
+              +(canMod?'<form method="POST" action="/lapd/dashboard/del-person/'+esc(p.id)+'?tab=persons" style="display:inline"><button class="btn sm red" type="submit">Löschen</button></form>':'')
+              +'</div></div>'
+              +'<div id="'+detailId+'" style="display:none;margin-top:10px;overflow:hidden;transition:all .3s">'
+              +'<div class="info-card">'
+              +(p.dob?'<div class="info-row"><span class="info-l">Geburtsdatum</span><span class="info-v">'+esc(p.dob)+'</span></div>':'')
+              +(p.address?'<div class="info-row"><span class="info-l">Adresse</span><span class="info-v">'+esc(p.address)+'</span></div>':'')
+              +(p.nationality?'<div class="info-row"><span class="info-l">Staatsangeh.</span><span class="info-v">'+esc(p.nationality)+'</span></div>':'')
+              +(p.notes?'<div class="info-row"><span class="info-l">Notizen</span><span class="info-v">'+esc(p.notes)+'</span></div>':'')
+              +'</div>'
+              +'<div style="font-size:.68rem;color:#6b7280;margin-top:5px">Erfasst von '+esc(p.authorName)+' - '+dbFmtDate(p.ts)+'</div>'
+              +'</div></div>';
+          }).join('')
         : '<p class="muted">Keine Personenakten vorhanden.</p>';
 
       const persSearch = '<div style="padding:10px 0 0">'+'<input id="persSearch" type="text" placeholder="🔍 Name suchen..." oninput="_flt(\'pers-list\',this.value)" style="width:100%;padding:8px 11px;background:#060f27;border:1px solid #1a3a78;border-radius:7px;color:#e0e0e0;font-size:.8rem;outline:none"></div>';
-      content = '<div class="sec"><div class="sh" style="border-left:3px solid #ab47bc"><h3 style="color:#ab47bc">Personenakten</h3></div>'
+      content = '<script>function _toggleDetail(id){var el=document.getElementById(id);if(el)el.style.display=el.style.display===\'none\'?\'block\':\'none\';}</script>'
+        +'<div class="sec"><div class="sh" style="border-left:3px solid #ab47bc"><h3 style="color:#ab47bc">Personenakten</h3></div>'
         +'<div class="sb">'+persSearch+'<div id="pers-list">'+persHtml+'</div></div></div>'
         +'<div class="sec"><div class="sh" style="border-left:3px solid #ab47bc"><h3 style="color:#ab47bc">Person erfassen</h3></div>'
         +'<div class="sb"><form method="POST" action="/lapd/dashboard/person?tab=persons">'
@@ -4558,17 +4729,27 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
     } else if (tab === 'vehicles') {
       const vehs = loadVehicles().sort((a,b)=>b.ts-a.ts);
       const vehHtml = vehs.length
-        ? '<table><thead><tr><th>Kennzeichen</th><th>Marke/Modell</th><th>Farbe</th><th>Eigentuemer</th><th>Status</th>'+(canMod?'<th></th>':'')+'</tr></thead><tbody>'
-          +vehs.map(v=>{
+        ? vehs.map((v,i)=>{
             const sc = v.status==='gestohlen'?'color:#f87171':v.status==='gesucht'?'color:#fcd34d':'color:#86efac';
-            return '<tr><td><strong>'+esc(v.plate)+'</strong></td>'
-              +'<td>'+esc(v.make)+' '+esc(v.model)+'</td>'
-              +'<td>'+esc(v.color)+'</td>'
-              +'<td>'+esc(v.owner)+'</td>'
-              +'<td><span style="'+sc+'">'+esc(v.status)+'</span></td>'
-              +(canMod?'<td><form method="POST" action="/lapd/dashboard/del-vehicle/'+esc(v.id)+'?tab=vehicles" style="display:inline"><button class="btn sm red" type="submit">X</button></form></td>':'')
-              +'</tr>';
-          }).join('')+'</tbody></table>'
+            const detailId='veh-detail-'+i;
+            return '<div class="ann-card" style="padding:10px 14px">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
+              +'<button onclick="_toggleDetail(\''+detailId+'\')" style="background:none;border:none;cursor:pointer;text-align:left;flex:1;padding:0">'
+              +'<h4 style="color:#e0e0e0;font-size:.9rem;margin:0">🚗 '+esc(v.plate)+' — '+esc(v.owner)+'</h4>'
+              +'</button>'
+              +'<div style="display:flex;gap:6px;align-items:center">'
+              +'<span style="font-size:.7rem;'+sc+'">'+esc(v.status)+'</span>'
+              +'<span style="font-size:.7rem;color:#4a6080">▼</span>'
+              +(canMod?'<form method="POST" action="/lapd/dashboard/del-vehicle/'+esc(v.id)+'?tab=vehicles" style="display:inline"><button class="btn sm red" type="submit">X</button></form>':'')
+              +'</div></div>'
+              +'<div id="'+detailId+'" style="display:none;margin-top:10px">'
+              +'<div class="info-card">'
+              +'<div class="info-row"><span class="info-l">Marke / Modell</span><span class="info-v">'+esc(v.make)+' '+esc(v.model)+'</span></div>'
+              +'<div class="info-row"><span class="info-l">Farbe</span><span class="info-v">'+esc(v.color)+'</span></div>'
+              +'<div class="info-row"><span class="info-l">Eigentümer</span><span class="info-v">'+esc(v.owner)+'</span></div>'
+              +'<div class="info-row"><span class="info-l">Status</span><span class="info-v" style="'+sc+'">'+esc(v.status)+'</span></div>'
+              +'</div></div></div>';
+          }).join('')
         : '<p class="muted">Keine Fahrzeugakten vorhanden.</p>';
 
       const vehSearch = '<div style="padding:10px 0 0">'+'<input id="vehSearch" type="text" placeholder="🔍 Kennzeichen / Besitzer suchen..." oninput="_flt(\'veh-list\',this.value)" style="width:100%;padding:8px 11px;background:#060f27;border:1px solid #1a3a78;border-radius:7px;color:#e0e0e0;font-size:.8rem;outline:none"></div>';
@@ -4592,19 +4773,27 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
     } else if (tab === 'crimes') {
       const crimes = loadCrimes().sort((a,b)=>b.ts-a.ts);
       const crimeHtml = crimes.length
-        ? crimes.map(x=>'<div class="ann-card">'
-          +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">'
-          +'<h4>'+esc(x.personName)+'</h4>'
-          +(canMod?'<form method="POST" action="/lapd/dashboard/del-crime/'+esc(x.id)+'?tab=crimes" style="display:inline"><button class="btn sm red" type="submit">Löschen</button></form>':'')
-          +'</div>'
-          +'<div class="info-card" style="margin-top:5px">'
-          +'<div class="info-row"><span class="info-l">Vergehen</span><span class="info-v">'+esc(x.offense)+'</span></div>'
-          +(x.penalty?'<div class="info-row"><span class="info-l">Strafe</span><span class="info-v" style="color:#fcd34d">'+esc(x.penalty)+'</span></div>':'')
-          +'<div class="info-row"><span class="info-l">Datum</span><span class="info-v">'+esc(x.date)+'</span></div>'
-          +(x.notes?'<div class="info-row"><span class="info-l">Notiz</span><span class="info-v">'+esc(x.notes)+'</span></div>':'')
-          +'</div>'
-          +'<div style="font-size:.68rem;color:#6b7280;margin-top:4px">Erfasst von '+esc(x.authorName)+' ('+esc(x.rankName)+') - '+dbFmtTime(x.ts)+'</div>'
-          +'</div>').join('')
+        ? crimes.map((x,i)=>{
+            const detailId='crime-detail-'+i;
+            return '<div class="ann-card" style="padding:10px 14px">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
+              +'<button onclick="_toggleDetail(\''+detailId+'\')" style="background:none;border:none;cursor:pointer;text-align:left;flex:1;padding:0">'
+              +'<h4 style="color:#e0e0e0;font-size:.9rem;margin:0">📁 '+esc(x.personName)+'</h4>'
+              +'</button>'
+              +'<div style="display:flex;gap:6px;align-items:center">'
+              +'<span style="font-size:.7rem;color:#4a6080">▼ Details</span>'
+              +(canMod?'<form method="POST" action="/lapd/dashboard/del-crime/'+esc(x.id)+'?tab=crimes" style="display:inline"><button class="btn sm red" type="submit">Löschen</button></form>':'')
+              +'</div></div>'
+              +'<div id="'+detailId+'" style="display:none;margin-top:10px">'
+              +'<div class="info-card">'
+              +'<div class="info-row"><span class="info-l">Vergehen</span><span class="info-v">'+esc(x.offense)+'</span></div>'
+              +(x.penalty?'<div class="info-row"><span class="info-l">Strafe</span><span class="info-v" style="color:#fcd34d">'+esc(x.penalty)+'</span></div>':'')
+              +'<div class="info-row"><span class="info-l">Datum</span><span class="info-v">'+esc(x.date)+'</span></div>'
+              +(x.notes?'<div class="info-row"><span class="info-l">Notiz</span><span class="info-v">'+esc(x.notes)+'</span></div>':'')
+              +'</div>'
+              +'<div style="font-size:.68rem;color:#6b7280;margin-top:4px">Erfasst von '+esc(x.authorName)+' ('+esc(x.rankName)+') - '+dbFmtTime(x.ts)+'</div>'
+              +'</div></div>';
+          }).join('')
         : '<p class="muted">Keine Strafakten vorhanden.</p>';
 
       const crimeSearch = '<div style="padding:10px 0 0">'+'<input id="crimeSearch" type="text" placeholder="🔍 Person / Vergehen suchen..." oninput="_flt(\'crime-list\',this.value)" style="width:100%;padding:8px 11px;background:#060f27;border:1px solid #1a3a78;border-radius:7px;color:#e0e0e0;font-size:.8rem;outline:none"></div>';
@@ -4796,24 +4985,20 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
     } else if (tab === 'fuehrerscheine') {
       const fsData = (() => { try { const d=require('fs').readFileSync(require('path').join(DATA_DIR,'fuehrerschein','lizenzen.json'),'utf8'); return JSON.parse(d); } catch { return {}; } })();
       const fsList = Object.values(fsData).sort((a,b)=>(a.nachname||'').localeCompare(b.nachname||''));
-      const fsRows = fsList.length ? fsList.map(f=>{
-        const entzogen = f.entzogen ? '<span style="color:#ef4444;font-weight:700">⚠ ENTZOGEN</span>' : '<span style="color:#22c55e">✅ Aktiv</span>';
+      const fsRows = fsList.length ? fsList.map((f,i)=>{
+        const entzogen = f.entzogen ? '<span style="color:#ef4444;font-weight:700;font-size:.75rem">⚠ ENTZOGEN</span>' : '<span style="color:#22c55e;font-size:.75rem">✅ Aktiv</span>';
         const imgUrl = '/fuehrerschein/image/'+f.userId;
-        return '<div class="ann-card" style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">'
-          +'<img src="'+imgUrl+'" style="width:220px;border-radius:6px;flex-shrink:0">'
-          +'<div style="flex:1;min-width:200px">'
-          +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
-          +'<h4 style="margin:0">'+esc(f.vorname)+' '+esc(f.nachname)+'</h4>'
-          +entzogen
+        const detailId = 'fs-detail-'+i;
+        return '<div class="ann-card" style="padding:10px 14px">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
+          +'<button onclick="_toggleDetail(\''+detailId+'\')" style="background:none;border:none;cursor:pointer;text-align:left;flex:1;padding:0">'
+          +'<h4 style="color:#e0e0e0;font-size:.9rem;margin:0">🚗 '+esc(f.vorname)+' '+esc(f.nachname)+'</h4>'
+          +'</button>'
+          +'<div style="display:flex;gap:8px;align-items:center">'+entzogen+'<span style="font-size:.7rem;color:#4a6080">▼</span></div>'
           +'</div>'
-          +'<div class="info-card" style="margin-top:8px">'
-          +'<div class="info-row"><span class="info-l">Lizenz-Nr.</span><span class="info-v">'+esc(f.lizenznummer)+'</span></div>'
-          +'<div class="info-row"><span class="info-l">Klasse</span><span class="info-v">'+esc(f.klasse)+'</span></div>'
-          +'<div class="info-row"><span class="info-l">Ablauf</span><span class="info-v">'+esc(f.ablaufdatum)+'</span></div>'
-          +'<div class="info-row"><span class="info-l">PSN</span><span class="info-v">'+esc(f.psn)+'</span></div>'
-          +'<div class="info-row"><span class="info-l">Geburtsdatum</span><span class="info-v">'+esc(f.geburtsdatum)+'</span></div>'
-          +'</div>'
-          +(canMod ? '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'
+          +'<div id="'+detailId+'" style="display:none;margin-top:12px">'
+          +'<img src="'+imgUrl+'" style="width:100%;max-width:480px;border-radius:8px;display:block;margin-bottom:10px">'
+          +(canMod ? '<div style="display:flex;gap:8px;flex-wrap:wrap">'
             +(!f.entzogen
               ? '<form method="POST" action="/lapd/dashboard/fs-entziehen/'+f.userId+'?tab=fuehrerscheine"><select name="dauer" style="background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:.8em"><option value="86400000">1 Tag</option><option value="259200000">3 Tage</option><option value="604800000">7 Tage</option><option value="1209600000">14 Tage</option><option value="2592000000">30 Tage</option><option value="0">Unbefristet</option></select><input name="grund" placeholder="Grund" style="background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:.8em;width:140px"><button type="submit" class="lbtn" style="background:#ef4444;border:none;padding:5px 12px">Entziehen</button></form>'
               : '<form method="POST" action="/lapd/dashboard/fs-zurueck/'+f.userId+'?tab=fuehrerscheine"><button type="submit" class="lbtn" style="background:#22c55e;border:none;padding:5px 12px">Zurückgeben</button></form>')
