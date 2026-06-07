@@ -278,6 +278,13 @@ const ABSTIMMUNGEN_FILE = path.join(DATA_DIR, 'abstimmungen.json');
 if (!fs.existsSync(ABSTIMMUNGEN_FILE)) fs.writeFileSync(ABSTIMMUNGEN_FILE, '{}', 'utf8');
 function loadAbstimmungen()  { try { return JSON.parse(fs.readFileSync(ABSTIMMUNGEN_FILE, 'utf8')); } catch { return {}; } }
 function saveAbstimmungen(d) { fs.writeFileSync(ABSTIMMUNGEN_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+
+// ─── Lobby-Poll-System ───────────────────────────────────────────────────────
+const LOBBY_POLLS_FILE = path.join(DATA_DIR, 'lobby_polls.json');
+if (!fs.existsSync(LOBBY_POLLS_FILE)) fs.writeFileSync(LOBBY_POLLS_FILE, '{}', 'utf8');
+function loadLobbyPolls()  { try { return JSON.parse(fs.readFileSync(LOBBY_POLLS_FILE, 'utf8')); } catch { return {}; } }
+function saveLobbyPolls(d) { fs.writeFileSync(LOBBY_POLLS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+
 function makeBar(count, total) {
   const pct    = total === 0 ? 0 : Math.round((count / total) * 100);
   const filled = total === 0 ? 0 : Math.round((count / total) * 20);
@@ -3268,6 +3275,43 @@ client.on('messageReactionAdd', async (reaction, user) => {
       return;
     }
 
+    // ── Lobby-Abstimmung ──
+    const lobbyPolls = loadLobbyPolls();
+    const lobbyPoll  = lobbyPolls[reaction.message.id];
+    if (lobbyPoll) {
+      const emoji = reaction.emoji.name;
+      const validEmojis = ['✅', '🕒', '❌'];
+      if (validEmojis.includes(emoji)) {
+        const prevVote = lobbyPoll.voters ? lobbyPoll.voters[user.id] : null;
+        if (prevVote && prevVote !== emoji) {
+          const prevReaction = reaction.message.reactions.cache.get(prevVote);
+          if (prevReaction) await prevReaction.users.remove(user.id).catch(() => {});
+        }
+        if (!lobbyPoll.voters) lobbyPoll.voters = {};
+        lobbyPoll.voters[user.id] = emoji;
+        saveLobbyPolls(lobbyPolls);
+      }
+      return;
+    }
+
+    // ── Vorschlag ──
+    const vorschlaegeRct = loadVorschlaege();
+    const vorschlagRct = vorschlaegeRct.find(v => v.msgId === reaction.message.id);
+    if (vorschlagRct) {
+      const emoji = reaction.emoji.name;
+      if (emoji === '✅' || emoji === '❌') {
+        if (!vorschlagRct.voters) vorschlagRct.voters = {};
+        const prevVoteV = vorschlagRct.voters[user.id];
+        if (prevVoteV && prevVoteV !== emoji) {
+          const prevReactionV = reaction.message.reactions.cache.get(prevVoteV);
+          if (prevReactionV) await prevReactionV.users.remove(user.id).catch(() => {});
+        }
+        vorschlagRct.voters[user.id] = emoji;
+        saveVorschlaege(vorschlaegeRct);
+      }
+      return;
+    }
+
     // ── Aktivitätscheck ──
     const aktChecks = loadAktivitaet();
     const aktCheck  = aktChecks[reaction.message.id];
@@ -3308,6 +3352,30 @@ client.on('messageReactionRemove', async (reaction, user) => {
         delete poll.voters[user.id];
         saveAbstimmungen(polls);
         await reaction.message.edit({ embeds: [buildAbstimmungEmbed(poll)] }).catch(() => {});
+      }
+      return;
+    }
+
+    // ── Lobby-Abstimmung ──
+    const lobbyPollsRm = loadLobbyPolls();
+    const lobbyPollRm  = lobbyPollsRm[reaction.message.id];
+    if (lobbyPollRm) {
+      const emoji = reaction.emoji.name;
+      if (lobbyPollRm.voters && lobbyPollRm.voters[user.id] === emoji) {
+        delete lobbyPollRm.voters[user.id];
+        saveLobbyPolls(lobbyPollsRm);
+      }
+      return;
+    }
+
+    // ── Vorschlag ──
+    const vorschlaegeRm = loadVorschlaege();
+    const vorschlagRm = vorschlaegeRm.find(v => v.msgId === reaction.message.id);
+    if (vorschlagRm && vorschlagRm.voters) {
+      const emoji = reaction.emoji.name;
+      if (vorschlagRm.voters[user.id] === emoji) {
+        delete vorschlagRm.voters[user.id];
+        saveVorschlaege(vorschlaegeRm);
       }
       return;
     }
@@ -4822,6 +4890,9 @@ client.on('interactionCreate', async (interaction) => {
             await interaction.reply({ content: '✅ Abstimmung gesendet!', ephemeral: true });
             const msg = await ch.send({ content: `<@&${LOBBY_ROLE}>`, embeds: [embed] });
             await msg.react('✅'); await msg.react('🕒'); await msg.react('❌');
+            const lPolls = loadLobbyPolls();
+            lPolls[msg.id] = { voters: {}, channelId: LOBBY_CH, createdAt: Date.now() };
+            saveLobbyPolls(lPolls);
             return;
           }
 
