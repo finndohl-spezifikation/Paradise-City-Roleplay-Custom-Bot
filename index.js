@@ -4196,8 +4196,8 @@ client.on('interactionCreate', async (interaction) => {
     const grund  = interaction.options.getString('grund');
     const warns  = loadPlayerWarns();
     if (!warns[target.id]) warns[target.id] = [];
-    if (warns[target.id].length >= 5)
-      return interaction.reply({ content: '\u274C **' + target.username + '** hat bereits 5 Warns (Maximum).', ephemeral: true });
+    if (warns[target.id].length >= 3)
+      return interaction.reply({ content: '❌ **' + target.username + '** hat bereits 3 Warns (Maximum).', ephemeral: true });
     const warnNum = warns[target.id].length + 1;
     const roleId  = PLAYER_WARN_ROLES[warnNum - 1];
     const entry   = { id: Date.now().toString(), nummer: warnNum, grund, roleId, moderator: user.id, moderatorTag: user.tag, timestamp: new Date().toISOString() };
@@ -4218,6 +4218,7 @@ client.on('interactionCreate', async (interaction) => {
             { name: '👮 Ausgestellt von', value: '<@' + user.id + '>', inline: true },
             { name: '👤 Erteilt an',      value: '<@' + target.id + '>', inline: true },
             { name: '📋 Grund',           value: grund, inline: false },
+            { name: '🔢 Verwarnung',      value: warnNum + '/3', inline: false },
           )
           .setFooter({ text: 'Paradise City Roleplay • Verwarnungssystem' })
           .setTimestamp();
@@ -4226,7 +4227,7 @@ client.on('interactionCreate', async (interaction) => {
     } catch (e) { console.error('Warn-Channel Fehler:', e.message); }
     return interaction.reply({
       embeds: [new EmbedBuilder().setColor(0xFF0000)
-        .setDescription('\uD83D\uDEA8 Warn **' + warnNum + '/5** f\u00FCr **' + target.username + '** ausgestellt.\n\uD83D\uDCCB Grund: ' + grund)],
+        .setDescription('🚨 Warn **' + warnNum + '/3** für **' + target.username + '** ausgestellt.\n📋 Grund: ' + grund)],
       ephemeral: true
     });
   }
