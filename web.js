@@ -1686,18 +1686,17 @@ async function doSell() {
   <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;min-height:100vh}
-  /* Modal */
   #introOverlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9000;display:flex;align-items:center;justify-content:center}
   #introBox{background:#161b22;border:2px solid #e65100;border-radius:16px;padding:32px 26px;max-width:460px;width:92%;animation:popIn .5s cubic-bezier(.34,1.56,.64,1)}
   @keyframes popIn{from{opacity:0;transform:scale(.6) translateY(60px)}to{opacity:1;transform:scale(1) translateY(0)}}
   @keyframes popOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.7) translateY(40px)}}
   @keyframes slideDown{from{opacity:0;transform:translateY(-18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
   .mo-title{color:#ffd180;font-size:1.05em;font-weight:700;text-align:center;margin-bottom:22px;letter-spacing:.5px}
   .mo-rule{display:flex;gap:12px;margin-bottom:13px;font-size:.87em;line-height:1.65;color:#c9d1d9;align-items:flex-start}
   .mo-num{background:#e65100;color:#fff;border-radius:50%;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78em;flex-shrink:0;margin-top:2px}
   .mo-wish{text-align:center;color:#3fb950;font-size:.86em;margin:18px 0 24px;font-weight:600;line-height:1.5}
   #introBtn{display:block;margin:0 auto;padding:13px 40px;background:#e65100;color:#fff;border:none;border-radius:9px;font-size:.97em;font-weight:700;cursor:pointer}
-  /* Page */
   .wrap{max-width:820px;margin:0 auto;padding:0 16px 60px}
   .authority{text-align:center;background:linear-gradient(135deg,#bf360c,#e65100);padding:26px 20px 22px;border-radius:14px 14px 0 0;margin-top:20px}
   .authority .seal{font-size:2.4em;margin-bottom:6px}
@@ -1706,6 +1705,12 @@ async function doSell() {
   .card{background:#161b22;border:1px solid #30363d;border-top:none;border-radius:0 0 14px 14px;padding:28px}
   .section-title{color:#ffd180;font-size:.78em;letter-spacing:2px;text-transform:uppercase;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
   .section-title::after{content:'';flex:1;height:1px;background:#e65100;opacity:.35}
+  .step-indicator{display:flex;align-items:center;gap:8px;margin-bottom:20px}
+  .step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75em;font-weight:700;border:2px solid #30363d;color:#8b949e;transition:all .3s}
+  .step-dot.active{background:#e65100;border-color:#e65100;color:#fff}
+  .step-dot.done{background:#3fb950;border-color:#3fb950;color:#fff}
+  .step-line{flex:1;height:2px;background:#30363d;transition:background .3s}
+  .step-line.done{background:#3fb950}
   .select-grid{display:grid;gap:14px;margin-top:4px}
   .select-card{background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:20px;cursor:pointer;transition:all .25s;color:inherit;user-select:none}
   .select-card:hover{border-color:#e65100;background:#1a1f2b;transform:translateY(-2px)}
@@ -1713,34 +1718,13 @@ async function doSell() {
   .sc-icon{font-size:1.8em;margin-bottom:8px}
   .sc-title{font-size:1em;font-weight:700;color:#fff;margin-bottom:4px}
   .sc-desc{font-size:.8em;color:#8b949e;line-height:1.5}
-  /* Form panel */
-  #formPanel{display:none;animation:slideDown .38s cubic-bezier(.22,1,.36,1);margin-top:20px}
-  #formPanel.visible{display:block}
-  .fp-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #30363d}
-  .fp-icon{font-size:1.6em}
-  .fp-title{font-size:1.1em;font-weight:700;color:#fff}
-  .fp-sub{font-size:.78em;color:#8b949e;margin-top:2px}
-  .back-btn{background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:6px 14px;font-size:.8em;cursor:pointer;margin-left:auto;transition:all .2s}
-  .back-btn:hover{border-color:#e65100;color:#e65100}
-  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-  .form-row.one{grid-template-columns:1fr}
-  .form-group{display:flex;flex-direction:column;gap:5px}
-  label{font-size:.75em;color:#8b949e;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
-  .req{color:#e65100}
-  input,select,textarea{background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e0e0e0;padding:9px 12px;font-size:.9em;width:100%;font-family:inherit;transition:border-color .2s}
-  input:focus,select:focus,textarea:focus{outline:none;border-color:#e65100}
-  textarea{resize:vertical;min-height:70px}
-  .btn-submit{background:#e65100;color:#fff;border:none;border-radius:8px;padding:13px 28px;font-size:.95em;font-weight:700;cursor:pointer;width:100%;margin-top:8px;transition:background .2s}
-  .btn-submit:hover{background:#bf360c}
-  .sec-label{color:#ffd180;font-size:.72em;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
-  .sec-label::after{content:'';flex:1;height:1px;background:#e65100;opacity:.3}
-  .file-wrap{background:#0d1117;border:2px dashed #30363d;border-radius:8px;padding:18px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative}
-  .file-wrap:hover{border-color:#e65100}
-  .file-wrap input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
-  .file-wrap-label{font-size:.85em;color:#8b949e}
-  .file-name-display{font-size:.8em;color:#e65100;margin-top:6px;min-height:1em}
-  .warn-box{background:#1c1000;border:1px solid #e65100;border-radius:6px;padding:10px 14px;font-size:.78em;color:#ffb74d;margin-top:14px;line-height:1.5}
-  @media(max-width:560px){.form-row{grid-template-columns:1fr}}
+  #step2{display:none;animation:fadeIn .38s cubic-bezier(.22,1,.36,1)}
+  #step2.visible{display:block}
+  .back-link-btn{background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:6px 14px;font-size:.8em;cursor:pointer;transition:all .2s;margin-bottom:16px}
+  .back-link-btn:hover{border-color:#e65100;color:#e65100}
+  .step2-header{color:#ffd180;font-size:.78em;letter-spacing:2px;text-transform:uppercase;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .step2-header::after{content:'';flex:1;height:1px;background:#e65100;opacity:.35}
+  @media(max-width:560px){.select-grid{grid-template-columns:1fr}}
   </style>
   </head><body>
   <div id="introOverlay">
@@ -1761,24 +1745,48 @@ async function doSell() {
       <h2>Einreisebehörde — Bitte wähle deinen Einreiseweg</h2>
     </div>
     <div class="card">
-      <p class="section-title">Einreiseweg wählen</p>
-      <div class="select-grid">
-        <div class="select-card" onclick="goTo('legal',this)">
-          <div class="sc-icon">👤</div>
-          <div class="sc-title">Legale Einreise</div>
-          <div class="sc-desc">Du reist offiziell ein und bist legal im Staat registriert. Du erhältst einen Ausweis und darfst staatliche Jobs ausführen.</div>
-        </div>
-        <div class="select-card" onclick="goTo('illegal',this)">
-          <div class="sc-icon">🥷🏻</div>
-          <div class="sc-title">Illegale Einreise</div>
-          <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du kannst illegale Aktivitäten ausführen.</div>
-        </div>
-        <div class="select-card" onclick="goTo('gruppe',this)">
-          <div class="sc-icon">👥</div>
-          <div class="sc-title">Gruppen Einreise</div>
-          <div class="sc-desc">Ab mindestens 4 Personen. Alle müssen denselben Lebensweg wählen und erhalten exklusive Gruppen-Boni.</div>
+
+      <div class="step-indicator">
+        <div class="step-dot active" id="dot1">1</div>
+        <div class="step-line" id="line1"></div>
+        <div class="step-dot" id="dot2">2</div>
+      </div>
+
+      <!-- SCHRITT 1: Art der Einreise -->
+      <div id="step1">
+        <p class="section-title">Schritt 1 — Einreiseart wählen</p>
+        <div class="select-grid">
+          <div class="select-card" onclick="selectArt('normal', this)">
+            <div class="sc-icon">👤</div>
+            <div class="sc-title">Normale Einreise</div>
+            <div class="sc-desc">Einzelperson. Wähle im nächsten Schritt ob du legal oder illegal einreisen möchtest.</div>
+          </div>
+          <div class="select-card" onclick="selectArt('gruppe', this)">
+            <div class="sc-icon">👥</div>
+            <div class="sc-title">Gruppeneinreise</div>
+            <div class="sc-desc">Ab mindestens 4 Personen. Alle müssen denselben Lebensweg wählen und erhalten exklusive Gruppen-Boni.</div>
+          </div>
         </div>
       </div>
+
+      <!-- SCHRITT 2: Legal oder Illegal (nur für Normale Einreise) -->
+      <div id="step2">
+        <button class="back-link-btn" onclick="goBack()">← Zurück zu Schritt 1</button>
+        <p class="step2-header">Schritt 2 — Einreisestatus wählen</p>
+        <div class="select-grid">
+          <div class="select-card" onclick="goTo('legal', this)">
+            <div class="sc-icon">🟢</div>
+            <div class="sc-title">Legale Einreise</div>
+            <div class="sc-desc">Du reist offiziell ein und bist legal im Staat registriert. Du erhältst einen Ausweis und darfst staatliche Jobs ausführen.</div>
+          </div>
+          <div class="select-card" onclick="goTo('illegal', this)">
+            <div class="sc-icon">🔴</div>
+            <div class="sc-title">Illegale Einreise</div>
+            <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du kannst illegale Aktivitäten ausführen.</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1794,8 +1802,39 @@ async function doSell() {
     });
   })();
 
+  function selectArt(art, el) {
+    document.querySelectorAll('#step1 .select-card').forEach(function(c){ c.classList.remove('active'); });
+    el.classList.add('active');
+    el.style.transform = 'scale(0.96)';
+    setTimeout(function(){
+      el.style.transform = '';
+      if (art === 'gruppe') {
+        window.location.href = '/einreise/gruppe';
+      } else {
+        document.getElementById('step1').style.display = 'none';
+        var s2 = document.getElementById('step2');
+        s2.classList.add('visible');
+        document.getElementById('dot1').classList.remove('active');
+        document.getElementById('dot1').classList.add('done');
+        document.getElementById('dot1').textContent = '✓';
+        document.getElementById('line1').classList.add('done');
+        document.getElementById('dot2').classList.add('active');
+      }
+    }, 180);
+  }
+
+  function goBack() {
+    document.getElementById('step2').classList.remove('visible');
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('dot1').classList.add('active');
+    document.getElementById('dot1').classList.remove('done');
+    document.getElementById('dot1').textContent = '1';
+    document.getElementById('line1').classList.remove('done');
+    document.getElementById('dot2').classList.remove('active');
+  }
+
   function goTo(type, el) {
-    document.querySelectorAll('.select-card').forEach(function(c){ c.classList.remove('active'); });
+    document.querySelectorAll('#step2 .select-card').forEach(function(c){ c.classList.remove('active'); });
     el.classList.add('active');
     el.style.transform = 'scale(0.96)';
     setTimeout(function(){
