@@ -4083,7 +4083,10 @@ client.on('interactionCreate', async (interaction) => {
         .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Mod Log' })] });
       return interaction.reply({ embeds: [new EmbedBuilder().setColor(0xf59e0b).setTitle('⏱️ Timeout gesetzt').addFields({ name:'Spieler', value:`${target.tag}`, inline:true },{ name:'Dauer', value:dauerLabel, inline:true },{ name:'Grund', value:grund }).setTimestamp()], ephemeral: true });
     } catch (e) {
-      return interaction.reply({ content: '❌ Timeout fehlgeschlagen: ' + e.message, ephemeral: true });
+      const hint = e.message.toLowerCase().includes('missing permissions')
+        ? '❌ Timeout fehlgeschlagen: Der Bot hat keine Berechtigung. Bitte gib der Bot-Rolle die Berechtigung **"Mitglieder per Timeout stummschalten"** in den Servereinstellungen, oder stelle sicher dass die Bot-Rolle höher als die Rolle des Spielers ist.'
+        : '❌ Timeout fehlgeschlagen: ' + e.message;
+      return interaction.reply({ content: hint, ephemeral: true });
     }
   }
 
