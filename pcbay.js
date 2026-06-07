@@ -527,7 +527,7 @@ function layout(titel, inhalt, nutzer, aktiveNav='') {
         </div>
         <a href="/pcbay/mein-konto" class="pb-hbtn"><span class="hbtn-icon">👤</span>Konto</a>
         <a href="/pcbay/verkaufen" class="pb-hbtn sell"><span class="hbtn-icon">＋</span>Verkaufen</a>
-      ` : `<a href="/pcbay" class="pb-hbtn"><span class="hbtn-icon">🔒</span>Login</a>`}
+      ` : `<a href="/pcbay/login" class="pb-hbtn"><span class="hbtn-icon">🔒</span>Anmelden</a>`}
     </div>
   </div>
 </header>
@@ -556,7 +556,7 @@ ${inhalt}
   <a href="/pcbay/verkaufen" class="mnav-btn verkaufen-nav">
     <span class="mnav-icon">＋</span>Verkaufen
   </a>
-  ${nutzer ? `<a href="/pcbay/mein-konto" class="mnav-btn ${aktiveNav==='konto'?'aktiv':''}"><span class="mnav-icon">👤</span>Konto</a>` : `<a href="/pcbay" class="mnav-btn"><span class="mnav-icon">🔒</span>Login</a>`}
+  ${nutzer ? `<a href="/pcbay/mein-konto" class="mnav-btn ${aktiveNav==='konto'?'aktiv':''}"><span class="mnav-icon">👤</span>Konto</a>` : `<a href="/pcbay/login" class="mnav-btn"><span class="mnav-icon">🔒</span>Anmelden</a>`}
 </nav>
 
 <script>
@@ -662,13 +662,127 @@ module.exports = function pcBayStart(app, DATA_DIR, client) {
     res.sendFile(p);
   });
 
-  // ── Login via Token ───────────────────────────────────────────────────────
+  // ── Login-Seite (GET) ────────────────────────────────────────────────────
+  app.get('/pcbay/login', (req,res)=>{
+    if (auth(req)) return res.redirect('/pcbay');
+    const fehler=req.query.fehler?req.query.fehler:'';
+    res.send(`<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1a1a1a">
+<title>Anmelden — PC Bay</title>
+<style>${CSS}</style>
+<style>
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+.login-box{width:100%;max-width:420px}
+.login-logo{display:flex;flex-direction:column;align-items:center;margin-bottom:28px;gap:10px}
+.login-logo img{width:80px;height:80px;border-radius:20px;object-fit:cover;box-shadow:0 8px 32px rgba(224,123,0,.35)}
+.login-logo-text{font-size:1.6rem;font-weight:900;letter-spacing:-1px}
+.login-logo-text .p{color:#4285F4}.login-logo-text .c{color:#34A853}
+.login-logo-text .b{color:#EA4335}.login-logo-text .a{color:#FBBC05}.login-logo-text .y{color:#4285F4}
+.login-karte{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px 24px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.login-karte h2{font-size:1.1rem;font-weight:800;margin-bottom:6px;text-align:center}
+.login-karte .sub{font-size:.82rem;color:var(--text3);text-align:center;margin-bottom:22px;line-height:1.55}
+.login-fg label{display:block;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:7px}
+.login-fg input{
+  width:100%;padding:13px 14px;
+  background:var(--bg3);border:2px solid var(--border2);
+  border-radius:10px;color:var(--text);font-size:.95rem;
+  outline:none;transition:border .15s;margin-bottom:14px;
+}
+.login-fg input:focus{border-color:var(--orange)}
+.login-fg input::placeholder{color:var(--text4)}
+.login-btn{
+  width:100%;padding:14px;background:var(--orange);
+  border:none;border-radius:10px;color:#fff;
+  font-size:1rem;font-weight:800;cursor:pointer;
+  transition:background .15s;letter-spacing:.3px;
+}
+.login-btn:hover{background:var(--orange2)}
+.login-hinweis{
+  display:flex;align-items:flex-start;gap:9px;
+  background:#1a1200;border:1px solid #854d0e;
+  border-radius:9px;padding:11px 13px;
+  font-size:.8rem;margin-bottom:20px;line-height:1.55;
+}
+.login-hinweis strong{color:#f59e0b;display:block;margin-bottom:2px}
+.login-hinweis span{color:var(--text3)}
+.login-trenner{display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--text4);font-size:.75rem}
+.login-trenner::before,.login-trenner::after{content:'';flex:1;height:1px;background:var(--border)}
+</style>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="/pcbay/logo" alt="PC Bay Logo">
+      <div class="login-logo-text">
+        <span class="p">P</span><span class="c">C</span>&nbsp;<span class="b">B</span><span class="a">A</span><span class="y">Y</span>
+      </div>
+    </div>
+    <div class="login-karte">
+      <h2>🔑 Anmelden</h2>
+      <p class="sub">Gib deinen Discord-Benutzernamen ein um dich anzumelden.</p>
+      ${fehler?`<div class="meldung meldung-fehler" style="margin-bottom:16px">❌ ${esc(fehler)}</div>`:''}
+      <div class="login-hinweis">
+        <span>⚠️</span>
+        <span><strong>Wichtig</strong>Gib genau deinen Discord-Benutzernamen ein (z.&nbsp;B. <em>max_mustermann</em>). Groß- und Kleinschreibung wird ignoriert.</span>
+      </div>
+      <form method="post" action="/pcbay/login">
+        <div class="login-fg">
+          <label>Discord-Benutzername</label>
+          <input type="text" name="username" placeholder="dein_benutzername" autocomplete="off" autocorrect="off" autocapitalize="none" required>
+        </div>
+        <button class="login-btn" type="submit">🛒 PC Bay betreten</button>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>`);
+  });
+
+  // ── Login verarbeiten (POST) ──────────────────────────────────────────────
+  app.post('/pcbay/login', express.urlencoded({extended:false}), async (req,res)=>{
+    if (auth(req)) return res.redirect('/pcbay');
+    const eingabe=(req.body.username||'').trim().toLowerCase().replace(/^@/,'');
+    if (!eingabe) return res.redirect('/pcbay/login?fehler=Bitte gib deinen Benutzernamen ein');
+
+    // Discord-Mitglied anhand des Benutzernamens finden
+    let gefunden=null;
+    if (client) {
+      for (const guild of client.guilds.cache.values()) {
+        try {
+          // Erst Cache prüfen
+          let mitglieder=guild.members.cache;
+          // Auch via Fetch suchen wenn nicht im Cache
+          if (!mitglieder.size) { await guild.members.fetch(); mitglieder=guild.members.cache; }
+          for (const [,m] of mitglieder) {
+            const name=(m.user.username||'').toLowerCase();
+            const anzeigename=(m.displayName||'').toLowerCase();
+            if (name===eingabe||anzeigename===eingabe) { gefunden=m.user; break; }
+          }
+        } catch {}
+        if (gefunden) break;
+      }
+    }
+
+    if (!gefunden) {
+      return res.redirect('/pcbay/login?fehler=Benutzername+nicht+gefunden.+Bist+du+Mitglied+im+Paradise+City+Discord%3F');
+    }
+
+    // Token erstellen / holen und Session setzen
+    const tok=holeOderErstelleToken(gefunden.id, gefunden.username);
+    req.session.pcbay_token=tok;
+    res.redirect('/pcbay');
+  });
+
+  // ── Legacy Token-Login (Rückwärtskompatibilität) ──────────────────────────
   app.get('/pcbay/login/:token', (req,res)=>{
     const nutzer=prüfeToken(req.params.token);
-    if (!nutzer) {
-      return res.send(layout('Ungültiger Link',
-        `<div class="pb-wrap"><div class="meldung meldung-fehler">❌ Dieser Link ist ungültig. Bitte klicke erneut auf den Button im Discord-Server.</div></div>`,null));
-    }
+    if (!nutzer) return res.redirect('/pcbay/login?fehler=Ungültiger+Link.+Bitte+melde+dich+über+die+Anmeldeseite+an');
     req.session.pcbay_token=req.params.token;
     res.redirect('/pcbay');
   });
@@ -685,7 +799,7 @@ module.exports = function pcBayStart(app, DATA_DIR, client) {
       <h1>Willkommen bei <em>PC Bay</em></h1>
       <p>Der Marktplatz von Paradise City Roleplay.<br>Kaufe und verkaufe Artikel aller Art mit deinem Ingame-Geld.</p>
       <div class="pb-hero-btns" style="justify-content:center">
-        <div class="btn btn-outline" style="cursor:default">🔒 Melde dich über den Discord-Button an</div>
+        <a href="/pcbay/login" class="btn btn-primary btn-lg">🔑 Jetzt anmelden</a>
       </div>
     </div>
   </div>
