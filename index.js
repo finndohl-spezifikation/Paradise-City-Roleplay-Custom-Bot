@@ -7778,12 +7778,16 @@ if (!process.env.DISCORD_TOKEN) {
         .setColor(0xC45700)
         .setTitle('🛒 PC Bay — Der Marktplatz von Paradise City')
         .setDescription(
-          '**Kaufe und verkaufe Artikel, Fahrzeuge, Waffen und mehr!**\n\n' +
+          '**Kaufe und verkaufe Artikel aller Art!**\n\n' +
           '💵 Zahle mit **Bankgeld** oder **PC Coin**\n' +
           '🏪 Stelle eigene Angebote ein\n' +
-          '🔍 Durchsuche hunderte Angebote\n' +
-          '📦 Kategorien: Fahrzeuge, Waffen, Immobilien & mehr\n\n' +
-          '> Klicke auf **PC Bay öffnen** um dich anzumelden.\n> Du erhältst deinen persönlichen Link per DM.'
+          '🔍 Durchsuche alle Angebote\n' +
+          '📦 Kategorien: Fahrzeuge, Immobilien, Elektronik & mehr\n\n' +
+          '> ⚠️ **Nur legale Artikel** — keine Waffen oder Drogen!\n\n' +
+          '**So funktioniert\'s:**\n' +
+          '1️⃣ Klicke auf **PC Bay öffnen**\n' +
+          '2️⃣ Gib deinen **Discord-Benutzernamen** ein\n' +
+          '3️⃣ Sofort angemeldet — kein Passwort nötig!'
         )
         .setThumbnail('attachment://pcbay_logo.jpeg')
         .setFooter({ text: 'PC Bay • Paradise City Roleplay' })
@@ -7835,56 +7839,21 @@ if (!process.env.DISCORD_TOKEN) {
     await interaction.deferReply({ ephemeral: true });
     try {
       const WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://'+process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/,'');
-      const token = _getPcBayToken(interaction.user.id, interaction.user.username);
-      const loginUrl = `${WEBAPP}/pcbay/login/${token}`;
+      const loginUrl = `${WEBAPP}/pcbay/login`;
 
-      // DM the user
-      let dmSent = false;
-      try {
-        const dmEmbed = new EmbedBuilder()
-          .setColor(0xC45700)
-          .setTitle('🛒 Dein PC Bay Zugang')
-          .setDescription(
-            '**Willkommen bei PC Bay!**\n\n' +
-            'Dein persönlicher Login-Link:\n' +
-            `> 🔗 [PC Bay öffnen](${loginUrl})\n\n` +
-            '📌 **Dieser Link gehört nur dir** — teile ihn nicht mit anderen.\n' +
-            '🔄 Der Link bleibt dauerhaft gültig.'
-          )
-          .addFields(
-            { name: '👤 Benutzername', value: interaction.user.username, inline: true },
-            { name: '🌐 Marketplace', value: `[PC Bay](${loginUrl})`, inline: true }
-          )
-          .setFooter({ text: 'PC Bay • Paradise City Roleplay' })
-          .setTimestamp();
+      const openBtn = new ButtonBuilder()
+        .setLabel('🛒 PC Bay öffnen')
+        .setStyle(ButtonStyle.Link)
+        .setURL(loginUrl);
 
-        const openBtn = new ButtonBuilder()
-          .setLabel('🛒 PC Bay öffnen')
-          .setStyle(ButtonStyle.Link)
-          .setURL(loginUrl);
-
-        const dm = await interaction.user.createDM();
-        await dm.send({ embeds: [dmEmbed], components: [new ActionRowBuilder().addComponents(openBtn)] });
-        dmSent = true;
-      } catch {}
-
-      if (dmSent) {
-        await interaction.editReply({ content: '✅ Ich habe dir deine **persönlichen Login-Daten** per DM geschickt! Schau in deine Direktnachrichten.' });
-      } else {
-        // DMs disabled — send link ephemerally
-        const openBtn = new ButtonBuilder()
-          .setLabel('🛒 PC Bay öffnen')
-          .setStyle(ButtonStyle.Link)
-          .setURL(loginUrl);
-        await interaction.editReply({
-          content: '⚠️ Ich konnte dir keine DM schicken (DMs deaktiviert).\nHier ist dein persönlicher Link:',
-          components: [new ActionRowBuilder().addComponents(openBtn)]
-        });
-      }
+      await interaction.editReply({
+        content: '🛒 **Klicke auf den Button** um PC Bay zu öffnen.\nGib dort deinen Discord-Benutzernamen ein um dich anzumelden.',
+        components: [new ActionRowBuilder().addComponents(openBtn)]
+      });
 
       sendLog(CH.SERVER_LOG, new EmbedBuilder()
         .setColor(0xC45700)
-        .setTitle('🛒 PC Bay Zugang angefordert')
+        .setTitle('🛒 PC Bay aufgerufen')
         .addFields({ name: '👤 Nutzer', value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true })
         .setTimestamp()
         .setFooter({ text: 'PC Bay • Paradise City Roleplay' })
