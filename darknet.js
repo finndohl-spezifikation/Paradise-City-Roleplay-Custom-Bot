@@ -501,29 +501,26 @@ ${DN_WALLET_BAR}
     const uid = resolveUser(req);
     const loginError = req.query.loginerror === '1';
 
-    // Kein Login → Login-Formular anzeigen
+    // Kein Login → Hinweis: Zugang nur über Discord-Button
     if (!uid) {
       const loginBody = `
-<div style="max-width:440px;margin:40px auto">
-  <div class="dn-section">
-    <h2>🔐 Identität verifizieren</h2>
-    ${loginError ? '<div class="dn-alert" style="margin-bottom:12px">⚠ Ungültige Discord User ID — bitte prüfen.</div>' : ''}
-    <p style="font-size:.8em;color:var(--sub);margin-bottom:16px;line-height:1.6">
-      Gib deine Discord User ID ein um das Darknet zu betreten.<br>
-      <span style="color:var(--grn3)">Einstellungen → Erweitert → Entwicklermodus an → Rechtsklick auf deinen Namen → ID kopieren</span>
+<div style="max-width:480px;margin:60px auto;text-align:center">
+  <div class="dn-section" style="padding:40px 32px">
+    <div style="font-size:3rem;margin-bottom:16px">⛔</div>
+    <h2 style="margin-bottom:12px;letter-spacing:2px">ZUGANG VERWEIGERT</h2>
+    <p style="font-size:.85em;color:var(--sub);line-height:1.8;margin-bottom:24px">
+      Der Zugang zum Darknet ist nur über den offiziellen Discord-Kanal möglich.<br>
+      Nutze den <strong style="color:var(--grn3)">⬛ DARKNET ÖFFNEN</strong> Button auf dem Discord Server um deine persönliche Verbindung herzustellen.
     </p>
-    <form method="POST" action="/darknet/login">
-      <input type="hidden" name="back" value="/darknet">
-      <div style="display:flex;gap:8px">
-        <input name="uid" placeholder="z.B. 123456789012345678" maxlength="20"
-          style="flex:1;background:var(--bg2);border:1px solid var(--brd);color:var(--txt);padding:10px 12px;border-radius:3px;font-family:inherit;font-size:.85em;outline:none">
-        <button type="submit" class="dn-btn">▶ EINLOGGEN</button>
-      </div>
-    </form>
+    <div style="background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:12px 20px;font-family:monospace;font-size:.75em;color:var(--grn3);letter-spacing:1px">
+      &gt; VERBINDUNG ÜBER DISCORD ERFORDERLICH<br>
+      &gt; PERSÖNLICHER TOKEN BENÖTIGT<br>
+      &gt; DIREKTZUGANG NICHT GESTATTET
+    </div>
   </div>
 </div>`;
       res.setHeader('Content-Type','text/html; charset=utf-8');
-      return res.send(page('LOGIN', 'home', token, loginBody));
+      return res.send(page('ZUGANG VERWEIGERT', 'home', token, loginBody));
     }
 
     const body = `
