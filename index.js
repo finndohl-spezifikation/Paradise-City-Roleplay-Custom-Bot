@@ -4464,7 +4464,7 @@ client.on('interactionCreate', async (interaction) => {
         const res2    = await fetch(imgUrl);
         const buf2    = Buffer.from(await res2.arrayBuffer());
         const att2    = new AttachmentBuilder(buf2, { name: `fuehrerschein_${fsEntry.lizenznummer}.png` });
-        await interaction.editReply({ files: [att2], embeds: [new EmbedBuilder().setColor(0x003087).setTitle(`🚗 Führerschein — ${fsEntry.vorname} ${fsEntry.nachname}`).addFields({ name:'Lizenz-Nr.', value:fsEntry.lizenznummer, inline:true },{ name:'Klasse', value:fsEntry.klasse, inline:true },{ name:'Ablauf', value:fsEntry.ablaufdatum, inline:true }).setImage(`attachment://fuehrerschein_${fsEntry.lizenznummer}.png`).setTimestamp()] });
+        await interaction.editReply({ files: [att2] });
       } catch(e) {
         await interaction.editReply({ content: '❌ Bild konnte nicht generiert werden: ' + e.message });
       }
