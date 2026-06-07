@@ -1763,26 +1763,21 @@ async function doSell() {
     <div class="card">
       <p class="section-title">Einreiseweg wählen</p>
       <div class="select-grid">
-        <div class="select-card" onclick="selectType('legal',this)">
-          <div class="sc-icon">🟢</div>
+        <div class="select-card" onclick="goTo('legal',this)">
+          <div class="sc-icon">👤</div>
           <div class="sc-title">Legale Einreise</div>
           <div class="sc-desc">Du reist offiziell ein und bist legal im Staat registriert. Du erhältst einen Ausweis und darfst staatliche Jobs ausführen.</div>
         </div>
-        <div class="select-card" onclick="selectType('illegal',this)">
-          <div class="sc-icon">🔴</div>
+        <div class="select-card" onclick="goTo('illegal',this)">
+          <div class="sc-icon">🥷🏻</div>
           <div class="sc-title">Illegale Einreise</div>
           <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du kannst illegale Aktivitäten ausführen.</div>
         </div>
-        <div class="select-card" onclick="selectType('gruppe',this)">
-          <div class="sc-icon">🟡</div>
+        <div class="select-card" onclick="goTo('gruppe',this)">
+          <div class="sc-icon">👥</div>
           <div class="sc-title">Gruppen Einreise</div>
           <div class="sc-desc">Ab mindestens 4 Personen. Alle müssen denselben Lebensweg wählen und erhalten exklusive Gruppen-Boni.</div>
         </div>
-      </div>
-
-      <!-- Animated Form Panel -->
-      <div id="formPanel">
-        <div id="formInner"></div>
       </div>
     </div>
   </div>
@@ -1799,130 +1794,14 @@ async function doSell() {
     });
   })();
 
-  var FORMS = {
-    legal: {
-      icon: '🟢', title: 'Legale Einreise', sub: 'Ausweis wird erstellt — nur korrekte IC-Daten angeben',
-      action: '/einreise/legal',
-      html: \`
-        <div class="sec-label">💬 Discord Nutzername</div>
-        <div class="form-row one"><div class="form-group">
-          <label>Discord Nutzername <span class="req">*</span></label>
-          <input type="text" name="discord_username" placeholder="z.B. maxmustermann" required autocomplete="off">
-          <small style="color:#e8a000;margin-top:4px;display:block;font-size:.75em">⚠️ Groß- und Kleinschreibung beachten</small>
-        </div></div>
-        <div class="sec-label">📋 IC Charakter Daten</div>
-        <div class="form-row">
-          <div class="form-group"><label>Vorname <span class="req">*</span></label><input type="text" name="vorname_0" required maxlength="50"></div>
-          <div class="form-group"><label>Nachname <span class="req">*</span></label><input type="text" name="nachname_0" required maxlength="50"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Geburtsdatum <span class="req">*</span></label><input type="date" name="geburtsdatum_0" required></div>
-          <div class="form-group"><label>Geburtsort <span class="req">*</span></label><input type="text" name="geburtsort_0" required maxlength="100"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Nationalität <span class="req">*</span></label><input type="text" name="nationalitaet_0" required maxlength="100"></div>
-          <div class="form-group"><label>Geschlecht <span class="req">*</span></label>
-            <select name="geschlecht_0" required><option value="" disabled selected>Bitte wählen</option><option>Männlich</option><option>Weiblich</option></select>
-          </div>
-        </div>
-        <div class="form-row one"><div class="form-group"><label>PSN-Name <span class="req">*</span></label><input type="text" name="psn_0" required maxlength="50"></div></div>
-        <div class="sec-label">📷 Passbild</div>
-        <div class="form-group">
-          <div class="file-wrap" id="fotoWrap">
-            <input type="file" name="foto" accept="image/*" required onchange="showFileName(this,'fotoName')">
-            <div class="file-wrap-label">📷 Passbild hochladen<br><small>JPG / PNG — max. 8 MB</small></div>
-            <div class="file-name-display" id="fotoName"></div>
-          </div>
-        </div>
-        <div class="warn-box">⚠️ IC-Daten sind nach der Einreise nicht mehr änderbar — nur durch den Tod deines Charakters.</div>
-      \`
-    },
-    illegal: {
-      icon: '🔴', title: 'Illegale Einreise', sub: 'Kein Ausweis, keine staatlichen Jobs',
-      action: '/einreise/illegal',
-      html: \`
-        <div class="sec-label">💬 Discord Nutzername</div>
-        <div class="form-row one"><div class="form-group">
-          <label>Discord Nutzername <span class="req">*</span></label>
-          <input type="text" name="discord_username" placeholder="z.B. maxmustermann" required autocomplete="off">
-          <small style="color:#e8a000;margin-top:4px;display:block;font-size:.75em">⚠️ Groß- und Kleinschreibung beachten</small>
-        </div></div>
-        <div class="sec-label">📋 IC Charakter Daten</div>
-        <div class="form-row">
-          <div class="form-group"><label>Vorname <span class="req">*</span></label><input type="text" name="vorname_0" required maxlength="50"></div>
-          <div class="form-group"><label>Nachname <span class="req">*</span></label><input type="text" name="nachname_0" required maxlength="50"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Geburtsdatum <span class="req">*</span></label><input type="date" name="geburtsdatum_0" required></div>
-          <div class="form-group"><label>Geburtsort <span class="req">*</span></label><input type="text" name="geburtsort_0" required maxlength="100"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Nationalität <span class="req">*</span></label><input type="text" name="nationalitaet_0" required maxlength="100"></div>
-          <div class="form-group"><label>Geschlecht <span class="req">*</span></label>
-            <select name="geschlecht_0" required><option value="" disabled selected>Bitte wählen</option><option>Männlich</option><option>Weiblich</option></select>
-          </div>
-        </div>
-        <div class="form-row one"><div class="form-group"><label>PSN-Name <span class="req">*</span></label><input type="text" name="psn_0" required maxlength="50"></div></div>
-      \`
-    },
-    gruppe: {
-      icon: '🟡', title: 'Gruppen Einreise', sub: 'Min. 4 Personen — alle müssen denselben Lebensweg wählen',
-      action: '/einreise/gruppe',
-      html: \`
-        <div class="warn-box" style="margin-bottom:14px">🟡 Bitte gib alle Mitglieder der Gruppe auf der nächsten Seite an.</div>
-        <div class="sec-label">💬 Discord Nutzername (Gruppenleiter)</div>
-        <div class="form-row one"><div class="form-group">
-          <label>Discord Nutzername <span class="req">*</span></label>
-          <input type="text" name="discord_username" placeholder="z.B. maxmustermann" required autocomplete="off">
-        </div></div>
-      \`
-    }
-  };
-
-  function selectType(type, el) {
+  function goTo(type, el) {
     document.querySelectorAll('.select-card').forEach(function(c){ c.classList.remove('active'); });
     el.classList.add('active');
-    var f = FORMS[type];
-    var panel = document.getElementById('formPanel');
-    var inner = document.getElementById('formInner');
-    inner.innerHTML = \`
-      <div class="fp-header">
-        <span class="fp-icon">\${f.icon}</span>
-        <div><div class="fp-title">\${f.title}</div><div class="fp-sub">\${f.sub}</div></div>
-        <button class="back-btn" type="button" onclick="closeForm()">← Zurück</button>
-      </div>
-      <form method="POST" action="\${f.action}" enctype="multipart/form-data">
-        \${f.html}
-        <button type="submit" class="btn-submit" style="margin-top:18px">✅ Einreise bestätigen</button>
-      </form>
-    \`;
-    panel.classList.remove('visible');
-    panel.style.display = 'block';
-    requestAnimationFrame(function(){
-      requestAnimationFrame(function(){
-        panel.style.animation = 'none';
-        panel.offsetHeight;
-        panel.style.animation = 'slideDown .38s cubic-bezier(.22,1,.36,1)';
-        panel.classList.add('visible');
-        setTimeout(function(){ panel.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 80);
-      });
-    });
-
-    var fi = inner.querySelector('input[type=file]');
-    if(fi){ fi.addEventListener('change', function(){ showFileName(this, inner.querySelector('.file-name-display')); }); }
-  }
-
-  function showFileName(input, displayEl) {
-    if(typeof displayEl === 'string') displayEl = document.getElementById(displayEl);
-    if(!displayEl) return;
-    displayEl.textContent = input.files && input.files[0] ? '📎 ' + input.files[0].name : '';
-  }
-
-  function closeForm() {
-    var panel = document.getElementById('formPanel');
-    panel.style.animation = 'popOut .25s ease forwards';
-    setTimeout(function(){ panel.classList.remove('visible'); panel.style.display='none'; }, 240);
-    document.querySelectorAll('.select-card').forEach(function(c){ c.classList.remove('active'); });
+    el.style.transform = 'scale(0.96)';
+    setTimeout(function(){
+      el.style.transform = '';
+      window.location.href = '/einreise/' + type;
+    }, 180);
   }
   </script>
   </body></html>`);
@@ -1934,7 +1813,15 @@ async function doSell() {
       const error    = req.session.legalError || ''; delete req.session.legalError;
       const legalForm = req.session.legalForm  || {}; delete req.session.legalForm;
       res.send(page('Legale Einreise', `
-        ${header('Legale Einreise — Ausweis Erstellung')}
+        <style>
+          @keyframes einreiseIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+          .einreise-wrap{animation:einreiseIn .42s cubic-bezier(.22,1,.36,1)}
+          .back-link{display:inline-flex;align-items:center;gap:6px;color:#8b949e;font-size:.82em;text-decoration:none;border:1px solid #30363d;border-radius:6px;padding:5px 12px;transition:all .2s;margin-bottom:10px}
+          .back-link:hover{border-color:#e65100;color:#e65100}
+        </style>
+        <div class="einreise-wrap">
+        <div style="text-align:right;padding:6px 0 0"><a href="/einreise" class="back-link">← Zurück zur Auswahl</a></div>
+        ${header('👤 Legale Einreise — Ausweis Erstellung')}
         <div class="card">
           ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
           <form method="POST" action="/einreise/legal" enctype="multipart/form-data" id="legalForm">
@@ -1960,6 +1847,7 @@ async function doSell() {
             <button type="submit" class="btn">✅ Einreise Bestätigen</button>
             ${warning()}
           </form>
+        </div>
         </div>
       `));
     });
@@ -2238,7 +2126,15 @@ async function doSell() {
       const error  = req.session.illError || ''; delete req.session.illError;
       const illForm = req.session.illForm  || {}; delete req.session.illForm;
       res.send(page('Illegale Einreise', `
-        ${header('Illegale Einreise')}
+        <style>
+          @keyframes einreiseIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+          .einreise-wrap{animation:einreiseIn .42s cubic-bezier(.22,1,.36,1)}
+          .back-link{display:inline-flex;align-items:center;gap:6px;color:#8b949e;font-size:.82em;text-decoration:none;border:1px solid #30363d;border-radius:6px;padding:5px 12px;transition:all .2s;margin-bottom:10px}
+          .back-link:hover{border-color:#e65100;color:#e65100}
+        </style>
+        <div class="einreise-wrap">
+        <div style="text-align:right;padding:6px 0 0"><a href="/einreise" class="back-link">← Zurück zur Auswahl</a></div>
+        ${header('🥷🏻 Illegale Einreise')}
         <div class="card">
           ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
           <form method="POST" action="/einreise/illegal" id="illegalForm">
@@ -2280,6 +2176,7 @@ async function doSell() {
             </div>
             <button type="submit" class="btn" style="background:#b71c1c">🚨 Jetzt Einreisen</button>
           </form>
+        </div>
         </div>
       `));
     });
@@ -2456,6 +2353,7 @@ async function doSell() {
     const error = req.session.gruppeError || '';
     delete req.session.gruppeError;
 
+
     let personBlocks = '';
     for (let i = 0; i < 4; i++) {
       personBlocks += `
@@ -2507,7 +2405,15 @@ async function doSell() {
     }
 
     res.send(page('Gruppen Einreise', `
-      ${header('Gruppen Einreise — Ab 4 Personen')}
+      <style>
+        @keyframes einreiseIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+        .einreise-wrap{animation:einreiseIn .42s cubic-bezier(.22,1,.36,1)}
+        .back-link{display:inline-flex;align-items:center;gap:6px;color:#8b949e;font-size:.82em;text-decoration:none;border:1px solid #30363d;border-radius:6px;padding:5px 12px;transition:all .2s;margin-bottom:10px}
+        .back-link:hover{border-color:#e65100;color:#e65100}
+      </style>
+      <div class="einreise-wrap">
+      <div style="text-align:right;padding:6px 0 0"><a href="/einreise" class="back-link">← Zurück zur Auswahl</a></div>
+      ${header('👥 Gruppen Einreise — Ab 4 Personen')}
       <div class="card">
         ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
         <form method="POST" action="/einreise/gruppe" enctype="multipart/form-data" id="gruppeForm">
@@ -2525,6 +2431,7 @@ async function doSell() {
           <button type="submit" class="btn" id="submitBtn" disabled>✅ Gruppen-Einreise Bestätigen</button>
           ${warning()}
         </form>
+      </div>
       </div>
       <script>
         function setMode(mode) {
