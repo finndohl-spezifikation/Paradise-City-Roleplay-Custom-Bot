@@ -7742,3 +7742,158 @@ if (!process.env.DISCORD_TOKEN) {
       });
   })(1);
 }
+
+// ─── PC BAY MARKETPLACE ───────────────────────────────────────────────────────
+{
+  const PCBAY_CHANNEL = '1492128730141954178';
+  const PCBAY_MSG_FILE = path.join(DATA_DIR, 'pcbay_channel_msg.json');
+  const PCBAY_TOKEN_FILE = path.join(DATA_DIR, 'pcbay_tokens.json');
+
+  function _loadPcBayToks() { try { return JSON.parse(fs.readFileSync(PCBAY_TOKEN_FILE,'utf8')); } catch { return {}; } }
+  function _savePcBayToks(d) { fs.writeFileSync(PCBAY_TOKEN_FILE, JSON.stringify(d,null,2),'utf8'); }
+  function _getPcBayToken(userId, username) {
+    const toks = _loadPcBayToks();
+    for (const [tok, v] of Object.entries(toks)) {
+      if (v.userId === userId) {
+        if (username) { toks[tok].username = username; _savePcBayToks(toks); }
+        return tok;
+      }
+    }
+    const tok = require('crypto').randomBytes(24).toString('hex');
+    toks[tok] = { userId, username: username||'Unbekannt', createdAt: Date.now() };
+    _savePcBayToks(toks);
+    return tok;
+  }
+
+  function _loadPcBayMsg() { try { return JSON.parse(fs.readFileSync(PCBAY_MSG_FILE,'utf8')); } catch { return {}; } }
+  function _savePcBayMsg(d) { fs.writeFileSync(PCBAY_MSG_FILE, JSON.stringify(d,null,2),'utf8'); }
+
+  async function sendPcBayEmbed() {
+    const WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://'+process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/,'');
+    try {
+      const ch = await client.channels.fetch(PCBAY_CHANNEL).catch(()=>null);
+      if (!ch) return;
+
+      const embed = new EmbedBuilder()
+        .setColor(0xC45700)
+        .setTitle('🛒 PC Bay — Der Marktplatz von Paradise City')
+        .setDescription(
+          '**Kaufe und verkaufe Artikel, Fahrzeuge, Waffen und mehr!**\n\n' +
+          '💵 Zahle mit **Bankgeld** oder **PC Coin**\n' +
+          '🏪 Stelle eigene Angebote ein\n' +
+          '🔍 Durchsuche hunderte Angebote\n' +
+          '📦 Kategorien: Fahrzeuge, Waffen, Immobilien & mehr\n\n' +
+          '> Klicke auf **PC Bay öffnen** um dich anzumelden.\n> Du erhältst deinen persönlichen Link per DM.'
+        )
+        .setThumbnail('attachment://pcbay_logo.jpeg')
+        .setFooter({ text: 'PC Bay • Paradise City Roleplay' })
+        .setTimestamp();
+
+      const btn = new ButtonBuilder()
+        .setCustomId('pcbay_open')
+        .setLabel('🛒 PC Bay öffnen')
+        .setStyle(ButtonStyle.Primary);
+
+      const row = new ActionRowBuilder().addComponents(btn);
+
+      const pcbayMsg = _loadPcBayMsg();
+      const logoPath = path.join(__dirname, 'assets', 'pcbay_logo.jpeg');
+      const files = fs.existsSync(logoPath) ? [{ attachment: logoPath, name: 'pcbay_logo.jpeg' }] : [];
+
+      // try edit existing message
+      if (pcbayMsg.messageId) {
+        try {
+          const existing = await ch.messages.fetch(pcbayMsg.messageId).catch(()=>null);
+          if (existing) {
+            await existing.edit({ embeds: [embed], components: [row] });
+            console.log('[PCBAY] Embed aktualisiert.');
+            return;
+          }
+        } catch {}
+      }
+
+      // send new message
+      const msg = await ch.send({ embeds: [embed], components: [row], files });
+      _savePcBayMsg({ messageId: msg.id });
+      console.log('[PCBAY] Embed gesendet.');
+    } catch(e) {
+      console.error('[PCBAY EMBED]', e.message);
+    }
+  }
+
+  // send embed on ready
+  client.once('ready', async () => {
+    await new Promise(r => setTimeout(r, 4000)); // wait for bot to be fully ready
+    await sendPcBayEmbed();
+  });
+
+  // handle button click
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isButton()) return;
+    if (interaction.customId !== 'pcbay_open') return;
+
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://'+process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/,'');
+      const token = _getPcBayToken(interaction.user.id, interaction.user.username);
+      const loginUrl = `${WEBAPP}/pcbay/login/${token}`;
+
+      // DM the user
+      let dmSent = false;
+      try {
+        const dmEmbed = new EmbedBuilder()
+          .setColor(0xC45700)
+          .setTitle('🛒 Dein PC Bay Zugang')
+          .setDescription(
+            '**Willkommen bei PC Bay!**\n\n' +
+            'Dein persönlicher Login-Link:\n' +
+            `> 🔗 [PC Bay öffnen](${loginUrl})\n\n` +
+            '📌 **Dieser Link gehört nur dir** — teile ihn nicht mit anderen.\n' +
+            '🔄 Der Link bleibt dauerhaft gültig.'
+          )
+          .addFields(
+            { name: '👤 Benutzername', value: interaction.user.username, inline: true },
+            { name: '🌐 Marketplace', value: `[PC Bay](${loginUrl})`, inline: true }
+          )
+          .setFooter({ text: 'PC Bay • Paradise City Roleplay' })
+          .setTimestamp();
+
+        const openBtn = new ButtonBuilder()
+          .setLabel('🛒 PC Bay öffnen')
+          .setStyle(ButtonStyle.Link)
+          .setURL(loginUrl);
+
+        const dm = await interaction.user.createDM();
+        await dm.send({ embeds: [dmEmbed], components: [new ActionRowBuilder().addComponents(openBtn)] });
+        dmSent = true;
+      } catch {}
+
+      if (dmSent) {
+        await interaction.editReply({ content: '✅ Ich habe dir deine **persönlichen Login-Daten** per DM geschickt! Schau in deine Direktnachrichten.' });
+      } else {
+        // DMs disabled — send link ephemerally
+        const openBtn = new ButtonBuilder()
+          .setLabel('🛒 PC Bay öffnen')
+          .setStyle(ButtonStyle.Link)
+          .setURL(loginUrl);
+        await interaction.editReply({
+          content: '⚠️ Ich konnte dir keine DM schicken (DMs deaktiviert).\nHier ist dein persönlicher Link:',
+          components: [new ActionRowBuilder().addComponents(openBtn)]
+        });
+      }
+
+      sendLog(CH.SERVER_LOG, new EmbedBuilder()
+        .setColor(0xC45700)
+        .setTitle('🛒 PC Bay Zugang angefordert')
+        .addFields({ name: '👤 Nutzer', value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true })
+        .setTimestamp()
+        .setFooter({ text: 'PC Bay • Paradise City Roleplay' })
+      ).catch(()=>{});
+
+    } catch(e) {
+      console.error('[PCBAY BUTTON]', e.message);
+      await interaction.editReply({ content: '❌ Fehler: '+e.message }).catch(()=>{});
+    }
+  });
+}
+// ─── END PC BAY MARKETPLACE ───────────────────────────────────────────────────
