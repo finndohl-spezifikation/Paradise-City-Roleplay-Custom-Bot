@@ -44,9 +44,12 @@ module.exports = function initDarknet(app, DATA_DIR, client, darknetTokens) {
     const token = req.query.dc || req.body?.dc;
     if (token) {
       const entry = darknetTokens.get(token);
-      if (entry && entry.expiresAt > Date.now()) return entry.discordUserId;
+      if (entry && entry.expiresAt > Date.now()) {
+        if (req.session) req.session.darknetUid = entry.discordUserId;
+        return entry.discordUserId;
+      }
     }
-    // 2. Session-basiert (direkter Seitenlink)
+    // 2. Session-basiert (direkter Seitenlink oder Folge-Navigation)
     if (req.session && req.session.darknetUid) return req.session.darknetUid;
     return null;
   }
@@ -501,26 +504,11 @@ ${DN_WALLET_BAR}
     const uid = resolveUser(req);
     const loginError = req.query.loginerror === '1';
 
-    // Kein Login → Hinweis: Zugang nur über Discord-Button
+    // Kein Token/Session → Gast-Session erstellen für direkten Zugang
     if (!uid) {
-      const loginBody = `
-<div style="max-width:480px;margin:60px auto;text-align:center">
-  <div class="dn-section" style="padding:40px 32px">
-    <div style="font-size:3rem;margin-bottom:16px">⛔</div>
-    <h2 style="margin-bottom:12px;letter-spacing:2px">ZUGANG VERWEIGERT</h2>
-    <p style="font-size:.85em;color:var(--sub);line-height:1.8;margin-bottom:24px">
-      Der Zugang zum Darknet ist nur über den offiziellen Discord-Kanal möglich.<br>
-      Nutze den <strong style="color:var(--grn3)">⬛ DARKNET ÖFFNEN</strong> Button auf dem Discord Server um deine persönliche Verbindung herzustellen.
-    </p>
-    <div style="background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:12px 20px;font-family:monospace;font-size:.75em;color:var(--grn3);letter-spacing:1px">
-      &gt; VERBINDUNG ÜBER DISCORD ERFORDERLICH<br>
-      &gt; PERSÖNLICHER TOKEN BENÖTIGT<br>
-      &gt; DIREKTZUGANG NICHT GESTATTET
-    </div>
-  </div>
-</div>`;
-      res.setHeader('Content-Type','text/html; charset=utf-8');
-      return res.send(page('ZUGANG VERWEIGERT', 'home', token, loginBody));
+      const guestId = 'guest_' + require('crypto').randomBytes(8).toString('hex');
+      if (req.session) req.session.darknetUid = guestId;
+      return res.redirect('/darknet' + (token ? '?dc=' + token : ''));
     }
 
     const body = `
