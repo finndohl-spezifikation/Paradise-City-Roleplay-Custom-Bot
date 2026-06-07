@@ -343,24 +343,12 @@ function autoDate(el){
     delete toks[req.params.token];
     saveTok(toks);
 
-    // Generate image + post to channel (nur Bild, kein Text)
+    // Rolle zuweisen (kein Channel-Post mehr)
     try {
-      const imgBuf = await generateLicenseImage(fsData, photoPath);
-      const { AttachmentBuilder } = require('discord.js');
-      const ch = await client.channels.fetch(FS_CREATE_CH).catch(()=>null);
-      if (ch) {
-        const attachment = new AttachmentBuilder(imgBuf, { name: 'fuehrerschein_'+fsData.lizenznummer+'.png' });
-        await ch.send({ files: [attachment] });
-      }
-      // Assign role
-      try {
-        const guild  = client.guilds.cache.first();
-        const member = guild ? await guild.members.fetch(entry.userId).catch(()=>null) : null;
-        if (member) await member.roles.add(FS_ROLE_ID).catch(()=>{});
-      } catch {}
-    } catch (e) {
-      console.error('[FUEHRERSCHEIN] Image generation failed:', e.message);
-    }
+      const guild  = client.guilds.cache.first();
+      const member = guild ? await guild.members.fetch(entry.userId).catch(()=>null) : null;
+      if (member) await member.roles.add(FS_ROLE_ID).catch(()=>{});
+    } catch {}
 
     res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fertig</title><style>body{background:#0d1117;color:#e6edf3;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px}</style></head><body><div style="font-size:3em">🚗</div><h2 style="color:#e65100">Führerschein erfolgreich erstellt!</h2><p style="color:#8b949e">Du kannst dieses Fenster schließen.</p></body></html>`);
   });
