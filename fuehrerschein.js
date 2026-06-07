@@ -45,7 +45,9 @@ module.exports = function initFuehrerschein(app, DATA_DIR, client, express) {
 
   // ── Generate CA-style license image as PNG Buffer ─────────────────────────
   async function generateLicenseImage(data, photoPath) {
-    const { createCanvas, loadImage } = require('@napi-rs/canvas');
+    const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
+    // Load all available system fonts so text renders correctly on any host
+    try { GlobalFonts.loadSystemFonts(); } catch {}
     const W = 856, H = 540;
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
@@ -61,19 +63,22 @@ module.exports = function initFuehrerschein(app, DATA_DIR, client, express) {
     ctx.lineWidth = 2;
     ctx.strokeRect(16, 16, W-32, H-32);
 
+    // Font helper — works on servers with or without system fonts
+    const F = (size, bold) => `${bold?'bold ':''} ${size}px Arial, DejaVu Sans, Liberation Sans, Helvetica, sans-serif`;
+
     // State name
     ctx.fillStyle = '#FDB913';
-    ctx.font = 'bold 28px sans-serif';
+    ctx.font = F(28, true);
     ctx.textAlign = 'center';
     ctx.fillText('STATE OF CALIFORNIA', W/2, 55);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 22px sans-serif';
+    ctx.font = F(22, true);
     ctx.fillText('DEPARTMENT OF MOTOR VEHICLES', W/2, 82);
 
     // DL title
     ctx.fillStyle = '#FDB913';
-    ctx.font = 'bold 32px sans-serif';
+    ctx.font = F(32, true);
     ctx.textAlign = 'left';
     ctx.fillText('DRIVER LICENSE', 200, 128);
 
@@ -81,10 +86,10 @@ module.exports = function initFuehrerschein(app, DATA_DIR, client, express) {
     ctx.fillStyle = '#FDB913';
     ctx.fillRect(W-130, 100, 110, 50);
     ctx.fillStyle = '#003087';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = F(14, true);
     ctx.textAlign = 'center';
     ctx.fillText('CLASS', W-75, 120);
-    ctx.font = 'bold 24px sans-serif';
+    ctx.font = F(24, true);
     ctx.fillText(data.klasse || 'C', W-75, 142);
 
     // Photo box
@@ -101,7 +106,7 @@ module.exports = function initFuehrerschein(app, DATA_DIR, client, express) {
       } catch {}
     } else {
       ctx.fillStyle = '#aaaaaa';
-      ctx.font = '14px sans-serif';
+      ctx.font = F(14, false);
       ctx.textAlign = 'center';
       ctx.fillText('PHOTO', 102, 205);
     }
@@ -114,11 +119,11 @@ module.exports = function initFuehrerschein(app, DATA_DIR, client, express) {
     // Fields
     function field(label, value, x, y, maxW) {
       ctx.fillStyle = '#FDB913';
-      ctx.font = 'bold 11px sans-serif';
+      ctx.font = F(11, true);
       ctx.textAlign = 'left';
       ctx.fillText(label.toUpperCase(), x, y);
       ctx.fillStyle = '#ffffff';
-      ctx.font = '16px sans-serif';
+      ctx.font = F(16, false);
       let txt = String(value||'');
       if (maxW && ctx.measureText(txt).width > maxW) {
         while (txt.length > 0 && ctx.measureText(txt+'…').width > maxW) txt = txt.slice(0,-1);
@@ -128,7 +133,7 @@ module.exports = function initFuehrerschein(app, DATA_DIR, client, express) {
     }
 
     ctx.textAlign = 'left';
-    const lx = 200; // left column x
+    const lx = 200;
     field('LAST NAME', data.nachname, lx, 158, 300);
     field('FIRST NAME', data.vorname, lx, 196, 300);
     field('ADDRESS', data.adresse || 'Los Santos, CA', lx, 234, 430);
@@ -158,17 +163,17 @@ module.exports = function initFuehrerschein(app, DATA_DIR, client, express) {
     ctx.beginPath(); ctx.moveTo(22, 372); ctx.lineTo(W-22, 372); ctx.stroke();
 
     ctx.fillStyle = '#FDB913';
-    ctx.font = 'bold 11px sans-serif';
+    ctx.font = F(11, true);
     ctx.fillText('PSN:', 22, 390);
     ctx.fillStyle = '#ffffff';
-    ctx.font = '14px sans-serif';
+    ctx.font = F(14, false);
     ctx.fillText(data.psn || '-', 70, 390);
 
     // Bottom bar
     ctx.fillStyle = '#FDB913';
     ctx.fillRect(22, 410, W-44, 40);
     ctx.fillStyle = '#003087';
-    ctx.font = 'bold 13px sans-serif';
+    ctx.font = F(13, true);
     ctx.textAlign = 'center';
     ctx.fillText('PARADISE CITY ROLEPLAY  •  CALIFORNIA DMV  •  NOT A REAL LICENSE', W/2, 436);
 
@@ -176,7 +181,7 @@ module.exports = function initFuehrerschein(app, DATA_DIR, client, express) {
     ctx.save();
     ctx.globalAlpha = 0.08;
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 72px sans-serif';
+    ctx.font = F(72, true);
     ctx.textAlign = 'center';
     ctx.translate(W/2, H/2);
     ctx.rotate(-Math.PI/6);
