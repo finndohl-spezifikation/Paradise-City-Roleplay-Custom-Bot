@@ -4208,27 +4208,18 @@ client.on('interactionCreate', async (interaction) => {
       const member = guild ? await guild.members.fetch(target.id).catch(() => null) : null;
       if (member && roleId) await member.roles.add(roleId).catch(() => {});
     } catch {}
-    const warnBars = ['\uD83D\uDFE5\u2B1B\u2B1B\u2B1B\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\u2B1B\u2B1B\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\u2B1B\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\u2B1B','\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5\uD83D\uDFE5'];
     try {
       const warnCh = await client.channels.fetch(PLAYER_WARN_CH).catch(() => null);
       if (warnCh) {
         const embed = new EmbedBuilder()
           .setColor(0xFF0000)
-          .setTitle('\uD83D\uDEA8  \u2501\u2501\u2501  V E R W A R N U N G  \u2501\u2501\u2501  \uD83D\uDEA8')
-          .setDescription(
-            '\u2501'.repeat(40) + '\n' +
-            '**Ein Spieler hat eine offizielle Verwarnung erhalten.**\n' +
-            '\u2501'.repeat(40)
-          )
+          .setTitle('🚨 Verwarnung')
           .addFields(
-            { name: '\uD83D\uDC64  Verwarnt',      value: '<@' + target.id + '>\n`' + target.username + '`', inline: true },
-            { name: '\uD83D\uDEE1\uFE0F  Von',         value: '<@' + user.id + '>\n`' + user.tag + '`',       inline: true },
-            { name: '\uD83D\uDD22  Warn ' + warnNum + ' / 5', value: warnBars[warnNum - 1],                        inline: true },
-            { name: '\uD83D\uDCCB  Grund',          value: '```' + grund + '```',                           inline: false },
-            { name: '\uD83C\uDFF7\uFE0F  Warn-Rolle',   value: '<@&' + roleId + '>',                              inline: true },
-            { name: '\u23F0  Zeitpunkt',      value: '<t:' + Math.floor(Date.now()/1000) + ':f>',         inline: true },
+            { name: '👮 Ausgestellt von', value: '<@' + user.id + '>', inline: true },
+            { name: '👤 Erteilt an',      value: '<@' + target.id + '>', inline: true },
+            { name: '📋 Grund',           value: grund, inline: false },
           )
-          .setFooter({ text: 'Paradise City Roleplay  \u2022  Verwarnungssystem' })
+          .setFooter({ text: 'Paradise City Roleplay • Verwarnungssystem' })
           .setTimestamp();
         await warnCh.send({ embeds: [embed] });
       }
