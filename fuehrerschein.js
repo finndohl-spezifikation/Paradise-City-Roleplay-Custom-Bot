@@ -343,28 +343,14 @@ function autoDate(el){
     delete toks[req.params.token];
     saveTok(toks);
 
-    // Generate image + post to channel
+    // Generate image + post to channel (nur Bild, kein Text)
     try {
       const imgBuf = await generateLicenseImage(fsData, photoPath);
-      const { AttachmentBuilder, EmbedBuilder } = require('discord.js');
+      const { AttachmentBuilder } = require('discord.js');
       const ch = await client.channels.fetch(FS_CREATE_CH).catch(()=>null);
       if (ch) {
         const attachment = new AttachmentBuilder(imgBuf, { name: 'fuehrerschein_'+fsData.lizenznummer+'.png' });
-        await ch.send({
-          embeds: [new EmbedBuilder()
-            .setColor(0x003087)
-            .setTitle('🚗 Neuer Führerschein ausgestellt')
-            .setDescription(`**${fsData.vorname} ${fsData.nachname}** hat einen neuen Führerschein erhalten.`)
-            .addFields(
-              { name: 'Lizenz-Nr.', value: fsData.lizenznummer, inline: true },
-              { name: 'Klasse', value: fsData.klasse, inline: true },
-              { name: 'Ablauf', value: fsData.ablaufdatum, inline: true },
-              { name: 'PSN', value: fsData.psn, inline: true }
-            )
-            .setImage('attachment://fuehrerschein_'+fsData.lizenznummer+'.png')
-            .setTimestamp()],
-          files: [attachment]
-        });
+        await ch.send({ files: [attachment] });
       }
       // Assign role
       try {
@@ -374,12 +360,6 @@ function autoDate(el){
       } catch {}
     } catch (e) {
       console.error('[FUEHRERSCHEIN] Image generation failed:', e.message);
-      // Still send text embed if canvas fails
-      try {
-        const { EmbedBuilder } = require('discord.js');
-        const ch = await client.channels.fetch(FS_CREATE_CH).catch(()=>null);
-        if (ch) await ch.send({ embeds: [new EmbedBuilder().setColor(0x003087).setTitle('🚗 Führerschein ausgestellt').setDescription(`**${fsData.vorname} ${fsData.nachname}** — Nr. ${fsData.lizenznummer}`).setTimestamp()] });
-      } catch {}
     }
 
     res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fertig</title><style>body{background:#0d1117;color:#e6edf3;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px}</style></head><body><div style="font-size:3em">🚗</div><h2 style="color:#e65100">Führerschein erfolgreich erstellt!</h2><p style="color:#8b949e">Du kannst dieses Fenster schließen.</p></body></html>`);
