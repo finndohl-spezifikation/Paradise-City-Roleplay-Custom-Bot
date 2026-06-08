@@ -5185,28 +5185,6 @@ client.on('interactionCreate', async (interaction) => {
           });
         }
 
-      // ─── CHARAKTER RESET ──────────────────────────────────────────────────────
-        // Remove expired tokens for this user
-        toks = Object.fromEntries(Object.entries(toks).filter(([,v]) => v.expiresAt > Date.now() && v.userId !== target.id));
-        const tok = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-        toks[tok] = { userId: target.id, art, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
-        require('fs').writeFileSync(EINREISE_TOKEN_FILE, JSON.stringify(toks, null, 2));
-        const domain = (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.REPLIT_DOMAINS || 'localhost:8080').split(',')[0].trim();
-        const link   = `https://${domain}/einreise/${art}/${tok}`;
-        try {
-          await target.send({ embeds: [new EmbedBuilder().setColor(art === 'legal' ? 0x43A047 : 0xb71c1c)
-            .setTitle(art === 'legal' ? '🏛️ Legale Einreise — Paradise City' : '🚫 Illegale Einreise — Paradise City')
-            .setDescription('Klicke auf den Link um deine Einreise auszufüllen. Der Link ist **7 Tage** gültig.')
-            .addFields({ name: '🔗 Persönlicher Link', value: `[Hier klicken](${link})`, inline: false },
-                       { name: '⏱️ Gültig bis', value: `<t:${Math.floor((Date.now()+7*24*60*60*1000)/1000)}:F>`, inline: false })
-            ] });
-          return interaction.reply({ content: `✅ Einreise-Link (${art}) per DM an **${target.tag}** gesendet.`, ephemeral: true });
-        } catch {
-          return interaction.reply({ content: `❌ Konnte keine DM an **${target.tag}** senden. DMs möglicherweise deaktiviert.
-Link: ${link}`, ephemeral: true });
-        }
-      }
-
 
         // ── /rubbellos-setup ────────────────────────────────────────────────────
         // ── /lotto-ziehung (manuell) ──────────────────────────────────────────────
