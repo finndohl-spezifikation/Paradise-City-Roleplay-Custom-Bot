@@ -3218,7 +3218,7 @@ async function doSell() {
             { name: 'Übersprungen', value: skipped.length > 0 ? skipped.join(', ') : '—', inline: true },
             { name: 'Von', value: entry.userTag, inline: false },
             { name: 'Items', value: itemList || '—', inline: false }
-          ).setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Shop-Manager' })
+          )
         ]});
       }
     } catch(e) { console.error('[SHOP-MGR LOG]', e.message); }
@@ -3267,13 +3267,13 @@ async function doSell() {
         .sort((a,b)=>(LAPD_ERANK[b.ebene]||0)-(LAPD_ERANK[a.ebene]||0));
       const emojis = { leitung:'🟡', befehl:'🔵', detective:'🟣', officer:'🟢' };
       const embed = new _DEB()
-        .setColor(0x1565c0)
+        .setColor(0xE65100)
         .setTitle('🛡️ LAPD — Officers On Duty')
         .setDescription(list.length===0
           ? '⚫  **No officers currently on duty.**'
           : list.map(d=>(emojis[d.ebene]||'🟢')+' **'+d.displayName+'** — '+d.rankName).join('\n'))
-        .setTimestamp()
-        .setFooter({ text:'Los Angeles Police Department • Paradise City Roleplay' });
+        
+        ;
       const stored = lj(LAPD_EMBED_FILE,{});
       const ch = await client.channels.fetch(LAPD_DUTY_CHANNEL).catch(()=>null);
       if (!ch) return;
@@ -3685,7 +3685,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
             { name:'To', value:to, inline:true },
             { name:'Note', value:String(note||'—').slice(0,300)||'—' }
           )
-          .setTimestamp().setFooter({ text:'LAPD Internal • ID: '+id.slice(0,8) });
+          ;
         const vRow = new _VARB().addComponents(
           new _VBB().setCustomId('lapd_vac_approve_'+id).setLabel('✅ Approve').setStyle(_VBS.Success),
           new _VBB().setCustomId('lapd_vac_reject_'+id).setLabel('❌ Reject').setStyle(_VBS.Danger),
@@ -3837,7 +3837,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
           {name:'🎖️ Division',value:(LAPD_EBENE[s.ebene]||{label:s.ebene}).label,inline:true},
           {name:'⏰ Zeitpunkt',value:'<t:'+Math.floor(now/1000)+':F>',inline:false}
         )
-        .setFooter({text:'LAPD Panic Alert System'}).setTimestamp();
+        ;
       let count=0;
       for(const m of notified){ m.send({embeds:[pEmbed]}).catch(()=>{}); count++; }
       res.json({ok:true,notified:count});
@@ -4954,7 +4954,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
           +'</div></div>';
       }).join('') : '<p style="color:#8b949e">Noch keine Führerscheine ausgestellt.</p>';
 
-      content += '<h3 style="margin:0 0 16px;color:#e65100">🚗 Führerscheine</h3>'+fsRows;
+      content += '<h3 style="margin:0 0 16px;color:#90EE90">🚗 Führerscheine</h3>'+fsRows;
 
     }
 
@@ -5047,7 +5047,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
             {name:'Von',value:String(from),inline:true},
             {name:'Bis',value:String(to),inline:true},
             {name:'Notiz',value:String(note||'—').slice(0,300)||'—'})
-          .setTimestamp().setFooter({text:'LAPD Internal ID: '+id.slice(0,8)});
+          ;
         const vRow2=new _ARB2().addComponents(
           new _BB2().setCustomId('lapd_vac_approve_'+id).setLabel('Genehmigen').setStyle(_BS2.Success),
           new _BB2().setCustomId('lapd_vac_reject_'+id).setLabel('Ablehnen').setStyle(_BS2.Danger));
@@ -5189,7 +5189,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
         all2[userId].entzogen=true; all2[userId].entzogenBis=dauerMs?Date.now()+dauerMs:null; all2[userId].entzogenGrund=grund||'Kein Grund';
         require('fs').writeFileSync(fsPath, JSON.stringify(all2,null,2));
         try { const g=client.guilds.cache.first();const m=g?await g.members.fetch(userId).catch(()=>null):null; if(m) await m.roles.remove('1490855729635135489').catch(()=>{}); } catch {}
-        try { const u=await client.users.fetch(userId).catch(()=>null); if(u) { const {EmbedBuilder}=require('discord.js'); await u.send({embeds:[new EmbedBuilder().setColor(0xdc2626).setTitle('🚫 Führerschein entzogen').addFields({name:'Grund',value:grund||'Kein Grund'},{name:'Dauer',value:dauerMs?Math.round(dauerMs/86400000)+' Tag(e)':'Unbefristet'}).setTimestamp()]}).catch(()=>{}); } } catch {}
+        try { const u=await client.users.fetch(userId).catch(()=>null); if(u) { const {EmbedBuilder}=require('discord.js'); await u.send({embeds:[new EmbedBuilder().setColor(0xdc2626).setTitle('🚫 Führerschein entzogen').addFields({name:'Grund',value:grund||'Kein Grund'},{name:'Dauer',value:dauerMs?Math.round(dauerMs/86400000)+' Tag(e)':'Unbefristet'})]}).catch(()=>{}); } } catch {}
       }
     } catch {}
     res.redirect('/lapd/dashboard?tab=fuehrerscheine&flash=1&msg='+encodeURIComponent('Führerschein entzogen'));
@@ -5204,7 +5204,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
       const all2 = JSON.parse(require('fs').readFileSync(fsPath,'utf8'));
       if (all2[userId]) { all2[userId].entzogen=false; all2[userId].entzogenBis=null; require('fs').writeFileSync(fsPath, JSON.stringify(all2,null,2)); }
       try { const g=client.guilds.cache.first();const m=g?await g.members.fetch(userId).catch(()=>null):null; if(m) await m.roles.add('1490855729635135489').catch(()=>{}); } catch {}
-      try { const u=await client.users.fetch(userId).catch(()=>null); if(u) { const {EmbedBuilder}=require('discord.js'); await u.send({embeds:[new EmbedBuilder().setColor(0x16a34a).setTitle('✅ Führerschein zurückgegeben').setDescription('Dein Führerschein wurde zurückgegeben.').setTimestamp()]}).catch(()=>{}); } } catch {}
+      try { const u=await client.users.fetch(userId).catch(()=>null); if(u) { const {EmbedBuilder}=require('discord.js'); await u.send({embeds:[new EmbedBuilder().setColor(0x16a34a).setTitle('✅ Führerschein zurückgegeben').setDescription('Dein Führerschein wurde zurückgegeben.')]}).catch(()=>{}); } } catch {}
     } catch {}
     res.redirect('/lapd/dashboard?tab=fuehrerscheine&flash=1&msg='+encodeURIComponent('Führerschein zurückgegeben'));
   });
@@ -5298,7 +5298,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
             {name:'Fahrzeug',value:String(fahrzeug).slice(0,200)+(kennzeichen?' (KZ: '+String(kennzeichen)+')':''),inline:true},
             {name:'Grund',value:String(grund).slice(0,300),inline:false},
             {name:'Beamter',value:s.displayName+' ('+s.rankName+')',inline:true}
-          ).setFooter({text:'LAPD  \u2022  Paradise City Roleplay'}).setTimestamp()]});
+          )]});
       }
     } catch(e){ req.log ? req.log.error(e,'Beschlagnahmung Discord') : console.error('Beschlagnahmung Discord:',e.message); }})();
     dashRedir(res, tab, 'Fahrzeug beschlagnahmt.', true);
@@ -5324,7 +5324,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
             {name:'Besitzer',value:item.besitzer,inline:true},
             {name:'Fahrzeug',value:item.fahrzeug+(item.kennzeichen?' (KZ: '+item.kennzeichen+')':''),inline:true},
             {name:'Aufgehoben von',value:s.displayName+' ('+s.rankName+')',inline:true}
-          ).setFooter({text:'LAPD  \u2022  Paradise City Roleplay'}).setTimestamp()]});
+          )]});
       }
     } catch(e){ req.log ? req.log.error(e,'Aufhebung Discord') : console.error('Aufhebung Discord:',e.message); }})();
     dashRedir(res, tab, 'Beschlagnahmung aufgehoben.', true);
