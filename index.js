@@ -128,8 +128,8 @@ async function updateKryptoRate() {
         { name:'24h Tief', value:Math.min(...rateData.history.map(h=>h.rate)).toLocaleString('de-DE')+' $', inline:true },
         { name:'Änderung', value:(diff>=0?'+':'')+diff+' $ ('+(prev>0?(diff/prev*100).toFixed(2):0)+'%)', inline:true }
       )
-      .setFooter({ text:'Paradise City • PC Coin System • Kurse aktualisieren sich stündlich' })
-      .setTimestamp();
+      
+      ;
     // Find existing pinned embed and edit, else send (no external button)
     const msgs = await ch.messages.fetch({limit:5}).catch(()=>null);
     const existing = msgs?.find(m=>m.author.id===client.user.id&&m.embeds.length>0);
@@ -303,8 +303,8 @@ function buildAbstimmungEmbed(poll) {
       { name: '\uD83D\uDC4E ' + poll.antwort2, value: makeBar(downs, total), inline: false },
       { name: '\uD83D\uDCCA Stimmen gesamt', value: String(total), inline: true },
     )
-    .setFooter({ text: 'Du kannst nur f\u00FCr eine Option gleichzeitig stimmen' })
-    .setTimestamp();
+    
+    ;
 }
 
 // ─── Ausweis-Token-System ───────────────────────────────────────────────────
@@ -421,7 +421,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         .setAuthor({ name: 'Paradise City Roleplay  •  ' + m.name })
         .setTitle(m.emoji + '  ' + m.name)
         .setDescription('*' + m.desc + '*\n\n' + rows)
-        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  ' + items.length + ' Items  •  Paradise City Roleplay' });
+        ;
     }
 
     function buildCartEmbed(shopId, cart, cash) {
@@ -441,7 +441,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
           { name: enough ? '✅  Genug' : cart.length === 0 ? '🛒  Leer' : '❌  Nicht genug',
             value: enough ? 'Du kannst kaufen!' : cart.length === 0 ? 'Fuege Items hinzu' : 'Fehlen: ' + (total-cash).toLocaleString('de-DE') + ' Euro', inline: true }
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Warenkorb' });
+        ;
     }
 
     function buildTeamShopEmbed(items, page) {
@@ -456,7 +456,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         .setAuthor({ name: 'Paradise City Roleplay  •  Team Shop' })
         .setTitle('🎖️  Team Shop')
         .setDescription('*Exklusiv fuer das Team — kostenlos beziehen*\n\n' + rows)
-        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  ' + items.length + ' Items  •  Paradise City Roleplay' });
+        ;
     }
 
     function buildShopSession(shopId, items, page, cart, cash) {
@@ -476,7 +476,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         .setAuthor({ name: 'Paradise City Roleplay  •  ' + m.name })
         .setTitle(m.emoji + '  ' + m.name)
         .setDescription('*' + m.desc + '*\n\n' + rows + '\n\n' + cartInfo)
-        .setFooter({ text: 'Seite ' + (page+1) + '/' + totalPages + '  •  Paradise City Roleplay' });
+        ;
       const pagePrev = new ButtonBuilder().setCustomId('sp_prev:' + page + ':' + shopId).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(page === 0);
       const pageNext = new ButtonBuilder().setCustomId('sp_next:' + page + ':' + shopId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1);
       const buyBtn   = new ButtonBuilder().setCustomId('sp_buy:' + page + ':' + shopId).setLabel('💰 Kaufen').setStyle(ButtonStyle.Success).setDisabled(!cart.length);
@@ -592,7 +592,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         `${MONEY_GIF} Ein-/Auszahlen & Überweisen\n\n` +
         '*Sicher. Schnell. Paradise City.*'
       )
-      .setFooter({ text: 'Paradise City Roleplay • Banking System' }).setTimestamp();
+      ;
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('banking_open').setLabel('\u{1F3E7} Online Banking öffnen').setStyle(ButtonStyle.Primary)
     );
@@ -743,7 +743,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         .setTitle(`🎒  Rucksack von ${targetUser.username}`)
         .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
         .setDescription(rows)
-        .setFooter({ text: `Seite ${page+1}/${totalPages}  •  ${items.length} Items gesamt  •  Paradise City Roleplay` });
+        ;
     }
     function buildLagerEmbed(targetUser, page, store) {
       const items = Object.entries(store);
@@ -757,7 +757,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         .setTitle(`🏪  Lager von ${targetUser.username}`)
         .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
         .setDescription(rows)
-        .setFooter({ text: `Seite ${page+1}/${totalPages}  •  ${items.length} Items gesamt  •  Paradise City Roleplay` });
+        ;
     }
     function invPageButtons(page, totalPages, targetId, type) {
       const row = new ActionRowBuilder().addComponents(
@@ -813,7 +813,7 @@ function buildAktivitaetEmbed(data) {
         inline: false,
       },
     )
-    .setFooter({ text: 'Paradise City Roleplay  •  Aktivitätscheck  •  Reagiere mit ✅' })
+    
     .setTimestamp(data.createdAt ? new Date(data.createdAt) : new Date());
 }
 
@@ -847,8 +847,8 @@ function buildGiveawayEmbed(preis, endetAt, teilnehmer) {
       { name: '\u23F3  ENDET',       value: '<t:' + endetTs + ':R> \u2022 <t:' + endetTs + ':f>', inline: false },
       { name: '\uD83C\uDF9F\uFE0F  TEILNEHMER', value: '**' + teilnehmer + '** Personen nehmen teil', inline: false },
     )
-    .setFooter({ text: 'Paradise City Roleplay  \u2022  Giveaway  \u2022  Reagiere mit \uD83C\uDF89' })
-    .setTimestamp();
+    
+    ;
 }
 const activeGiveaways = new Map();
 
@@ -1085,8 +1085,8 @@ async function buildInviteCache(guild) {
           { name: '🟢  Legale Fraktionen', value: legalBlock, inline: false },
           { name: '🔴  Illegale Fraktionen', value: illegalBlock, inline: false }
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Fraktionsverwaltung  |  Zuletzt aktualisiert' })
-        .setTimestamp();
+        
+        ;
 
       const setup = loadSetup();
       const ch = await client.channels.fetch(FRAK_OVERVIEW_CH).catch(() => null);
@@ -1136,8 +1136,8 @@ async function buildInviteCache(guild) {
           `👤 **Gesamte Teammitglieder:** ${totalTeam}`
         )
         .addFields(fields.length ? fields : [{ name: 'Keine Einträge', value: 'Noch keine Teammitglieder.' }])
-        .setFooter({ text: 'Paradise City Roleplay  •  Team' })
-        .setTimestamp();
+        
+        ;
       const setup = loadSetup();
       const ch = await client.channels.fetch(TEAM_OVERVIEW_CH).catch(() => null);
       if (!ch) return;
@@ -1186,8 +1186,8 @@ async function updateLapdTeamOverview() {
         + `👤 **Mitglieder gesamt:** ${total}`
       )
       .addFields(fields.length ? fields : [{ name: 'Keine Einträge', value: 'Noch keine LAPD-Mitglieder mit Rolle.' }])
-      .setFooter({ text: 'LAPD System  •  Paradise City Roleplay  •  Echtzeit-Aktualisierung' })
-      .setTimestamp();
+      
+      ;
     const setup = loadSetup();
     const ch = await client.channels.fetch(LAPD_TEAM_CH).catch(() => null);
     if (!ch) return;
@@ -1243,8 +1243,8 @@ async function updateFirmenEmbed(client) {
       .setDescription('Echtzeit-\u00dcbersicht der aktiven Mitarbeiter in allen Firmen')
       .addFields(fields)
       .setColor(0x5865F2)
-      .setFooter({ text: 'Zuletzt aktualisiert: ' + timeStr + ' Uhr  \u2022  Alle 60 Sekunden' })
-      .setTimestamp();
+      
+      ;
     const setupF = loadSetup();
     if (!setupF.firmenEmbedMsgId) {
       const msg = await ch.send({ embeds: [embed] });
@@ -1321,7 +1321,7 @@ client.once('ready', async () => {
               { name: '💡 Was ist PC Coin?', value: 'Die Kryptowährung von Paradise City. Überweise <:emoji_29:1507071093540782110> direkt an andere Spieler.', inline: false },
               { name: '🔒 Sicherheit', value: 'Dein Wallet ist nur für dich sichtbar.', inline: true }
             )
-            .setFooter({ text: 'Paradise City • PC Coin System' }).setTimestamp();
+            ;
           const row1 = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('krypto_wallet').setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Primary)
           );
@@ -1346,7 +1346,7 @@ client.once('ready', async () => {
               { name: '🏦 Bankgeld → PC Coin', value: 'Kaufe PC Coin mit deinem Bankkonto', inline: true },
               { name: '💱 PC Coin → Bankgeld', value: 'Verkaufe PC Coin zurück in Bankgeld', inline: true }
             )
-            .setFooter({ text: 'Paradise City • PC Coin System • Kurse aktualisieren stündlich' }).setTimestamp();
+            ;
           const row2 = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('krypto_exchange').setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Primary)
           );
@@ -1398,11 +1398,6 @@ client.once('ready', async () => {
       .toJSON(),
 
       new SlashCommandBuilder()
-        .setName('einreise-code')
-        .setDescription('Generiert deinen persönlichen Einreise-Code für das Webformular')
-        .toJSON(),
-
-      new SlashCommandBuilder()
         .setName('ausweis')
         .setDescription('Zeigt einen Ausweis an (eigener oder einer anderen Person)')
         .addUserOption(opt => opt.setName('person').setDescription('Person (optional — leer lassen für eigenen Ausweis)').setRequired(false))
@@ -1432,9 +1427,8 @@ client.once('ready', async () => {
 
     new SlashCommandBuilder()
       .setName('fuehrerschein-create')
-      .setDescription('Erstellt einen Führerschein-Link für ein Mitglied')
+      .setDescription('Erstellt oder bearbeitet einen Führerschein für ein Mitglied')
       .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
-      .addUserOption(o => o.setName('mitglied').setDescription('Für wen?').setRequired(true))
       .toJSON(),
 
     new SlashCommandBuilder()
@@ -1699,11 +1693,6 @@ client.once('ready', async () => {
         .addChoices({ name: 'Legal', value: 'legal' }, { name: 'Illegal', value: 'illegal' }))
       .toJSON(),
     new SlashCommandBuilder()
-        .setName('rubbellos-setup')
-        .setDescription('Postet das Rubbellos-Embed in den Rubbellos-Kanal')
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-        .toJSON(),
-    new SlashCommandBuilder()
         .setName('lotto-ziehung')
         .setDescription('Führt die Lotto-Ziehung manuell durch (Admin)')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
@@ -1807,7 +1796,7 @@ client.once('ready', async () => {
     .setTitle('🔄 Bot neugestartet')
     .setDescription(`**${client.user.tag}** ist wieder online.`)
     .addFields({ name: '🕐 Zeitpunkt', value: `<t:${ts()}:F>` })
-    .setTimestamp()
+    
   );
 
 
@@ -1870,8 +1859,8 @@ client.once('ready', async () => {
           inline: false,
         },
       )
-      .setFooter({ text: 'Paradise City Roleplay  •  Einreisebehörde' })
-      .setTimestamp();
+      
+      ;
 
     const einreiseButton = new ButtonBuilder()
       .setLabel('Einreise starten')
@@ -1931,8 +1920,8 @@ client.once('ready', async () => {
             inline: false,
           },
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Einreisebehörde' })
-        .setTimestamp();
+        
+        ;
 
       try {
         const startCh = await client.channels.fetch('1490878159032422433');
@@ -1992,8 +1981,8 @@ client.once('ready', async () => {
             inline: false,
           },
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Einreisebehörde' })
-        .setTimestamp();
+        
+        ;
 
       try {
         const starterCh = await client.channels.fetch('1490878159804174470');
@@ -2093,8 +2082,8 @@ client.once('ready', async () => {
             inline: false,
           },
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung' })
-        .setTimestamp();
+        
+        ;
 
       try {
         const regelCh1 = await client.channels.fetch('1490882546144383156');
@@ -2176,8 +2165,8 @@ client.once('ready', async () => {
             inline: false,
           },
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung' })
-        .setTimestamp();
+        
+        ;
 
       try {
         const regelCh2 = await client.channels.fetch('1490882546144383156');
@@ -2231,7 +2220,7 @@ client.once('ready', async () => {
                 inline: false,
               },
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Seite 1 / 3' });
+            ;
 
           const fraktEmbed2 = new EmbedBuilder()
             .setColor(DARK_ORANGE)
@@ -2270,7 +2259,7 @@ client.once('ready', async () => {
                 inline: false,
               },
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Seite 2 / 3' });
+            ;
 
           const fraktEmbed3 = new EmbedBuilder()
             .setColor(DARK_ORANGE)
@@ -2311,8 +2300,8 @@ client.once('ready', async () => {
                 inline: false,
               },
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung  •  Seite 3 / 3' })
-            .setTimestamp();
+            
+            ;
 
           await fraktCh.send({ embeds: [fraktEmbed1] });
           await fraktCh.send({ embeds: [fraktEmbed2] });
@@ -2345,8 +2334,8 @@ client.once('ready', async () => {
             inline: false,
           },
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Serverleitung' })
-        .setTimestamp();
+        
+        ;
 
       try {
         const safeCh = await client.channels.fetch('1490882549499564184');
@@ -2378,8 +2367,8 @@ client.once('ready', async () => {
           `📝 **Team Bewerbung** — Bewerbung als Teammitglied\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
         )
-        .setFooter({ text: 'Paradise City Roleplay  •  Support' })
-        .setTimestamp();
+        
+        ;
 
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId('ticket_select')
@@ -2434,7 +2423,7 @@ client.once('ready', async () => {
             '📌 **Info Ping** — Werde bei Infos gepingt\n' +
             '📌 **Update Ping** — Werde bei Updates gepingt'
           )
-          .setFooter({ text: 'Paradise City Roleplay  •  Ping-Rollen verwalten' });
+          ;
         const pingSelect = new StringSelectMenuBuilder()
           .setCustomId('ping_rollen_select')
           .setPlaceholder('Ping-Rolle hinzufügen / entfernen …')
@@ -2480,7 +2469,7 @@ client.once('ready', async () => {
 
 🎯 Rubbele alle 9 Felder frei — **3× dasselbe Symbol = Gewinn!**`
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' });
+            ;
           const rubbBtn = new ButtonBuilder()
             .setCustomId('rubbellos_use')
             .setLabel('🎟️ Rubbellos einlösen')
@@ -2529,8 +2518,8 @@ client.once('ready', async () => {
                 + '📝 **Bewerbung** — Bewerbung beim LAPD einreichen\n'
                 + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
               )
-              .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' })
-              .setTimestamp();
+              
+              ;
             const lapdSelect = new StringSelectMenuBuilder()
               .setCustomId('lapd_ticket_select')
               .setPlaceholder('📂 Kategorie auswählen...')
@@ -2605,7 +2594,7 @@ client.once('ready', async () => {
             { name: '🕐 Erstellt am',  value: `<t:${ts()}:F>`,  inline: true },
             { name: '🔖 Ticket-ID',    value: `\`${ticketId}\``, inline: true },
           )
-          .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' }).setTimestamp();
+          ;
         const closeBtnL  = new ButtonBuilder().setCustomId('lapd_ticket_close').setLabel('Ticket schließen').setEmoji('🔒').setStyle(ButtonStyle.Danger);
         const rowL = new ActionRowBuilder().addComponents(closeBtnL);
         const pings = cfg.roles.map(r => `<@&${r}>`).join(' ');
@@ -2676,7 +2665,7 @@ client.once('ready', async () => {
             { name: '🔖 Ticket-ID',    value: `\`${ticketId}\``,       inline: true },
             { name: '🛠️ Bearbeiter', value: 'Noch kein Bearbeiter', inline: true },
           )
-          .setFooter({ text: 'Paradise City Roleplay  •  Support' }).setTimestamp();
+          ;
         const closeBtn  = new ButtonBuilder().setCustomId('ticket_close').setLabel('Ticket schließen').setEmoji('🔒').setStyle(ButtonStyle.Danger);
         const assignBtn = new ButtonBuilder().setCustomId('ticket_assign').setLabel('Nutzer zuweisen').setEmoji('👤').setStyle(ButtonStyle.Secondary);
         const row = new ActionRowBuilder().addComponents(closeBtn, assignBtn);
@@ -2745,7 +2734,7 @@ client.once('ready', async () => {
               { name: '🔒 Geschlossen von', value: `<@${interaction.user.id}>`,                        inline: true },
               { name: '🕐 Geschlossen am',  value: `<t:${ts()}:F>`,                                   inline: true },
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Ticket System' }).setTimestamp();
+            ;
           await transcriptCh.send({ embeds: [tEmbed], files: [attachment] });
         } catch (e) { console.error('Transkript Fehler:', e.message); }
 
@@ -2868,7 +2857,7 @@ client.once('ready', async () => {
           .setColor(0xef4444).setTitle('\u{1F6A8} Notruf abgesendet — LAPD')
           .setDescription('Dein Notruf wurde weitergeleitet.\n\n\u{1F4CD} **Standort:** ' + location
             + (description ? '\n\u{1F4DD} **Beschreibung:** ' + description : ''))
-          .setFooter({text:'LAPD wird benachrichtigt  •  Paradise City Roleplay'})
+          
         ]});
       }
 
@@ -2897,7 +2886,7 @@ client.once('ready', async () => {
                 { name: '👤 Bewertet von', value: `<@${interaction.user.id}>`,      inline: true },
                 { name: '💬 Kommentar',    value: comment,                            inline: false },
               )
-              .setTimestamp()
+              
             ]});
           } catch (e) { console.error('Rating Channel Fehler:', e.message); }
           return interaction.update({ content: `✅ Danke für deine Bewertung: ${starsFull} (${starsStr})`, components: [], embeds: [] });
@@ -2941,8 +2930,8 @@ client.on('guildMemberAdd', async (member) => {
           { name: '📅 Beigetreten', value: `<t:${ts()}:F>`, inline: true },
           { name: '🏠 Mitglieder gesamt', value: `${member.guild.memberCount}`, inline: true },
         )
-        .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' })
-        .setTimestamp()
+        
+        
       ]});
     } catch (e) { console.error('LAPD Join Fehler:', e.message); }
     await updateLapdTeamOverview();
@@ -3001,7 +2990,7 @@ client.on('guildMemberAdd', async (member) => {
         { name: '📨  Eingeladen von', value: inviterMention, inline: true },
         { name: '📆  Account seit',   value: `<t:${ts(member.user.createdAt)}:D>`, inline: true },
       )
-      .setTimestamp();
+      ;
 
     try {
       const ch = await client.channels.fetch(CH.WELCOME);
@@ -3020,8 +3009,8 @@ client.on('guildMemberAdd', async (member) => {
             `Gib dort deine Discord ID ein — sie steht direkt hier unten. 👇`
           )
           .addFields({ name: '🆔  Deine Discord ID', value: `\`${member.id}\``, inline: false })
-          .setFooter({ text: 'Kopiere die ID und trage sie im Formular ein.' })
-          .setTimestamp()
+          
+          
         ]});
       } catch { /* DMs deaktiviert */ }
 
@@ -3041,8 +3030,8 @@ client.on('guildMemberAdd', async (member) => {
           { name: '📅  Beigetreten',          value: `<t:${ts()}:F>`,      inline: false },
           { name: '🏆  Einladungen gesamt',   value: inviterId ? `**${totalInvites}**` : '—', inline: true },
         )
-        .setTimestamp()
-        .setFooter({ text: 'Paradise City Roleplay  •  Invite Tracker' })
+        
+        
       ]});
     } catch (e) { console.error('Invite-Log Fehler:', e.message); }
 
@@ -3053,7 +3042,7 @@ client.on('guildMemberAdd', async (member) => {
       .addFields(
         { name: 'Mitglied',         value: `<@${member.id}>`, inline: true },
         { name: 'Account erstellt', value: `<t:${ts(member.user.createdAt)}:R>`, inline: true }
-      ).setThumbnail(member.user.displayAvatarURL()).setTimestamp()
+      ).setThumbnail(member.user.displayAvatarURL())
     );
     return;
   }
@@ -3070,7 +3059,7 @@ client.on('guildMemberAdd', async (member) => {
           .setDescription(
             'Du hast versucht einen fremden Bot auf **Paradise City Roleplay** hinzuzufügen.\n' +
             'Dies ist **nicht gestattet**. Der Bot wurde automatisch gebannt.'
-          ).setTimestamp()
+          )
         ]});
       } catch {}
     }
@@ -3081,7 +3070,7 @@ client.on('guildMemberAdd', async (member) => {
         { name: 'Hinzugefügt von', value: inviter ? `<@${inviter.id}> (${inviter.tag})` : 'Unbekannt', inline: true },
         { name: 'Aktion',          value: '✅ Bot wurde permanent gebannt' },
         { name: 'Zeitpunkt',       value: `<t:${ts()}:F>` }
-      ).setTimestamp()
+      )
     );
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
       .setColor(Colors.Red).setTitle('🔨 Automatischer Bann — Bot')
@@ -3089,7 +3078,7 @@ client.on('guildMemberAdd', async (member) => {
         { name: 'Bot',            value: `<@${member.id}> (${member.user.tag})` },
         { name: 'Eingeladen von', value: inviter ? `<@${inviter.id}>` : 'Unbekannt' },
         { name: 'Grund',          value: 'Fremder Bot hinzugefügt' }
-      ).setTimestamp()
+      )
     );
   } catch (e) { console.error('Bot-Bann Fehler:', e.message); }
 });
@@ -3110,8 +3099,8 @@ client.on('guildMemberRemove', async (member) => {
           { name: '👤 Nutzer', value: member.user.tag, inline: true },
           { name: '📅 Verlassen am', value: `<t:${ts()}:F>`, inline: true },
         )
-        .setFooter({ text: 'LAPD System  •  Paradise City Roleplay' })
-        .setTimestamp()
+        
+        
       ]});
     } catch (e) { console.error('LAPD Leave Fehler:', e.message); }
     await updateLapdTeamOverview();
@@ -3157,7 +3146,7 @@ client.on('guildMemberRemove', async (member) => {
         { name: '📨  Eingeladen von', value: inviterMention, inline: true },
         { name: '⏱️  War dabei für',  value: joinedAt ? `<t:${ts(joinedAt)}:R>` : 'Unbekannt', inline: true },
       )
-      .setTimestamp()
+      
     ]});
   } catch (e) { console.error('Goodbye Fehler:', e.message); }
 
@@ -3175,8 +3164,8 @@ client.on('guildMemberRemove', async (member) => {
         { name: '📅  Beigetreten am',         value: joinedAt ? `<t:${ts(joinedAt)}:F>` : 'Unbekannt',  inline: false },
         { name: '📉  Einladungen verbleibend', value: inviterId ? `**${remainingCount}**` : '—',          inline: true },
       )
-      .setTimestamp()
-      .setFooter({ text: 'Paradise City Roleplay  •  Invite Tracker' })
+      
+      
     ]});
   } catch (e) { console.error('Invite-Log (Leave) Fehler:', e.message); }
 
@@ -3185,7 +3174,7 @@ client.on('guildMemberRemove', async (member) => {
     .setColor(Colors.Orange).setTitle('👋 Mitglied verlassen')
     .setDescription(`<@${member.id}> (${member.user.tag}) hat den Server verlassen.`)
     .addFields({ name: 'Mitglied', value: `<@${member.id}>` })
-    .setThumbnail(member.user.displayAvatarURL()).setTimestamp()
+    .setThumbnail(member.user.displayAvatarURL())
   );
 });
 
@@ -3207,7 +3196,7 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
         { name: 'Mitglied',       value: `<@${newMember.id}> (${newMember.user.tag})` },
         { name: 'Alter Nickname', value: oldMember.nickname || '_keiner_', inline: true },
         { name: 'Neuer Nickname', value: newMember.nickname || '_keiner_', inline: true }
-      ).setTimestamp()
+      )
     );
   }
   const addedRoles   = newMember.roles.cache.filter(r => !oldMember.roles.cache.has(r.id));
@@ -3218,7 +3207,7 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
       .addFields(
         { name: 'Mitglied', value: `<@${newMember.id}> (${newMember.user.tag})` },
         { name: 'Rollen',   value: addedRoles.map(r => r.name).join(', ') }
-      ).setTimestamp()
+      )
     );
   }
   if (removedRoles.size > 0) {
@@ -3227,7 +3216,7 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
       .addFields(
         { name: 'Mitglied', value: `<@${newMember.id}> (${newMember.user.tag})` },
         { name: 'Rollen',   value: removedRoles.map(r => r.name).join(', ') }
-      ).setTimestamp()
+      )
     );
   }
 
@@ -3516,7 +3505,7 @@ client.on('messageCreate', async (message) => {
         .setDescription(
           'Das Senden von Discord-Server-Einladungen ist auf **Paradise City Roleplay** nicht erlaubt.\n\n' +
           '⚠️ **Dein Verstoß wurde an das Serverteam weitergeleitet und wird sanktioniert.**'
-        ).setTimestamp()
+        )
       ]});
     } catch {}
     await sendLog(CH.ACTIVITY, new EmbedBuilder()
@@ -3526,14 +3515,14 @@ client.on('messageCreate', async (message) => {
         { name: 'Kanal',  value: `<#${message.channel.id}>` },
         { name: 'Inhalt', value: message.content.slice(0, 200) },
         { name: 'Aktion', value: '🗑️ Nachricht gelöscht, Team informiert' }
-      ).setTimestamp()
+      )
     );
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
       .setColor(Colors.Orange).setTitle('⚠️ Regelverstoß — Discord-Link')
       .addFields(
         { name: 'Nutzer', value: `<@${message.author.id}> (${message.author.tag})` },
         { name: 'Kanal',  value: `<#${message.channel.id}>` }
-      ).setTimestamp()
+      )
     );
     return;
   }
@@ -3591,7 +3580,7 @@ client.on('messageCreate', async (message) => {
               { name: 'Nutzer', value: `<@${message.author.id}> (${message.author.tag})` },
               { name: 'Dauer',  value: '10 Minuten' },
               { name: 'Grund',  value: '3x Spam-Verstöße' }
-            ).setTimestamp()
+            )
           );
         } catch (e) { console.error('Timeout Fehler:', e.message); }
       }
@@ -3611,7 +3600,7 @@ client.on('messageDelete', async (message) => {
       { name: 'Kanal',        value: `<#${message.channel.id}>` },
       { name: 'Inhalt',       value: message.content?.slice(0, 1000) || '_kein Text_' },
       { name: 'Gelöscht von', value: deleter ? `<@${deleter.id}> (${deleter.tag})` : 'Nutzer selbst / unbekannt' }
-    ).setTimestamp()
+    )
   );
 });
 
@@ -3625,7 +3614,7 @@ client.on('messageUpdate', async (oldMsg, newMsg) => {
       { name: 'Kanal',   value: `<#${newMsg.channel.id}>` },
       { name: 'Vorher',  value: oldMsg.content?.slice(0, 500) || '_unbekannt_' },
       { name: 'Nachher', value: newMsg.content?.slice(0, 500) || '_leer_' }
-    ).setTimestamp()
+    )
   );
 });
 
@@ -3638,7 +3627,7 @@ client.on('channelDelete', async (channel) => {
     .addFields(
       { name: 'Kanal',        value: channel.name },
       { name: 'Gelöscht von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' }
-    ).setTimestamp()
+    )
   );
   if (!executor) return;
   const member = await channel.guild.members.fetch(executor.id).catch(() => null);
@@ -3651,7 +3640,7 @@ client.on('channelDelete', async (channel) => {
         { name: 'Nutzer', value: `<@${executor.id}> (${executor.tag})` },
         { name: 'Dauer',  value: '20 Minuten' },
         { name: 'Grund',  value: `Kanal **${channel.name}** gelöscht` }
-      ).setTimestamp()
+      )
     );
   } catch (e) { console.error('Timeout Fehler:', e.message); }
 });
@@ -3664,7 +3653,7 @@ client.on('channelCreate', async (channel) => {
     .addFields(
       { name: 'Kanal',        value: `<#${channel.id}> (${channel.name})` },
       { name: 'Erstellt von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' }
-    ).setTimestamp()
+    )
   );
 });
 
@@ -3679,7 +3668,7 @@ client.on('channelUpdate', async (oldCh, newCh) => {
       { name: 'Bearbeitet von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' },
       { name: 'Alter Name',     value: oldCh.name, inline: true },
       { name: 'Neuer Name',     value: newCh.name, inline: true }
-    ).setTimestamp()
+    )
   );
 });
 
@@ -3691,7 +3680,7 @@ client.on('roleCreate', async (role) => {
     .addFields(
       { name: 'Rolle',        value: `${role.name} (${role.id})` },
       { name: 'Erstellt von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' }
-    ).setTimestamp()
+    )
   );
 });
 
@@ -3703,7 +3692,7 @@ client.on('roleDelete', async (role) => {
     .addFields(
       { name: 'Rolle',        value: role.name },
       { name: 'Gelöscht von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' }
-    ).setTimestamp()
+    )
   );
   if (!executor) return;
   const member = await role.guild.members.fetch(executor.id).catch(() => null);
@@ -3716,7 +3705,7 @@ client.on('roleDelete', async (role) => {
         { name: 'Nutzer', value: `<@${executor.id}> (${executor.tag})` },
         { name: 'Dauer',  value: '20 Minuten' },
         { name: 'Grund',  value: `Rolle **${role.name}** gelöscht` }
-      ).setTimestamp()
+      )
     );
   } catch (e) { console.error('Timeout Fehler:', e.message); }
 });
@@ -3738,7 +3727,7 @@ client.on('roleUpdate', async (oldRole, newRole) => {
       { name: 'Bearbeitet von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' },
       { name: 'Alter Name',     value: oldRole.name, inline: true },
       { name: 'Neuer Name',     value: newRole.name, inline: true }
-    ).setTimestamp()
+    )
   );
 });
 
@@ -3754,7 +3743,7 @@ client.on('guildAuditLogEntryCreate', async (entry, guild) => {
           { name: 'Von',    value: entry.executor ? `<@${entry.executor.id}>` : 'Unbekannt' },
           { name: 'Bis',    value: `<t:${Math.floor(new Date(tc.newValue).getTime() / 1000)}:F>` },
           { name: 'Grund',  value: entry.reason || '_kein Grund_' }
-        ).setTimestamp()
+        )
       );
     }
   }
@@ -3765,7 +3754,7 @@ client.on('guildAuditLogEntryCreate', async (entry, guild) => {
         { name: 'Nutzer', value: entry.targetId ? `<@${entry.targetId}>` : 'Unbekannt' },
         { name: 'Von',    value: entry.executor ? `<@${entry.executor.id}>` : 'Unbekannt' },
         { name: 'Grund',  value: entry.reason || '_kein Grund_' }
-      ).setTimestamp()
+      )
     );
   }
   if (entry.action === AuditLogEvent.MemberBanRemove) {
@@ -3774,7 +3763,7 @@ client.on('guildAuditLogEntryCreate', async (entry, guild) => {
       .addFields(
         { name: 'Nutzer', value: entry.targetId ? `<@${entry.targetId}>` : 'Unbekannt' },
         { name: 'Von',    value: entry.executor ? `<@${entry.executor.id}>` : 'Unbekannt' }
-      ).setTimestamp()
+      )
     );
   }
   if ([AuditLogEvent.ChannelOverwriteCreate, AuditLogEvent.ChannelOverwriteUpdate, AuditLogEvent.ChannelOverwriteDelete].includes(entry.action)) {
@@ -3783,7 +3772,7 @@ client.on('guildAuditLogEntryCreate', async (entry, guild) => {
       .addFields(
         { name: 'Kanal',        value: `<#${entry.targetId}>` },
         { name: 'Geändert von', value: entry.executor ? `<@${entry.executor.id}> (${entry.executor.tag})` : 'Unbekannt' }
-      ).setTimestamp()
+      )
     );
   }
 });
@@ -3842,7 +3831,7 @@ client.on('interactionCreate', async (interaction) => {
             'Klicke den Button, gib das Passwort ein und du bist drin.\n' +
             'Der Link ist **10 Minuten** gültig.'
           )
-          .setFooter({ text: 'Nur für dich sichtbar • Nicht weitergeben' });
+          ;
         const authBtn = new ButtonBuilder().setLabel('🛡️ Dashboard öffnen').setURL(authUrl).setStyle(ButtonStyle.Link);
         const authRow = new ActionRowBuilder().addComponents(authBtn);
         return interaction.editReply({
@@ -3883,8 +3872,8 @@ client.on('interactionCreate', async (interaction) => {
               { name: 'Period', value: vac.from + ' — ' + vac.to, inline: true },
               { name: 'Approved by', value: interaction.user.username, inline: true }
             )
-            .setFooter({ text: 'With kind regards, LAPD Command Staff' })
-            .setTimestamp();
+            
+            ;
           await reqUser.send({ embeds: [aEmbed] }).catch(() => {});
         }
       } catch (e) { console.error('vac approve DM:', e.message); }
@@ -3939,8 +3928,8 @@ client.on('interactionCreate', async (interaction) => {
               { name: 'Rejected by', value: interaction.user.username, inline: true },
               { name: 'Reason', value: reason }
             )
-            .setFooter({ text: 'LAPD Command Staff' })
-            .setTimestamp();
+            
+            ;
           await reqUser.send({ embeds: [rEmbed] }).catch(() => {});
         }
       } catch (e) { console.error('vac reject DM:', e.message); }
@@ -4059,7 +4048,7 @@ client.on('interactionCreate', async (interaction) => {
         { name: 'Von',      value: `<@${user.id}> (${user.tag})` },
         { name: 'Kanal',    value: `<#${interaction.channel.id}>` },
         { name: 'Gelöscht', value: `${deleted} Nachrichten` }
-      ).setTimestamp()
+      )
     );
     return;
   }
@@ -4089,8 +4078,8 @@ client.on('interactionCreate', async (interaction) => {
             { name: 'Grund',      value: grund },
             { name: 'Hinweis',    value: '\u26A0\uFE0F Discord-Bots haben keinen Zugriff auf IP-Adressen. Der Discord-Account ist dauerhaft gebannt.' }
           )
-          .setTimestamp()
-          .setFooter({ text: 'Paradise City Roleplay \u2022 Mod Log' })
+          
+          
         ] });
       }
       return interaction.reply({
@@ -4099,7 +4088,7 @@ client.on('interactionCreate', async (interaction) => {
           .setTitle('\u{1F528} Nutzer gebannt')
           .setDescription('**' + target.tag + '** wurde permanent vom Server entfernt.')
           .addFields({ name: 'Grund', value: grund })
-          .setTimestamp()
+          
         ],
         ephemeral: true
       });
@@ -4122,8 +4111,8 @@ client.on('interactionCreate', async (interaction) => {
       const logCh = await client.channels.fetch(CH.MOD_LOG).catch(() => null);
       if (logCh) await logCh.send({ embeds: [new EmbedBuilder().setColor(0x16a34a).setTitle('✅ Unban')
         .addFields({ name:'Nutzer-ID', value: userId, inline:true },{ name:'Moderator', value:`${interaction.user.tag} (${interaction.user.id})`, inline:true },{ name:'Grund', value:grund })
-        .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Mod Log' })] });
-      return interaction.reply({ embeds: [new EmbedBuilder().setColor(0x16a34a).setTitle('✅ Nutzer entbannt').setDescription(`Nutzer ${userId} wurde vom Server entbannt.`).addFields({ name:'Grund', value:grund }).setTimestamp()], ephemeral: true });
+        ] });
+      return interaction.reply({ embeds: [new EmbedBuilder().setColor(0x16a34a).setTitle('✅ Nutzer entbannt').setDescription(`Nutzer ${userId} wurde vom Server entbannt.`).addFields({ name:'Grund', value:grund })], ephemeral: true });
     } catch (e) {
       return interaction.reply({ content: '❌ Unban fehlgeschlagen: ' + e.message, ephemeral: true });
     }
@@ -4148,8 +4137,8 @@ client.on('interactionCreate', async (interaction) => {
       const logCh = await client.channels.fetch(CH.MOD_LOG).catch(() => null);
       if (logCh) await logCh.send({ embeds: [new EmbedBuilder().setColor(0xf59e0b).setTitle('⏱️ Timeout')
         .addFields({ name:'Spieler', value:`${target.tag} (${target.id})`, inline:true },{ name:'Moderator', value:`${interaction.user.tag}`, inline:true },{ name:'Dauer', value:dauerLabel, inline:true },{ name:'Grund', value:grund })
-        .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Mod Log' })] });
-      return interaction.reply({ embeds: [new EmbedBuilder().setColor(0xf59e0b).setTitle('⏱️ Timeout gesetzt').addFields({ name:'Spieler', value:`${target.tag}`, inline:true },{ name:'Dauer', value:dauerLabel, inline:true },{ name:'Grund', value:grund }).setTimestamp()], ephemeral: true });
+        ] });
+      return interaction.reply({ embeds: [new EmbedBuilder().setColor(0xf59e0b).setTitle('⏱️ Timeout gesetzt').addFields({ name:'Spieler', value:`${target.tag}`, inline:true },{ name:'Dauer', value:dauerLabel, inline:true },{ name:'Grund', value:grund })], ephemeral: true });
     } catch (e) {
       const hint = e.message.toLowerCase().includes('missing permissions')
         ? '❌ Timeout fehlgeschlagen: Der Bot hat keine Berechtigung. Bitte gib der Bot-Rolle die Berechtigung **"Mitglieder per Timeout stummschalten"** in den Servereinstellungen, oder stelle sicher dass die Bot-Rolle höher als die Rolle des Spielers ist.'
@@ -4183,8 +4172,8 @@ client.on('interactionCreate', async (interaction) => {
         { name: '⚡  Konsequenz',       value: `> ${konsequenz}`,                   inline: false },
         { name: '\u200b', value: `${'━'.repeat(38)}`, inline: false },
       )
-      .setTimestamp()
-      .setFooter({ text: 'Paradise City Roleplay  •  Teamverwarnungssystem' });
+      
+      ;
 
     try {
       const warnCh = await client.channels.fetch(CH.TEAM_WARN);
@@ -4199,7 +4188,7 @@ client.on('interactionCreate', async (interaction) => {
         { name: 'Konsequenz', value: konsequenz },
         { name: 'Von',        value: `<@${user.id}>` },
         { name: 'Nummer',     value: `${warnCount}` },
-      ).setTimestamp()
+      )
     );
     await interaction.reply({
       embeds: [new EmbedBuilder().setColor(Colors.Green)
@@ -4223,7 +4212,7 @@ client.on('interactionCreate', async (interaction) => {
         { name: 'Mitglied',     value: `<@${target.id}> (${target.tag})` },
         { name: 'Grund war',    value: removed.grund },
         { name: 'Entfernt von', value: `<@${user.id}>` }
-      ).setTimestamp()
+      )
     );
     await interaction.reply({
       embeds: [new EmbedBuilder().setColor(Colors.Green)
@@ -4254,7 +4243,7 @@ client.on('interactionCreate', async (interaction) => {
         .setDescription(warnLines.slice(0, 4000))
         .addFields({ name: 'Gesamt', value: `${warns.length} Verwarnung(en)` })
         .setThumbnail(target.displayAvatarURL({ dynamic: true }))
-        .setTimestamp()
+        
       ],
       ephemeral: true
     });
@@ -4291,8 +4280,8 @@ client.on('interactionCreate', async (interaction) => {
             { name: '📋 Grund',           value: grund, inline: false },
             { name: '🔢 Verwarnung',      value: warnNum + '/3', inline: false },
           )
-          .setFooter({ text: 'Paradise City Roleplay • Verwarnungssystem' })
-          .setTimestamp();
+          
+          ;
         await warnCh.send({ embeds: [embed] });
       }
     } catch (e) { console.error('Warn-Channel Fehler:', e.message); }
@@ -4349,38 +4338,11 @@ client.on('interactionCreate', async (interaction) => {
         .setTitle('\uD83D\uDCCB  Warn-Liste — ' + target.username)
         .setDescription('\u2501'.repeat(38) + '\n' + list.length + '/5 aktive Warns\n' + '\u2501'.repeat(38))
         .addFields(...fields)
-        .setFooter({ text: 'Paradise City Roleplay  \u2022  Verwarnungssystem' })
-        .setTimestamp()],
+        
+        ],
       ephemeral: true
     });
   }
-
-    // /einreise-code
-    if (commandName === 'einreise-code') {
-      const existingCodes = loadCodes();
-      for (const [k, v] of Object.entries(existingCodes)) {
-        if (v.userId === user.id && Date.now() > v.expiresAt) delete existingCodes[k];
-      }
-      for (const [k, v] of Object.entries(existingCodes)) {
-        if (v.userId === user.id) delete existingCodes[k];
-      }
-      const code    = makeCode();
-      const expires = Date.now() + 15 * 60 * 1000;
-      existingCodes[code] = { userId: user.id, userTag: user.tag, expiresAt: expires };
-      saveCodes(existingCodes);
-      await interaction.reply({
-        embeds: [new EmbedBuilder()
-          .setColor(DARK_ORANGE)
-          .setTitle('🔑 Dein Einreise-Code')
-          .setDescription(
-            '**Code:** \x60\x60\x60' + code + '\x60\x60\x60\n1. \u00d6ffne das Einreise-Formular\n2. Trage diesen Code im Feld **"Einreise-Code"** ein\n3. Deine Rollen werden nach dem Absenden automatisch vergeben\n\n\u23f3 G\u00fcltig f\u00fcr **15 Minuten** \u00b7 nur einmalig verwendbar'
-          )
-          .setFooter({ text: 'Paradise City Roleplay  •  Einreise-System' })
-        ],
-        ephemeral: true
-      });
-      return;
-    }
 
     // /ausweis
     if (commandName === 'ausweis') {
@@ -4464,7 +4426,7 @@ client.on('interactionCreate', async (interaction) => {
           embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('🆔  Ausweis erstellen — Paradise City Roleplay')
             .setDescription('Du wurdest aufgefordert, deinen Charakter-Ausweis auszufüllen.')
             .addFields({ name: '🔗  Link', value: `[Hier klicken um Ausweis auszufüllen](${link})`, inline: false }, { name: '⏱️  Gültig bis', value: `<t:${Math.floor((Date.now()+86400000)/1000)}:F>`, inline: false })
-            .setFooter({ text: 'Paradise City Roleplay  •  Ausweis-Erstellung' }).setTimestamp()]
+            ]
         });
         return interaction.reply({ content: `✅ DM an **${target.tag}** gesendet mit dem Ausweis-Erstellungslink.`, ephemeral: true });
       } catch {
@@ -4502,23 +4464,26 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.reply({ content: `✅ Ausweis von **${target.tag}** wurde gelöscht und Rollen zurückgesetzt.`, ephemeral: true });
     }
 
-    // /fuehrerschein-create
-    if (commandName === 'fuehrerschein-create') {
-      const target = interaction.options.getUser('mitglied');
-      const domain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
-      const tok    = _fsGenToken(target.id, interaction.user.id);
-      const link   = `https://${domain}/fuehrerschein/create/${tok}`;
-      try {
-        await target.send({ embeds: [new EmbedBuilder().setColor(0x003087)
-          .setTitle('🚗 Führerschein erstellen — Paradise City')
-          .setDescription('Du wurdest aufgefordert, deinen Führerschein auszufüllen.')
-          .addFields({ name: '🔗 Link', value: `[Hier klicken](${link})`, inline: false }, { name: '⏱️ Gültig bis', value: `<t:${Math.floor((Date.now()+172800000)/1000)}:F>`, inline: false })
-          .setFooter({ text: 'Paradise City Roleplay • Führerschein-Erstellung' }).setTimestamp()] });
-        return interaction.reply({ content: `✅ Führerschein-Link per DM an **${target.tag}** gesendet.`, ephemeral: true });
-      } catch {
-        return interaction.reply({ content: `❌ Konnte keine DM senden. DMs möglicherweise deaktiviert.\nLink: ${link}`, ephemeral: true });
+    // /fuehrerschein-create — DM-basierter Flow
+      if (commandName === 'fuehrerschein-create') {
+        const sel = new UserSelectMenuBuilder()
+          .setCustomId('fs_player_select')
+          .setPlaceholder('Spieler auswählen...')
+          .setMinValues(1).setMaxValues(1);
+        const selRow = new ActionRowBuilder().addComponents(sel);
+        try {
+          await interaction.user.send({
+            embeds: [new EmbedBuilder()
+              .setColor(0x003087)
+              .setTitle('🚗 Führerschein — Spieler auswählen')
+              .setDescription('Wähle den Spieler aus, für den du einen Führerschein **erstellen** oder **bearbeiten** möchtest.')],
+            components: [selRow]
+          });
+          return interaction.reply({ content: '📨 DM wurde dir gesendet!', ephemeral: true });
+        } catch {
+          return interaction.reply({ content: '❌ DMs konnten nicht gesendet werden. Bitte aktiviere DMs für diesen Server.', ephemeral: true });
+        }
       }
-    }
 
     // /fuehrerschein
     if (commandName === 'fuehrerschein') {
@@ -4579,8 +4544,8 @@ client.on('interactionCreate', async (interaction) => {
               { name: '📅 Wann',  value: wann,  inline: true  },
               { name: '🏆 Preis', value: preis, inline: true  },
             )
-            .setFooter({ text: 'Paradise City Roleplay  •  Events' })
-            .setTimestamp();
+            
+            ;
           await ch.send({ content: `<@&${EVENT_ROLE}>`, embeds: [embed] });
           return interaction.reply({ content: '✅ Event wurde im Event-Kanal gepostet!', ephemeral: true });
         }
@@ -4622,7 +4587,7 @@ client.on('interactionCreate', async (interaction) => {
                   .setColor(0xFF4444)
                   .setTitle('\uD83C\uDF89  GIVEAWAY BEENDET')
                   .setDescription('Leider hat niemand mit der ben\u00F6tigten Rolle teilgenommen.\n**Preis:** ' + preis)
-                  .setTimestamp();
+                  ;
                 await gwMsgFresh.edit({ embeds: [noWinEmbed] });
                 await ch.send({ content: '\u274C Kein g\u00FCltiger Teilnehmer gefunden. Giveaway endet ohne Gewinner.' });
                 return;
@@ -4638,8 +4603,8 @@ client.on('interactionCreate', async (interaction) => {
                   '\uD83C\uDF9F\uFE0F **Teilnehmer:** ' + eligible.length + '\n' +
                   '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501'
                 )
-                .setFooter({ text: 'Paradise City Roleplay  \u2022  Giveaway abgeschlossen' })
-                .setTimestamp();
+                
+                ;
               await gwMsgFresh.edit({ embeds: [winEmbed] });
               await ch.send({ content: '\uD83C\uDF89 Herzlichen Gl\u00FCckwunsch <@' + winner.id + '>! Du hast **' + preis + '** gewonnen!' });
             } catch (e2) { console.error('Giveaway-Ende Fehler:', e2.message); }
@@ -4695,7 +4660,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: '👤  Vergeben von', value: `<@${user.id}>`, inline: true },
               { name: '🕐  Zeitpunkt', value: `<t:${ts()}:F>`, inline: true },
               { name: '⚠️  Warns gesamt', value: `**${data[name].warns.length}**`, inline: true }
-            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Verwarnungssystem' }).setTimestamp()
+            )
           ]});
           return interaction.reply({ content: `✅ **${name}** hat jetzt ${data[name].warns.length} Verwarnung(en).`, ephemeral: true });
         }
@@ -4719,7 +4684,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: 'Entfernte Warn', value: removed.grund },
               { name: 'Entfernt von', value: `<@${user.id}>`, inline: true },
               { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
-            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp()
+            )
           ]});
           return interaction.reply({ content: `✅ Letzte Verwarnung von **${name}** entfernt. Noch ${data[name].warns.length} übrig.`, ephemeral: true });
         }
@@ -4744,7 +4709,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: 'Grund', value: grund },
               { name: 'Gesperrt von', value: `<@${user.id}>`, inline: true },
               { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
-            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp();
+            );
           if (logCh) await logCh.send({ embeds: [sperreEmbed] });
           const sperreCh = await client.channels.fetch('1497050512028205186').catch(() => null);
           if (sperreCh) await sperreCh.send({ embeds: [sperreEmbed] });
@@ -4769,7 +4734,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: 'Fraktion', value: `**${name}** (${data[name].typ})`, inline: true },
               { name: 'Aufgehoben von', value: `<@${user.id}>`, inline: true },
               { name: 'Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
-            ).setFooter({ text: 'Paradise City Roleplay  •  Fraktions-Log' }).setTimestamp()
+            )
           ]});
           return interaction.reply({ content: `🔓 Sperre von **${name}** wurde aufgehoben.`, ephemeral: true });
         }
@@ -4791,8 +4756,8 @@ client.on('interactionCreate', async (interaction) => {
               { name: '📅  Datum', value: `<t:${ts()}:D>`, inline: true },
               { name: '📊  Status', value: '🟡 **Offen**', inline: true }
             )
-            .setFooter({ text: `Paradise City Roleplay  •  Vorschlag #${newId}` })
-            .setTimestamp();
+            
+            ;
           const msg = await ch.send({ embeds: [embed] });
           await msg.react('✅');
           await msg.react('❌');
@@ -4825,8 +4790,8 @@ client.on('interactionCreate', async (interaction) => {
                 { name: '✅  Entschieden von', value: `<@${user.id}>`, inline: true },
                 { name: '💬  Begründung', value: grund, inline: false }
               )
-              .setFooter({ text: `Paradise City Roleplay  •  Vorschlag #${id}` })
-              .setTimestamp()
+              
+              
             ]});
           }
           return interaction.reply({ content: `✅ Vorschlag **#${id}** wurde angenommen.`, ephemeral: true });
@@ -4855,8 +4820,8 @@ client.on('interactionCreate', async (interaction) => {
                 { name: '✅  Entschieden von', value: `<@${user.id}>`, inline: true },
                 { name: '💬  Begründung', value: grund, inline: false }
               )
-              .setFooter({ text: `Paradise City Roleplay  •  Vorschlag #${id}` })
-              .setTimestamp()
+              
+              
             ]});
           }
           return interaction.reply({ content: `✅ Vorschlag **#${id}** wurde abgelehnt.`, ephemeral: true });
@@ -4885,8 +4850,8 @@ client.on('interactionCreate', async (interaction) => {
                 { name: '🕒  Ich komme später', value: 'Ich stoße etwas später dazu', inline: true },
                 { name: '❌  Ich komme nicht', value: 'Heute leider nicht dabei', inline: true }
               )
-              .setFooter({ text: `Gestartet von ${user.tag}  •  Paradise City Roleplay` })
-              .setTimestamp();
+              
+              ;
             await interaction.reply({ content: '✅ Abstimmung gesendet!', ephemeral: true });
             const msg = await ch.send({ content: `<@&${LOBBY_ROLE}>`, embeds: [embed] });
             await msg.react('✅'); await msg.react('🕒'); await msg.react('❌');
@@ -4911,8 +4876,8 @@ client.on('interactionCreate', async (interaction) => {
                 { name: '👑  Lobby Host', value: `<@${user.id}>`, inline: true },
                 { name: '🕐  Geöffnet um', value: `<t:${ts()}:t>`, inline: true }
               )
-              .setFooter({ text: 'Paradise City Roleplay  •  Lobby-Status' })
-              .setTimestamp();
+              
+              ;
             await interaction.reply({ content: '✅ Lobby als **offen** markiert!', ephemeral: true });
             await ch.send({ content: `<@&${LOBBY_ROLE}>`, embeds: [embed] });
             return;
@@ -4932,8 +4897,8 @@ client.on('interactionCreate', async (interaction) => {
                 { name: '👤  Geschlossen von', value: `<@${user.id}>`, inline: true },
                 { name: '🕐  Geschlossen um', value: `<t:${ts()}:t>`, inline: true }
               )
-              .setFooter({ text: 'Paradise City Roleplay  •  Lobby-Status' })
-              .setTimestamp();
+              
+              ;
             await interaction.reply({ content: '✅ Lobby als **geschlossen** markiert!', ephemeral: true });
             await ch.send({ embeds: [embed] });
             return;
@@ -4979,7 +4944,7 @@ client.on('interactionCreate', async (interaction) => {
           return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
             .setColor(0x57F287).setTitle('📦  Übergabe erfolgreich')
             .setDescription(`<@${user.id}> hat **${menge}x ${foundKey}** an <@${target.id}> übergeben.`)
-            .setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+            
           ]});
         }
 
@@ -4997,7 +4962,7 @@ client.on('interactionCreate', async (interaction) => {
           return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
             .setColor(0xE65100).setTitle('✅  Item verwendet')
             .setDescription(`Du hast **${menge}x ${foundKey}** verwendet.`)
-            .setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+            
           ]});
         }
 
@@ -5019,7 +4984,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: 'Spieler', value: `<@${target.id}>`, inline: true },
               { name: 'Item', value: `**${itemName}**${nameNote}`, inline: true },
               { name: 'Menge', value: `**${menge}x**`, inline: true }
-            ).setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+            )
           ], ephemeral: true });
         }
 
@@ -5040,7 +5005,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: 'Spieler', value: `<@${target.id}>`, inline: true },
               { name: 'Item', value: `**${itemName}**`, inline: true },
               { name: 'Menge', value: `**${menge}x**`, inline: true }
-            ).setTimestamp().setFooter({ text: 'Paradise City Roleplay  •  Inventar' })
+            )
           ], ephemeral: true });
         }
 
@@ -5073,7 +5038,7 @@ client.on('interactionCreate', async (interaction) => {
 🔗 **[Shop-Manager öffnen](${_WEBAPP}/shop-manager/${tok})**
 
 ⏱️ *Link ist 1 Stunde gültig.*`)
-          .setFooter({ text: 'Paradise City Roleplay  •  Shop-Manager' })
+          
         ]});
       }
       if (commandName === 'shop-edit') {
@@ -5088,7 +5053,7 @@ client.on('interactionCreate', async (interaction) => {
         sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('🏪 Shop-Log: Item bearbeitet')
           .addFields({ name:'Shop', value:SHOP_META[shopId]?.name||shopId, inline:true },{ name:'Item', value:name, inline:true },{ name:'Neuer Preis', value:`${preis.toLocaleString('de-DE')} €`, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
-          .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+          ).catch(()=>{});
         return interaction.reply({ content: '✅ **' + name + '** kostet jetzt ' + preis.toLocaleString('de-DE') + ' Euro.', ephemeral: true });
       }
       if (commandName === 'shop-delete') {
@@ -5101,7 +5066,7 @@ client.on('interactionCreate', async (interaction) => {
         sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('🏪 Shop-Log: Item gelöscht')
           .addFields({ name:'Shop', value:SHOP_META[shopId]?.name||shopId, inline:true },{ name:'Item', value:name, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
-          .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+          ).catch(()=>{});
         return interaction.reply({ content: '✅ **' + name + '** entfernt.', ephemeral: true });
       }
   
@@ -5127,7 +5092,7 @@ client.on('interactionCreate', async (interaction) => {
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Geld hinzugefügt (/money-add)')
             .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`+${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
-            .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+            ).catch(()=>{});
           return interaction.reply({ content: `✅ <@${target.id}> hat **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ` ${typLabel}** erhalten.`, ephemeral: true });
         }
 
@@ -5154,7 +5119,7 @@ client.on('interactionCreate', async (interaction) => {
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Geld abgezogen (/money-remove)')
             .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Typ', value:typLabel, inline:true },{ name:'Betrag', value:`-${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
-            .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+            ).catch(()=>{});
           return interaction.reply({ content: `✅ <@${target.id}> wurden **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ` ${typLabel}** abgezogen.`, ephemeral: true });
         }
 
@@ -5182,7 +5147,7 @@ client.on('interactionCreate', async (interaction) => {
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Rechnung erstellt')
             .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true },{ name:'Beschreibung', value:beschreibung },{ name:'Erstellt von', value:`<@${interaction.user.id}>` })
-            .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+            ).catch(()=>{});
           return interaction.reply({ content: `✅ Rechnung über **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** für <@${target.id}> erstellt.`, ephemeral: true });
         }
 
@@ -5212,7 +5177,7 @@ client.on('interactionCreate', async (interaction) => {
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Einreise-Startgeld')
             .addFields({ name:'Spieler', value:`<@${target.id}>`, inline:true },{ name:'Art', value:art, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true },{ name:'Vergeben von', value:`<@${interaction.user.id}>` })
-            .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+            ).catch(()=>{});
           return interaction.reply({
             embeds: [new EmbedBuilder().setColor(0x43A047).setTitle('💵 Startgeld vergeben')
               .setDescription(`<@${target.id}> hat **${betrag.toLocaleString('de-CH')} ${MONEY_GIF}** als ${isSchwarz ? 'Schwarzgeld' : 'Kontogeld'} erhalten.\n**Einreiseart:** ${art}`)
@@ -5221,13 +5186,6 @@ client.on('interactionCreate', async (interaction) => {
         }
 
       // ─── CHARAKTER RESET ──────────────────────────────────────────────────────
-      // ─── EINREISE-LINK ────────────────────────────────────────────────────────
-      if (commandName === 'einreise-link') {
-        const target = interaction.options.getUser('spieler');
-        const art    = interaction.options.getString('art');
-        // Generate token via web.js helper (call through shared token file)
-        const EINREISE_TOKEN_FILE = require('path').join(DATA_DIR, 'einreise_tokens.json');
-        let toks = {}; try { toks = JSON.parse(require('fs').readFileSync(EINREISE_TOKEN_FILE,'utf8')); } catch {}
         // Remove expired tokens for this user
         toks = Object.fromEntries(Object.entries(toks).filter(([,v]) => v.expiresAt > Date.now() && v.userId !== target.id));
         const tok = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
@@ -5241,7 +5199,7 @@ client.on('interactionCreate', async (interaction) => {
             .setDescription('Klicke auf den Link um deine Einreise auszufüllen. Der Link ist **7 Tage** gültig.')
             .addFields({ name: '🔗 Persönlicher Link', value: `[Hier klicken](${link})`, inline: false },
                        { name: '⏱️ Gültig bis', value: `<t:${Math.floor((Date.now()+7*24*60*60*1000)/1000)}:F>`, inline: false })
-            .setFooter({ text: 'Paradise City Roleplay • Einreise' }).setTimestamp()] });
+            ] });
           return interaction.reply({ content: `✅ Einreise-Link (${art}) per DM an **${target.tag}** gesendet.`, ephemeral: true });
         } catch {
           return interaction.reply({ content: `❌ Konnte keine DM an **${target.tag}** senden. DMs möglicherweise deaktiviert.
@@ -5256,44 +5214,6 @@ Link: ${link}`, ephemeral: true });
           await interaction.deferReply({ ephemeral: true });
           await doLottoZiehung(client);
           return interaction.editReply({ content: '✅ Lotto-Ziehung wurde manuell durchgeführt!' });
-        }
-
-        if (commandName === 'rubbellos-setup') {
-          const RUBBELLOS_CH = '1490889784753782784';
-          const ch = await client.channels.fetch(RUBBELLOS_CH).catch(() => null);
-          if (!ch) return interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
-          const rubbEmbed = new EmbedBuilder()
-            .setColor(0xE65100)
-            .setTitle('🎟️  Rubbellos')
-            .setDescription(
-              `**Mögliche Gewinne:**
-❌  Niete
-💵  1.000 $
-💴  2.500 $
-💶  5.000 $
-💷  10.000 $
-💰  25.000 $
-🚬  10× Marlboro Rot
-🚲  Elektro Fahrrad
-⛳  Golfschläger
-🎰  Lottoschein
-🎟️  20% Gutschein Autohaus
-🏎️  **SPORTWAGEN** *(Hauptgewinn — Ticket erstellen!)*
-
-🛒 Kaufe ein Rubbellos im **Kwik-E-Markt** für **1.000 $**.
-▶️ Drücke den Button um dein Rubbellos einzulösen.
-
-🎯 Rubbele alle 9 Felder frei — **3× dasselbe Symbol = Gewinn!**
-🏆 Beim Sportwagen-Hauptgewinn bitte ein **Ticket erstellen!**`
-            )
-            .setFooter({ text: 'Paradise City Roleplay  •  Rubbellos' });
-          const rubbBtn = new ButtonBuilder()
-            .setCustomId('rubbellos_use')
-            .setLabel('🎟️ Rubbellos einlösen')
-            .setStyle(ButtonStyle.Primary);
-          const rubbRow = new ActionRowBuilder().addComponents(rubbBtn);
-          await ch.send({ embeds: [rubbEmbed], components: [rubbRow] });
-          return interaction.reply({ content: '✅ Rubbellos-Embed wurde gepostet!', ephemeral: true });
         }
 
         if (commandName === 'charakter-reset') {
@@ -5339,7 +5259,7 @@ Link: ${link}`, ephemeral: true });
               { name: '👤 Spieler', value: `<@${uid}> — ${target.tag}`, inline: false },
               { name: '🛡️ Durchgeführt von', value: `<@${interaction.user.id}> — ${interaction.user.tag}`, inline: false },
               { name: '🕐 Zeitpunkt', value: `<t:${Math.floor(Date.now()/1000)}:F>`, inline: false }
-            ).setFooter({ text: "Paradise City Roleplay • Charakter-Reset" }).setTimestamp()] });
+            )] });
         } catch {}
 
         await interaction.editReply({
@@ -5348,7 +5268,7 @@ Link: ${link}`, ephemeral: true });
             .addFields(
               { name: '🗑️ Gelöscht', value: 'Konto · Bargeld · Inventar · Lager · Ausweis · Transaktionen · Rechnungen · Lohnlog · Nickname', inline: false },
             )
-            .setFooter({ text: `Durchgeführt von ${interaction.user.tag}` }).setTimestamp()
+            
           ]
         });
         return;
@@ -5406,7 +5326,100 @@ client.on('interactionCreate', async (interaction) => {
   const uid = interaction.user?.id;
 
   // ── Button: Rubbellos einlösen ──────────────────────────────────────────────
-  if (interaction.isButton() && interaction.customId === 'rubbellos_use') {
+
+    // ── Führerschein: Spieler-Auswahl (UserSelectMenu aus DM) ───────────────
+    if (interaction.isUserSelectMenu() && interaction.customId === 'fs_player_select') {
+      const selectedUser = interaction.users.first();
+      const all = _fsLoadFS();
+      const hasFS = !!all[selectedUser.id];
+      const buttons = [
+        new ButtonBuilder()
+          .setCustomId(`fs_create:${selectedUser.id}`)
+          .setLabel('🚗 Führerschein erstellen')
+          .setStyle(ButtonStyle.Primary)
+      ];
+      if (hasFS) {
+        buttons.push(
+          new ButtonBuilder()
+            .setCustomId(`fs_edit:${selectedUser.id}`)
+            .setLabel('✏️ Führerschein bearbeiten')
+            .setStyle(ButtonStyle.Secondary)
+        );
+      }
+      const row = new ActionRowBuilder().addComponents(buttons);
+      return interaction.update({
+        embeds: [new EmbedBuilder()
+          .setColor(0x003087)
+          .setTitle('🚗 Führerschein — Aktion wählen')
+          .setDescription(`**Spieler:** ${selectedUser.tag}\n${hasFS ? '✅ Hat bereits einen Führerschein.' : '❌ Kein Führerschein vorhanden.'}`)],
+        components: [row]
+      });
+    }
+
+    // ── Führerschein erstellen (Button aus DM) ────────────────────────────────
+    if (interaction.isButton() && interaction.customId.startsWith('fs_create:')) {
+      const targetId = interaction.customId.split(':')[1];
+      const targetUser = await client.users.fetch(targetId).catch(() => null);
+      if (!targetUser) return interaction.update({ embeds: [new EmbedBuilder().setColor(0xef4444).setTitle('❌ Spieler nicht gefunden.')], components: [] });
+      const domain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
+      const tok  = _fsGenToken(targetId, interaction.user.id);
+      const link = `https://${domain}/fuehrerschein/create/${tok}`;
+      try {
+        await targetUser.send({
+          embeds: [new EmbedBuilder()
+            .setColor(0x003087)
+            .setTitle('🚗 Führerschein erstellen — Paradise City')
+            .setDescription('Du wurdest aufgefordert, deinen Führerschein auszufüllen.')
+            .addFields(
+              { name: '🔗 Link', value: `[Hier klicken](${link})`, inline: false },
+              { name: '⏱️ Gültig bis', value: `<t:${Math.floor((Date.now()+172800000)/1000)}:F>`, inline: false }
+            )]
+        });
+        return interaction.update({
+          embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Link gesendet').setDescription(`Führerschein-Link per DM an **${targetUser.tag}** gesendet.`)],
+          components: []
+        });
+      } catch {
+        return interaction.update({
+          embeds: [new EmbedBuilder().setColor(0xef4444).setTitle('❌ DM fehlgeschlagen').setDescription(`Konnte keine DM an **${targetUser.tag}** senden. DMs möglicherweise deaktiviert.\n\n**Link:** ${link}`)],
+          components: []
+        });
+      }
+    }
+
+    // ── Führerschein bearbeiten (Button aus DM) ───────────────────────────────
+    if (interaction.isButton() && interaction.customId.startsWith('fs_edit:')) {
+      const targetId = interaction.customId.split(':')[1];
+      const targetUser = await client.users.fetch(targetId).catch(() => null);
+      const domain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
+      const tok  = _fsGenToken(targetId, interaction.user.id);
+      const link = `https://${domain}/fuehrerschein/create/${tok}`;
+      try {
+        if (targetUser) {
+          await targetUser.send({
+            embeds: [new EmbedBuilder()
+              .setColor(0x003087)
+              .setTitle('✏️ Führerschein bearbeiten — Paradise City')
+              .setDescription('Dein Führerschein soll aktualisiert werden. Fülle das Formular erneut aus.')
+              .addFields(
+                { name: '🔗 Link', value: `[Hier klicken](${link})`, inline: false },
+                { name: '⏱️ Gültig bis', value: `<t:${Math.floor((Date.now()+172800000)/1000)}:F>`, inline: false }
+              )]
+          });
+        }
+        return interaction.update({
+          embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Bearbeitungs-Link gesendet').setDescription(`Link per DM an **${targetUser?.tag || targetId}** gesendet.`)],
+          components: []
+        });
+      } catch {
+        return interaction.update({
+          embeds: [new EmbedBuilder().setColor(0xef4444).setTitle('❌ DM fehlgeschlagen').setDescription(`Konnte keine DM senden.\n\n**Link:** ${link}`)],
+          components: []
+        });
+      }
+    }
+
+    if (interaction.isButton() && interaction.customId === 'rubbellos_use') {
       const inv = getUserInv(uid);
       const rubbelKey = Object.keys(inv).find(k => k.toLowerCase().includes('rubbellos'));
       if (!rubbelKey || inv[rubbelKey] < 1) {
@@ -5511,7 +5524,7 @@ client.on('interactionCreate', async (interaction) => {
       sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
         .setTitle('💰 Geld-Log: Lohn abgeholt')
         .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Klasse', value:lohnklasse.label, inline:true },{ name:'Betrag', value:`${lohnklasse.betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true })
-        .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+        ).catch(()=>{});
 
       return interaction.reply({
         embeds: [new EmbedBuilder().setColor(0x43A047).setTitle('💵 Lohn abgeholt').setDescription(
@@ -5546,8 +5559,8 @@ client.on('interactionCreate', async (interaction) => {
         .addFields(
           { name: `📤 Letzte Ausgaben`, value: transText }
         )
-        .setFooter({ text: `Paradise City Bank • Sicher & Verschlüsselt` })
-        .setTimestamp();
+        
+        ;
 
       const rows = [];
       const row1 = new ActionRowBuilder().addComponents(
@@ -5754,7 +5767,7 @@ client.on('interactionCreate', async (interaction) => {
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Einzahlung (Bargeld→Konto)')
           .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true })
-          .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+          ).catch(()=>{});
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** erfolgreich eingezahlt. Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} ` + MONEY_GIF + `**`, ephemeral: true });
     }
 
@@ -5771,7 +5784,7 @@ client.on('interactionCreate', async (interaction) => {
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Auszahlung (Konto→Bargeld)')
           .addFields({ name:'Spieler', value:`<@${uid}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true })
-          .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+          ).catch(()=>{});
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** ausgezahlt. Neuer Kontostand: **${k.konto.toLocaleString('de-CH')} ` + MONEY_GIF + `**`, ephemeral: true });
     }
 
@@ -5793,7 +5806,7 @@ client.on('interactionCreate', async (interaction) => {
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Überweisung')
           .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true })
-          .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+          ).catch(()=>{});
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** an <@${targetId}> überwiesen.`, ephemeral: true });
     }
   // ── AUSWEIS CREATE (ILLEGAL) Modal — DEAKTIVIERT (Illegale erhalten keinen Ausweis) ──
@@ -5828,7 +5841,7 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply({
       embeds: [new EmbedBuilder().setColor(0xE65100).setTitle('🚫 Illegale Einreise registriert')
         .addFields({ name: 'Spieler', value: `<@${targetId}>`, inline: true }, { name: 'Name', value: `${illVor} ${illNach}`, inline: true }, { name: 'PSN', value: illPsn, inline: true }, { name: 'Geschlecht', value: illGeschl, inline: true })
-        .setFooter({ text: `Erstellt von ${interaction.user.tag}` }).setTimestamp()],
+        ],
       ephemeral: true
     });
   }
@@ -5855,7 +5868,7 @@ client.on('interactionCreate', async (interaction) => {
         sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('💰 Geld-Log: Schwarzgeld gesendet')
           .addFields({ name:'Von', value:`<@${uid}>`, inline:true },{ name:'An', value:`<@${targetId}>`, inline:true },{ name:'Betrag', value:`${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + ``, inline:true })
-          .setFooter({ text: interaction.user.tag }).setTimestamp()).catch(()=>{});
+          ).catch(()=>{});
       return interaction.reply({ content: `✅ **${betrag.toLocaleString('de-CH')} ` + MONEY_GIF + `** Schwarzgeld an <@${targetId}> verschickt.`, ephemeral: true });
     }
 
@@ -5921,7 +5934,7 @@ client.on('interactionCreate', async (interaction) => {
       .addFields(
         { name: '💸  Gezahlt', value: total.toLocaleString('de-DE') + ' Euro', inline: true },
         { name: '💵  Verbleibendes Bargeld', value: getCash(uid).toLocaleString('de-DE') + ' Euro', inline: true }
-      ).setFooter({ text: 'Paradise City Roleplay  •  ' + m.name }).setTimestamp();
+      );
     
 
 
@@ -6004,8 +6017,8 @@ async function doLottoZiehung(client) {
             `**Gewinn:** 💰 **${w.betrag.toLocaleString('de-CH')} $**\n\n` +
             `Der Betrag wurde direkt auf dein Konto überwiesen!`
           )
-          .setFooter({ text: 'Paradise City Roleplay  •  Lotto' })
-          .setTimestamp();
+          
+          ;
         await user.send({ embeds: [dmEmbed] }).catch(() => {});
       } catch (_) {}
     }
@@ -6032,8 +6045,8 @@ async function doLottoZiehung(client) {
           `*Gewinne werden automatisch aufs Konto überwiesen.*\n` +
           `*Die nächste Ziehung findet morgen um 12:00 Uhr statt.*`
         )
-        .setFooter({ text: `Paradise City Roleplay  •  Lotto  •  ${week.winners}/${MAX_WINNERS_PER_WEEK} Wochengewinner` })
-        .setTimestamp();
+        
+        ;
 
       const playBtn = new ButtonBuilder()
         .setCustomId('lotto_play')
@@ -6185,7 +6198,7 @@ client.on('interactionCreate', async (interaction) => {
         .setColor(DARK_ORANGE)
         .setTitle('📲 Apps')
         .setDescription('Wähle eine App zum Installieren oder Deinstallieren.\n✅ = bereits installiert')
-        .setFooter({ text: installedCount + ' von 3 Apps installiert' })],
+        ],
       components: [new ActionRowBuilder().addComponents(appSelect)],
     });
   }
@@ -6242,7 +6255,7 @@ client.on('interactionCreate', async (interaction) => {
         .setColor(hatApp ? 0xff9900 : 0x57f287)
         .setTitle('📲 Apps')
         .setDescription(statusMsg + '\n\nWähle eine weitere App oder schließe das Menü.\n✅ = bereits installiert')
-        .setFooter({ text: installedCount2 + ' von 3 Apps installiert' })],
+        ],
       components: [new ActionRowBuilder().addComponents(appSelect2)],
     });
   }
@@ -6379,8 +6392,8 @@ client.on('interactionCreate', async (interaction) => {
       .setTitle('💬 WhatsApp Nachricht')
       .setDescription(nachricht)
       .setAuthor({ name: 'Von: ' + interaction.user.username, iconURL: interaction.user.displayAvatarURL() })
-      .setFooter({ text: 'Paradise City Roleplay • WhatsApp' })
-      .setTimestamp();
+      
+      ;
     try {
       await empfaenger.send({ embeds: [dmEmbed] });
       return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x25d366).setDescription('✅ Nachricht wurde an **' + empfaenger.username + '** gesendet!')] });
@@ -6427,7 +6440,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
           {name:'🔧 Benötigte Items',value:'**Brechstange** *(10 Min.)* → 🔨。𝐉𝐢𝐶𝐮𝐦𝐢𝐫𝐤𝐭\n**Automaten Sprengstoff** *(5 Min.)* → 👥。𝐮𝐣𝐬𝐦𝐢𝐫𝐳𝐮𝐢𝐭',inline:false},
           {name:'📋 Ablauf',value:'**1.** Raub In-Game durchführen\n**2.** Foto als Beweis in <#1490894309145313330> senden\n**3.** Werkzeug in der DM auswählen\n**4.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
         )
-        .setFooter({text:'Paradise City Roleplay • Raubüberfälle'}).setTimestamp()]});
+        ]});
       d._infoEmbedSentV2=true; _saveAtm(d);
     } catch(e){console.error('[ATM-INFO]',e.message);}
   });
@@ -6439,17 +6452,17 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
     const d=_loadAtm(), entry=d[msg.author.id]||{}, now=Date.now();
     if (entry.active) {
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Raubüberfall').setDescription('Du hast bereits einen **aktiven ATM-Raub**! Warte bis dieser abgeschlossen ist.').setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Raubüberfall').setDescription('Du hast bereits einen **aktiven ATM-Raub**! Warte bis dieser abgeschlossen ist.')]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
     if (entry.cooldownUntil&&now<entry.cooldownUntil) {
       const rem=Math.ceil((entry.cooldownUntil-now)/60000),h=Math.floor(rem/60),m=rem%60;
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen ATM-Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`).setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen ATM-Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`)]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
     const onDuty=_getOnDuty();
     if (onDuty<2) {
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **2 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`).setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **2 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`)]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
     const inv=(_loadInv()[msg.author.id])||{};
@@ -6458,19 +6471,19 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
     const hasB=bKey&&(inv[bKey]||0)>0, hasS=sKey&&(inv[sKey]||0)>0;
     if (!hasB&&!hasS) {
       const list=Object.keys(inv).length?Object.entries(inv).map(([k,v])=>`• **${k}** — ${v}x`).join('\n'):'_Inventar leer_';
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('❌ Kein Werkzeug').setDescription('Du hast weder **Brechstange** noch **Automaten Sprengstoff** im Inventar.\n\n**Dein Inventar:**\n'+list).setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('❌ Kein Werkzeug').setDescription('Du hast weder **Brechstange** noch **Automaten Sprengstoff** im Inventar.\n\n**Dein Inventar:**\n'+list)]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
 
     // Alle Checks OK → Server-Log + DM-Auswahl
     sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE65100).setTitle('🏧 ATM-Raub: Raub eingeleitet')
       .addFields({name:'👤 Spieler',value:`<@${msg.author.id}> (${msg.author.username})`,inline:true},{name:'📸 Beweis',value:msg.attachments.first()?.url||'-',inline:false})
-      .setTimestamp().setFooter({text:'Paradise City Roleplay • ATM-Raub Log'})).catch(()=>{});
+      ).catch(()=>{});
     const opts=[];
     if(hasB) opts.push({label:'🔨 Brechstange (10 Min.)',description:'Aus dem Baumarkt',value:'brecheisen'});
     if(hasS) opts.push({label:'💣 Automaten Sprengstoff (5 Min.)',description:'Vom Schwarzmarkt',value:'sprengstoff'});
     const row=new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId(`atm_tool:${msg.author.id}`).setPlaceholder('Werkzeug auswählen').addOptions(opts));
-    try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE65100).setTitle('🏧 ATM-Raub — Werkzeug auswählen').setDescription('Wähle dein Werkzeug. Es wird sofort aus dem Inventar entfernt.').setFooter({text:'Paradise City Roleplay • ATM-Raub'})],components:[row]});}
+    try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xE65100).setTitle('🏧 ATM-Raub — Werkzeug auswählen').setDescription('Wähle dein Werkzeug. Es wird sofort aus dem Inventar entfernt.')],components:[row]});}
     catch{}
     await msg.delete().catch(()=>{});
   });
@@ -6502,8 +6515,8 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
     sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE65100).setTitle('🏧 ATM-Raub gestartet')
       .addFields({name:'👤 Spieler',value:`<@${userId}> (${interaction.user.username})`,inline:true},{name:'🔧 Werkzeug',value:fKey,inline:true},{name:'⏱️ Dauer',value:durLabel,inline:true},{name:'📦 Item entfernt',value:fKey,inline:false})
-      .setTimestamp().setFooter({text:'Paradise City Roleplay • ATM-Raub Log'})).catch(()=>{});
-    await interaction.editReply({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('✅ ATM-Raub gestartet!').setDescription(`**Werkzeug:** ${fKey}\n**Dauer:** ${durLabel}\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.`).setFooter({text:'Paradise City Roleplay • ATM-Raub'}).setTimestamp()]});
+      ).catch(()=>{});
+    await interaction.editReply({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('✅ ATM-Raub gestartet!').setDescription(`**Werkzeug:** ${fKey}\n**Dauer:** ${durLabel}\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.`)]});
 
     setTimeout(async()=>{
       const cur=_loadAtm(); if(!cur[userId]?.active) return;
@@ -6513,8 +6526,8 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
       try{const n=_loadRaubNotrufe(),x=n.find(y=>y.userId===userId&&y.type==='atm_raub'&&y.status==='offen');if(x){x.status='geschlossen';_saveRaubNotrufe(n);}}catch{}
       sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0x22c55e).setTitle('🏧 ATM-Raub abgeschlossen')
         .addFields({name:'👤 Spieler',value:`<@${userId}>`,inline:true},{name:'💰 Beute',value:`${beute.toLocaleString('de-CH')} $ Schwarzgeld`,inline:true})
-        .setTimestamp().setFooter({text:'Paradise City Roleplay • ATM-Raub Log'})).catch(()=>{});
-      try{const u=await client.users.fetch(userId).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('💰 ATM-Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.`).setFooter({text:'Paradise City Roleplay • ATM-Raub'}).setTimestamp()]});}}catch{}
+        ).catch(()=>{});
+      try{const u=await client.users.fetch(userId).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('💰 ATM-Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.`)]});}}catch{}
     },durMs);
   });
 }
@@ -6547,7 +6560,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
           {name:'​',value:'​',inline:true},
           {name:'📋 Ablauf',value:'**1.** Raub In-Game mit 2–3 Spielern starten\n**2.** Foto als Beweis in <#1490894311389134858> senden\n**3.** Beute wird automatisch nach 15 Min. ausgezahlt\n**4.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
         )
-        .setFooter({text:'Paradise City Roleplay • Raubüberfälle'}).setTimestamp()]});
+        ]});
       d._infoEmbedSentV2=true; _saveShop(d);
     } catch(e){console.error('[SHOP-INFO]',e.message);}
   });
@@ -6559,17 +6572,17 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
     const d=_loadShop(), entry=d[msg.author.id]||{}, now=Date.now();
     if (entry.active) {
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Shop-Raub').setDescription('Du hast bereits einen **aktiven Shop-Raub**! Warte bis dieser abgeschlossen ist.').setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Shop-Raub').setDescription('Du hast bereits einen **aktiven Shop-Raub**! Warte bis dieser abgeschlossen ist.')]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
     if (entry.cooldownUntil&&now<entry.cooldownUntil) {
       const rem=Math.ceil((entry.cooldownUntil-now)/60000),h=Math.floor(rem/60),m=rem%60;
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen Shop-Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`).setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen Shop-Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`)]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
     const onDuty=_getOnDuty();
     if (onDuty<2) {
-      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **2 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`).setFooter({text:'Paradise City Roleplay'})]});}catch{}
+      try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **2 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`)]});}catch{}
       await msg.delete().catch(()=>{}); return;
     }
 
@@ -6582,9 +6595,9 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
     sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xE65100).setTitle('🛍️ Shop-Raub gestartet')
       .addFields({name:'👤 Spieler',value:`<@${msg.author.id}> (${msg.author.username})`,inline:true},{name:'⏱️ Dauer',value:'15 Minuten',inline:true},{name:'📸 Beweis',value:msg.attachments.first()?.url||'-',inline:false})
-      .setTimestamp().setFooter({text:'Paradise City Roleplay • Shop-Raub Log'})).catch(()=>{});
+      ).catch(()=>{});
 
-    try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Shop-Raub gestartet!').setDescription('Dein Shop-Raub wurde gestartet!\n\n**Dauer:** 15 Minuten\n**Beute:** 12.000 – 22.000 $ Schwarzgeld\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.').setFooter({text:'Paradise City Roleplay • Shop-Raub'}).setTimestamp()]});}catch{}
+    try{const dm=await msg.author.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Shop-Raub gestartet!').setDescription('Dein Shop-Raub wurde gestartet!\n\n**Dauer:** 15 Minuten\n**Beute:** 12.000 – 22.000 $ Schwarzgeld\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.')]});}catch{}
     await msg.delete().catch(()=>{});
 
     const uid=msg.author.id;
@@ -6596,8 +6609,8 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
       try{const n=_loadRaubNotrufe(),x=n.find(y=>y.userId===uid&&y.type==='shop_raub'&&y.status==='offen');if(x){x.status='geschlossen';_saveRaubNotrufe(n);}}catch{}
       sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0x22c55e).setTitle('🛍️ Shop-Raub abgeschlossen')
         .addFields({name:'👤 Spieler',value:`<@${uid}>`,inline:true},{name:'💰 Beute',value:`${beute.toLocaleString('de-CH')} $ Schwarzgeld`,inline:true})
-        .setTimestamp().setFooter({text:'Paradise City Roleplay • Shop-Raub Log'})).catch(()=>{});
-      try{const u=await client.users.fetch(uid).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('💰 Shop-Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.`).setFooter({text:'Paradise City Roleplay • Shop-Raub'}).setTimestamp()]});}}catch{}
+        ).catch(()=>{});
+      try{const u=await client.users.fetch(uid).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0x22c55e).setTitle('💰 Shop-Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.`)]});}}catch{}
     },SHOP_DUR_MS);
   });
 }
@@ -6651,7 +6664,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
           {name:'⏱️ Dauer',value:'15 Minuten',inline:true},
           {name:'📋 Ablauf',value:'**1.** Raubüberfall In-Game mit min. 2 Spielern starten\n**2.** Foto als Beweis in <#1490894314132213771> senden\n**3.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
         )
-        .setFooter({ text: 'Paradise City Roleplay • Raubüberfälle' }).setTimestamp()] });
+        ] });
       d._infoEmbedSentV2 = true; _saveBar(d);
     } catch(e) { console.error('[BAR-INFO]', e.message); }
   });
@@ -6663,17 +6676,17 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
     }
     const d = _loadBar(), entry = d[msg.author.id] || {}, now = Date.now();
     if (entry.active) {
-      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Bar-Raub').setDescription('Du hast bereits einen **aktiven Bar-Raub**! Warte bis dieser abgeschlossen ist.').setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Bar-Raub').setDescription('Du hast bereits einen **aktiven Bar-Raub**! Warte bis dieser abgeschlossen ist.')] }); } catch {}
       await msg.delete().catch(() => {}); return;
     }
     if (entry.cooldownUntil && now < entry.cooldownUntil) {
       const rem = Math.ceil((entry.cooldownUntil - now) / 60000), h = Math.floor(rem / 60), m = rem % 60;
-      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen Bar-Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`).setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen Bar-Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`)] }); } catch {}
       await msg.delete().catch(() => {}); return;
     }
     const onDuty = _getOnDuty();
     if (onDuty < 2) {
-      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **2 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`).setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **2 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`)] }); } catch {}
       await msg.delete().catch(() => {}); return;
     }
 
@@ -6685,9 +6698,9 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
     sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0xf59e0b).setTitle('🍺 Bar-Raub gestartet')
       .addFields({ name: '👤 Spieler', value: `<@${msg.author.id}> (${msg.author.username})`, inline: true }, { name: '⏱️ Dauer', value: '15 Minuten', inline: true }, { name: '📸 Beweis', value: msg.attachments.first()?.url || '-', inline: false })
-      .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Bar-Raub Log' })).catch(() => {});
+      ).catch(() => {});
 
-    try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Bar-Raub gestartet!').setDescription('Dein Bar-Raub wurde gestartet!\n\n**Dauer:** 15 Minuten\n**Beute:** 7.000 – 13.000 $ Schwarzgeld\n**Bonus:** 1 – 6 Bier\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.').setFooter({ text: 'Paradise City Roleplay • Bar-Raub' }).setTimestamp()] }); } catch {}
+    try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Bar-Raub gestartet!').setDescription('Dein Bar-Raub wurde gestartet!\n\n**Dauer:** 15 Minuten\n**Beute:** 7.000 – 13.000 $ Schwarzgeld\n**Bonus:** 1 – 6 Bier\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.')] }); } catch {}
     await msg.delete().catch(() => {});
 
     const uid = msg.author.id;
@@ -6701,8 +6714,8 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
       try { const n = _loadRaubNotrufe(), x = n.find(y => y.userId === uid && y.type === 'bar_raub' && y.status === 'offen'); if (x) { x.status = 'geschlossen'; _saveRaubNotrufe(n); } } catch {}
       sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x22c55e).setTitle('🍺 Bar-Raub abgeschlossen')
         .addFields({ name: '👤 Spieler', value: `<@${uid}>`, inline: true }, { name: '💰 Beute', value: `${beute.toLocaleString('de-CH')} $ Schwarzgeld`, inline: true }, { name: '🍺 Bier', value: `${bier}x`, inline: true })
-        .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Bar-Raub Log' })).catch(() => {});
-      try { const u = await client.users.fetch(uid).catch(() => null); if (u) { const dm = await u.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('💰 Bar-Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n**Bonus:** ${bier}x Bier\n\n⏳ Nächster Raub in **24 Stunden** möglich.`).setFooter({ text: 'Paradise City Roleplay • Bar-Raub' }).setTimestamp()] }); } } catch {}
+        ).catch(() => {});
+      try { const u = await client.users.fetch(uid).catch(() => null); if (u) { const dm = await u.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('💰 Bar-Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n**Bonus:** ${bier}x Bier\n\n⏳ Nächster Raub in **24 Stunden** möglich.`)] }); } } catch {}
     }, BAR_DUR_MS);
   });
 }
@@ -6734,7 +6747,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
           {name:'​',value:'​',inline:true},
           {name:'📋 Ablauf',value:'**1.** Raub In-Game mit min. 3 Spielern starten\n**2.** Foto als Beweis in <#1490894317462753280> senden\n**3.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
         )
-        .setFooter({ text: 'Paradise City Roleplay • Raubüberfälle' }).setTimestamp()] });
+        ] });
       d._infoEmbedSentV2 = true; _saveHumane(d);
     } catch(e) { console.error('[HUMANE-INFO]', e.message); }
   });
@@ -6746,17 +6759,17 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
     }
     const d = _loadHumane(), entry = d[msg.author.id] || {}, now = Date.now();
     if (entry.active) {
-      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Humane Labs Raub').setDescription('Du hast bereits einen **aktiven Humane Labs Raub**! Warte bis dieser abgeschlossen ist.').setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Humane Labs Raub').setDescription('Du hast bereits einen **aktiven Humane Labs Raub**! Warte bis dieser abgeschlossen ist.')] }); } catch {}
       await msg.delete().catch(() => {}); return;
     }
     if (entry.cooldownUntil && now < entry.cooldownUntil) {
       const rem = Math.ceil((entry.cooldownUntil - now) / 60000), h = Math.floor(rem / 60), m = rem % 60;
-      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen Humane Labs Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`).setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription(`Du kannst einen Humane Labs Raub nur **alle 24 Stunden** machen.\nVerbleibend: **${h}h ${m}m**`)] }); } catch {}
       await msg.delete().catch(() => {}); return;
     }
     const onDuty = _getOnDuty();
     if (onDuty < 4) {
-      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **4 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`).setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription(`Mindestens **4 LAPD Officers** müssen im Dienst sein.\nAktuell: **${onDuty}**`)] }); } catch {}
       await msg.delete().catch(() => {}); return;
     }
 
@@ -6768,9 +6781,9 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
     sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x4f46e5).setTitle('🏭 Humane Labs Raub gestartet')
       .addFields({ name: '👤 Spieler', value: `<@${msg.author.id}> (${msg.author.username})`, inline: true }, { name: '⏱️ Dauer', value: '20 Minuten', inline: true }, { name: '📸 Beweis', value: msg.attachments.first()?.url || '-', inline: false })
-      .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Humane Labs Log' })).catch(() => {});
+      ).catch(() => {});
 
-    try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Humane Labs Raub gestartet!').setDescription('Dein Humane Labs Raub wurde gestartet!\n\n**Dauer:** 20 Minuten\n**Beute:** 55.000 – 73.000 $ Schwarzgeld\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.').setFooter({ text: 'Paradise City Roleplay • Humane Labs' }).setTimestamp()] }); } catch {}
+    try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Humane Labs Raub gestartet!').setDescription('Dein Humane Labs Raub wurde gestartet!\n\n**Dauer:** 20 Minuten\n**Beute:** 55.000 – 73.000 $ Schwarzgeld\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.')] }); } catch {}
     await msg.delete().catch(() => {});
 
     const uid = msg.author.id;
@@ -6782,8 +6795,8 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
       try { const n = _loadRaubNotrufe(), x = n.find(y => y.userId === uid && y.type === 'humane_raub' && y.status === 'offen'); if (x) { x.status = 'geschlossen'; _saveRaubNotrufe(n); } } catch {}
       sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x22c55e).setTitle('🏭 Humane Labs Raub abgeschlossen')
         .addFields({ name: '👤 Spieler', value: `<@${uid}>`, inline: true }, { name: '💰 Beute', value: `${beute.toLocaleString('de-CH')} $ Schwarzgeld`, inline: true })
-        .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Humane Labs Log' })).catch(() => {});
-      try { const u = await client.users.fetch(uid).catch(() => null); if (u) { const dm = await u.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('💰 Humane Labs Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.`).setFooter({ text: 'Paradise City Roleplay • Humane Labs' }).setTimestamp()] }); } } catch {}
+        ).catch(() => {});
+      try { const u = await client.users.fetch(uid).catch(() => null); if (u) { const dm = await u.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('💰 Humane Labs Raub erfolgreich!').setDescription(`**Beute:** ${beute.toLocaleString('de-CH')} $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.`)] }); } } catch {}
     }, HUMANE_DUR_MS);
   });
 }
@@ -6815,7 +6828,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
           {name:'​',value:'​',inline:true},
           {name:'📋 Ablauf',value:'**1.** Raub In-Game mit min. 4 Spielern starten\n**2.** Foto als Beweis in <#1490894320604020806> senden\n**3.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
         )
-        .setFooter({ text: 'Paradise City Roleplay • Raubüberfalle' }).setTimestamp()] });
+        ] });
       d._infoEmbedSentV3 = true; _saveStaatsbank(d);
     } catch(e) { console.error('[STAATSBANK-INFO]', e.message); }
   });
@@ -6827,17 +6840,17 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
     }
     const d = _loadStaatsbank(), entry = d[msg.author.id] || {}, now = Date.now();
     if (entry.active) {
-      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Staatsbank Raub').setDescription('Du hast bereits einen **aktiven Staatsbank Raub**! Warte bis dieser abgeschlossen ist.').setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⚠️ Aktiver Staatsbank Raub').setDescription('Du hast bereits einen **aktiven Staatsbank Raub**! Warte bis dieser abgeschlossen ist.')] }); } catch {}
       await msg.delete().catch(() => {}); return;
     }
     if (entry.cooldownUntil && now < entry.cooldownUntil) {
       const rem = Math.ceil((entry.cooldownUntil - now) / 60000), h = Math.floor(rem / 60), m = rem % 60;
-      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription('Du kannst einen Staatsbank Raub nur **alle 24 Stunden** machen.\nVerbleibend: **' + h + 'h ' + m + 'm**').setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('⏳ Cooldown aktiv').setDescription('Du kannst einen Staatsbank Raub nur **alle 24 Stunden** machen.\nVerbleibend: **' + h + 'h ' + m + 'm**')] }); } catch {}
       await msg.delete().catch(() => {}); return;
     }
     const onDuty = _getOnDuty();
     if (onDuty < 5) {
-      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription('Mindestens **5 LAPD Officers** müssen im Dienst sein.\nAktuell: **' + onDuty + '**').setFooter({ text: 'Paradise City Roleplay' })] }); } catch {}
+      try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0xff4400).setTitle('🚫 Nicht genug Officers').setDescription('Mindestens **5 LAPD Officers** müssen im Dienst sein.\nAktuell: **' + onDuty + '**')] }); } catch {}
       await msg.delete().catch(() => {}); return;
     }
 
@@ -6849,9 +6862,9 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
     sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0xf59e0b).setTitle('🏦 Staatsbank Raub gestartet')
       .addFields({ name: '👤 Spieler', value: '<@' + msg.author.id + '> (' + msg.author.username + ')', inline: true }, { name: '⏱️ Dauer', value: '30 Minuten', inline: true }, { name: '📸 Beweis', value: msg.attachments.first()?.url || '-', inline: false })
-      .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Staatsbank Log' })).catch(() => {});
+      ).catch(() => {});
 
-    try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Staatsbank Raub gestartet!').setDescription('Dein Staatsbank Raub wurde gestartet!\n\n**Dauer:** 30 Minuten\n**Beute:** 75.000 – 105.000 $ Schwarzgeld\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.').setFooter({ text: 'Paradise City Roleplay • Staatsbank' }).setTimestamp()] }); } catch {}
+    try { const dm = await msg.author.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('✅ Staatsbank Raub gestartet!').setDescription('Dein Staatsbank Raub wurde gestartet!\n\n**Dauer:** 30 Minuten\n**Beute:** 75.000 – 105.000 $ Schwarzgeld\n\nDeine Beute kommt automatisch nach Ablauf der Zeit.')] }); } catch {}
     await msg.delete().catch(() => {});
 
     const uid = msg.author.id;
@@ -6863,8 +6876,8 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
       try { const n = _loadRaubNotrufe(), x = n.find(y => y.userId === uid && y.type === 'staatsbank_raub' && y.status === 'offen'); if (x) { x.status = 'geschlossen'; _saveRaubNotrufe(n); } } catch {}
       sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x22c55e).setTitle('🏦 Staatsbank Raub abgeschlossen')
         .addFields({ name: '👤 Spieler', value: '<@' + uid + '>', inline: true }, { name: '💰 Beute', value: beute.toLocaleString('de-CH') + ' $ Schwarzgeld', inline: true })
-        .setTimestamp().setFooter({ text: 'Paradise City Roleplay • Staatsbank Log' })).catch(() => {});
-      try { const u = await client.users.fetch(uid).catch(() => null); if (u) { const dm = await u.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('💰 Staatsbank Raub erfolgreich!').setDescription('**Beute:** ' + beute.toLocaleString('de-CH') + ' $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.').setFooter({ text: 'Paradise City Roleplay • Staatsbank' }).setTimestamp()] }); } } catch {}
+        ).catch(() => {});
+      try { const u = await client.users.fetch(uid).catch(() => null); if (u) { const dm = await u.createDM(); await dm.send({ embeds: [new EmbedBuilder().setColor(0x22c55e).setTitle('💰 Staatsbank Raub erfolgreich!').setDescription('**Beute:** ' + beute.toLocaleString('de-CH') + ' $ Schwarzgeld\n\n⏳ Nächster Raub in **24 Stunden** möglich.')] }); } } catch {}
     }, STAATSBANK_DUR_MS);
   });
 }
@@ -6890,10 +6903,10 @@ client.on('interactionCreate', async (interaction) => {
     if (!e.active) return interaction.reply({content:`❌ <@${target.id}> hat keinen aktiven ${typLabel}.`,ephemeral:true});
     d[target.id].active=null; _srf(d);
     try{const n=_loadRaubNotrufe(),x=n.find(y=>y.userId===target.id&&y.type===nType&&y.status==='offen');if(x){x.status='geschlossen';_saveRaubNotrufe(n);}}catch{}
-    try{const u=await client.users.fetch(target.id).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle(`❌ ${typLabel} fehlgeschlagen`).setDescription(`Dein ${typLabel} wurde als **fehlgeschlagen** gewertet.\nKein Cooldown — du kannst es erneut versuchen.`).setFooter({text:'Paradise City Roleplay'})]});}}catch{}
+    try{const u=await client.users.fetch(target.id).catch(()=>null);if(u){const dm=await u.createDM();await dm.send({embeds:[new EmbedBuilder().setColor(0xff4400).setTitle(`❌ ${typLabel} fehlgeschlagen`).setDescription(`Dein ${typLabel} wurde als **fehlgeschlagen** gewertet.\nKein Cooldown — du kannst es erneut versuchen.`)]});}}catch{}
     sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0xff4400).setTitle(`${typ==='humane'?'🏭':typ==='bar'?'🍺':typ==='shop'?'🛍️':'🏧'} ${typLabel} fehlgeschlagen (Admin)`)
       .addFields({name:'👤 Spieler',value:`<@${target.id}> (${target.username})`,inline:true},{name:'👮 Von',value:`<@${interaction.user.id}>`,inline:true})
-      .setTimestamp().setFooter({text:'Paradise City Roleplay • Raub Log'})).catch(()=>{});
+      ).catch(()=>{});
     return interaction.reply({content:`✅ ${typLabel} von <@${target.id}> fehlgeschlagen markiert. Kein Cooldown.`,ephemeral:true});
   }
 
@@ -6902,7 +6915,7 @@ client.on('interactionCreate', async (interaction) => {
     d[target.id].cooldownUntil=0; d[target.id].active=null; _srf(d);
     sendLog(CH.SERVER_LOG,new EmbedBuilder().setColor(0x38bdf8).setTitle(`🔓 ${typLabel} Cooldown zurückgesetzt`)
       .addFields({name:'👤 Spieler',value:`<@${target.id}> (${target.username})`,inline:true},{name:'👮 Von',value:`<@${interaction.user.id}>`,inline:true})
-      .setTimestamp().setFooter({text:'Paradise City Roleplay • Raub Log'})).catch(()=>{});
+      ).catch(()=>{});
     return interaction.reply({content:`✅ Cooldown von <@${target.id}> (${typLabel}) zurückgesetzt.`,ephemeral:true});
   }
 });
@@ -6961,7 +6974,7 @@ client.on('interactionCreate', async (interaction) => {
         .setColor(0xff4400)
         .setTitle('❌ Item nicht gefunden / zu wenig')
         .setDescription(`Du hast nicht genug **${itemName}** im Inventar.\n\n**Dein Inventar:**\n${list}`)
-        .setFooter({ text: 'Paradise City Roleplay' })], ephemeral: true });
+        ], ephemeral: true });
     }
 
     // Item abziehen
@@ -6988,8 +7001,8 @@ client.on('interactionCreate', async (interaction) => {
         { name: '📦 Item',     value: `${foundKey} — **${menge}x**`,       inline: true },
         { name: '📍 Ort',      value: ort,                                  inline: false },
       )
-      .setFooter({ text: 'Paradise City Roleplay • Versteck-System' })
-      .setTimestamp();
+      
+      ;
 
     await interaction.reply({ embeds: [embed], components: [row] });
     const sentMsg = await interaction.fetchReply();
@@ -7013,7 +7026,7 @@ client.on('interactionCreate', async (interaction) => {
         { name: '👤 Spieler', value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true },
         { name: '📦 Item',    value: `${foundKey} — ${menge}x`, inline: true },
         { name: '📍 Ort',     value: ort, inline: false }
-      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Versteck-System' })).catch(()=>{});
+      )).catch(()=>{});
   });
 
   // ── Button: Items aus Versteck holen ────────────────────────────────────
@@ -7052,15 +7065,15 @@ client.on('interactionCreate', async (interaction) => {
       .setColor(0x22c55e)
       .setTitle('✅ Items aus Versteck geholt')
       .setDescription(`**${v.item}** (${v.menge}x) wurde wieder in dein Inventar gelegt.\n**Ort war:** ${v.ort}`)
-      .setFooter({ text: 'Paradise City Roleplay • Versteck-System' })
-      .setTimestamp()], ephemeral: true });
+      
+      ], ephemeral: true });
 
     sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x22c55e).setTitle('📦 Versteck geleert')
       .addFields(
         { name: '👤 Spieler', value: `<@${ownerId}> (${v.username})`, inline: true },
         { name: '📦 Item',    value: `${v.item} — ${v.menge}x`, inline: true },
         { name: '📍 Ort',     value: v.ort, inline: false }
-      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Versteck-System' })).catch(()=>{});
+      )).catch(()=>{});
   });
 
   // ── /fesseln ────────────────────────────────────────────────────────────
@@ -7088,7 +7101,7 @@ client.on('interactionCreate', async (interaction) => {
         .setColor(0xff4400)
         .setTitle('❌ Keine Handschellen')
         .setDescription(`Du hast keine **Handschellen** im Inventar. Kaufe welche im 🔨〢𝘉𝘢𝘶𝘮𝘢𝘳𝘬𝘵.\n\n**Dein Inventar:**\n${list}`)
-        .setFooter({ text: 'Paradise City Roleplay' })], ephemeral: true });
+        ], ephemeral: true });
     }
 
     // Kabelbinder abziehen
@@ -7115,8 +7128,8 @@ client.on('interactionCreate', async (interaction) => {
         { name: '👤 Gefesselter',   value: `<@${target.id}>`,           inline: true },
         { name: '🔒 Werkzeug',      value: kbKey,                        inline: false },
       )
-      .setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })
-      .setTimestamp();
+      
+      ;
 
     await interaction.reply({ embeds: [embed], components: [row] });
     const sentMsg = await interaction.fetchReply();
@@ -7140,7 +7153,7 @@ client.on('interactionCreate', async (interaction) => {
         { name: '🔒 Von',          value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true },
         { name: '👤 Gefesselter',  value: `<@${target.id}> (${target.username})`,                     inline: true },
         { name: '🔒 Handschellen', value: kbKey, inline: false }
-      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })).catch(()=>{});
+      )).catch(()=>{});
   });
 
   // ── Button: Entfesseln ───────────────────────────────────────────────────
@@ -7183,15 +7196,15 @@ client.on('interactionCreate', async (interaction) => {
       .setColor(0x22c55e)
       .setTitle('✅ Spieler entfesselt')
       .setDescription(`<@${targetId}> wurde entfesselt.\n**${f.kbKey}** wurde zurück in dein Inventar gelegt.`)
-      .setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })
-      .setTimestamp()], ephemeral: true });
+      
+      ], ephemeral: true });
 
     sendLog(CH.SERVER_LOG, new EmbedBuilder().setColor(0x22c55e).setTitle('✂️ Spieler entfesselt')
       .addFields(
         { name: '🔓 Entfesselt von', value: `<@${fesselerId}> (${f.fesselerName})`, inline: true },
         { name: '👤 Spieler',        value: `<@${targetId}> (${f.targetName})`,      inline: true },
         { name: '🔒 Handschellen zurück', value: f.kbKey, inline: false }
-      ).setTimestamp().setFooter({ text: 'Paradise City Roleplay • Fesselungs-System' })).catch(()=>{});
+      )).catch(()=>{});
   });
 }
 // ─── END VERSTECKEN / FESSELN SYSTEM ─────────────────────────────────────────
@@ -7222,7 +7235,7 @@ client.on('interactionCreate', async (interaction) => {
       .setColor(0x3b82f6)
       .setTitle('📊 Dein persönlicher Aktienmarkt-Zugang')
       .setDescription('Klicke den Button um deinen Aktienmarkt zu öffnen.\nDu kannst Aktien kaufen, verkaufen und dein Portfolio einsehen.\n\n⏳ Link gültig für **4 Stunden**.')
-      .setFooter({ text: 'Paradise City Roleplay • Aktienmarkt' })
+      
     ],
     components: [linkRow],
     ephemeral: true
@@ -7262,8 +7275,8 @@ client.once('ready', async () => {
         '`▸` Automatische Verkaufs-Benachrichtigungen\n\n' +
         '*Keine Logs. Keine Spuren. Kein Mitleid.*'
       )
-      .setFooter({ text: 'Paradise City Roleplay • Darknet v2.0 — ENCRYPTED' })
-      .setTimestamp();
+      
+      ;
 
     // Check if embed already exists → edit it, don't re-send
     const msgs = await ch.messages.fetch({ limit: 20 }).catch(() => null);
@@ -7322,8 +7335,8 @@ client.on('interactionCreate', async (interaction) => {
         '`▸` Automatische Verkaufs-Benachrichtigungen\n\n' +
         '*Keine Logs. Keine Spuren. Kein Mitleid.*'
       )
-      .setFooter({ text: 'Paradise City Roleplay • Darknet v2.0 — ENCRYPTED' })
-      .setTimestamp();
+      
+      ;
 
     // Bestehendes Embed suchen & bearbeiten, sonst neu senden
     const msgs = await ch.messages.fetch({ limit: 20 }).catch(() => null);
@@ -7373,7 +7386,7 @@ client.on('interactionCreate', async (interaction) => {
           { name:'💡 Was ist PC Coin?', value:'Die Kryptowährung von Paradise City. Überweise <:emoji_29:1507071093540782110> direkt an andere Spieler.', inline:false },
           { name:'🔒 Sicherheit', value:'Dein Wallet ist nur für dich sichtbar.', inline:true }
         )
-        .setFooter({ text:'Paradise City • PC Coin System' }).setTimestamp();
+        ;
       const row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('krypto_wallet').setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Primary)
       );
@@ -7394,7 +7407,7 @@ client.on('interactionCreate', async (interaction) => {
           { name:'🏦 Bankgeld → PC Coin', value:'Kaufe PC Coin mit deinem Bankkonto', inline:true },
           { name:'💱 PC Coin → Bankgeld', value:'Verkaufe PC Coin zurück in Bankgeld', inline:true }
         )
-        .setFooter({ text:'Paradise City • PC Coin System • Kurse aktualisieren stündlich' }).setTimestamp();
+        ;
       const row2 = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('krypto_exchange').setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Primary)
       );
@@ -7427,8 +7440,8 @@ client.on('interactionCreate', async (interaction) => {
         .addFields(
           { name: '<:emoji_29:1507071093540782110> PC Coin Balance', value: wallet.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', inline: true }
         )
-        .setFooter({ text: 'Paradise City • PC Coin System' })
-        .setTimestamp();
+        
+        ;
       const payBtn = new ButtonBuilder()
         .setCustomId('krypto_pay')
         .setLabel('💸 Überweisung senden')
@@ -7487,8 +7500,8 @@ client.on('interactionCreate', async (interaction) => {
           { name: '<:emoji_29:1507071093540782110> PC Coin Guthaben', value: wallet_ex.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', inline: true },
           { name: '🏦 Bankgeld', value: (konto_ex.konto || 0).toLocaleString('de-DE') + ' $', inline: true }
         )
-        .setFooter({ text: 'Paradise City • PC Coin System' })
-        .setTimestamp();
+        
+        ;
       const buyBtn_ex  = new ButtonBuilder().setCustomId('krypto_buy_btn').setLabel('🛒 PC Coin kaufen').setStyle(ButtonStyle.Success);
       const sellBtn_ex = new ButtonBuilder().setCustomId('krypto_sell_btn').setLabel('💱 PC Coin verkaufen').setStyle(ButtonStyle.Danger);
       await interaction.editReply({
@@ -7546,8 +7559,8 @@ client.on('interactionCreate', async (interaction) => {
         { name: 'Schwarzgeld-Wert', value: schwarzwert.toLocaleString('de-DE') + ' $',   inline: true },
         { name: 'Neues Guthaben',   value: senderWallet.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', inline: true }
       )
-      .setTimestamp()
-      .setFooter({ text: 'Paradise City • PC Coin System' });
+      
+      ;
     await interaction.editReply({ embeds: [confirmEmbed] });
 
     // Empfänger per DM benachrichtigen
@@ -7556,8 +7569,8 @@ client.on('interactionCreate', async (interaction) => {
       .setTitle('<:emoji_29:1507071093540782110> PC Coin erhalten')
       .setDescription('Du hast **' + amount.toFixed(4) + ' <:emoji_29:1507071093540782110>** empfangen.')
       .addFields({ name: 'Neues Guthaben', value: recvWallet.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>', inline: true })
-      .setTimestamp()
-      .setFooter({ text: 'Paradise City • PC Coin System' });
+      
+      ;
     client.users.fetch(recipientId).then(function(u) {
       u.send({ embeds: [notifyEmbed] }).catch(function() {});
     }).catch(function() {});
@@ -7640,7 +7653,7 @@ client.on('interactionCreate', async (interaction) => {
           { name: 'Neues PC Coin Guthaben', value: wallet_b.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>',               inline: true },
           { name: 'Verbleibendes Bankgeld', value: kontoData_b.konto.toLocaleString('de-DE') + ' $',              inline: true }
         )
-        .setFooter({ text: 'Paradise City \u2022 PC Coin System' }).setTimestamp();
+        ;
       await interaction.editReply({ embeds: [confirmEmbed_b] });
     }
 
@@ -7665,7 +7678,7 @@ client.on('interactionCreate', async (interaction) => {
           { name: 'Neues PC Coin Guthaben', value: wallet_s.dc.toFixed(4) + ' <:emoji_29:1507071093540782110>',      inline: true },
           { name: 'Neues Bankgeld',     value: kontoData_s.konto.toLocaleString('de-DE') + ' $',          inline: true }
         )
-        .setFooter({ text: 'Paradise City \u2022 PC Coin System' }).setTimestamp();
+        ;
       await interaction.editReply({ embeds: [confirmEmbed_s] });
     }
   } catch(e) {
@@ -7790,8 +7803,8 @@ if (!process.env.DISCORD_TOKEN) {
           '3️⃣ Sofort angemeldet — kein Passwort nötig!'
         )
         .setThumbnail('attachment://pcbay_logo.jpeg')
-        .setFooter({ text: 'PC Bay • Paradise City Roleplay' })
-        .setTimestamp();
+        
+        ;
 
       const btn = new ButtonBuilder()
         .setCustomId('pcbay_open')
@@ -7855,8 +7868,8 @@ if (!process.env.DISCORD_TOKEN) {
         .setColor(0xC45700)
         .setTitle('🛒 PC Bay aufgerufen')
         .addFields({ name: '👤 Nutzer', value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true })
-        .setTimestamp()
-        .setFooter({ text: 'PC Bay • Paradise City Roleplay' })
+        
+        
       ).catch(()=>{});
 
     } catch(e) {
