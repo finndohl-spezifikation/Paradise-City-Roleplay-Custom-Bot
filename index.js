@@ -178,8 +178,6 @@ function nextAktienPrice(cur) {
 
 async function updateAktienPrices() {
   const d = loadAktien();
-  const { EmbedBuilder } = require('discord.js');
-  const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
   for (const s of AKTIEN_STOCKS) {
     if (!d[s.id]) d[s.id] = { price: s.startPrice, history: [] };
     const oldPrice = d[s.id].price;
@@ -193,16 +191,40 @@ async function updateAktienPrices() {
     d[s.id].history.push({ price: newPrice, ts: Date.now() });
     if (d[s.id].history.length > 48) d[s.id].history = d[s.id].history.slice(-48);
     try {
+      const aktienEmbed = new EmbedBuilder()
+        .setColor(embedCol)
+        .setTitle(s.emoji + '  ' + s.name)
+        .setDescription(
+          `**Aktueller Kurs:** \`${newPrice.toLocaleString('de-CH')} $\`\n` +
+          `**Veränderung:** ${trend} ${sign}${Math.abs(diff).toLocaleString('de-CH')} $ (${sign}${diffPct}%)\n\n` +
+          `*Kurse aktualisieren sich stündlich. Kaufe und verkaufe über den Button.*`
+        );
+      const handelnBtn = new ButtonBuilder()
+        .setCustomId('aktien_handeln:' + s.id)
+        .setLabel('📊 Handeln')
+        .setStyle(ButtonStyle.Primary);
+      const aktienRow = new ActionRowBuilder().addComponents(handelnBtn);
       const _msgs = loadAktienMsgs();
       if (_msgs[s.id]) {
-        // Embed existiert bereits — nichts tun
         const ch = await client.channels.fetch(s.channel).catch(() => null);
         if (ch) {
           const _existing = await ch.messages.fetch(_msgs[s.id]).catch(() => null);
-          if (_existing) continue; // Nachricht vorhanden → überspringen
+          if (_existing) {
+            await _existing.edit({ embeds: [aktienEmbed], components: [aktienRow] }).catch(() => {});
+            continue;
+          }
         }
       }
-      // Kein Embed vorhanden → nichts tun (kein Neu-Senden)
+      // Keine gespeicherte Nachricht → neu senden
+      const aCh = await client.channels.fetch(s.channel).catch(() => null);
+      if (aCh) {
+        const sent = await aCh.send({ embeds: [aktienEmbed], components: [aktienRow] }).catch(() => null);
+        if (sent) {
+          const _msgs2 = loadAktienMsgs();
+          _msgs2[s.id] = sent.id;
+          saveAktienMsgs(_msgs2);
+        }
+      }
     } catch(e) { console.error('[AKTIEN]', s.id, e.message); }
   }
   saveAktien(d);
@@ -663,17 +685,29 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       const chId  = SHOP_CHANNELS[shopId];
       const ch = await client.channels.fetch(chId).catch(() => null);
       if (!ch) return;
-      // Scan last 50 messages: if bot already sent shop embed here → skip
+      const shops = loadShops();
+      const items = shops[shopId] || [];
+      const embed = buildShopPageEmbed(shopId, 0, items);
+      const shopBtn = new ButtonBuilder()
+        .setCustomId('sp_shop:' + shopId)
+        .setLabel(m.name + ' öffnen')
+        .setStyle(ButtonStyle.Primary);
+      const shopRow = new ActionRowBuilder().addComponents(shopBtn);
+      // Scan last 50 messages: if bot already sent shop embed here → edit it
       const recent = await ch.messages.fetch({ limit: 50 }).catch(() => null);
       if (recent) {
-        const exists = recent.find(msg =>
+        const existing = recent.find(msg =>
           msg.author.id === client.user.id &&
           msg.components.length > 0 &&
           msg.components[0]?.components?.[0]?.customId === 'sp_shop:' + shopId
         );
-        if (exists) return;
+        if (existing) {
+          await existing.edit({ embeds: [embed], components: [shopRow] }).catch(() => {});
+          return;
+        }
       }
-      // Not found → skip, never send new on restart
+      // Not found → send fresh
+      await ch.send({ embeds: [embed], components: [shopRow] }).catch(() => {});
     }
   _shopCb = { updateShopEmbed, loadShops, saveShops, SHOP_META };
 
@@ -1271,11 +1305,104 @@ client.once('ready', async () => {
   // ─── EINMALIG: Team-Overview-Embed neu senden (v_paradise_4) ───────────────
   {
     const setup = loadSetup();
-    if (setup.globalEmbedVersion !== 'v_paradise_5') {
+    if (setup.globalEmbedVersion !== 'v_paradise_6') {
       delete setup.teamOverviewMsgId;
-      setup.globalEmbedVersion = 'v_paradise_5';
+      setup.globalEmbedVersion = 'v_paradise_6';
       saveSetup(setup);
       console.log('[FIX] Team-Overview-Embed wird neu gesendet.');
+    }
+  }
+  // ─── EINMALIG: Lotto + Handy Footer-Cleanup (v_paradise_6) ───────────────
+  {
+    const setup = loadSetup();
+    if (!setup.footerCleanupV6Done) {
+      setup.footerCleanupV6Done = true;
+      saveSetup(setup);
+      // Lotto: alle Bot-Nachrichten mit Footer im Lotto-Kanal löschen
+      try {
+        const lottoCh = await client.channels.fetch(LOTTO_CH).catch(() => null);
+        if (lottoCh) {
+          const lottoMsgs = await lottoCh.messages.fetch({ limit: 50 }).catch(() => null);
+          if (lottoMsgs) {
+            for (const [, m] of lottoMsgs) {
+              if (m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0]?.footer) {
+                await m.delete().catch(() => {});
+              }
+            }
+          }
+        }
+        console.log('[FIX] Lotto-Footer-Cleanup abgeschlossen.');
+      } catch(e) { console.error('[FIX] Lotto-Cleanup Fehler:', e.message); }
+      // Handy: altes Panel mit Footer löschen → frisch neu senden
+      try {
+        const handyCh = await client.channels.fetch(HANDY_CH).catch(() => null);
+        if (handyCh) {
+          const handyMsgs = await handyCh.messages.fetch({ limit: 30 }).catch(() => null);
+          if (handyMsgs) {
+            for (const [, m] of handyMsgs) {
+              if (m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0]?.footer) {
+                await m.delete().catch(() => {});
+              }
+            }
+          }
+          // Prüfen ob bereits ein frisches Handy-Panel ohne Footer existiert
+          const freshMsgs = await handyCh.messages.fetch({ limit: 10 }).catch(() => null);
+          const hasHandyPanel = freshMsgs && freshMsgs.find(m =>
+            m.author.id === client.user.id &&
+            m.components.length > 0 &&
+            m.components[0]?.components?.[0]?.customId === 'handy_menu'
+          );
+          if (!hasHandyPanel) {
+            const handyEmbed = new EmbedBuilder()
+              .setColor(DARK_ORANGE)
+              .setTitle('📱 Handy-Verwaltung')
+              .setDescription(
+                'Verwalte dein Handy über das Dropdown-Menü.\n\n' +
+                '`📱 An` — Handy einschalten\n' +
+                '`📵 Aus` — Handy ausschalten\n' +
+                '`📲 Apps` — Apps verwalten\n' +
+                '`🎮 Spiele` — Handy-Spiele öffnen\n' +
+                '`🚨 Dispatch` — Notruf absenden\n' +
+                '`💬 WhatsApp` — Spieler anschreiben\n\n' +
+                '*Du brauchst ein Smartphone aus dem Kwik-E-Markt.*'
+              );
+            const handyMenu = new StringSelectMenuBuilder()
+              .setCustomId('handy_menu')
+              .setPlaceholder('📱 Handy-Funktion auswählen...')
+              .addOptions([
+                new StringSelectMenuOptionBuilder().setLabel('📱 An').setDescription('Handy einschalten').setValue('handy_an'),
+                new StringSelectMenuOptionBuilder().setLabel('📵 Aus').setDescription('Handy ausschalten').setValue('handy_aus'),
+                new StringSelectMenuOptionBuilder().setLabel('📲 Apps').setDescription('Apps verwalten').setValue('handy_apps'),
+                new StringSelectMenuOptionBuilder().setLabel('🎮 Spiele').setDescription('Handy-Spiele öffnen').setValue('handy_spiele'),
+                new StringSelectMenuOptionBuilder().setLabel('🚨 Dispatch').setDescription('Notruf absenden').setValue('handy_dispatch'),
+                new StringSelectMenuOptionBuilder().setLabel('💬 WhatsApp').setDescription('Spieler anschreiben').setValue('handy_whatsapp'),
+              ]);
+            const handyRow = new ActionRowBuilder().addComponents(handyMenu);
+            await handyCh.send({ embeds: [handyEmbed], components: [handyRow] }).catch(() => {});
+          }
+        }
+        console.log('[FIX] Handy-Footer-Cleanup abgeschlossen.');
+      } catch(e) { console.error('[FIX] Handy-Cleanup Fehler:', e.message); }
+      // Aktien: gespeicherte Nachrichten-IDs löschen → updateAktienPrices sendet neu
+      try {
+        const _aktienMsgsOld = loadAktienMsgs();
+        let needsClean = false;
+        for (const s of AKTIEN_STOCKS) {
+          if (_aktienMsgsOld[s.id]) {
+            const aCh = await client.channels.fetch(s.channel).catch(() => null);
+            if (aCh) {
+              const aMsg = await aCh.messages.fetch(_aktienMsgsOld[s.id]).catch(() => null);
+              if (aMsg && aMsg.embeds[0]?.footer) {
+                await aMsg.delete().catch(() => {});
+                delete _aktienMsgsOld[s.id];
+                needsClean = true;
+              }
+            }
+          }
+        }
+        if (needsClean) saveAktienMsgs(_aktienMsgsOld);
+        console.log('[FIX] Aktien-Footer-Cleanup abgeschlossen.');
+      } catch(e) { console.error('[FIX] Aktien-Cleanup Fehler:', e.message); }
     }
   }
   // ─── END EINMALIG ────────────────────────────────────────────────────────
