@@ -419,7 +419,7 @@ function autoDate(el){
             { name: 'Dauer', value: dauerMs ? `${Math.round(dauerMs/86400000)} Tag(e)` : 'Unbefristet', inline: true },
             { name: 'Entzogen bis', value: dauerMs ? `<t:${Math.floor((Date.now()+dauerMs)/1000)}:F>` : 'Bis auf Weiteres', inline: true }
           )
-          .setFooter({ text: 'Paradise City Roleplay' }).setTimestamp()
+          
         ] }).catch(()=>{});
       }
     } catch {}
@@ -447,7 +447,7 @@ function autoDate(el){
           .setColor(0x16a34a)
           .setTitle('✅ Führerschein zurückgegeben')
           .setDescription('Dein Führerschein wurde zurückgegeben. Du darfst wieder Fahrzeuge führen.')
-          .setFooter({ text: 'Paradise City Roleplay' }).setTimestamp()
+          
         ] }).catch(()=>{});
       }
     } catch {}
