@@ -813,8 +813,7 @@ function buildAktivitaetEmbed(data) {
         inline: false,
       },
     )
-    
-    .setTimestamp(data.createdAt ? new Date(data.createdAt) : new Date());
+    ;
 }
 
 function parseDuration(str) {

@@ -1092,7 +1092,7 @@ async function kaufBestätigen(id) {
               {name:'📦 Artikel',value:a.titel,inline:true},
               {name:'👤 Käufer',value:nutzer.username,inline:true},
               {name:'💰 Betrag',value:a.währung==='dc'?`🪙 ${Number(a.preis).toFixed(4)} PC Coin`:`💵 ${Number(a.preis).toLocaleString('de-DE')} $`,inline:true}
-            ).setFooter({text:'PC Bay • Paradise City Roleplay'}).setTimestamp()
+            )
           ]}).catch(()=>{});
         }
       } catch {}

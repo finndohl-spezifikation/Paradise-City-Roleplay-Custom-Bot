@@ -1237,8 +1237,6 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
           color: 0xE65100,
           title: '🆔  Deine Discord ID',
           description: `Hier ist deine Discord ID für die Einreise-Seite:\n\n\`${member.id}\`\n\nKopiere sie und trage sie im Formular ein.`,
-          footer: { text: 'Paradise City Roleplay  •  Einreise' },
-          timestamp: new Date().toISOString(),
         }]});
         req.session.didHelpOk = true;
         res.redirect('/einreise/discord-id-help');
@@ -1274,8 +1272,6 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
           title: '🎭  Dein persönlicher Einreise-Link',
           description: `Klicke auf den Link unten um deinen Charakter zu erstellen.\n\nDieser Link ist **15 Minuten** gültig und nur für dich persönlich.`,
           fields: [{ name: '👉  Einreise starten', value: `[${link}](${link})`, inline: false }],
-          footer: { text: 'Paradise City Roleplay  •  Einreise' },
-          timestamp: new Date().toISOString(),
         }]});
         res.send(page('DM gesendet', `${header('DM gesendet')}<div class="card"><div class="success-wrap"><div class="icon">📬</div><h2 style="color:#ffd180">Schau in deine DMs!</h2><p>Wir haben dir einen persönlichen Einreise-Link per Discord-DM geschickt.<br>Öffne deine DMs und klicke auf den Link. Er ist <strong>15 Minuten</strong> gültig.</p></div></div>`));
       } catch {
@@ -2233,8 +2229,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
         .setDescription(list.length===0
           ? '⚫  **No officers currently on duty.**'
           : list.map(d=>(emojis[d.ebene]||'🟢')+' **'+d.displayName+'** — '+d.rankName).join('\n'))
-        .setTimestamp()
-        .setFooter({ text:'Los Angeles Police Department • Paradise City Roleplay' });
+        ;
       const stored = lj(LAPD_EMBED_FILE,{});
       const ch = await client.channels.fetch(LAPD_DUTY_CHANNEL).catch(()=>null);
       if (!ch) return;
@@ -2423,7 +2418,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
             { name:'To', value:to, inline:true },
             { name:'Note', value:String(note||'—').slice(0,300)||'—' }
           )
-          .setTimestamp().setFooter({ text:'LAPD Internal • ID: '+id.slice(0,8) });
+          ;
         const vRow = new _VARB().addComponents(
           new _VBB().setCustomId('lapd_vac_approve_'+id).setLabel('✅ Approve').setStyle(_VBS.Success),
           new _VBB().setCustomId('lapd_vac_reject_'+id).setLabel('❌ Reject').setStyle(_VBS.Danger),
@@ -2543,7 +2538,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
           {name:'🎖️ Division',value:(LAPD_EBENE[s.ebene]||{label:s.ebene}).label,inline:true},
           {name:'⏰ Zeitpunkt',value:'<t:'+Math.floor(now/1000)+':F>',inline:false}
         )
-        .setFooter({text:'LAPD Panic Alert System'}).setTimestamp();
+        ;
       let count=0;
       for(const m of notified){ m.send({embeds:[pEmbed]}).catch(()=>{}); count++; }
       res.json({ok:true,notified:count});
@@ -3369,7 +3364,7 @@ module.exports = function startWebServer(client, DATA_DIR, lapdTokens = new Map(
             {name:'Von',value:String(from),inline:true},
             {name:'Bis',value:String(to),inline:true},
             {name:'Notiz',value:String(note||'—').slice(0,300)||'—'})
-          .setTimestamp().setFooter({text:'LAPD Internal ID: '+id.slice(0,8)});
+          ;
         const vRow2=new _ARB2().addComponents(
           new _BB2().setCustomId('lapd_vac_approve_'+id).setLabel('Genehmigen').setStyle(_BS2.Success),
           new _BB2().setCustomId('lapd_vac_reject_'+id).setLabel('Ablehnen').setStyle(_BS2.Danger));

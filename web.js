@@ -1986,8 +1986,6 @@ async function doSell() {
           color: 0xE65100,
           title: '🆔  Deine Discord ID',
           description: `Hier ist deine Discord ID für die Einreise-Seite:\n\n\`${member.id}\`\n\nKopiere sie und trage sie im Formular ein.`,
-          footer: { text: 'Paradise City Roleplay  •  Einreise' },
-          timestamp: new Date().toISOString(),
         }]});
         req.session.didHelpOk = true;
         res.redirect('/einreise/discord-id-help');
@@ -2023,8 +2021,6 @@ async function doSell() {
           title: '🎭  Dein persönlicher Einreise-Link',
           description: `Klicke auf den Link unten um deinen Charakter zu erstellen.\n\nDieser Link ist **15 Minuten** gültig und nur für dich persönlich.`,
           fields: [{ name: '👉  Einreise starten', value: `[${link}](${link})`, inline: false }],
-          footer: { text: 'Paradise City Roleplay  •  Einreise' },
-          timestamp: new Date().toISOString(),
         }]});
         res.send(page('DM gesendet', `${header('DM gesendet')}<div class="card"><div class="success-wrap"><div class="icon">📬</div><h2 style="color:#ffd180">Schau in deine DMs!</h2><p>Wir haben dir einen persönlichen Einreise-Link per Discord-DM geschickt.<br>Öffne deine DMs und klicke auf den Link. Er ist <strong>15 Minuten</strong> gültig.</p></div></div>`));
       } catch {
