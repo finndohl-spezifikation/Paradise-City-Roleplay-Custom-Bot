@@ -1271,9 +1271,9 @@ client.once('ready', async () => {
   // ─── EINMALIG: Team-Overview-Embed neu senden (v_paradise_4) ───────────────
   {
     const setup = loadSetup();
-    if (setup.globalEmbedVersion !== 'v_paradise_4') {
+    if (setup.globalEmbedVersion !== 'v_paradise_5') {
       delete setup.teamOverviewMsgId;
-      setup.globalEmbedVersion = 'v_paradise_4';
+      setup.globalEmbedVersion = 'v_paradise_5';
       saveSetup(setup);
       console.log('[FIX] Team-Overview-Embed wird neu gesendet.');
     }
@@ -1310,8 +1310,9 @@ client.once('ready', async () => {
       // Channel 1: Wallet
       const ch1 = await client.channels.fetch(KRYPTO_WALLET_CH).catch(function() { return null; });
       if (ch1) {
-        const exists1 = await embedExistsInChannel(ch1, 'PC Coin — Mein Wallet');
-        if (!exists1) {
+        {
+          const _wOld = await ch1.messages.fetch({ limit: 20 }).catch(() => null);
+          if (_wOld) { for (const [, _m] of _wOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
           const embed1 = new EmbedBuilder()
             .setColor(0xf59e0b)
             .setTitle('" + PC_EMOJI + " PC Coin — Mein Wallet')
@@ -1326,16 +1327,15 @@ client.once('ready', async () => {
           );
           await ch1.send({ embeds: [embed1], components: [row1] }).catch(function(e) { console.error('[KRYPTO EMBED W]', e.message); });
           console.log('[KRYPTO] Wallet-Embed gesendet.');
-        } else {
-          console.log('[KRYPTO] Wallet-Embed bereits vorhanden, übersprungen.');
         }
       }
 
       // Channel 2: Tauschbörse
       const ch2 = await client.channels.fetch(KRYPTO_EXCH_CH).catch(function() { return null; });
       if (ch2) {
-        const exists2 = await embedExistsInChannel(ch2, 'PC Coin — Tauschbörse');
-        if (!exists2) {
+        {
+          const _tOld = await ch2.messages.fetch({ limit: 20 }).catch(() => null);
+          if (_tOld) { for (const [, _m] of _tOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
           const embed2 = new EmbedBuilder()
             .setColor(0xf59e0b)
             .setTitle('⚖️ PC Coin — Tauschbörse')
@@ -1351,8 +1351,6 @@ client.once('ready', async () => {
           );
           await ch2.send({ embeds: [embed2], components: [row2] }).catch(function(e) { console.error('[KRYPTO EMBED E]', e.message); });
           console.log('[KRYPTO] Tauschbörse-Embed gesendet.');
-        } else {
-          console.log('[KRYPTO] Tauschbörse-Embed bereits vorhanden, übersprungen.');
         }
       }
 
@@ -1808,7 +1806,7 @@ client.once('ready', async () => {
   }
   // ── Einmalig: Einreise-Embed mit Button senden ─────────────────────────────
   const setup = loadSetup();
-  if (!setup.einreiseEmbedV5Sent) {
+  if (!setup.einreiseEmbedV6Sent) {
     const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'http://localhost:8080')).replace(/\/$/, '');
     const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
     const LINE2 = '─────────────────────────────────────────';
@@ -1871,8 +1869,10 @@ client.once('ready', async () => {
     try {
       const einreiseCh = await client.channels.fetch('1490878156582686853');
       if (einreiseCh) {
+        const _eOld = await einreiseCh.messages.fetch({ limit: 20 }).catch(() => null);
+        if (_eOld) { for (const [, _m] of _eOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
         await einreiseCh.send({ embeds: [einreiseEmbed], components: [row] });
-        setup.einreiseEmbedV5Sent = true;
+        setup.einreiseEmbedV6Sent = true;
         saveSetup(setup);
         console.log('✅ Einreise-Embed v2 (mit Button) einmalig gesendet.');
       }
@@ -1883,7 +1883,7 @@ client.once('ready', async () => {
 
 
   // ── Einmalig: Startpunkt-Embed senden ─────────────────────────────────────
-    if (!setup.startpunktEmbedSent) {
+    if (!setup.startpunktEmbedV2Sent) {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const LINE2 = '─────────────────────────────────────────';
       const startEmbed = new EmbedBuilder()
@@ -1925,8 +1925,10 @@ client.once('ready', async () => {
       try {
         const startCh = await client.channels.fetch('1490878159032422433');
         if (startCh) {
+          const _stOld = await startCh.messages.fetch({ limit: 20 }).catch(() => null);
+          if (_stOld) { for (const [, _m] of _stOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
           await startCh.send({ embeds: [startEmbed] });
-          setup.startpunktEmbedSent = true;
+          setup.startpunktEmbedV2Sent = true;
           saveSetup(setup);
           console.log('✅ Startpunkt-Embed einmalig gesendet.');
         }
@@ -1934,7 +1936,7 @@ client.once('ready', async () => {
     }
 
   // ── Einmalig: Starterpaket-Embed senden ───────────────────────────────────
-    if (!setup.starterpaketEmbedSent) {
+    if (!setup.starterpaketEmbedV2Sent) {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const LINE2 = '─────────────────────────────────────────';
       const starterEmbed = new EmbedBuilder()
@@ -1986,8 +1988,10 @@ client.once('ready', async () => {
       try {
         const starterCh = await client.channels.fetch('1490878159804174470');
         if (starterCh) {
+          const _spOld = await starterCh.messages.fetch({ limit: 20 }).catch(() => null);
+          if (_spOld) { for (const [, _m] of _spOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
           await starterCh.send({ embeds: [starterEmbed] });
-          setup.starterpaketEmbedSent = true;
+          setup.starterpaketEmbedV2Sent = true;
           saveSetup(setup);
           console.log('✅ Starterpaket-Embed einmalig gesendet.');
         }
@@ -1995,7 +1999,7 @@ client.once('ready', async () => {
     }
 
     // ── Einmalig: Regelwerk 1/2 Embed senden ──────────────────────────────────
-    if (!setup.regelwerkEmbed1SentV2) {
+    if (!setup.regelwerkEmbed1SentV3) {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const DIV   = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
       const regelEmbed1 = new EmbedBuilder()
@@ -2087,8 +2091,10 @@ client.once('ready', async () => {
       try {
         const regelCh1 = await client.channels.fetch('1490882546144383156');
         if (regelCh1) {
+          const _rwOld = await regelCh1.messages.fetch({ limit: 20 }).catch(() => null);
+          if (_rwOld) { for (const [, _m] of _rwOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
           await regelCh1.send({ embeds: [regelEmbed1] });
-          setup.regelwerkEmbed1SentV2 = true;
+          setup.regelwerkEmbed1SentV3 = true;
           saveSetup(setup);
           console.log('✅ Regelwerk-Embed 1/2 einmalig gesendet.');
         }
@@ -2096,7 +2102,7 @@ client.once('ready', async () => {
     }
 
       // ── Einmalig: Regelwerk 2/2 Embed senden ──────────────────────────────────
-    if (!setup.regelwerkEmbed2SentV2) {
+    if (!setup.regelwerkEmbed2SentV3) {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const DIV   = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
       const regelEmbed2 = new EmbedBuilder()
@@ -2171,7 +2177,7 @@ client.once('ready', async () => {
         const regelCh2 = await client.channels.fetch('1490882546144383156');
         if (regelCh2) {
           await regelCh2.send({ embeds: [regelEmbed2] });
-          setup.regelwerkEmbed2SentV2 = true;
+          setup.regelwerkEmbed2SentV3 = true;
           saveSetup(setup);
           console.log('✅ Regelwerk-Embed 2/2 einmalig gesendet.');
         }
@@ -2179,10 +2185,12 @@ client.once('ready', async () => {
     }
 
   // ── Einmalig: Fraktionsregelwerk-Embed senden ──────────────────────────────
-    if (!setup.fraktionsregelwerkEmbedV4) {
+    if (!setup.fraktionsregelwerkEmbedV5) {
       try {
         const fraktCh = await client.channels.fetch('1490882548266696849');
         if (fraktCh) {
+          const _frOld = await fraktCh.messages.fetch({ limit: 20 }).catch(() => null);
+          if (_frOld) { for (const [, _m] of _frOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
           const fraktEmbed1 = new EmbedBuilder()
             .setColor(DARK_ORANGE)
             .setTitle('Fraktionsregelwerk — Paradise City Roleplay')
@@ -2306,12 +2314,12 @@ client.once('ready', async () => {
           await fraktCh.send({ embeds: [fraktEmbed2] });
           await fraktCh.send({ embeds: [fraktEmbed3] });
           console.log('Fraktionsregelwerk-Embeds gesendet.');
-          setup.fraktionsregelwerkEmbedV4 = true;
+          setup.fraktionsregelwerkEmbedV5 = true;
           saveSetup(setup);
         }
       } catch (e) { console.error('Fraktionsregelwerk-Embed Fehler:', e.message); }
     }
-    if (!setup.safeZonesEmbedSent) {
+    if (!setup.safeZonesEmbedV2Sent) {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const safeEmbed = new EmbedBuilder()
         .setColor(DARK_ORANGE)
@@ -2339,8 +2347,10 @@ client.once('ready', async () => {
       try {
         const safeCh = await client.channels.fetch('1490882549499564184');
         if (safeCh) {
+          const _szOld = await safeCh.messages.fetch({ limit: 20 }).catch(() => null);
+          if (_szOld) { for (const [, _m] of _szOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
           await safeCh.send({ embeds: [safeEmbed] });
-          setup.safeZonesEmbedSent = true;
+          setup.safeZonesEmbedV2Sent = true;
           saveSetup(setup);
           console.log('✅ Safe-Zones-Embed einmalig gesendet.');
         }
@@ -2350,7 +2360,7 @@ client.once('ready', async () => {
 
     // ── Einmalig: Ticket-Panel senden ────────────────────────────────────────
     const setupT = loadSetup();
-    if (!setupT.ticketPanelSent) {
+    if (!setupT.ticketPanelV2Sent) {
       const panelEmbed = new EmbedBuilder()
         .setColor(DARK_ORANGE)
         .setTitle('🎫  Support — Paradise City Roleplay')
@@ -2385,8 +2395,10 @@ client.once('ready', async () => {
       try {
         const panelCh = await client.channels.fetch(TICKET_PANEL_CH);
         if (panelCh) {
+          const _tpOld = await panelCh.messages.fetch({ limit: 20 }).catch(() => null);
+          if (_tpOld) { for (const [, _m] of _tpOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
           await panelCh.send({ embeds: [panelEmbed], components: [panelRow] });
-          setupT.ticketPanelSent = true;
+          setupT.ticketPanelV2Sent = true;
           saveSetup(setupT);
           console.log('✅ Ticket-Panel einmalig gesendet.');
         }
@@ -2397,7 +2409,7 @@ client.once('ready', async () => {
 
       // ── Einmalig: Ping-Rollen Embed senden ───────────────────────────────────
       const setupPing = loadSetup();
-      if (!setupPing.pingRollenEmbedSent) {
+      if (!setupPing.pingRollenEmbedV2Sent) {
         const PING_ROLLEN_CH = '1490882567690518579';
         const PING_ROLES_CFG = [
           { label: '📌 Lobby Ping',     value: 'ping_lobby',    id: '1490855734517174376' },
@@ -2433,8 +2445,10 @@ client.once('ready', async () => {
         try {
           const pingCh = await client.channels.fetch(PING_ROLLEN_CH);
           if (pingCh) {
+            const _prOld = await pingCh.messages.fetch({ limit: 20 }).catch(() => null);
+            if (_prOld) { for (const [, _m] of _prOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
             await pingCh.send({ embeds: [pingEmbed], components: [pingRow] });
-            setupPing.pingRollenEmbedSent = true;
+            setupPing.pingRollenEmbedV2Sent = true;
             saveSetup(setupPing);
             console.log('✅ Ping-Rollen-Embed einmalig gesendet.');
           }
@@ -2446,7 +2460,7 @@ client.once('ready', async () => {
       // ── Einmalig: Rubbellos-Embed senden ────────────────────────────────────────
       {
         const setupR = loadSetup();
-        if (!setupR.rubbellosEmbedSent2) {
+        if (!setupR.rubbellosEmbedSent3) {
           const rubbelEmbed = new EmbedBuilder()
             .setColor(0xE65100)
             .setTitle('🎟️  Rubbellos')
@@ -2477,8 +2491,10 @@ client.once('ready', async () => {
           try {
             const rubbCh = await client.channels.fetch('1490889784753782784');
             if (rubbCh) {
+              const _rbOld = await rubbCh.messages.fetch({ limit: 20 }).catch(() => null);
+              if (_rbOld) { for (const [, _m] of _rbOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
               await rubbCh.send({ embeds: [rubbelEmbed], components: [rubbRow] });
-              setupR.rubbellosEmbedSent2 = true;
+              setupR.rubbellosEmbedSent3 = true;
               saveSetup(setupR);
               console.log('✅ Rubbellos-Embed einmalig gesendet.');
             }
@@ -2489,21 +2505,8 @@ client.once('ready', async () => {
       // ── LAPD: Ticket-Panel senden (einmalig) ─────────────────────────────────
       {
         const setupLapdT = loadSetup();
-        if (!setupLapdT.lapdTicketPanelSent) {
-          // Verify via channel: skip if embed already exists
-          let lapdAlreadyExists = false;
-          try {
-            const lapdCh2 = await client.channels.fetch(LAPD_TICKET_PANEL_CH);
-            if (lapdCh2) {
-              const lapdMsgs = await lapdCh2.messages.fetch({ limit: 20 });
-              lapdAlreadyExists = lapdMsgs.some(function(m) {
-                return m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes('LAPD');
-              });
-              if (lapdAlreadyExists) { setupLapdT.lapdTicketPanelSent = true; saveSetup(setupLapdT); }
-            }
-          } catch(e2) {}
-
-          if (!lapdAlreadyExists) {
+        if (!setupLapdT.lapdTicketPanelV2Sent) {
+          {
             const lapdPanelEmbed = new EmbedBuilder()
               .setColor(0x1F51FF)
               .setTitle('🏛️ LAPD — Kontakt')
@@ -2532,8 +2535,10 @@ client.once('ready', async () => {
             try {
               const lapdPanelCh = await client.channels.fetch(LAPD_TICKET_PANEL_CH);
               if (lapdPanelCh) {
+                const _lpOld = await lapdPanelCh.messages.fetch({ limit: 20 }).catch(() => null);
+                if (_lpOld) { for (const [, _m] of _lpOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
                 await lapdPanelCh.send({ embeds: [lapdPanelEmbed], components: [lapdPanelRow] });
-                setupLapdT.lapdTicketPanelSent = true;
+                setupLapdT.lapdTicketPanelV2Sent = true;
                 saveSetup(setupLapdT);
                 console.log('\u2705 LAPD Ticket-Panel einmalig gesendet.');
               }
@@ -6402,8 +6407,9 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
   // Info-Embed (einmalig)
   client.once('ready', async () => {
     try {
-      const d=_loadAtm(); if(d._infoEmbedSentV2) return;
+      const d=_loadAtm(); if(d._infoEmbedSentV3) return;
       const ch=await client.channels.fetch(ATM_INFO_CH).catch(()=>null); if(!ch) return;
+      const _atmOld=await ch.messages.fetch({limit:20}).catch(()=>null); if(_atmOld){for(const[,_m]of _atmOld){if(_m.author.id===client.user.id&&_m.embeds.length>0)await _m.delete().catch(()=>{});}}
       await ch.send({embeds:[new EmbedBuilder()
         .setColor(0xE65100)
         .setTitle('🏧 ATM-Raub')
@@ -6418,7 +6424,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
           {name:'📋 Ablauf',value:'**1.** Raub In-Game durchführen\n**2.** Foto als Beweis in <#1490894309145313330> senden\n**3.** Werkzeug in der DM auswählen\n**4.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
         )
         ]});
-      d._infoEmbedSentV2=true; _saveAtm(d);
+      d._infoEmbedSentV3=true; _saveAtm(d);
     } catch(e){console.error('[ATM-INFO]',e.message);}
   });
 
@@ -6522,8 +6528,9 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
   // Info-Embed (einmalig)
   client.once('ready', async () => {
     try {
-      const d=_loadShop(); if(d._infoEmbedSentV2) return;
+      const d=_loadShop(); if(d._infoEmbedSentV3) return;
       const ch=await client.channels.fetch(SHOP_INFO_CH).catch(()=>null); if(!ch) return;
+      const _shopOld=await ch.messages.fetch({limit:20}).catch(()=>null); if(_shopOld){for(const[,_m]of _shopOld){if(_m.author.id===client.user.id&&_m.embeds.length>0)await _m.delete().catch(()=>{});}}
       await ch.send({embeds:[new EmbedBuilder()
         .setColor(0xef4444)
         .setTitle('🛍️ Shop-Raub')
@@ -6538,7 +6545,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
           {name:'📋 Ablauf',value:'**1.** Raub In-Game mit 2–3 Spielern starten\n**2.** Foto als Beweis in <#1490894311389134858> senden\n**3.** Beute wird automatisch nach 15 Min. ausgezahlt\n**4.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
         )
         ]});
-      d._infoEmbedSentV2=true; _saveShop(d);
+      d._infoEmbedSentV3=true; _saveShop(d);
     } catch(e){console.error('[SHOP-INFO]',e.message);}
   });
 
@@ -6626,8 +6633,9 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
   client.once('ready', async () => {
     try {
-      const d = _loadBar(); if (d._infoEmbedSentV2) return;
+      const d = _loadBar(); if (d._infoEmbedSentV3) return;
       const ch = await client.channels.fetch(BAR_INFO_CH).catch(() => null); if (!ch) return;
+      const _barOld=await ch.messages.fetch({limit:20}).catch(()=>null); if(_barOld){for(const[,_m]of _barOld){if(_m.author.id===client.user.id&&_m.embeds.length>0)await _m.delete().catch(()=>{});}}
       await ch.send({ embeds: [new EmbedBuilder()
         .setColor(0xf59e0b)
         .setTitle('🍺 Bar-Raub')
@@ -6642,7 +6650,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
           {name:'📋 Ablauf',value:'**1.** Raubüberfall In-Game mit min. 2 Spielern starten\n**2.** Foto als Beweis in <#1490894314132213771> senden\n**3.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
         )
         ] });
-      d._infoEmbedSentV2 = true; _saveBar(d);
+      d._infoEmbedSentV3 = true; _saveBar(d);
     } catch(e) { console.error('[BAR-INFO]', e.message); }
   });
 
@@ -6709,8 +6717,9 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
   client.once('ready', async () => {
     try {
-      const d = _loadHumane(); if (d._infoEmbedSentV2) return;
+      const d = _loadHumane(); if (d._infoEmbedSentV3) return;
       const ch = await client.channels.fetch(HUMANE_INFO_CH).catch(() => null); if (!ch) return;
+      const _humOld=await ch.messages.fetch({limit:20}).catch(()=>null); if(_humOld){for(const[,_m]of _humOld){if(_m.author.id===client.user.id&&_m.embeds.length>0)await _m.delete().catch(()=>{});}}
       await ch.send({ embeds: [new EmbedBuilder()
         .setColor(0x4f46e5)
         .setTitle('🏭 Humane Labs Raub')
@@ -6725,7 +6734,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
           {name:'📋 Ablauf',value:'**1.** Raub In-Game mit min. 3 Spielern starten\n**2.** Foto als Beweis in <#1490894317462753280> senden\n**3.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
         )
         ] });
-      d._infoEmbedSentV2 = true; _saveHumane(d);
+      d._infoEmbedSentV3 = true; _saveHumane(d);
     } catch(e) { console.error('[HUMANE-INFO]', e.message); }
   });
 
@@ -6790,8 +6799,9 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
 
   client.once('ready', async () => {
     try {
-      const d = _loadStaatsbank(); if (d._infoEmbedSentV3) return;
+      const d = _loadStaatsbank(); if (d._infoEmbedSentV4) return;
       const ch = await client.channels.fetch(STAATSBANK_INFO_CH).catch(() => null); if (!ch) return;
+      const _sbOld=await ch.messages.fetch({limit:20}).catch(()=>null); if(_sbOld){for(const[,_m]of _sbOld){if(_m.author.id===client.user.id&&_m.embeds.length>0)await _m.delete().catch(()=>{});}}
       await ch.send({ embeds: [new EmbedBuilder()
         .setColor(0xf59e0b)
         .setTitle('🏦 Staatsbank Raub')
@@ -6806,7 +6816,7 @@ function _getOnDuty(){ try{const d=JSON.parse(fs.readFileSync(path.join(DATA_DIR
           {name:'📋 Ablauf',value:'**1.** Raub In-Game mit min. 4 Spielern starten\n**2.** Foto als Beweis in <#1490894320604020806> senden\n**3.** Team bestätigt Erfolg oder Fehlschlag',inline:false}
         )
         ] });
-      d._infoEmbedSentV3 = true; _saveStaatsbank(d);
+      d._infoEmbedSentV4 = true; _saveStaatsbank(d);
     } catch(e) { console.error('[STAATSBANK-INFO]', e.message); }
   });
 
