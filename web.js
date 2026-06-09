@@ -5393,8 +5393,6 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
   // ── Führerschein-System ─────────────────────────────────────────────────
   try { require('./fuehrerschein')(app, DATA_DIR, client, express); } catch(e) { console.error('[FUEHRERSCHEIN]', e.message); }
 
-  // ── PC Bay Marketplace ─────────────────────────────────────────────────
-  try { require('./pcbay')(app, DATA_DIR, client); } catch(e) { console.error('[PCBAY]', e.message); }
 
   app.listen(PORT, '0.0.0.0', () => console.log('Web-Server running on port '+PORT));
 
