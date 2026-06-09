@@ -361,8 +361,8 @@ const AKTIVITAET_CH      = '1502382574310392040';
     const SHOP_CHANNELS = { kwik: '1490890311755628584', baumarkt: '1492976742497783818', angler: '1497804333541097532', schwarz: '1492977067665526804' };
     const SHOP_META = {
       kwik:     { name: 'Kwik-E-Markt',  emoji: '\u{1F3EA}', color: 0xF4A400, desc: 'Dein freundlicher Nachbarschaftsmarkt' },
-      baumarkt: { name: 'Baumarkt',      emoji: '\u{1F528}', color: 0xA0522D, desc: 'Alles fuer Bau und Handwerk' },
-      angler:   { name: 'Angler Shop',   emoji: '\u{1F3A3}', color: 0x006994, desc: 'Ausruestung fuer Angler' },
+      baumarkt: { name: 'Baumarkt',      emoji: '\u{1F528}', color: 0xA0522D, desc: 'Alles für Bau und Handwerk' },
+      angler:   { name: 'Angler Shop',   emoji: '\u{1F3A3}', color: 0x006994, desc: 'Ausrüstung für Angler' },
       schwarz:  { name: 'Schwarzmarkt',  emoji: '\u{1F311}', color: 0x1a1a2e, desc: 'Hier findest du das Besondere' },
     };
     const shopCarts = new Map();
@@ -477,7 +477,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
         .setColor(0xE65100)
         .setAuthor({ name: 'Paradise City Roleplay  •  Team Shop' })
         .setTitle('🎖️  Team Shop')
-        .setDescription('*Exklusiv fuer das Team — kostenlos beziehen*\n\n' + rows)
+        .setDescription('*Exklusiv für das Team — kostenlos beziehen*\n\n' + rows)
         ;
     }
 
@@ -1750,10 +1750,10 @@ client.once('ready', async () => {
         .setDescription('Zeigt dein Lager an')
         .addUserOption(opt => opt.setName('spieler').setDescription('Lager eines anderen Spielers').setRequired(false))
         .toJSON(),
-    new SlashCommandBuilder().setName('teamshop').setDescription('Oeffnet den Team-Shop').toJSON(),
+    new SlashCommandBuilder().setName('teamshop').setDescription('Öffnet den Team-Shop').toJSON(),
     new SlashCommandBuilder()
       .setName('shop-add')
-      .setDescription('Shop-Manager oeffnen und mehrere Items gleichzeitig hinzufuegen')
+      .setDescription('Shop-Manager öffnen und mehrere Items gleichzeitig hinzufügen')
       .toJSON(),
     new SlashCommandBuilder()
       .setName('shop-edit')
@@ -1803,7 +1803,7 @@ client.once('ready', async () => {
       .toJSON(),
     new SlashCommandBuilder()
       .setName('rechnung-create')
-      .setDescription('Erstelle eine Rechnung fuer einen Spieler')
+      .setDescription('Erstelle eine Rechnung für einen Spieler')
       .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
       .addStringOption(o => o.setName('beschreibung').setDescription('Beschreibung').setRequired(true))
       .addIntegerOption(o => o.setName('betrag').setDescription('Betrag in $').setRequired(true).setMinValue(1))
