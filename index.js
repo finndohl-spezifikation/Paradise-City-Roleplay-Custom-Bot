@@ -4240,7 +4240,6 @@ client.on('interactionCreate', async (interaction) => {
     );
     return;
   }
-  }
 
   // /teamwarn
 
