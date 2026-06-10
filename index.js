@@ -505,7 +505,7 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       const clearBtn = new ButtonBuilder().setCustomId('sp_clear:' + page + ':' + shopId).setLabel('🗑️ Leeren').setStyle(ButtonStyle.Danger).setDisabled(!cart.length);
       const navRow   = new ActionRowBuilder().addComponents(pagePrev, pageNext, buyBtn, clearBtn);
       function parseItemLabel(name) {
-        const m = name.match(/^(<a?:[^:]+:d+>)s*|?s*/);
+        const m = name.match(/^(<a?:[^:]+:\d+>)\s*\|?\s*/);
         if (m) return { label: name.slice(m[0].length).trim().slice(0,100) || name.slice(0,100), emoji: m[1] };
         return { label: name.slice(0,100) };
       }
