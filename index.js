@@ -696,6 +696,13 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
           embed.setImage('attachment://kwik_markt.jpeg');
         }
       }
+      if (shopId === 'angler') {
+        const imgPath = path.join(__dirname, 'assets', 'angler_shop.jpeg');
+        if (fs.existsSync(imgPath)) {
+          files.push({ attachment: imgPath, name: 'angler_shop.jpeg' });
+          embed.setImage('attachment://angler_shop.jpeg');
+        }
+      }
       const shopBtn = new ButtonBuilder()
         .setCustomId('sp_shop:' + shopId)
         .setLabel(m.name + ' öffnen')
