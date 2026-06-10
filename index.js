@@ -688,6 +688,14 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       const embed = new EmbedBuilder()
         .setColor(m.color)
         .setTitle(m.emoji + '  Öffne den ' + m.name);
+      const files = [];
+      if (shopId === 'kwik') {
+        const imgPath = path.join(__dirname, 'assets', 'kwik_markt.jpeg');
+        if (fs.existsSync(imgPath)) {
+          files.push({ attachment: imgPath, name: 'kwik_markt.jpeg' });
+          embed.setImage('attachment://kwik_markt.jpeg');
+        }
+      }
       const shopBtn = new ButtonBuilder()
         .setCustomId('sp_shop:' + shopId)
         .setLabel(m.name + ' öffnen')
@@ -702,12 +710,12 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
           msg.components[0]?.components?.[0]?.customId === 'sp_shop:' + shopId
         );
         if (existing) {
-          await existing.edit({ embeds: [embed], components: [shopRow] }).catch(() => {});
+          await existing.edit({ embeds: [embed], components: [shopRow], files }).catch(() => {});
           return;
         }
       }
       // Not found → send fresh
-      await ch.send({ embeds: [embed], components: [shopRow] }).catch(() => {});
+      await ch.send({ embeds: [embed], components: [shopRow], files }).catch(() => {});
     }
   _shopCb = { updateShopEmbed, loadShops, saveShops, SHOP_META };
 
