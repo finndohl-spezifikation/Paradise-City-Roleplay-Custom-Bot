@@ -504,7 +504,17 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       const buyBtn   = new ButtonBuilder().setCustomId('sp_buy:' + page + ':' + shopId).setLabel('💰 Kaufen').setStyle(ButtonStyle.Success).setDisabled(!cart.length);
       const clearBtn = new ButtonBuilder().setCustomId('sp_clear:' + page + ':' + shopId).setLabel('🗑️ Leeren').setStyle(ButtonStyle.Danger).setDisabled(!cart.length);
       const navRow   = new ActionRowBuilder().addComponents(pagePrev, pageNext, buyBtn, clearBtn);
-      const selOpts  = pageItems.map(it => ({ label: it.name, description: it.preis.toLocaleString('de-DE') + ' Euro', value: it.name }));
+      function parseItemLabel(name) {
+        const m = name.match(/^(<a?:[^:]+:d+>)s*|?s*/);
+        if (m) return { label: name.slice(m[0].length).trim().slice(0,100) || name.slice(0,100), emoji: m[1] };
+        return { label: name.slice(0,100) };
+      }
+      const selOpts = pageItems.map(it => {
+        const { label, emoji } = parseItemLabel(it.name);
+        const opt = { label, description: it.preis.toLocaleString('de-DE') + ' Euro', value: it.name };
+        if (emoji) opt.emoji = emoji;
+        return opt;
+      });
       const selectRow = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder().setCustomId('sp_sel:' + page + ':' + shopId)
           .setPlaceholder('Item in den Warenkorb legen...')
@@ -512,7 +522,12 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       );
       const components = [navRow, selectRow];
       if (cart.length) {
-        const rmOpts = cart.map(c => ({ label: c.name + ' x' + c.menge, description: (c.preis * c.menge).toLocaleString('de-DE') + ' Euro', value: c.name }));
+        const rmOpts = cart.map(c => {
+          const { label, emoji } = parseItemLabel(c.name);
+          const opt = { label: (label + ' x' + c.menge).slice(0,100), description: (c.preis * c.menge).toLocaleString('de-DE') + ' Euro', value: c.name };
+          if (emoji) opt.emoji = emoji;
+          return opt;
+        });
         components.push(new ActionRowBuilder().addComponents(
           new StringSelectMenuBuilder().setCustomId('sp_rm:' + page + ':' + shopId)
             .setPlaceholder('❌ Item aus Warenkorb entfernen...')
