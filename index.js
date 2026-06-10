@@ -718,6 +718,13 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
           embed.setImage('attachment://angler_shop.jpeg');
         }
       }
+      if (shopId === 'baumarkt') {
+        const imgPath = path.join(__dirname, 'assets', 'baumarkt.jpeg');
+        if (fs.existsSync(imgPath)) {
+          files.push({ attachment: imgPath, name: 'baumarkt.jpeg' });
+          embed.setImage('attachment://baumarkt.jpeg');
+        }
+      }
       const shopBtn = new ButtonBuilder()
         .setCustomId('sp_shop:' + shopId)
         .setLabel(m.name + ' öffnen')
