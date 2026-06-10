@@ -237,6 +237,9 @@ const LOG_MONEY_CH = '1490878138429997087';
 const WARN_FILE     = path.join(DATA_DIR, 'teamwarns.json');
 const PLAYER_WARN_FILE = path.join(DATA_DIR, 'player_warns.json');
 const INVITES_FILE  = path.join(DATA_DIR, 'invites.json');
+const FORMER_MEMBERS_FILE = path.join(DATA_DIR, 'former_members.json');
+function loadFormerMembers()  { try { return JSON.parse(fs.readFileSync(FORMER_MEMBERS_FILE, 'utf8')); } catch { return {}; } }
+function saveFormerMembers(d) { fs.writeFileSync(FORMER_MEMBERS_FILE, JSON.stringify(d, null, 2), 'utf8'); }
 const SETUP_FILE    = path.join(DATA_DIR, 'setup.json');
 
 if (!fs.existsSync(DATA_DIR))     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -3165,21 +3168,32 @@ client.on('guildMemberAdd', async (member) => {
       if (ch) await ch.send({ embeds: [welcomeEmbed] });
     } catch (e) { console.error('Welcome Fehler:', e.message); }
 
-      // Willkommens-DM mit Discord-ID
+      // Willkommens-DM (Erstbeitritt) oder Rückkehr-DM
       try {
-        await member.send({ embeds: [new EmbedBuilder()
-          .setColor(DARK_ORANGE)
-          .setTitle('👋  Willkommen bei Paradise City Roleplay!')
-          .setDescription(
-            `Hey **${member.user.username}**, willkommen auf **Paradise City Roleplay**! 🚗\n\n` +
-            `Um deinen Charakter zu erstellen, geh auf die Einreise-Seite:\n` +
-            `https://${(process.env.REPLIT_DOMAINS||process.env.RAILWAY_PUBLIC_DOMAIN||'localhost:8080').split(',')[0]}/einreise\n\n` +
-            `Gib dort deine Discord ID ein — sie steht direkt hier unten. 👇`
-          )
-          .addFields({ name: '🆔  Deine Discord ID', value: `\`${member.id}\``, inline: false })
-          
-          
-        ]});
+        const formerMembers = loadFormerMembers();
+        const isReturning   = !!formerMembers[member.id];
+        if (isReturning) {
+          await member.send({ embeds: [new EmbedBuilder()
+            .setColor(DARK_ORANGE)
+            .setTitle('Schon wieder da? 😊')
+            .setDescription('Wir freuen uns auf deine Rückkehr bei **Paradise City Roleplay**!')
+          ]});
+        } else {
+          await member.send({ embeds: [new EmbedBuilder()
+            .setColor(DARK_ORANGE)
+            .setTitle('🍀 𝑾𝒊𝒍𝒍𝒌𝒐𝒎𝒎𝒆𝒏 𝒂𝒖𝒇 𝑷𝒂𝒓𝒂𝒅𝒊𝒔𝒆 𝑪𝒊𝒕𝒚 𝑹𝒐𝒍𝒆𝒑𝒍𝒂𝒚 🍀')
+            .setDescription(
+              'Wir möchten uns bei dir bedanken, dass du dich dieses Mal für unseren Server entschieden hast.\n\n' +
+              'Auf unserem Server wirst du Dinge sehen und aktiv nutzen können, die das PS5-Roleplay auf ein ganz neues Level bringen und zuvor noch nie gesehen wurden.\n\n' +
+              'Hier findest du einen Leitfaden, was du tun solltest, damit du so schnell wie möglich mitspielen kannst.\n\n' +
+              '**Leitfaden**\n' +
+              '- Erstelle zuerst deinen persönlichen Charakter im Channel <#1490878156582686853>\n\n' +
+              '- Lies dir gründlich unser <#1490882546144383156> durch\n\n' +
+              '- Stelle uns eine Crew-Anfrage. Öffne hierfür das passende Ticket im Channel <#1490885002030874775>\n\n' +
+              'Wenn du noch Fragen hast bezüglich der Einreise oder rund um den Server, steht dir das Support-Team jederzeit zur Verfügung. Wir wünschen dir viel Spaß bei deinem Start auf Paradise City Roleplay 😎'
+            )
+          ]});
+        }
       } catch { /* DMs deaktiviert */ }
 
 
@@ -3299,6 +3313,11 @@ client.on('guildMemberRemove', async (member) => {
   }
 
   const inviterMention = inviterId ? `<@${inviterId}>` : 'Unbekannt';
+
+  // Ehemalige Mitglieder tracken für Rückkehr-DM
+  const formerMembersData = loadFormerMembers();
+  formerMembersData[member.id] = true;
+  saveFormerMembers(formerMembersData);
 
   // Aufwiedersehens-Embed
   try {
