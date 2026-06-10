@@ -687,14 +687,10 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
       if (!ch) return;
       const embed = new EmbedBuilder()
         .setColor(m.color)
-        .setAuthor({ name: 'Paradise City Roleplay  •  ' + m.name })
-        .setTitle(m.emoji + '  ' + m.name)
-        .setDescription('*' + m.desc + '*
-
-Klicke den Button um den Shop zu öffnen und die verfügbaren Items einzusehen.');
+        .setTitle(m.emoji + '  Öffne den ' + m.name);
       const shopBtn = new ButtonBuilder()
         .setCustomId('sp_shop:' + shopId)
-        .setLabel(m.emoji + ' ' + m.name + ' öffnen')
+        .setLabel(m.name + ' öffnen')
         .setStyle(ButtonStyle.Primary);
       const shopRow = new ActionRowBuilder().addComponents(shopBtn);
       // Scan last 50 messages: if bot already sent shop embed here → edit it
