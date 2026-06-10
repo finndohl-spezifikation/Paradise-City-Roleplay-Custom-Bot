@@ -3151,16 +3151,13 @@ client.on('guildMemberAdd', async (member) => {
     // Willkommens-Embed
     const welcomeEmbed = new EmbedBuilder()
       .setColor(DARK_ORANGE)
-      .setTitle(`🎉  Willkommen, ${member.user.username}!`)
+      .setTitle('Neues Mitglied')
       .setDescription(
-        `Hey <@${member.id}>, willkommen auf **Paradise City Roleplay**!\n` +
-        `Du bist unser **${memberCount}. Mitglied**. Schau dir die Regeln an und viel Spaß! 🚗`
+        `Hey <@${member.id}>\nWillkommen auf **Paradise City Roleplay**\n\n` +
+        `Du bist unser **${memberCount}. Mitglied**\n\n` +
+        'Wir wünschen dir viel Spaß auf unserem Server'
       )
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
-      .addFields(
-        { name: '📨  Eingeladen von', value: inviterMention, inline: true },
-        { name: '📆  Account seit',   value: `<t:${ts(member.user.createdAt)}:D>`, inline: true },
-      )
       ;
 
     try {
@@ -3202,18 +3199,13 @@ client.on('guildMemberAdd', async (member) => {
     try {
       const ch = await client.channels.fetch(CH.INVITE_LOG);
       if (ch) await ch.send({ embeds: [new EmbedBuilder()
-        .setColor(0x43A047)
-        .setAuthor({ name: '➕  Mitglied beigetreten' })
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-        .addFields(
-          { name: '👤  Mitglied',            value: `<@${member.id}>\n\`${member.user.tag}\``, inline: true },
-          { name: '📨  Eingeladen von',       value: inviterId ? `<@${inviterId}>\n\`${inviterTag}\`` : 'Unbekannt', inline: true },
-          { name: '🔗  Code',                 value: `\`${inviteCode}\``,  inline: true },
-          { name: '📅  Beigetreten',          value: `<t:${ts()}:F>`,      inline: false },
-          { name: '🏆  Einladungen gesamt',   value: inviterId ? `**${totalInvites}**` : '—', inline: true },
+        .setColor(DARK_ORANGE)
+        .setDescription(
+          `👤 **Mitglied:** <@${member.id}>\n` +
+          `📨 **Wurde eingeladen von:** ${inviterId ? `<@${inviterId}>` : 'Unbekannt'}\n\n` +
+          `${inviterId ? `<@${inviterId}> hat jetzt **${totalInvites} Invite${totalInvites !== 1 ? 's' : ''}**` : ''}\n\n` +
+          `📅 Hat den Server betreten: <t:${ts()}:F>`
         )
-        
-        
       ]});
     } catch (e) { console.error('Invite-Log Fehler:', e.message); }
 
@@ -3324,16 +3316,8 @@ client.on('guildMemberRemove', async (member) => {
     const ch = await client.channels.fetch(CH.GOODBYE);
     if (ch) await ch.send({ embeds: [new EmbedBuilder()
       .setColor(DARK_ORANGE)
-      .setTitle(`👋  Tschüss, ${member.user.username}!`)
-      .setDescription(
-        `**${member.user.tag}** hat den Server verlassen. Wir hoffen dich bald wieder zu sehen!`
-      )
-      .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
-      .addFields(
-        { name: '📨  Eingeladen von', value: inviterMention, inline: true },
-        { name: '⏱️  War dabei für',  value: joinedAt ? `<t:${ts(joinedAt)}:R>` : 'Unbekannt', inline: true },
-      )
-      
+      .setTitle('Ein Mitglied hat Verlassen')
+      .setDescription(`<@${member.id}>\nHat Paradise City Roleplay verlassen`)
     ]});
   } catch (e) { console.error('Goodbye Fehler:', e.message); }
 
@@ -3341,18 +3325,11 @@ client.on('guildMemberRemove', async (member) => {
   try {
     const ch = await client.channels.fetch(CH.INVITE_LOG);
     if (ch) await ch.send({ embeds: [new EmbedBuilder()
-      .setColor(0xE53935)
-      .setAuthor({ name: '➖  Mitglied verlassen' })
-      .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-      .addFields(
-        { name: '👤  Mitglied',               value: `${member.user.tag}`,                               inline: true },
-        { name: '📨  War eingeladen von',     value: inviterId ? `<@${inviterId}>\n\`${inviterTag}\`` : 'Unbekannt', inline: true },
-        { name: '🔗  Code',                   value: `\`${inviteCode}\``,                                 inline: true },
-        { name: '📅  Beigetreten am',         value: joinedAt ? `<t:${ts(joinedAt)}:F>` : 'Unbekannt',  inline: false },
-        { name: '📉  Einladungen verbleibend', value: inviterId ? `**${remainingCount}**` : '—',          inline: true },
+      .setColor(DARK_ORANGE)
+      .setDescription(
+        `<@${member.id}> hat den Server verlassen\n\n` +
+        `📨 Wurde von ${inviterId ? `<@${inviterId}>` : 'Unbekannt'} eingeladen`
       )
-      
-      
     ]});
   } catch (e) { console.error('Invite-Log (Leave) Fehler:', e.message); }
 
@@ -4219,7 +4196,12 @@ client.on('interactionCreate', async (interaction) => {
     if (!member.permissions.has(PermissionFlagsBits.ManageMessages))
       return interaction.reply({ content: '⛔ Du hast keine Berechtigung dafür.', ephemeral: true });
     await interaction.deferReply({ ephemeral: true });
-    let deleted = 0, remaining = interaction.options.getInteger('anzahl');
+    const anzahl = interaction.options.getInteger('anzahl');
+    const EIGHT_WEEKS_MS = 8 * 7 * 24 * 60 * 60 * 1000;
+    const TWO_WEEKS_MS   = 14 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    let deleted = 0, remaining = anzahl;
+    // Phase 1: bulkDelete (< 14 Tage)
     while (remaining > 0) {
       const batch = Math.min(remaining, 100);
       const msgs  = await interaction.channel.bulkDelete(batch, true).catch(() => null);
@@ -4227,6 +4209,25 @@ client.on('interactionCreate', async (interaction) => {
       deleted   += msgs.size;
       remaining -= msgs.size;
       if (msgs.size < batch) break;
+    }
+    // Phase 2: Einzeln löschen (14 Tage – 8 Wochen)
+    if (remaining > 0) {
+      const fetched = await interaction.channel.messages.fetch({ limit: 100 }).catch(() => null);
+      if (fetched) {
+        const old = fetched.filter(m => {
+          const age = now - m.createdTimestamp;
+          return age >= TWO_WEEKS_MS && age <= EIGHT_WEEKS_MS;
+        }).first(remaining);
+        for (const m of (Array.isArray(old) ? old : [...old.values()])) {
+          await m.delete().catch(() => null);
+          deleted++;
+          remaining--;
+        }
+      }
+    }
+    // Phase 3: Nichts gelöscht weil alles > 8 Wochen?
+    if (deleted === 0) {
+      return interaction.editReply({ content: '⚠️ Es konnten keine Nachrichten gelöscht werden. Nachrichten dürfen nicht älter als 8 Wochen sein.' });
     }
     await interaction.editReply({ content: `✅ ${deleted} Nachrichten wurden gelöscht.` });
     await sendLog(CH.SERVER_LOG, new EmbedBuilder()
@@ -4238,6 +4239,7 @@ client.on('interactionCreate', async (interaction) => {
       )
     );
     return;
+  }
   }
 
   // /teamwarn
