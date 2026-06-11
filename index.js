@@ -7916,6 +7916,28 @@ if (!process.env.DISCORD_TOKEN) {
   console.error('[FEHLER] DISCORD_TOKEN fehlt – Bot startet nicht.');
 } else {
   (function loginWithRetry(attempt) {
+
+// ─── ! COMMAND WARNUNG ──────────────────────────────────────────────────────
+client.on('messageCreate', async (msg) => {
+  if (msg.author.bot || !msg.guild) return;
+  if (!msg.content.startsWith('!')) return;
+  try {
+    const reply = await msg.reply({
+      embeds: [new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setDescription(
+          'Wir nutzen auf diesem Server nur **/commands**\n' +
+          'Eine Übersicht dazu findest du im Channel <#1491624319598460958>'
+        )
+      ],
+    });
+    setTimeout(() => {
+      reply.delete().catch(() => {});
+      msg.delete().catch(() => {});
+    }, 8000);
+  } catch { }
+});
+
     client.login(process.env.DISCORD_TOKEN)
       .then(() => console.log('[LOGIN] Erfolgreich eingeloggt (Versuch ' + attempt + ')'))
       .catch(err => {
