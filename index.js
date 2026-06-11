@@ -7921,16 +7921,14 @@ if (!process.env.DISCORD_TOKEN) {
 client.on('messageCreate', async (msg) => {
   if (msg.author.bot || !msg.guild) return;
   if (!msg.content.startsWith('!')) return;
+  msg.delete().catch(() => {});
   try {
-    const reply = await msg.reply({
-      embeds: [new EmbedBuilder()
-        .setColor(DARK_ORANGE)
-        .setDescription(
-          'Wir nutzen auf diesem Server nur **/commands**\n' +
-          'Eine Übersicht dazu findest du im Channel <#1491624319598460958>'
-        )
-      ],
-    });
+    await msg.author.send(
+      'Wir nutzen auf diesem Server nur /commands\n' +
+      'Eine Übersicht dazu findest du im Channel <#1491624319598460958>'
+    );
+  } catch { }
+});
     setTimeout(() => {
       reply.delete().catch(() => {});
       msg.delete().catch(() => {});
