@@ -7945,12 +7945,6 @@ client.on('messageCreate', async (msg) => {
     );
   } catch { }
 });
-    setTimeout(() => {
-      reply.delete().catch(() => {});
-      msg.delete().catch(() => {});
-    }, 8000);
-  } catch { }
-});
 
     client.login(process.env.DISCORD_TOKEN)
       .then(() => console.log('[LOGIN] Erfolgreich eingeloggt (Versuch ' + attempt + ')'))
