@@ -3110,9 +3110,11 @@ client.on('guildMemberAdd', async (member) => {
   }
 
   if (!member.user.bot) {
-    // Auto-Rolle
-    try { await member.roles.add('1490855725516460234'); }
-    catch (e) { console.error('Auto-Rolle Fehler:', e.message); }
+    // Auto-Rolle (nur für Erstbeitritt)
+    { const _fm = loadFormerMembers(); if (!_fm[member.id]) {
+      try { await member.roles.add('1490855725516460234'); }
+      catch (e) { console.error('Auto-Rolle Fehler:', e.message); }
+    } }
 
     // Invite-Tracking
     const oldCache = inviteCache.get(member.guild.id) ?? new Map();
@@ -3168,13 +3170,22 @@ client.on('guildMemberAdd', async (member) => {
       // Willkommens-DM (Erstbeitritt) oder Rückkehr-DM
       try {
         const formerMembers = loadFormerMembers();
-        const isReturning   = !!formerMembers[member.id];
+        const isReturning   = !!(formerMembers[member.id]);
         if (isReturning) {
           await member.send({ embeds: [new EmbedBuilder()
             .setColor(DARK_ORANGE)
             .setTitle('Schon wieder da? 😊')
             .setDescription('Wir freuen uns auf deine Rückkehr bei **Paradise City Roleplay**!')
           ]});
+          // Rollen wiederherstellen
+          const _savedData = formerMembers[member.id];
+          if (_savedData && Array.isArray(_savedData.roles) && _savedData.roles.length) {
+            try { await member.roles.add(_savedData.roles); } catch (e) { console.error('Rollen-Restore Fehler:', e.message); }
+          }
+          // Nickname wiederherstellen
+          if (_savedData && _savedData.nickname) {
+            try { await member.setNickname(_savedData.nickname); } catch (e) { console.error('Nickname-Restore Fehler:', e.message); }
+          }
         } else {
           await member.send({ embeds: [new EmbedBuilder()
             .setColor(DARK_ORANGE)
@@ -3308,7 +3319,12 @@ client.on('guildMemberRemove', async (member) => {
 
   // Ehemalige Mitglieder tracken für Rückkehr-DM
   const formerMembersData = loadFormerMembers();
-  formerMembersData[member.id] = true;
+  formerMembersData[member.id] = {
+    roles:    member.roles.cache
+               .filter(r => r.id !== member.guild.id && !r.managed)
+               .map(r => r.id),
+    nickname: member.nickname || null,
+  };
   saveFormerMembers(formerMembersData);
 
   // Aufwiedersehens-Embed
