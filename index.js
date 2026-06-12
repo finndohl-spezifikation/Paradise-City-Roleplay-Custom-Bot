@@ -727,6 +727,13 @@ if (!fs.existsSync(RECHNUNGEN_FILE)) fs.writeFileSync(RECHNUNGEN_FILE,'{}', 'utf
           files.push({ attachment: imgPath, name: 'baumarkt.jpeg' });
           embed.setImage('attachment://baumarkt.jpeg');
         }
+      if (shopId === 'schwarzmarkt') {
+        const imgPath = path.join(__dirname, 'assets', 'schwarzmarkt.jpeg');
+        if (fs.existsSync(imgPath)) {
+          files.push({ attachment: imgPath, name: 'schwarzmarkt.jpeg' });
+          embed.setImage('attachment://schwarzmarkt.jpeg');
+        }
+      }
       }
       const shopBtn = new ButtonBuilder()
         .setCustomId('sp_shop:' + shopId)
