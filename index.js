@@ -7881,7 +7881,7 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply({ content: '❌ Du hast schon einen Charakter', ephemeral: true });
   }
 
-  const WEBAPP_URL_EI = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(//$/, '');
+  const WEBAPP_URL_EI = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
   const linkBtn = new ButtonBuilder()
     .setLabel('Einreise starten')
     .setEmoji('🛂')
