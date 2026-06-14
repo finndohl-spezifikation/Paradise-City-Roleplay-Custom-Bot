@@ -1980,7 +1980,7 @@ client.once('ready', async () => {
   }
   // ── Einmalig: Einreise-Embed mit Button senden ─────────────────────────────
   const setup = loadSetup();
-  if (!setup.einreiseEmbedV6Sent) {
+  if (!setup.einreiseEmbedV7Sent) {
     const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'http://localhost:8080')).replace(/\/$/, '');
     const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
     const LINE2 = '─────────────────────────────────────────';
@@ -1988,56 +1988,42 @@ client.once('ready', async () => {
       .setColor(DARK_ORANGE)
       .setTitle('🛂  Einreise — Paradise City Roleplay')
       .setDescription(
-        `Willkommen! Wähle deinen **Einreiseweg** und starte dein Leben in Paradise City.\n` +
-        `Jeder Weg bringt andere Möglichkeiten und Einschränkungen.\n\n` +
-        LINE
+        `👤  __**Legale Einreise**__
+
+` +
+        `- Ausweis
+` +
+        `- Zugang zur Staatlichen Jobs
+` +
+        `- Zugang zur Legalen Routen
+
+` +
+        `🥷🏻 __**Illegale Einreise**__
+
+` +
+        `- Keinen Ausweis
+` +
+        `- Zugang zur Keinen Staatlichen Jobs
+` +
+        `- Zugang zur Illegalen Routen
+
+` +
+        `👥 __**Gruppen Einreise**__
+
+` +
+        `- Ab 4 Personen
+` +
+        `- Mehr Startgeld
+` +
+        `- Exklusives Starterfahrzeug`
       )
-      .addFields(
-        {
-          name: '\u200b',
-          value:
-            `🟢  **LEGALE EINREISE**\n` +
-            LINE2 + '\n' +
-            `> Du reist **legal** in den Staat ein und bist offiziell registriert.\n` +
-            `> Du erhältst einen **Ausweis** und darfst **staatliche Jobs** ausführen.\n` +
-            `> ⚠️ Illegale Aktivitäten sind für dich **strikt verboten**.`,
-          inline: false,
-        },
-        {
-          name: LINE,
-          value:
-            `🔴  **ILLEGALE EINREISE**\n` +
-            LINE2 + '\n' +
-            `> Du reist **illegal** in den Staat ein — ohne offizielle Registrierung.\n` +
-            `> ❌ Kein **Ausweis**, keine **staatlichen Jobs** möglich.\n` +
-            `> Du bewegst dich im Untergrund und kannst illegale Aktivitäten ausführen.`,
-          inline: false,
-        },
-        {
-          name: LINE,
-          value:
-            `🟡  **GRUPPEN EINREISE**\n` +
-            LINE2 + '\n' +
-            `> Gilt ab **mindestens 4 Personen** — alle gemeinsam, ein Weg.\n` +
-            `> ⚠️ Alle Mitglieder der Gruppe **müssen denselben Lebensweg** wählen.\n` +
-            `> ✨ Als Belohnung erhaltet ihr **exklusive Gruppen-Boni**.\n` +
-            `> Stärke liegt in der Gemeinschaft — plant euren Einstieg zusammen.`,
-          inline: false,
-        },
-        {
-          name: LINE,
-          value: `*Bei Fragen wende dich gerne jederzeit an den Support.*`,
-          inline: false,
-        },
-      )
-      
       ;
 
     const einreiseButton = new ButtonBuilder()
       .setLabel('Einreise starten')
       .setEmoji('🛂')
-      .setStyle(ButtonStyle.Link)
-      .setURL(`${WEBAPP_URL}/einreise`);
+      .setStyle(ButtonStyle.Primary)
+      .setCustomId('einreise_starten');
     const row = new ActionRowBuilder().addComponents(einreiseButton);
 
     try {
@@ -2046,7 +2032,7 @@ client.once('ready', async () => {
         const _eOld = await einreiseCh.messages.fetch({ limit: 20 }).catch(() => null);
         if (_eOld) { for (const [, _m] of _eOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
         await einreiseCh.send({ embeds: [einreiseEmbed], components: [row] });
-        setup.einreiseEmbedV6Sent = true;
+        setup.einreiseEmbedV7Sent = true;
         saveSetup(setup);
         console.log('✅ Einreise-Embed v2 (mit Button) einmalig gesendet.');
       }
@@ -7881,6 +7867,32 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
+
+// ─── EINREISE STARTEN BUTTON ──────────────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isButton()) return;
+  if (interaction.customId !== 'einreise_starten') return;
+
+  const EINREISE_ROLLE = '1490855725516460234';
+  const member = interaction.member;
+  const hasRole = member && member.roles && member.roles.cache && member.roles.cache.has(EINREISE_ROLLE);
+
+  if (hasRole) {
+    return interaction.reply({ content: '❌ Du hast schon einen Charakter', ephemeral: true });
+  }
+
+  const WEBAPP_URL_EI = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(//$/, '');
+  const linkBtn = new ButtonBuilder()
+    .setLabel('Einreise starten')
+    .setEmoji('🛂')
+    .setStyle(ButtonStyle.Link)
+    .setURL(WEBAPP_URL_EI + '/einreise');
+  return interaction.reply({
+    components: [new ActionRowBuilder().addComponents(linkBtn)],
+    ephemeral: true
+  });
+});
+// ─── END EINREISE STARTEN BUTTON ─────────────────────────────────────────────
 
 // ─── DARKNET BETRETEN BUTTON ─────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
