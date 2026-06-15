@@ -2983,241 +2983,542 @@ async function doSell() {
   function isLapdAuth(req){ return !!(req.session && req.session.lapd && req.session.lapd.userId); }
 
   // ─── SHOP-MANAGER ──────────────────────────────────────────────────────────
+// ─── SHOP MANAGER ──────────────────────────────────────────────────────────
   app.get('/shop-manager/:token', (req, res) => {
     const toks = loadShopMgrToksW();
     const entry = toks[req.params.token];
     if (!entry || entry.expiresAt < Date.now()) {
-      return res.status(403).send(page('Link abgelaufen', `${header('Shop-Editor')}<div class="card"><div class="error-box">❌ Dieser Link ist abgelaufen. Bitte benutze /shop-editor erneut.</div></div>`));
+      return res.status(403).send(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Abgelaufen — Shop-Editor</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0a0a0a;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.box{text-align:center;padding:48px 40px;background:#111;border-radius:16px;border:1px solid #222;max-width:400px;width:100%}
+.icon{font-size:3rem;margin-bottom:16px}.title{color:#e65100;font-size:1.3rem;font-weight:700;margin-bottom:10px}.sub{color:#666;font-size:.9rem;line-height:1.6}</style></head>
+<body><div class="box"><div class="icon">⏱️</div><div class="title">Link abgelaufen</div>
+<div class="sub">Bitte verwende <strong>/shop-editor</strong> erneut im Discord, um einen neuen Link zu erhalten.</div></div></body></html>`);
     }
     const tok = req.params.token;
-    const SHOP_META_W2 = {
-      kwik:     { name: 'Kwik-E-Markt', emoji: '🏪' },
-      baumarkt: { name: 'Baumarkt',     emoji: '🔨' },
-      angler:   { name: 'Angler Shop',  emoji: '🎣' },
-      schwarz:  { name: 'Schwarzmarkt', emoji: '🌑' },
-      team:     { name: 'Team-Shop',    emoji: '⭐' },
-    };
-    res.send(page('Shop-Editor', `
-      ${header('🏪 Shop-Editor — Verwaltung')}
-      <div class="card">
-        <style>
-          .se-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;border-bottom:2px solid #e65100;padding-bottom:10px}
-          .se-tab{background:#0d1117;border:1px solid #30363d;border-radius:8px 8px 0 0;padding:9px 16px;cursor:pointer;font-size:.85em;font-weight:600;color:#8b949e;transition:all .15s;border-bottom:2px solid transparent;margin-bottom:-2px}
-          .se-tab.active,.se-tab:hover{color:#fff;border-color:#e65100;background:#161b22}
-          .se-tab.active{background:#1c1c1c}
-          .se-panel{display:none}.se-panel.active{display:block}
-          .se-table{width:100%;border-collapse:collapse;margin-bottom:18px}
-          .se-table th{text-align:left;padding:8px 10px;font-size:.72em;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #21262d}
-          .se-table td{padding:9px 10px;border-bottom:1px solid #161b22;font-size:.88em;vertical-align:middle}
-          .se-table tr:last-child td{border-bottom:none}
-          .se-table tr:hover td{background:#1a1f27}
-          .se-table input[type=text],.se-table input[type=number]{background:#0d1117;border:1px solid #333;border-radius:6px;padding:5px 9px;color:#e0e0e0;font-size:.88em;outline:none;width:100%}
-          .se-table input:focus{border-color:#e65100}
-          .se-btn{padding:5px 12px;border:none;border-radius:6px;font-size:.8em;font-weight:600;cursor:pointer;transition:all .15s}
-          .se-btn-save{background:#e65100;color:#fff}.se-btn-save:hover{background:#bf360c}
-          .se-btn-del{background:#1c0a0a;color:#f85149;border:1px solid #3d1010}.se-btn-del:hover{background:#f85149;color:#fff}
-          .se-btn-cancel{background:#1f2328;color:#8b949e;border:1px solid #30363d}.se-btn-cancel:hover{color:#fff}
-          .se-add-section{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:18px;margin-top:4px}
-          .se-add-title{color:#ffd180;font-size:.78em;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-          .se-add-title::after{content:'';flex:1;height:1px;background:#e65100;opacity:.3}
-          .se-row{display:grid;grid-template-columns:1fr 130px 36px;gap:8px;margin-bottom:8px}
-          .se-row input{background:#161b22;border:1px solid #30363d;border-radius:7px;padding:8px 11px;color:#e0e0e0;font-size:.88em;outline:none;width:100%;transition:border .15s}
-          .se-row input:focus{border-color:#e65100}
-          .se-row-del{background:none;border:1px solid #30363d;border-radius:7px;color:#555;cursor:pointer;font-size:1rem;transition:all .15s}
-          .se-row-del:hover{color:#f85149;border-color:#f85149}
-          .se-add-row-btn{background:none;border:1px dashed #333;border-radius:7px;color:#555;cursor:pointer;padding:8px;font-size:.82em;width:100%;margin-top:4px;transition:all .15s}
-          .se-add-row-btn:hover{color:#e65100;border-color:#e65100}
-          .se-submit{width:100%;padding:12px;background:#e65100;color:#fff;border:none;border-radius:8px;font-size:.95em;font-weight:700;cursor:pointer;margin-top:14px;transition:background .15s}
-          .se-submit:hover{background:#bf360c}
-          .se-submit:disabled{opacity:.5;cursor:not-allowed}
-          .se-empty{text-align:center;color:#444;padding:24px 0;font-size:.85em}
-          .toast2{position:fixed;top:20px;right:20px;background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:12px 18px;font-size:.88em;max-width:300px;z-index:999;opacity:0;transform:translateY(-10px);transition:all .2s;pointer-events:none}
-          .toast2.show{opacity:1;transform:translateY(0)}
-          .toast2.ok{border-color:#22c55e;color:#22c55e}
-          .toast2.err{border-color:#f85149;color:#f85149}
-          .col-hdr{display:grid;grid-template-columns:1fr 130px 36px;gap:8px;margin-bottom:4px;padding:0 0 4px;font-size:.7em;color:#555;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
-        </style>
+    res.send(`<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shop-Editor — Paradise City Roleplay</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0a;--surface:#111;--surface2:#161616;--surface3:#1c1c1c;--border:#222;--border2:#2a2a2a;--accent:#e65100;--accent-hover:#bf4500;--text:#e0e0e0;--text2:#999;--text3:#555;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;padding:0}
+a{color:inherit;text-decoration:none}
 
-        <div class="se-tabs">
-          ${Object.entries(SHOP_META_W2).map(([id,m],i) => `<div class="se-tab${i===0?' active':''}" onclick="switchTab('${id}')" id="tab-${id}">${m.emoji} ${m.name}</div>`).join('')}
-        </div>
+/* ── Layout ── */
+.app{display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.topbar-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1rem;color:#fff}
+.topbar-brand .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar-back{background:none;border:none;color:var(--text2);cursor:pointer;font-size:.85rem;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;transition:all .15s}
+.topbar-back:hover{background:var(--surface2);color:var(--text)}
+.topbar-right{margin-left:auto;color:var(--text3);font-size:.78rem}
+.main{flex:1;padding:32px 24px;max-width:900px;margin:0 auto;width:100%}
 
-        ${Object.entries(SHOP_META_W2).map(([id,m],i) => `
-        <div class="se-panel${i===0?' active':''}" id="panel-${id}">
-          <div style="margin-bottom:12px;color:#8b949e;font-size:.8em">Aktuelle Items in <strong style="color:#ffd180">${m.name}</strong>:</div>
-          <table class="se-table" id="tbl-${id}">
-            <thead><tr><th>Item-Name</th><th>Preis ($)</th><th>Aktionen</th></tr></thead>
-            <tbody id="tbody-${id}"><tr><td colspan="3" class="se-empty">Lade...</td></tr></tbody>
-          </table>
+/* ── Views ── */
+.view{display:none}.view.active{display:block}
 
-          <div class="se-add-section">
-            <div class="se-add-title">Neue Items hinzufügen</div>
-            <div class="col-hdr"><span>Item-Name</span><span>Preis ($)</span><span></span></div>
-            <div id="addrows-${id}"></div>
-            <button class="se-add-row-btn" onclick="addRow('${id}')">+ Zeile hinzufügen</button>
-            <button class="se-submit" id="addbtn-${id}" onclick="submitAdd('${id}')">Items speichern</button>
-          </div>
-        </div>
-        `).join('')}
+/* ── Home ── */
+.home-header{margin-bottom:32px}
+.home-header h1{font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:6px}
+.home-header p{color:var(--text2);font-size:.9rem}
+.home-actions{display:flex;gap:12px;margin-bottom:36px;flex-wrap:wrap}
+.btn{padding:10px 20px;border:none;border-radius:10px;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent-hover)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border2)}.btn-secondary:hover{border-color:var(--accent);color:#fff}
+.btn-danger{background:#1a0808;color:var(--red);border:1px solid #3d1010}.btn-danger:hover{background:var(--red);color:#fff}
+.btn-ghost{background:none;border:1px solid var(--border2);color:var(--text2)}.btn-ghost:hover{color:#fff;border-color:var(--accent)}
+.btn-sm{padding:6px 14px;font-size:.78rem;border-radius:8px}
+.shops-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.shop-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.shop-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent);opacity:0;transition:opacity .2s}
+.shop-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(230,81,0,.15)}
+.shop-card:hover::before{opacity:1}
+.shop-card-icon{font-size:2.2rem;margin-bottom:12px}
+.shop-card-name{font-size:1rem;font-weight:700;color:#fff;margin-bottom:4px}
+.shop-card-count{font-size:.8rem;color:var(--text2)}
+.shop-card-arrow{position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:1.2rem;color:var(--text3);transition:all .2s}
+.shop-card:hover .shop-card-arrow{color:var(--accent);right:14px}
+
+/* ── Shop Detail ── */
+.detail-header{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.detail-icon{font-size:2.4rem}
+.detail-title{font-size:1.4rem;font-weight:800;color:#fff}
+.detail-subtitle{font-size:.82rem;color:var(--text2);margin-top:2px}
+.items-list{display:flex;flex-direction:column;gap:8px}
+.item-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .15s}
+.item-row:hover{border-color:var(--accent);background:var(--surface2)}
+.item-name{flex:1;font-weight:600;font-size:.92rem}
+.item-price{color:var(--accent);font-weight:700;font-size:.92rem;white-space:nowrap}
+.item-chevron{color:var(--text3);font-size:.9rem;transition:all .15s}
+.item-row:hover .item-chevron{color:var(--accent)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-state .empty-icon{font-size:2.5rem;margin-bottom:12px}
+.empty-state p{font-size:.9rem;margin-bottom:20px}
+
+/* ── Create View ── */
+.create-header{margin-bottom:28px}
+.create-header h2{font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:4px}
+.create-header p{color:var(--text2);font-size:.85rem}
+.shop-select-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:28px}
+.shop-select-card{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:16px 12px;cursor:pointer;text-align:center;transition:all .15s}
+.shop-select-card:hover{border-color:var(--border2)}
+.shop-select-card.selected{border-color:var(--accent);background:var(--surface2)}
+.shop-select-card .sc-emoji{font-size:1.6rem;margin-bottom:6px}
+.shop-select-card .sc-name{font-size:.75rem;font-weight:600;color:var(--text2)}
+.shop-select-card.selected .sc-name{color:var(--text)}
+.items-form{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px}
+.form-label{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;display:block}
+.col-labels{display:grid;grid-template-columns:1fr 140px 36px;gap:8px;margin-bottom:6px;padding:0 2px}
+.col-labels span{font-size:.7rem;color:var(--text3);font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.item-input-row{display:grid;grid-template-columns:1fr 140px 36px;gap:8px;margin-bottom:8px}
+.item-input-row input{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:.88rem;outline:none;width:100%;transition:border .15s}
+.item-input-row input:focus{border-color:var(--accent)}
+.item-del-btn{background:none;border:1px solid var(--border2);border-radius:8px;color:var(--text3);cursor:pointer;font-size:1rem;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.item-del-btn:hover{color:var(--red);border-color:var(--red)}
+.add-row-btn{width:100%;padding:9px;background:none;border:1px dashed var(--border2);border-radius:8px;color:var(--text3);cursor:pointer;font-size:.82rem;transition:all .15s;margin-top:4px}
+.add-row-btn:hover{color:var(--accent);border-color:var(--accent)}
+.form-actions{display:flex;gap:10px;margin-top:18px}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;max-width:440px;width:100%;transform:scale(.95) translateY(20px);transition:all .25s}
+.modal-overlay.open .modal{transform:scale(1) translateY(0)}
+.modal-title{font-size:1rem;font-weight:700;color:#fff;margin-bottom:4px}
+.modal-sub{font-size:.8rem;color:var(--text2);margin-bottom:22px}
+.modal-actions{display:flex;flex-direction:column;gap:10px}
+.modal-sep{height:1px;background:var(--border);margin:4px 0}
+.modal-input-group{margin-bottom:16px}
+.modal-input-group label{display:block;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.modal-input-group input,.modal-input-group select{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 13px;color:var(--text);font-size:.9rem;outline:none;transition:border .15s}
+.modal-input-group input:focus,.modal-input-group select:focus{border-color:var(--accent)}
+.modal-input-group select option{background:var(--surface2)}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:14px 20px;font-size:.88rem;z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;pointer-events:none;max-width:320px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
+
+/* ── Skeleton ── */
+.skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:10px;height:64px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── Responsive ── */
+@media(max-width:560px){.shops-grid{grid-template-columns:1fr}.home-actions{flex-direction:column}.form-actions{flex-direction:column}.col-labels,.item-input-row{grid-template-columns:1fr 100px 36px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <span class="dot"></span>
+      🏪 Shop-Editor
+    </div>
+    <button class="topbar-back" id="backBtn" style="display:none" onclick="goHome()">← Zurück</button>
+    <div class="topbar-right" id="topbarRight">Paradise City Roleplay</div>
+  </div>
+
+  <div class="main">
+    <!-- ── View: Home ── -->
+    <div class="view active" id="view-home">
+      <div class="home-header">
+        <h1>Shop-Verwaltung</h1>
+        <p>Wähle einen Shop um seine Items zu verwalten, oder erstelle neue Items.</p>
       </div>
+      <div class="home-actions">
+        <button class="btn btn-primary" onclick="showCreate()">✚ Items erstellen</button>
+      </div>
+      <div class="shops-grid" id="shopsGrid">
+        <div class="skeleton"></div><div class="skeleton"></div>
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+    </div>
 
-      <div class="toast2" id="t2"></div>
+    <!-- ── View: Shop Detail ── -->
+    <div class="view" id="view-detail">
+      <div class="detail-header">
+        <div class="detail-icon" id="detailIcon"></div>
+        <div>
+          <div class="detail-title" id="detailTitle"></div>
+          <div class="detail-subtitle" id="detailSubtitle"></div>
+        </div>
+      </div>
+      <div class="items-list" id="itemsList"></div>
+    </div>
 
-      <script>
-      const TOKEN = '${tok}';
-      let rowIds = {};
-      let allShops = {};
+    <!-- ── View: Create ── -->
+    <div class="view" id="view-create">
+      <div class="create-header">
+        <h2>✚ Neue Items erstellen</h2>
+        <p>Wähle einen Shop und füge mehrere Items auf einmal hinzu.</p>
+      </div>
+      <div class="shop-select-grid" id="createShopGrid"></div>
+      <div class="items-form" id="createForm" style="display:none">
+        <span class="form-label">Items eingeben</span>
+        <div class="col-labels">
+          <span>Item-Name</span><span>Preis ($)</span><span></span>
+        </div>
+        <div id="createRows"></div>
+        <button class="add-row-btn" onclick="addCreateRow()">+ Zeile hinzufügen</button>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="submitCreate()">✔ Items speichern</button>
+          <button class="btn btn-ghost" onclick="goHome()">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-      async function loadData() {
-        try {
-          const r = await fetch('/api/shop-manager', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token:TOKEN, action:'list'}) });
-          const d = await r.json();
-          if (!d.ok) return;
-          allShops = d.shops;
-          Object.keys(allShops).forEach(renderShop);
-          // Init add rows for first tab
-          Object.keys(allShops).forEach(id => { rowIds[id]=0; if(!document.getElementById('addrows-'+id).children.length) addRow(id); });
-        } catch(e) { console.error(e); }
-      }
+<!-- ── Item-Options Modal ── -->
+<div class="modal-overlay" id="modalOptions">
+  <div class="modal">
+    <div class="modal-title" id="modalItemName">Item</div>
+    <div class="modal-sub" id="modalItemSub"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="openEditName()">✏️ Name bearbeiten</button>
+      <button class="btn btn-secondary" onclick="openEditPrice()">💰 Preis bearbeiten</button>
+      <button class="btn btn-secondary" onclick="openMove()">📦 In anderen Shop verschieben</button>
+      <div class="modal-sep"></div>
+      <button class="btn btn-danger" onclick="deleteItem()">🗑️ Item löschen</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modalOptions')" style="align-self:center;margin-top:4px">Abbrechen</button>
+    </div>
+  </div>
+</div>
 
-      function renderShop(shopId) {
-        const tbody = document.getElementById('tbody-'+shopId);
-        if (!tbody) return;
-        const items = allShops[shopId] || [];
-        if (!items.length) { tbody.innerHTML = '<tr><td colspan="3" class="se-empty">Keine Items vorhanden</td></tr>'; return; }
-        tbody.innerHTML = items.map((item, idx) => \`
-          <tr id="row-\${shopId}-\${idx}">
-            <td><span class="item-name-display">\${item.name}</span><input type="text" class="item-name-edit" value="\${item.name}" style="display:none"></td>
-            <td><span class="item-price-display">\${item.preis.toLocaleString('de-DE')}</span><input type="number" class="item-price-edit" value="\${item.preis}" min="1" style="display:none"></td>
-            <td style="display:flex;gap:6px;white-space:nowrap">
-              <button class="se-btn se-btn-save edit-btn" onclick="startEdit('\${shopId}',\${idx})">✏️ Edit</button>
-              <button class="se-btn se-btn-del" onclick="deleteItem('\${shopId}','\${item.name.replace(/'/g,\\\\'\\\\\\\\')}')" title="Löschen">🗑️</button>
-            </td>
-          </tr>
-        \`).join('');
-      }
+<!-- ── Edit Name Modal ── -->
+<div class="modal-overlay" id="modalEditName">
+  <div class="modal">
+    <div class="modal-title">✏️ Name bearbeiten</div>
+    <div class="modal-sub" id="editNameSub"></div>
+    <div class="modal-input-group">
+      <label>Neuer Name</label>
+      <input type="text" id="editNameInput" maxlength="80" placeholder="Item-Name">
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveEditName()">Speichern</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalEditName')">Abbrechen</button>
+    </div>
+  </div>
+</div>
 
-      function startEdit(shopId, idx) {
-        const row = document.getElementById('row-'+shopId+'-'+idx);
-        const nameDisp = row.querySelector('.item-name-display');
-        const nameEdit = row.querySelector('.item-name-edit');
-        const priceDisp = row.querySelector('.item-price-display');
-        const priceEdit = row.querySelector('.item-price-edit');
-        const btn = row.querySelector('.edit-btn');
-        const isEditing = nameEdit.style.display !== 'none';
-        if (isEditing) {
-          // Save
-          saveEdit(shopId, idx, nameEdit.value.trim(), parseInt(nameEdit.dataset.orig), parseInt(priceEdit.value));
-        } else {
-          nameDisp.style.display = 'none'; nameEdit.style.display = ''; nameEdit.dataset.orig = allShops[shopId][idx].preis;
-          priceDisp.style.display = 'none'; priceEdit.style.display = '';
-          btn.textContent = '💾 Save';
-          // Add cancel btn
-          const td = row.cells[2];
-          if (!td.querySelector('.cancel-btn')) {
-            const cancel = document.createElement('button');
-            cancel.className = 'se-btn se-btn-cancel cancel-btn';
-            cancel.textContent = '✕';
-            cancel.onclick = () => renderShop(shopId);
-            td.insertBefore(cancel, td.querySelector('.se-btn-del'));
-          }
-        }
-      }
+<!-- ── Edit Price Modal ── -->
+<div class="modal-overlay" id="modalEditPrice">
+  <div class="modal">
+    <div class="modal-title">💰 Preis bearbeiten</div>
+    <div class="modal-sub" id="editPriceSub"></div>
+    <div class="modal-input-group">
+      <label>Neuer Preis ($)</label>
+      <input type="number" id="editPriceInput" min="1" placeholder="z.B. 1500">
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveEditPrice()">Speichern</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalEditPrice')">Abbrechen</button>
+    </div>
+  </div>
+</div>
 
-      async function saveEdit(shopId, idx, newName, origPreis, newPreis) {
-        const oldName = allShops[shopId][idx].name;
-        if (!newName || isNaN(newPreis) || newPreis < 1) return toast('Ungültige Eingabe', 'err');
-        const r = await fetch('/api/shop-manager', { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({token:TOKEN, action:'edit', shopId, oldName, name: newName, preis: newPreis}) });
-        const d = await r.json();
-        if (d.ok) { toast('✅ Gespeichert', 'ok'); allShops[shopId][idx] = {name: newName, preis: newPreis}; renderShop(shopId); }
-        else toast('❌ ' + (d.error||'Fehler'), 'err');
-      }
+<!-- ── Move Modal ── -->
+<div class="modal-overlay" id="modalMove">
+  <div class="modal">
+    <div class="modal-title">📦 In anderen Shop verschieben</div>
+    <div class="modal-sub" id="moveSub"></div>
+    <div class="modal-input-group">
+      <label>Ziel-Shop</label>
+      <select id="moveTarget"></select>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveMove()">Verschieben</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalMove')">Abbrechen</button>
+    </div>
+  </div>
+</div>
 
-      async function deleteItem(shopId, name) {
-        if (!confirm('Item "' + name + '" wirklich löschen?')) return;
-        const r = await fetch('/api/shop-manager', { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({token:TOKEN, action:'delete', shopId, name}) });
-        const d = await r.json();
-        if (d.ok) { toast('✅ Gelöscht', 'ok'); allShops[shopId] = allShops[shopId].filter(i => i.name !== name); renderShop(shopId); }
-        else toast('❌ ' + (d.error||'Fehler'), 'err');
-      }
+<div class="toast" id="toast"></div>
 
-      function addRow(shopId) {
-        if (!rowIds[shopId]) rowIds[shopId] = 0;
-        const id = rowIds[shopId]++;
-        const container = document.getElementById('addrows-'+shopId);
-        const div = document.createElement('div');
-        div.className = 'se-row'; div.id = 'arow-'+shopId+'-'+id;
-        div.innerHTML = '<input type="text" placeholder="Item-Name" class="arow-name"><input type="number" placeholder="Preis" min="1" class="arow-price"><button class="se-row-del" onclick="this.parentElement.remove()">✕</button>';
-        container.appendChild(div);
-        div.querySelector('.arow-name').focus();
-      }
+<script>
+const TOKEN = '${tok}';
+const SHOP_META = {
+  kwik:     { name: 'Kwik-E-Markt', emoji: '🏪' },
+  baumarkt: { name: 'Baumarkt',     emoji: '🔨' },
+  angler:   { name: 'Angler Shop',  emoji: '🎣' },
+  schwarz:  { name: 'Schwarzmarkt', emoji: '🌑' },
+  team:     { name: 'Team-Shop',    emoji: '⭐' },
+};
 
-      async function submitAdd(shopId) {
-        const rows = document.querySelectorAll('#addrows-'+shopId+' .se-row');
-        const items = []; let hasErr = false;
-        rows.forEach(r => {
-          const name = r.querySelector('.arow-name').value.trim();
-          const preis = parseInt(r.querySelector('.arow-price').value);
-          if (!name && isNaN(preis)) return;
-          if (!name || isNaN(preis) || preis < 1) { hasErr = true; return; }
-          items.push({name, preis});
-        });
-        if (hasErr) return toast('❌ Bitte alle Felder korrekt ausfüllen', 'err');
-        if (!items.length) return toast('❌ Mindestens ein Item eingeben', 'err');
-        const btn = document.getElementById('addbtn-'+shopId);
-        btn.disabled = true; btn.textContent = 'Speichern...';
-        const r = await fetch('/api/shop-manager', { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({token:TOKEN, action:'add', shopId, items}) });
-        const d = await r.json();
-        btn.disabled = false; btn.textContent = 'Items speichern';
-        if (d.ok) {
-          toast('✅ ' + d.count + ' Item(s) hinzugefügt' + (d.skipped ? ', ' + d.skipped + ' übersprungen' : ''), 'ok');
-          document.getElementById('addrows-'+shopId).innerHTML = '';
-          addRow(shopId);
-          await loadData();
-        } else toast('❌ ' + (d.error||'Fehler'), 'err');
-      }
+let allShops = {};
+let currentShop = null;
+let currentItem = null;
+let createShop = null;
+let createRowId = 0;
 
-      function switchTab(shopId) {
-        document.querySelectorAll('.se-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.se-panel').forEach(p => p.classList.remove('active'));
-        document.getElementById('tab-'+shopId).classList.add('active');
-        document.getElementById('panel-'+shopId).classList.add('active');
-      }
+// ── API ─────────────────────────────────────────────────────────────────────
+async function api(body) {
+  const r = await fetch('/api/shop-manager', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: TOKEN, ...body })
+  });
+  return r.json();
+}
 
-      function toast(msg, type) {
-        const t = document.getElementById('t2');
-        t.textContent = msg; t.className = 'toast2 ' + type + ' show';
-        setTimeout(() => t.classList.remove('show'), 3500);
-      }
+// ── Load ─────────────────────────────────────────────────────────────────────
+async function loadShops() {
+  const d = await api({ action: 'list' });
+  if (!d.ok) return toast('Fehler beim Laden', 'err');
+  allShops = d.shops;
+  renderHomeGrid();
+  if (currentShop) renderDetail(currentShop);
+}
 
-      loadData();
-      </script>
-    `));
+// ── Home ─────────────────────────────────────────────────────────────────────
+function renderHomeGrid() {
+  const grid = document.getElementById('shopsGrid');
+  grid.innerHTML = Object.entries(SHOP_META).map(([id, m]) => {
+    const count = (allShops[id] || []).length;
+    return \`<div class="shop-card" onclick="showDetail('\${id}')">
+      <div class="shop-card-icon">\${m.emoji}</div>
+      <div class="shop-card-name">\${m.name}</div>
+      <div class="shop-card-count">\${count} \${count === 1 ? 'Item' : 'Items'}</div>
+      <div class="shop-card-arrow">›</div>
+    </div>\`;
+  }).join('');
+}
+
+function goHome() {
+  showView('home');
+  document.getElementById('backBtn').style.display = 'none';
+  document.getElementById('topbarRight').textContent = 'Paradise City Roleplay';
+  currentShop = null;
+  createShop = null;
+}
+
+// ── Detail ───────────────────────────────────────────────────────────────────
+function showDetail(shopId) {
+  currentShop = shopId;
+  const m = SHOP_META[shopId];
+  document.getElementById('detailIcon').textContent = m.emoji;
+  document.getElementById('detailTitle').textContent = m.name;
+  document.getElementById('backBtn').style.display = '';
+  showView('detail');
+  renderDetail(shopId);
+}
+
+function renderDetail(shopId) {
+  const items = allShops[shopId] || [];
+  const m = SHOP_META[shopId];
+  document.getElementById('detailSubtitle').textContent = items.length + ' Items';
+  document.getElementById('topbarRight').textContent = m.name;
+  const list = document.getElementById('itemsList');
+  if (!items.length) {
+    list.innerHTML = \`<div class="empty-state"><div class="empty-icon">📭</div><p>Noch keine Items in diesem Shop.</p>
+      <button class="btn btn-primary btn-sm" onclick="showCreateFor('\${shopId}')">Items hinzufügen</button></div>\`;
+    return;
+  }
+  list.innerHTML = items.map((item, idx) => \`
+    <div class="item-row" onclick="openItemOptions('\${shopId}', \${idx})">
+      <span class="item-name">\${escHtml(item.name)}</span>
+      <span class="item-price">\${item.preis.toLocaleString('de-DE')} $</span>
+      <span class="item-chevron">›</span>
+    </div>
+  \`).join('');
+}
+
+// ── Create ───────────────────────────────────────────────────────────────────
+function showCreate() {
+  createShop = null;
+  document.getElementById('createForm').style.display = 'none';
+  const grid = document.getElementById('createShopGrid');
+  grid.innerHTML = Object.entries(SHOP_META).map(([id, m]) =>
+    \`<div class="shop-select-card" id="csc-\${id}" onclick="selectCreateShop('\${id}')">
+      <div class="sc-emoji">\${m.emoji}</div>
+      <div class="sc-name">\${m.name}</div>
+    </div>\`
+  ).join('');
+  document.getElementById('createRows').innerHTML = '';
+  document.getElementById('backBtn').style.display = '';
+  document.getElementById('topbarRight').textContent = 'Items erstellen';
+  showView('create');
+}
+
+function showCreateFor(shopId) {
+  showCreate();
+  selectCreateShop(shopId);
+}
+
+function selectCreateShop(shopId) {
+  createShop = shopId;
+  document.querySelectorAll('.shop-select-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('csc-' + shopId).classList.add('selected');
+  document.getElementById('createForm').style.display = '';
+  const rows = document.getElementById('createRows');
+  if (!rows.children.length) addCreateRow();
+}
+
+function addCreateRow() {
+  const id = createRowId++;
+  const div = document.createElement('div');
+  div.className = 'item-input-row'; div.id = 'cr-' + id;
+  div.innerHTML =
+    '<input type="text" placeholder="Item-Name" class="cr-name">' +
+    '<input type="number" placeholder="Preis" min="1" class="cr-price">' +
+    '<button class="item-del-btn" onclick="document.getElementById(\'cr-\'+' + id + ').remove()">✕</button>';
+  document.getElementById('createRows').appendChild(div);
+  div.querySelector('.cr-name').focus();
+}
+
+async function submitCreate() {
+  if (!createShop) return toast('Bitte zuerst einen Shop auswählen', 'err');
+  const rows = document.querySelectorAll('#createRows .item-input-row');
+  const items = []; let hasErr = false;
+  rows.forEach(r => {
+    const name = r.querySelector('.cr-name').value.trim();
+    const preis = parseInt(r.querySelector('.cr-price').value);
+    if (!name && isNaN(preis)) return;
+    if (!name || isNaN(preis) || preis < 1) { hasErr = true; return; }
+    items.push({ name, preis });
+  });
+  if (hasErr) return toast('Bitte alle Felder korrekt ausfüllen', 'err');
+  if (!items.length) return toast('Mindestens ein Item eingeben', 'err');
+  const d = await api({ action: 'add', shopId: createShop, items });
+  if (d.ok) {
+    toast('✅ ' + d.count + ' Item(s) hinzugefügt' + (d.skipped ? ', ' + d.skipped + ' übersprungen' : ''), 'ok');
+    document.getElementById('createRows').innerHTML = ''; createRowId = 0; addCreateRow();
+    await loadShops();
+  } else toast('❌ ' + (d.error || 'Fehler'), 'err');
+}
+
+// ── Item Options ──────────────────────────────────────────────────────────────
+function openItemOptions(shopId, idx) {
+  currentShop = shopId; currentItem = idx;
+  const item = allShops[shopId][idx];
+  document.getElementById('modalItemName').textContent = item.name;
+  document.getElementById('modalItemSub').textContent = SHOP_META[shopId].name + ' · ' + item.preis.toLocaleString('de-DE') + ' $';
+  openModal('modalOptions');
+}
+
+async function deleteItem() {
+  const item = allShops[currentShop][currentItem];
+  if (!confirm('„' + item.name + '" wirklich löschen?')) return;
+  const d = await api({ action: 'delete', shopId: currentShop, name: item.name });
+  closeModal('modalOptions');
+  if (d.ok) { toast('🗑️ Gelöscht', 'ok'); await loadShops(); }
+  else toast('❌ ' + (d.error || 'Fehler'), 'err');
+}
+
+function openEditName() {
+  const item = allShops[currentShop][currentItem];
+  document.getElementById('editNameSub').textContent = 'Aktuell: ' + item.name;
+  document.getElementById('editNameInput').value = item.name;
+  closeModal('modalOptions');
+  openModal('modalEditName');
+  setTimeout(() => document.getElementById('editNameInput').focus(), 250);
+}
+
+async function saveEditName() {
+  const item = allShops[currentShop][currentItem];
+  const newName = document.getElementById('editNameInput').value.trim();
+  if (!newName) return toast('Name darf nicht leer sein', 'err');
+  const d = await api({ action: 'edit', shopId: currentShop, oldName: item.name, name: newName, preis: item.preis });
+  closeModal('modalEditName');
+  if (d.ok) { toast('✅ Name aktualisiert', 'ok'); await loadShops(); }
+  else toast('❌ ' + (d.error || 'Fehler'), 'err');
+}
+
+function openEditPrice() {
+  const item = allShops[currentShop][currentItem];
+  document.getElementById('editPriceSub').textContent = 'Aktuell: ' + item.preis.toLocaleString('de-DE') + ' $';
+  document.getElementById('editPriceInput').value = item.preis;
+  closeModal('modalOptions');
+  openModal('modalEditPrice');
+  setTimeout(() => document.getElementById('editPriceInput').focus(), 250);
+}
+
+async function saveEditPrice() {
+  const item = allShops[currentShop][currentItem];
+  const newPreis = parseInt(document.getElementById('editPriceInput').value);
+  if (isNaN(newPreis) || newPreis < 1) return toast('Ungültiger Preis', 'err');
+  const d = await api({ action: 'edit', shopId: currentShop, oldName: item.name, name: item.name, preis: newPreis });
+  closeModal('modalEditPrice');
+  if (d.ok) { toast('✅ Preis aktualisiert', 'ok'); await loadShops(); }
+  else toast('❌ ' + (d.error || 'Fehler'), 'err');
+}
+
+function openMove() {
+  const item = allShops[currentShop][currentItem];
+  document.getElementById('moveSub').textContent = '„' + item.name + '" verschieben von ' + SHOP_META[currentShop].name;
+  const sel = document.getElementById('moveTarget');
+  sel.innerHTML = Object.entries(SHOP_META)
+    .filter(([id]) => id !== currentShop)
+    .map(([id, m]) => \`<option value="\${id}">\${m.emoji} \${m.name}</option>\`).join('');
+  closeModal('modalOptions');
+  openModal('modalMove');
+}
+
+async function saveMove() {
+  const item = allShops[currentShop][currentItem];
+  const target = document.getElementById('moveTarget').value;
+  const d = await api({ action: 'move', shopId: currentShop, targetShopId: target, name: item.name });
+  closeModal('modalMove');
+  if (d.ok) { toast('✅ Verschoben nach ' + SHOP_META[target].name, 'ok'); await loadShops(); }
+  else toast('❌ ' + (d.error || 'Fehler'), 'err');
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+// Enter key in inputs
+document.getElementById('editNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveEditName(); });
+document.getElementById('editPriceInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveEditPrice(); });
+
+loadShops();
+</script>
+</body>
+</html>`);
   });
 
   app.post('/api/shop-manager', express.json(), async (req, res) => {
-    const { token, shopId, items, action, oldName, name, preis } = req.body || {};
+    const { token, shopId, items, action, oldName, name, preis, targetShopId } = req.body || {};
     if (!token) return res.json({ ok: false, error: 'Kein Token' });
     const toks = loadShopMgrToksW();
     const entry = toks[token];
     if (!entry || entry.expiresAt < Date.now()) return res.json({ ok: false, error: 'Token abgelaufen' });
 
-    const VALID_SHOPS = ['kwik','baumarkt','angler','schwarz','team'];
+    const VALID = ['kwik','baumarkt','angler','schwarz','team'];
+    const SHOP_NAMES = { kwik:'Kwik-E-Markt', baumarkt:'Baumarkt', angler:'Angler Shop', schwarz:'Schwarzmarkt', team:'Team-Shop' };
     const shops = loadShopsW();
 
-    // ── list ─────────────────────────────────────────────────────────────────
     if (action === 'list') {
       const data = {};
-      for (const s of VALID_SHOPS) data[s] = shops[s] || [];
+      for (const s of VALID) data[s] = shops[s] || [];
       return res.json({ ok: true, shops: data });
     }
 
-    // ── add ──────────────────────────────────────────────────────────────────
     if (action === 'add') {
-      if (!shopId || !VALID_SHOPS.includes(shopId) || !Array.isArray(items) || !items.length)
+      if (!shopId || !VALID.includes(shopId) || !Array.isArray(items) || !items.length)
         return res.json({ ok: false, error: 'Ungültige Anfrage' });
       if (!shops[shopId]) shops[shopId] = [];
       let added = 0, skipped = 0;
@@ -3229,30 +3530,27 @@ async function doSell() {
       }
       saveShopsW(shops);
       if (typeof shopCb.updateShopEmbed === 'function') shopCb.updateShopEmbed(shopId).catch(()=>{});
-      _logShopAction(client, entry.userTag, action, shopId, added + ' hinzugefügt' + (skipped ? ', ' + skipped + ' übersprungen' : ''));
+      _shopLog(client, entry.userTag, '➕ Items hinzugefügt', shopId, SHOP_NAMES[shopId], added + ' hinzugefügt' + (skipped ? ', ' + skipped + ' übersprungen' : ''));
       return res.json({ ok: true, count: added, skipped });
     }
 
-    // ── edit ─────────────────────────────────────────────────────────────────
     if (action === 'edit') {
-      if (!shopId || !VALID_SHOPS.includes(shopId) || !oldName || !name || !Number.isInteger(preis) || preis < 1)
+      if (!shopId || !VALID.includes(shopId) || !oldName || !name || !Number.isInteger(preis) || preis < 1)
         return res.json({ ok: false, error: 'Ungültige Anfrage' });
       if (!shops[shopId]) return res.json({ ok: false, error: 'Shop nicht gefunden' });
-      const itemIdx = shops[shopId].findIndex(i => i.name === oldName);
-      if (itemIdx < 0) return res.json({ ok: false, error: 'Item nicht gefunden' });
-      // Check name conflict (if name changed)
+      const idx = shops[shopId].findIndex(i => i.name === oldName);
+      if (idx < 0) return res.json({ ok: false, error: 'Item nicht gefunden' });
       if (name !== oldName && shops[shopId].find(i => i.name.toLowerCase() === name.trim().toLowerCase()))
         return res.json({ ok: false, error: 'Ein Item mit diesem Namen existiert bereits' });
-      shops[shopId][itemIdx] = { name: name.trim().slice(0, 80), preis };
+      shops[shopId][idx] = { name: name.trim().slice(0, 80), preis };
       saveShopsW(shops);
       if (typeof shopCb.updateShopEmbed === 'function') shopCb.updateShopEmbed(shopId).catch(()=>{});
-      _logShopAction(client, entry.userTag, action, shopId, oldName + ' → ' + name + ' (' + preis + ' $)');
+      _shopLog(client, entry.userTag, '✏️ Item bearbeitet', shopId, SHOP_NAMES[shopId], oldName + ' → ' + name + ' · ' + preis + ' $');
       return res.json({ ok: true });
     }
 
-    // ── delete ────────────────────────────────────────────────────────────────
     if (action === 'delete') {
-      if (!shopId || !VALID_SHOPS.includes(shopId) || !name)
+      if (!shopId || !VALID.includes(shopId) || !name)
         return res.json({ ok: false, error: 'Ungültige Anfrage' });
       if (!shops[shopId]) return res.json({ ok: false, error: 'Shop nicht gefunden' });
       const before = shops[shopId].length;
@@ -3260,31 +3558,51 @@ async function doSell() {
       if (shops[shopId].length === before) return res.json({ ok: false, error: 'Item nicht gefunden' });
       saveShopsW(shops);
       if (typeof shopCb.updateShopEmbed === 'function') shopCb.updateShopEmbed(shopId).catch(()=>{});
-      _logShopAction(client, entry.userTag, action, shopId, name + ' gelöscht');
+      _shopLog(client, entry.userTag, '🗑️ Item gelöscht', shopId, SHOP_NAMES[shopId], name);
+      return res.json({ ok: true });
+    }
+
+    if (action === 'move') {
+      if (!shopId || !VALID.includes(shopId) || !targetShopId || !VALID.includes(targetShopId) || !name || shopId === targetShopId)
+        return res.json({ ok: false, error: 'Ungültige Anfrage' });
+      if (!shops[shopId]) return res.json({ ok: false, error: 'Quell-Shop nicht gefunden' });
+      const itemIdx = shops[shopId].findIndex(i => i.name === name);
+      if (itemIdx < 0) return res.json({ ok: false, error: 'Item nicht gefunden' });
+      const item = shops[shopId][itemIdx];
+      if (!shops[targetShopId]) shops[targetShopId] = [];
+      if (shops[targetShopId].find(i => i.name.toLowerCase() === name.toLowerCase()))
+        return res.json({ ok: false, error: 'Item mit diesem Namen existiert bereits im Ziel-Shop' });
+      shops[shopId].splice(itemIdx, 1);
+      shops[targetShopId].push(item);
+      saveShopsW(shops);
+      if (typeof shopCb.updateShopEmbed === 'function') {
+        shopCb.updateShopEmbed(shopId).catch(()=>{});
+        shopCb.updateShopEmbed(targetShopId).catch(()=>{});
+      }
+      _shopLog(client, entry.userTag, '📦 Item verschoben', shopId, SHOP_NAMES[shopId], name + ' → ' + SHOP_NAMES[targetShopId]);
       return res.json({ ok: true });
     }
 
     return res.json({ ok: false, error: 'Unbekannte Aktion' });
   });
 
-  function _logShopAction(client, userTag, action, shopId, detail) {
+  function _shopLog(client, userTag, actionLabel, shopId, shopName, detail) {
     try {
       const { EmbedBuilder } = require('discord.js');
-      const SHOP_NAMES = { kwik:'Kwik-E-Markt', baumarkt:'Baumarkt', angler:'Angler Shop', schwarz:'Schwarzmarkt', team:'Team-Shop' };
-      const actionLabels = { add:'➕ Items hinzugefügt', edit:'✏️ Item bearbeitet', delete:'🗑️ Item gelöscht' };
       const LOG_CH = '1490878131240829028';
       client.channels.fetch(LOG_CH).then(ch => {
         if (!ch) return;
         ch.send({ embeds: [new EmbedBuilder().setColor(0xE65100)
-          .setTitle('🏪 Shop-Editor: ' + (actionLabels[action]||action))
+          .setTitle('🏪 Shop-Editor: ' + actionLabel)
           .addFields(
-            { name: 'Shop', value: SHOP_NAMES[shopId]||shopId, inline: true },
+            { name: 'Shop', value: shopName, inline: true },
             { name: 'Von', value: userTag, inline: true },
             { name: 'Detail', value: detail, inline: false }
           )]}).catch(()=>{});
       }).catch(()=>{});
     } catch {}
   }
+
   // ─── AKTIEN SYSTEM ──────────────────────────────────────────────────────────
   require('./aktien_web')(app, express, DATA_DIR);
   // ─── END AKTIEN SYSTEM ────────────────────────────────────────────────────
