@@ -1795,23 +1795,8 @@ client.once('ready', async () => {
         .toJSON(),
     new SlashCommandBuilder().setName('teamshop').setDescription('Öffnet den Team-Shop').toJSON(),
     new SlashCommandBuilder()
-      .setName('shop-add')
-      .setDescription('Shop-Manager öffnen und mehrere Items gleichzeitig hinzufügen')
-      .toJSON(),
-    new SlashCommandBuilder()
-      .setName('shop-edit')
-      .setDescription('Bearbeitet ein Item in einem Shop')
-      .addStringOption(opt => opt.setName('shop').setDescription('Shop waehlen').setRequired(true)
-        .addChoices({name:'Kwik-E-Markt',value:'kwik'},{name:'Baumarkt',value:'baumarkt'},{name:'Angler Shop',value:'angler'},{name:'Schwarzmarkt',value:'schwarz'},{name:'Team-Shop',value:'team'}))
-      .addStringOption(opt => opt.setName('item').setDescription('Item waehlen').setRequired(true).setAutocomplete(true))
-      .addIntegerOption(opt => opt.setName('preis').setDescription('Neuer Preis').setRequired(true).setMinValue(1))
-      .toJSON(),
-    new SlashCommandBuilder()
-      .setName('shop-delete')
-      .setDescription('Loescht ein Item aus einem Shop')
-      .addStringOption(opt => opt.setName('shop').setDescription('Shop waehlen').setRequired(true)
-        .addChoices({name:'Kwik-E-Markt',value:'kwik'},{name:'Baumarkt',value:'baumarkt'},{name:'Angler Shop',value:'angler'},{name:'Schwarzmarkt',value:'schwarz'},{name:'Team-Shop',value:'team'}))
-      .addStringOption(opt => opt.setName('item').setDescription('Item waehlen').setRequired(true).setAutocomplete(true))
+      .setName('shop-editor')
+      .setDescription('Shop-Editor öffnen — Vollständige Verwaltung aller Shops')
       .toJSON(),
     new SlashCommandBuilder()
       .setName('money-add')
@@ -4186,13 +4171,6 @@ client.on('interactionCreate', async (interaction) => {
           const choices = (shops.team||[]).filter(i => i.name.toLowerCase().includes(focused)).slice(0,25).map(i => ({name:i.name,value:i.name}));
           return interaction.respond(choices);
         }
-        if (cmd === 'shop-edit' || cmd === 'shop-delete') {
-          const shopId  = interaction.options.getString('shop');
-          const focused = interaction.options.getFocused().toLowerCase();
-          if (!shopId) return interaction.respond([]);
-          const shops   = loadShops();
-          const choices = (shops[shopId]||[]).filter(i => i.name.toLowerCase().includes(focused)).slice(0,25).map(i => ({name:i.name + ' — ' + i.preis,value:i.name}));
-          return interaction.respond(choices);
         }
         return interaction.respond([]);
     }
@@ -5218,47 +5196,25 @@ client.on('interactionCreate', async (interaction) => {
         );
         return interaction.reply({ embeds: [buildTeamShopEmbed(items, 0)], components: [row], ephemeral: true });
       }
-            if (commandName === 'shop-add') {
+      if (commandName === 'shop-editor') {
         const tok = require('crypto').randomBytes(16).toString('hex');
         const toks = loadShopMgrToks();
-        // Token 1h gültig
         toks[tok] = { userId: interaction.user.id, userTag: interaction.user.tag, expiresAt: Date.now() + 3600000 };
-        // Alte Tokens aufräumen
         for (const k of Object.keys(toks)) { if (toks[k].expiresAt < Date.now()) delete toks[k]; }
         saveShopMgrToks(toks);
-        const _WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
-        return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
-          .setColor(0xE65100)
-          .setTitle('🏪 Shop-Manager')
-          .setDescription(`Öffne den Shop-Manager um mehrere Items auf einmal hinzuzufügen:
-
-🔗 **[Shop-Manager öffnen](${_WEBAPP}/shop-manager/${tok})**
-
-⏱️ *Link ist 1 Stunde gültig.*`)
-          
-        ]});
+        const _WEBAPP2 = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
+        const editorUrl = _WEBAPP2 + '/shop-manager/' + tok;
+        try {
+          await interaction.user.send({ embeds: [new EmbedBuilder()
+            .setColor(0xE65100)
+            .setTitle('🏪 Shop-Editor — Paradise City Roleplay')
+            .setDescription('Hier ist dein persönlicher Zugang zum Shop-Editor:\n\n🔗 **[Shop-Editor öffnen](' + editorUrl + ')**\n\n⏱️ *Link ist 1 Stunde gültig.*')
+          ]});
+          return interaction.reply({ content: '✅ Der Shop-Editor Link wurde dir per DM gesendet!', ephemeral: true });
+        } catch (e) {
+          return interaction.reply({ content: '❌ DM konnte nicht gesendet werden. Bitte aktiviere DMs von Servermitgliedern.', ephemeral: true });
+        }
       }
-      if (commandName === 'shop-edit') {
-        const shopId = interaction.options.getString('shop');
-        const name   = interaction.options.getString('item');
-        const preis  = interaction.options.getInteger('preis');
-        const shops  = loadShops();
-        const item   = (shops[shopId]||[]).find(i => i.name === name);
-        if (!item) return interaction.reply({ content: '❌ **' + name + '** nicht gefunden.', ephemeral: true });
-        item.preis = preis; saveShops(shops);
-        await updateShopEmbed(shopId).catch(() => {});
-        sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE65100)
-          .setTitle('🏪 Shop-Log: Item bearbeitet')
-          .addFields({ name:'Shop', value:SHOP_META[shopId]?.name||shopId, inline:true },{ name:'Item', value:name, inline:true },{ name:'Neuer Preis', value:`${preis.toLocaleString('de-DE')} €`, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
-          ).catch(()=>{});
-        return interaction.reply({ content: '✅ **' + name + '** kostet jetzt ' + preis.toLocaleString('de-DE') + ' Euro.', ephemeral: true });
-      }
-      if (commandName === 'shop-delete') {
-        const shopId = interaction.options.getString('shop');
-        const name   = interaction.options.getString('item');
-        const shops  = loadShops(); const lenB2 = (shops[shopId]||[]).length;
-        shops[shopId] = (shops[shopId]||[]).filter(i => i.name !== name);
-        if ((shops[shopId]||[]).length === lenB2) return interaction.reply({ content: '❌ **' + name + '** nicht gefunden.', ephemeral: true });
         saveShops(shops); await updateShopEmbed(shopId).catch(() => {});
         sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE65100)
           .setTitle('🏪 Shop-Log: Item gelöscht')
