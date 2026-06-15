@@ -3523,11 +3523,16 @@ async function api(body) {
 
 // ── Load ─────────────────────────────────────────────────────────────────────
 async function loadShops() {
-  const d = await api({ action: 'list' });
-  if (!d.ok) return toast('Fehler beim Laden', 'err');
-  allShops = d.shops;
-  renderHomeGrid();
-  if (currentShop) renderDetail(currentShop);
+  try {
+    const d = await api({ action: 'list' });
+    if (!d.ok) return toast('Fehler: ' + (d.error || 'Laden fehlgeschlagen'), 'err');
+    allShops = d.shops;
+    renderHomeGrid();
+    if (currentShop) renderDetail(currentShop);
+  } catch(e) {
+    toast('Verbindungsfehler – bitte Seite neu laden', 'err');
+    console.error('[loadShops]', e);
+  }
 }
 
 // ── Home ─────────────────────────────────────────────────────────────────────
