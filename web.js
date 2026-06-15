@@ -243,6 +243,7 @@ function _flt(listId,q){
   });
 }
 </script>
+<div style="text-align:center;padding:28px 0 14px;font-size:.7rem;color:#3a3a3a;letter-spacing:.03em">Bereitgestellt durch Inhaber von Paradise City Roleplay PS5</div>
 </body></html>`;
 }
 
@@ -2028,7 +2029,7 @@ async function doSell() {
       }
     });
 
-    // ── GET /einreise/start/:token — Auswahl Legal/Illegal ──────────────────────
+    // ── GET /einreise/start/:token — 2-Schritt Auswahl ──────────────────────
     app.get('/einreise/start/:token', (req, res) => {
       const toks  = loadEinreiseTokens();
       const entry = toks[req.params.token];
@@ -2036,24 +2037,141 @@ async function doSell() {
         return res.send(page('Ungültiger Link', `${header('Ungültiger Link')}<div class="card"><div class="error-box">⚠️ Dieser Link ist ungültig oder abgelaufen. Wende dich ans Team.</div></div>`));
       }
       const tok = req.params.token;
-      res.send(page('Einreise — Auswahl', `
-        ${header('Einreise — Bitte wählen')}
-        <div class="card">
-          <p class="section-title">Einreiseweg wählen</p>
-          <div class="select-grid">
-            <a class="select-card" href="/einreise/legal/${tok}">
-              <div class="sc-icon">🟢</div>
-              <div class="sc-title">Legale Einreise</div>
-              <div class="sc-desc">Du reist offiziell ein. Du erhältst einen Ausweis, darfst staatliche Jobs ausführen und startest mit 5.000 $ auf dem Konto.</div>
-            </a>
-            <a class="select-card" href="/einreise/illegal/${tok}">
-              <div class="sc-icon">🔴</div>
-              <div class="sc-title">Illegale Einreise</div>
-              <div class="sc-desc">Du reist ohne Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du startest mit 5.000 $ Schwarzgeld — bleib unter dem Radar.</div>
-            </a>
-          </div>
+      res.send(`<!DOCTYPE html><html lang="de"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Einreise — Paradise City Roleplay</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;min-height:100vh}
+.wrap{max-width:680px;margin:0 auto;padding:0 16px 60px}
+.authority{text-align:center;background:linear-gradient(135deg,#bf360c,#e65100);padding:26px 20px 22px;border-radius:14px 14px 0 0;margin-top:20px}
+.authority .seal{font-size:2.4em;margin-bottom:6px}
+.authority h1{color:#fff;font-size:1.05em;letter-spacing:3px;text-transform:uppercase;font-weight:700}
+.authority h2{color:#ffd180;font-size:.82em;letter-spacing:1px;margin-top:4px;font-weight:400}
+.card{background:#161b22;border:1px solid #30363d;border-top:none;border-radius:0 0 14px 14px;padding:28px}
+.step-indicator{display:flex;align-items:center;gap:8px;margin-bottom:22px}
+.step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75em;font-weight:700;border:2px solid #30363d;color:#8b949e;transition:all .3s}
+.step-dot.active{background:#e65100;border-color:#e65100;color:#fff}
+.step-dot.done{background:#3fb950;border-color:#3fb950;color:#fff}
+.step-line{flex:1;height:2px;background:#30363d;transition:background .3s}
+.step-line.done{background:#3fb950}
+.section-title{color:#ffd180;font-size:.78em;letter-spacing:2px;text-transform:uppercase;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:#e65100;opacity:.35}
+.select-grid{display:grid;gap:14px}
+.select-card{background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:20px;cursor:pointer;transition:all .25s;color:inherit;user-select:none;display:block;text-decoration:none}
+.select-card:hover{border-color:#e65100;background:#1a1f2b;transform:translateY(-2px)}
+.select-card.active{border-color:#e65100;background:#1a1f2b;box-shadow:0 0 0 3px rgba(230,81,0,.18)}
+.sc-icon{font-size:1.8em;margin-bottom:8px}
+.sc-title{font-size:1em;font-weight:700;color:#fff;margin-bottom:4px}
+.sc-desc{font-size:.8em;color:#8b949e;line-height:1.5}
+.step2,.step2g{display:none}
+.step2.visible,.step2g.visible{display:block;animation:fadeIn .35s cubic-bezier(.22,1,.36,1)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.back-btn{background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:6px 14px;font-size:.8em;cursor:pointer;transition:all .2s;margin-bottom:16px}
+.back-btn:hover{border-color:#e65100;color:#e65100}
+.step-lbl{color:#ffd180;font-size:.78em;letter-spacing:2px;text-transform:uppercase;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+.step-lbl::after{content:'';flex:1;height:1px;background:#e65100;opacity:.35}
+.foot{text-align:center;padding:28px 0 0;font-size:.7rem;color:#2a2a2a;letter-spacing:.03em}
+@media(max-width:560px){.select-grid{grid-template-columns:1fr}}
+</style></head><body>
+<div class="wrap">
+  <div class="authority">
+    <div class="seal">🏛️</div>
+    <h1>Los Angeles Einwohner Melde Amt</h1>
+    <h2>Einreisebehörde — Bitte wähle deinen Einreiseweg</h2>
+  </div>
+  <div class="card">
+    <div class="step-indicator">
+      <div class="step-dot active" id="dot1">1</div>
+      <div class="step-line" id="line1"></div>
+      <div class="step-dot" id="dot2">2</div>
+    </div>
+
+    <!-- Schritt 1 -->
+    <div id="step1">
+      <p class="section-title">Schritt 1 — Einreiseart wählen</p>
+      <div class="select-grid">
+        <div class="select-card" onclick="pick('normal',this)">
+          <div class="sc-icon">👤</div>
+          <div class="sc-title">Normale Einreise</div>
+          <div class="sc-desc">Einzelperson. Wähle im nächsten Schritt ob du legal oder illegal einreisen möchtest.</div>
         </div>
-      `));
+        <div class="select-card" onclick="pick('gruppe',this)">
+          <div class="sc-icon">👥</div>
+          <div class="sc-title">Gruppeneinreise</div>
+          <div class="sc-desc">Ab mindestens 4 Personen. Alle müssen denselben Lebensweg wählen und erhalten exklusive Gruppen-Boni.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schritt 2a: Normale Einreise -->
+    <div class="step2" id="step2">
+      <button class="back-btn" onclick="goBack()">← Zurück zu Schritt 1</button>
+      <p class="step-lbl">Schritt 2 — Einreisestatus wählen</p>
+      <div class="select-grid">
+        <a class="select-card" href="/einreise/legal/${tok}">
+          <div class="sc-icon">🟢</div>
+          <div class="sc-title">Legale Einreise</div>
+          <div class="sc-desc">Du reist offiziell ein und bist legal im Staat registriert. Du erhältst einen Ausweis, darfst staatliche Jobs ausführen und startest mit 5.000 $ auf dem Konto.</div>
+        </a>
+        <a class="select-card" href="/einreise/illegal/${tok}">
+          <div class="sc-icon">🔴</div>
+          <div class="sc-title">Illegale Einreise</div>
+          <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du startest mit 5.000 $ Schwarzgeld — bleib unter dem Radar.</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Schritt 2b: Gruppeneinreise -->
+    <div class="step2g" id="step2g">
+      <button class="back-btn" onclick="goBack()">← Zurück zu Schritt 1</button>
+      <p class="step-lbl">Schritt 2 — Einreisestatus der Gruppe wählen</p>
+      <div class="select-grid">
+        <a class="select-card" href="/einreise/gruppe?mode=legal">
+          <div class="sc-icon">🟢</div>
+          <div class="sc-title">Legale Gruppeneinreise</div>
+          <div class="sc-desc">Alle Mitglieder reisen offiziell ein, erhalten einen Ausweis und starten mit 5.000 $ auf dem Konto.</div>
+        </a>
+        <a class="select-card" href="/einreise/gruppe?mode=illegal">
+          <div class="sc-icon">🔴</div>
+          <div class="sc-title">Illegale Gruppeneinreise</div>
+          <div class="sc-desc">Alle Mitglieder reisen ohne Registrierung ein. Kein Ausweis, keine staatlichen Jobs, 5.000 $ Schwarzgeld.</div>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="foot">Bereitgestellt durch Inhaber von Paradise City Roleplay PS5</div>
+</div>
+<script>
+function pick(art, el) {
+  document.querySelectorAll('#step1 .select-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  el.style.transform = 'scale(0.96)';
+  setTimeout(() => {
+    el.style.transform = '';
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('dot1').className = 'step-dot done';
+    document.getElementById('dot1').textContent = '✓';
+    document.getElementById('line1').classList.add('done');
+    document.getElementById('dot2').classList.add('active');
+    if (art === 'gruppe') {
+      document.getElementById('step2g').classList.add('visible');
+    } else {
+      document.getElementById('step2').classList.add('visible');
+    }
+  }, 180);
+}
+function goBack() {
+  document.getElementById('step2').classList.remove('visible');
+  document.getElementById('step2g').classList.remove('visible');
+  document.getElementById('step1').style.display = '';
+  document.getElementById('dot1').className = 'step-dot active';
+  document.getElementById('dot1').textContent = '1';
+  document.getElementById('line1').classList.remove('done');
+  document.getElementById('dot2').classList.remove('active');
+}
+</script>
+</body></html>`);
     });
 
     // ── GET /einreise/legal/:token ───────────────────────────────────────────────
@@ -2499,8 +2617,9 @@ async function doSell() {
             if (el && n) { el.textContent = '📎 ' + n; el.style.display = 'block'; }
           });
         });
-              // Standard: Legale Einreise vorausgewählt
-          setMode('legal');
+              // Mode aus URL-Parameter vorauswählen (z.B. ?mode=illegal)
+          var _urlMode = new URLSearchParams(window.location.search).get('mode');
+          setMode(_urlMode === 'illegal' ? 'illegal' : 'legal');
         </script>
     `));
   });
