@@ -7906,10 +7906,11 @@ client.on('messageCreate', async (msg) => {
   if (!msg.content.startsWith('!')) return;
   msg.delete().catch(() => {});
   try {
-    const warn = await msg.channel.send(
-      `<@${msg.author.id}> Wir nutzen auf diesem Server nur /commands\nEine Übersicht dazu findest du im Channel <#1491624319598460958>`
-    );
-    setTimeout(() => warn.delete().catch(() => {}), 8000);
+    const warn = await msg.channel.send({
+      content: `<@${msg.author.id}> ❌ Wir nutzen auf diesem Server nur **/commands** — keine ! Befehle.\n📋 Alle Commands findest du in <#1491624319598460958>`,
+      allowedMentions: { users: [msg.author.id] }
+    });
+    setTimeout(() => warn.delete().catch(() => {}), 5000);
   } catch { }
 });
 
