@@ -2503,58 +2503,134 @@ function goBack() {
 
   // ── GET /einreise/gruppe ──────────────────────────────────────────────────
   app.get('/einreise/gruppe', (req, res) => {
-    const error = req.session.gruppeError || '';
+    const mode = req.query.mode === 'illegal' ? 'illegal' : 'legal';
+    const isLegal = mode === 'legal';
+
+    const errors = req.session.gruppeFieldErrors || {};
+    delete req.session.gruppeFieldErrors;
+    const vals = req.session.gruppeForm || {};
+    delete req.session.gruppeForm;
+    const topError = req.session.gruppeError || '';
     delete req.session.gruppeError;
 
+    function fieldErr(name) {
+      return errors[name] ? ` style="border-color:#f85149!important;box-shadow:0 0 0 2px rgba(248,81,73,.25)"` : '';
+    }
+    function errMsg(name) {
+      return errors[name] ? `<div class="field-err">⚠️ ${errors[name]}</div>` : '';
+    }
 
     let personBlocks = '';
     for (let i = 0; i < 4; i++) {
-      personBlocks += `
+      const discordField = `discord_username_${i}`;
+      if (isLegal) {
+        personBlocks += `
         <div class="person-block">
           <div class="person-head">👤 Person ${i + 1}${i === 0 ? ' (Du)' : ''}</div>
           <div class="form-row one">
-              <div class="form-group">
-                <label>Discord Nutzername <span class="req">*</span></label>
-                <input type="text" name="discord_username_${i}" placeholder="z.B. maxmustermann" required autocomplete="off">
-                <small style="color:#e8a000;margin-top:6px;display:block">⚠️ Bitte gib den Nutzernamen korrekt an und achte auf Groß- und Kleinschreibung.</small>
-              </div>
+            <div class="form-group">
+              <label>Discord Nutzername <span class="req">*</span></label>
+              <input type="text" name="${discordField}" value="${escHtml(vals[discordField]||'')}" placeholder="z.B. maxmustermann" required autocomplete="off"${fieldErr(discordField)}>
+              ${errMsg(discordField)}
+              <small style="color:#e8a000;margin-top:6px;display:block">⚠️ Nutzernamen korrekt angeben — Groß-/Kleinschreibung beachten.</small>
             </div>
-          <div class="char-name hidden" id="char_name_${i}">
-              <hr class="divider" style="margin:10px 0">
-              <p style="color:#ffd180;font-size:.78em;margin-bottom:12px">🎭 Charakter Name</p>
-              <div class="form-row two">
-                <div class="form-group">
-                  <label>Vorname <span class="req">*</span></label>
-                  <input type="text" name="g_ill_vorname_${i}" placeholder="Vorname">
-                </div>
-                <div class="form-group">
-                  <label>Nachname <span class="req">*</span></label>
-                  <input type="text" name="g_ill_nachname_${i}" placeholder="Nachname">
-                </div>
-              </div>
-              <div class="form-row one">
-                <div class="form-group">
-                  <label>PSN Name <span class="req">*</span></label>
-                  <input type="text" name="g_ill_psn_${i}" placeholder="dein_psn_name">
-                </div>
-              </div>
+          </div>
+          <hr class="divider" style="margin:10px 0">
+          <p style="color:#ffd180;font-size:.78em;margin-bottom:12px">📋 IC Charakter Daten</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Vorname <span class="req">*</span></label>
+              <input type="text" name="g_vorname_${i}" value="${escHtml(vals['g_vorname_'+i]||'')}" placeholder="Max" required${fieldErr('g_vorname_'+i)}>
+              ${errMsg('g_vorname_'+i)}
             </div>
-            <div class="char-data hidden" id="char_${i}">
-            <hr class="divider" style="margin:10px 0">
-            <p style="color:#ffd180;font-size:.78em;margin-bottom:12px">📋 IC Charakter Daten</p>
-            ${charFields('g_', i)}
-            <div class="form-row one" style="margin-top:12px">
-              <div class="form-group">
-                <label>Passbild <span class="req">*</span></label>
-                <div class="file-box">
-                  <input type="file" name="foto_${i}" accept="image/*" class="gruppe-foto">
-                  <div class="file-label"><span>📷</span>Passbild Hinzufügen<br><small style="color:#555">JPG / PNG — max. 8 MB</small></div>
-                  <div class="file-name"></div>
-                </div>
+            <div class="form-group">
+              <label>Nachname <span class="req">*</span></label>
+              <input type="text" name="g_nachname_${i}" value="${escHtml(vals['g_nachname_'+i]||'')}" placeholder="Mustermann" required${fieldErr('g_nachname_'+i)}>
+              ${errMsg('g_nachname_'+i)}
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Geburtsdatum <span class="req">*</span></label>
+              <input type="text" name="g_geburtsdatum_${i}" value="${escHtml(vals['g_geburtsdatum_'+i]||'')}" placeholder="TT.MM.JJJJ" required data-date="1" inputmode="numeric" maxlength="10" autocomplete="off"${fieldErr('g_geburtsdatum_'+i)}>
+              ${errMsg('g_geburtsdatum_'+i)}
+            </div>
+            <div class="form-group">
+              <label>Geburtsort <span class="req">*</span></label>
+              <input type="text" name="g_geburtsort_${i}" value="${escHtml(vals['g_geburtsort_'+i]||'')}" placeholder="Los Angeles" required${fieldErr('g_geburtsort_'+i)}>
+              ${errMsg('g_geburtsort_'+i)}
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nationalität <span class="req">*</span></label>
+              <input type="text" name="g_nationalitaet_${i}" value="${escHtml(vals['g_nationalitaet_'+i]||'')}" placeholder="Amerikanisch" required${fieldErr('g_nationalitaet_'+i)}>
+              ${errMsg('g_nationalitaet_'+i)}
+            </div>
+            <div class="form-group">
+              <label>Geschlecht <span class="req">*</span></label>
+              <select name="g_geschlecht_${i}" required${fieldErr('g_geschlecht_'+i)}>
+                <option value="" disabled ${!vals['g_geschlecht_'+i]?'selected':''}>Bitte wählen</option>
+                <option value="Männlich" ${vals['g_geschlecht_'+i]==='Männlich'?'selected':''}>Männlich</option>
+                <option value="Weiblich" ${vals['g_geschlecht_'+i]==='Weiblich'?'selected':''}>Weiblich</option>
+              </select>
+              ${errMsg('g_geschlecht_'+i)}
+            </div>
+          </div>
+          <div class="form-row one">
+            <div class="form-group">
+              <label>PSN Name <span class="req">*</span></label>
+              <input type="text" name="g_psn_${i}" value="${escHtml(vals['g_psn_'+i]||'')}" placeholder="dein_psn_name" required${fieldErr('g_psn_'+i)}>
+              ${errMsg('g_psn_'+i)}
+            </div>
+          </div>
+          <div class="form-row one" style="margin-top:12px">
+            <div class="form-group">
+              <label>Passbild <span class="req">*</span></label>
+              <div class="file-box" ${fieldErr('foto_'+i)}>
+                <input type="file" name="foto_${i}" accept="image/*" class="gruppe-foto">
+                <div class="file-label"><span>📷</span>Passbild Hinzufügen<br><small style="color:#555">JPG / PNG — max. 8 MB</small></div>
+                <div class="file-name"></div>
               </div>
+              ${errMsg('foto_'+i)}
             </div>
           </div>
         </div>`;
+      } else {
+        personBlocks += `
+        <div class="person-block">
+          <div class="person-head">👤 Person ${i + 1}${i === 0 ? ' (Du)' : ''}</div>
+          <div class="form-row one">
+            <div class="form-group">
+              <label>Discord Nutzername <span class="req">*</span></label>
+              <input type="text" name="${discordField}" value="${escHtml(vals[discordField]||'')}" placeholder="z.B. maxmustermann" required autocomplete="off"${fieldErr(discordField)}>
+              ${errMsg(discordField)}
+              <small style="color:#e8a000;margin-top:6px;display:block">⚠️ Nutzernamen korrekt angeben — Groß-/Kleinschreibung beachten.</small>
+            </div>
+          </div>
+          <hr class="divider" style="margin:10px 0">
+          <p style="color:#ffd180;font-size:.78em;margin-bottom:12px">🎭 Charakter Name</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Vorname <span class="req">*</span></label>
+              <input type="text" name="g_ill_vorname_${i}" value="${escHtml(vals['g_ill_vorname_'+i]||'')}" placeholder="Vorname" required${fieldErr('g_ill_vorname_'+i)}>
+              ${errMsg('g_ill_vorname_'+i)}
+            </div>
+            <div class="form-group">
+              <label>Nachname <span class="req">*</span></label>
+              <input type="text" name="g_ill_nachname_${i}" value="${escHtml(vals['g_ill_nachname_'+i]||'')}" placeholder="Nachname" required${fieldErr('g_ill_nachname_'+i)}>
+              ${errMsg('g_ill_nachname_'+i)}
+            </div>
+          </div>
+          <div class="form-row one">
+            <div class="form-group">
+              <label>PSN Name <span class="req">*</span></label>
+              <input type="text" name="g_ill_psn_${i}" value="${escHtml(vals['g_ill_psn_'+i]||'')}" placeholder="dein_psn_name" required${fieldErr('g_ill_psn_'+i)}>
+              ${errMsg('g_ill_psn_'+i)}
+            </div>
+          </div>
+        </div>`;
+      }
     }
 
     res.send(page('Gruppen Einreise', `
@@ -2563,53 +2639,48 @@ function goBack() {
         .einreise-wrap{animation:einreiseIn .42s cubic-bezier(.22,1,.36,1)}
         .back-link{display:inline-flex;align-items:center;gap:6px;color:#8b949e;font-size:.82em;text-decoration:none;border:1px solid #30363d;border-radius:6px;padding:5px 12px;transition:all .2s;margin-bottom:10px}
         .back-link:hover{border-color:#e65100;color:#e65100}
+        .mode-badge{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:8px;font-size:.88em;font-weight:700;letter-spacing:.5px;margin-bottom:18px;border:2px solid}
+        .mode-badge.legal{background:rgba(63,185,80,.1);border-color:#3fb950;color:#3fb950}
+        .mode-badge.illegal{background:rgba(248,81,73,.1);border-color:#f85149;color:#f85149}
+        .field-err{color:#f85149;font-size:.74em;margin-top:5px;display:flex;align-items:center;gap:4px}
+        .top-err-box{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.4);border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#f85149;font-size:.85em;line-height:1.6}
+        .swear-hint{display:none;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.4);border-radius:8px;padding:10px 14px;margin-top:12px;color:#f85149;font-size:.82em}
       </style>
       <div class="einreise-wrap">
-      <div style="text-align:right;padding:6px 0 0"><a href="/einreise" class="back-link">← Zurück zur Auswahl</a></div>
+      <div style="padding:6px 0 0">
+        <a href="javascript:history.back()" class="back-link">← Zurück zur Einreiseart-Auswahl</a>
+      </div>
       ${header('👥 Gruppen Einreise — Ab 4 Personen')}
       <div class="card">
-        ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
+        ${topError ? `<div class="top-err-box">⚠️ ${topError}</div>` : ''}
+        <div class="mode-badge ${mode}">${isLegal ? '🟢 Legale Gruppeneinreise' : '🔴 Illegale Gruppeneinreise'}</div>
         <form method="POST" action="/einreise/gruppe" enctype="multipart/form-data" id="gruppeForm">
-
-          <p class="section-title">⚙️ Einreiseart der Gruppe</p>
-          <div class="toggle-group">
-            <button type="button" class="toggle-btn" id="btn_legal" onclick="setMode('legal')">🟢 Legale Einreise</button>
-            <button type="button" class="toggle-btn" id="btn_illegal" onclick="setMode('illegal')">🔴 Illegale Einreise</button>
-          </div>
-          <input type="hidden" name="gruppe_mode" id="gruppe_mode" value="" required>
-
+          <input type="hidden" name="gruppe_mode" value="${mode}">
           <p class="section-title">👥 Gruppen-Mitglieder (4 Personen)</p>
           ${personBlocks}
-
-          <button type="submit" class="btn" id="submitBtn" disabled>✅ Gruppen-Einreise Bestätigen</button>
+          <div id="swearHint" class="swear-hint">🚫 Bitte keine Schimpfwörter oder unangemessenen Ausdrücke verwenden.</div>
+          <button type="submit" class="btn">${isLegal ? '✅' : '🚨'} Gruppen-Einreise Bestätigen</button>
           ${warning()}
         </form>
       </div>
       </div>
       <script>
-        function setMode(mode) {
-          document.getElementById('gruppe_mode').value = mode;
-          document.getElementById('btn_legal').classList.toggle('active', mode === 'legal');
-          document.getElementById('btn_illegal').classList.toggle('active', mode === 'illegal');
-          document.getElementById('submitBtn').disabled = false;
-          for (let i = 0; i < 4; i++) {
-            const cd = document.getElementById('char_' + i);
-            if (cd) cd.classList.toggle('hidden', mode !== 'legal');
-              const cn = document.getElementById('char_name_' + i);
-              if (cn) cn.classList.toggle('hidden', mode !== 'illegal');
-            const fotos = document.querySelectorAll('.gruppe-foto');
-            fotos.forEach(f => { f.required = mode === 'legal'; });
-          }
-          document.querySelectorAll('[name^="g_ill_vorname"]').forEach(f => f.required = mode === 'illegal');
-            document.querySelectorAll('[name^="g_ill_nachname"]').forEach(f => f.required = mode === 'illegal');
-          document.querySelectorAll('[name^="g_ill_psn"]').forEach(f => f.required = mode === 'illegal');
-            document.querySelectorAll('[name^="g_vorname"]').forEach(f => f.required = mode === 'legal');
-          document.querySelectorAll('[name^="g_nachname"]').forEach(f => f.required = mode === 'legal');
-          document.querySelectorAll('[name^="g_geburtsdatum"]').forEach(f => f.required = mode === 'legal');
-          document.querySelectorAll('[name^="g_geburtsort"]').forEach(f => f.required = mode === 'legal');
-          document.querySelectorAll('[name^="g_nationalitaet"]').forEach(f => f.required = mode === 'legal');
+        const SWEAR_WORDS = ['fuck','shit','ass','bitch','damn','crap','bastard','scheiß','scheiße','scheisse','ficken','fick','wichser','hurensohn','arschloch','arsch','fotze','nutte','hure','kacke','kackst','vollidiot','blödmann','trottel','depp','idiot','penner','schlampe','miststück','wichse','pisser','pissen','spast','mongo','schwuchtel','kanake','nigger','wixer','drecksau','dreckskerl'];
+        function hasProfanity(str) {
+          const low = str.toLowerCase().replace(/[^a-zäöüß]/g,'');
+          return SWEAR_WORDS.some(w => low.includes(w.replace(/[^a-zäöüß]/g,'')));
         }
-
+        document.getElementById('gruppeForm').addEventListener('submit', function(e) {
+          let found = false;
+          this.querySelectorAll('input[type=text]').forEach(function(inp) {
+            if (hasProfanity(inp.value)) { found = true; inp.style.borderColor='#f85149'; }
+          });
+          if (found) {
+            e.preventDefault();
+            document.getElementById('swearHint').style.display = 'block';
+            document.getElementById('swearHint').scrollIntoView({behavior:'smooth',block:'center'});
+          }
+        });
         document.querySelectorAll('.file-box input[type=file]').forEach(inp => {
           inp.addEventListener('change', function() {
             const n = this.files[0]?.name;
@@ -2617,10 +2688,7 @@ function goBack() {
             if (el && n) { el.textContent = '📎 ' + n; el.style.display = 'block'; }
           });
         });
-              // Mode aus URL-Parameter vorauswählen (z.B. ?mode=illegal)
-          var _urlMode = new URLSearchParams(window.location.search).get('mode');
-          setMode(_urlMode === 'illegal' ? 'illegal' : 'legal');
-        </script>
+      </script>
     `));
   });
 
@@ -2631,6 +2699,15 @@ function goBack() {
   app.post('/einreise/gruppe', upload.fields(gruppeFields), async (req, res) => {
     const { gruppe_mode } = req.body;
     if (!gruppe_mode) { req.session.gruppeError = 'Bitte wähle eine Einreiseart (Legal/Illegal).'; return res.redirect('/einreise/gruppe'); }
+    // Schimpfwort-Check (server-side)
+    const SWEAR_SERVER = ['fuck','shit','bitch','scheiß','scheiße','ficken','fick','wichser','hurensohn','arschloch','arsch','fotze','nutte','hure','kacke','vollidiot','blödmann','trottel','depp','idiot','penner','schlampe','miststück','wichse','pisser','spast'];
+    function serverSwear(str) { const l=(str||'').toLowerCase().replace(/[^a-zäöüß]/g,''); return SWEAR_SERVER.some(w=>l.includes(w.replace(/[^a-zäöüß]/g,''))); }
+    const allTextVals = Object.values(req.body).filter(v=>typeof v==='string');
+    if (allTextVals.some(v=>serverSwear(v))) {
+      req.session.gruppeError = 'Bitte keine Schimpfwörter oder unangemessene Ausdrücke verwenden.';
+      req.session.gruppeForm  = Object.assign({}, req.body);
+      return res.redirect('/einreise/gruppe?mode=' + gruppe_mode);
+    }
 
     const isLegal = gruppe_mode === 'legal';
     const ids = [];
@@ -2667,7 +2744,9 @@ function goBack() {
 
     if (errors.length > 0) {
       req.session.gruppeError = errors.join('<br>');
-      return res.redirect('/einreise/gruppe');
+      req.session.gruppeForm  = Object.assign({}, req.body);
+      req.session.gruppeFieldErrors = {};
+      return res.redirect('/einreise/gruppe?mode=' + gruppe_mode);
     }
 
     const failed = [];
@@ -2695,7 +2774,7 @@ function goBack() {
 
     if (failed.length > 0) {
       req.session.gruppeError = `Rollen konnten für folgende IDs nicht vergeben werden: ${failed.join(', ')}. Wende dich an einen Admin.`;
-      return res.redirect('/einreise/gruppe');
+      return res.redirect('/einreise/gruppe?mode=' + gruppe_mode);
     }
 
     res.send(page('Gruppen-Einreise Erfolgreich', `
