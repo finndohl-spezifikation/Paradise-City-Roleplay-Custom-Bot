@@ -3522,15 +3522,32 @@ async function api(body) {
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────────
+function showGridError(msg) {
+  const grid = document.getElementById('shopsGrid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px 16px;">' +
+    '<div style="font-size:2rem;margin-bottom:12px">⚠️</div>' +
+    '<div style="font-size:.95rem;color:var(--red);margin-bottom:8px;font-weight:600">' + msg + '</div>' +
+    '<div style="font-size:.8rem;color:var(--text2);margin-bottom:20px">Bitte verwende /shop-editor erneut im Discord um einen neuen Link zu erhalten.</div>' +
+    '<button class="btn btn-primary" onclick="location.reload()" style="font-size:.85rem">🔄 Seite neu laden</button>' +
+    '</div>';
+}
 async function loadShops() {
   try {
-    const d = await api({ action: 'list' });
-    if (!d.ok) return toast('Fehler: ' + (d.error || 'Laden fehlgeschlagen'), 'err');
+    const r = await fetch('/api/shop-manager', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: TOKEN, action: 'list' })
+    });
+    if (!r.ok) { showGridError('Server-Fehler ' + r.status); return; }
+    let d;
+    try { d = await r.json(); } catch(je) { showGridError('Ungültige Server-Antwort'); return; }
+    if (!d.ok) { showGridError(d.error || 'Laden fehlgeschlagen'); return; }
     allShops = d.shops;
     renderHomeGrid();
     if (currentShop) renderDetail(currentShop);
   } catch(e) {
-    toast('Verbindungsfehler – bitte Seite neu laden', 'err');
+    showGridError('Verbindungsfehler – Server nicht erreichbar');
     console.error('[loadShops]', e);
   }
 }
@@ -3758,10 +3775,12 @@ loadShops();
 
   app.post('/api/shop-manager', express.json(), async (req, res) => {
     const { token, shopId, items, action, oldName, name, preis, targetShopId } = req.body || {};
-    if (!token) return res.json({ ok: false, error: 'Kein Token' });
+    console.log('[shop-manager] action=' + action + ' token=' + (token ? token.substring(0,8) + '...' : 'MISSING'));
+    if (!token) { console.log('[shop-manager] ERROR: kein Token'); return res.json({ ok: false, error: 'Kein Token' }); }
     const toks = loadShopMgrToksW();
     const entry = toks[token];
-    if (!entry || entry.expiresAt < Date.now()) return res.json({ ok: false, error: 'Token abgelaufen' });
+    if (!entry) { console.log('[shop-manager] ERROR: Token nicht gefunden'); return res.json({ ok: false, error: 'Token abgelaufen – bitte /shop-editor erneut nutzen' }); }
+    if (entry.expiresAt < Date.now()) { console.log('[shop-manager] ERROR: Token abgelaufen'); return res.json({ ok: false, error: 'Token abgelaufen – bitte /shop-editor erneut nutzen' }); }
 
     const VALID = ['kwik','baumarkt','angler','schwarz','team'];
     const SHOP_NAMES = { kwik:'Kwik-E-Markt', baumarkt:'Baumarkt', angler:'Angler Shop', schwarz:'Schwarzmarkt', team:'Team-Shop' };
