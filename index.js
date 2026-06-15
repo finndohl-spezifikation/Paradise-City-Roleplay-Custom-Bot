@@ -7907,7 +7907,7 @@ client.on('messageCreate', async (msg) => {
   msg.delete().catch(() => {});
   try {
     await msg.author.send({
-      content: `❌ Auf **Paradise City Roleplay** nutzen wir nur **/commands** — keine `!`-Befehle.\n📋 Alle Commands findest du in <#1491624319598460958>`
+      content: `❌ Auf **Paradise City Roleplay** nutzen wir nur **/commands** — keine \`!\`-Befehle.\n📋 Alle Commands findest du in <#1491624319598460958>`
     });
   } catch { }
 });
