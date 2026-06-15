@@ -2987,240 +2987,304 @@ async function doSell() {
     const toks = loadShopMgrToksW();
     const entry = toks[req.params.token];
     if (!entry || entry.expiresAt < Date.now()) {
-      return res.status(403).send(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Abgelaufen</title>
-      <style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#111;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;}
-      .box{text-align:center;padding:40px;background:#1a1a1a;border-radius:12px;border:1px solid #333;}h1{color:#E65100;margin-bottom:12px;}p{color:#aaa;}</style></head>
-      <body><div class="box"><h1>❌ Link abgelaufen</h1><p>Bitte benutze /shop-add erneut im Discord.</p></div></body></html>`);
+      return res.status(403).send(page('Link abgelaufen', `${header('Shop-Editor')}<div class="card"><div class="error-box">❌ Dieser Link ist abgelaufen. Bitte benutze /shop-editor erneut.</div></div>`));
     }
-    const SHOP_META_W = {
-      kwik:     { name: 'Kwik-E-Markt', emoji: '🏪', color: '#F4A400' },
-      baumarkt: { name: 'Baumarkt',     emoji: '🔨', color: '#A0522D' },
-      angler:   { name: 'Angler Shop',  emoji: '🎣', color: '#006994' },
-      schwarz:  { name: 'Schwarzmarkt', emoji: '🌑', color: '#555' },
-      team:     { name: 'Team-Shop',    emoji: '⭐', color: '#E65100' },
+    const tok = req.params.token;
+    const SHOP_META_W2 = {
+      kwik:     { name: 'Kwik-E-Markt', emoji: '🏪' },
+      baumarkt: { name: 'Baumarkt',     emoji: '🔨' },
+      angler:   { name: 'Angler Shop',  emoji: '🎣' },
+      schwarz:  { name: 'Schwarzmarkt', emoji: '🌑' },
+      team:     { name: 'Team-Shop',    emoji: '⭐' },
     };
-    const shopCards = Object.entries(SHOP_META_W).map(([id, m]) =>
-      `<div class="shop-card" data-shop="${id}" onclick="selectShop('${id}')" style="--shop-color:${m.color}">
-        <span class="shop-emoji">${m.emoji}</span>
-        <span class="shop-name">${m.name}</span>
-      </div>`
-    ).join('');
-    res.send(`<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Shop-Manager — Paradise City Roleplay</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; padding: 24px 16px; }
-    .container { max-width: 680px; margin: 0 auto; }
-    .header { text-align: center; margin-bottom: 32px; }
-    .header h1 { font-size: 1.8rem; color: #E65100; margin-bottom: 6px; }
-    .header p { color: #888; font-size: 0.9rem; }
-    .section-label { font-size: 0.75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #666; margin-bottom: 10px; }
-    /* Shop Selector */
-    .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-bottom: 28px; }
-    .shop-card { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 10px; padding: 14px 10px; cursor: pointer; text-align: center; transition: border-color .15s, transform .1s; user-select: none; }
-    .shop-card:hover { border-color: #444; transform: translateY(-2px); }
-    .shop-card.selected { border-color: var(--shop-color, #E65100); background: #1e1e1e; }
-    .shop-emoji { display: block; font-size: 1.8rem; margin-bottom: 6px; }
-    .shop-name { font-size: 0.78rem; color: #ccc; font-weight: 600; }
-    /* Items */
-    .items-section { background: #141414; border: 1px solid #2a2a2a; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-    .item-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
-    .item-row input[type="text"] { flex: 2; background: #1f1f1f; border: 1px solid #333; border-radius: 8px; padding: 9px 12px; color: #e0e0e0; font-size: 0.9rem; outline: none; transition: border-color .15s; }
-    .item-row input[type="number"] { flex: 1; background: #1f1f1f; border: 1px solid #333; border-radius: 8px; padding: 9px 12px; color: #e0e0e0; font-size: 0.9rem; outline: none; transition: border-color .15s; }
-    .item-row input:focus { border-color: #E65100; }
-    .remove-btn { background: none; border: 1px solid #333; border-radius: 8px; color: #666; cursor: pointer; padding: 9px 12px; font-size: 1rem; transition: color .15s, border-color .15s; flex-shrink: 0; }
-    .remove-btn:hover { color: #e04040; border-color: #e04040; }
-    .add-row-btn { background: none; border: 1px dashed #333; border-radius: 8px; color: #666; cursor: pointer; padding: 9px 16px; font-size: 0.85rem; width: 100%; margin-top: 4px; transition: color .15s, border-color .15s; }
-    .add-row-btn:hover { color: #E65100; border-color: #E65100; }
-    .col-labels { display: flex; gap: 10px; margin-bottom: 6px; font-size: 0.72rem; color: #555; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
-    .col-labels .c1 { flex: 2; padding-left: 12px; }
-    .col-labels .c2 { flex: 1; padding-left: 12px; }
-    .col-labels .c3 { width: 44px; flex-shrink: 0; }
-    /* Submit */
-    .submit-btn { width: 100%; padding: 14px; background: #E65100; color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background .15s, opacity .15s; }
-    .submit-btn:hover { background: #bf4500; }
-    .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
-    /* Toast */
-    .toast { position: fixed; top: 20px; right: 20px; background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 14px 20px; font-size: 0.9rem; max-width: 320px; z-index: 999; opacity: 0; transform: translateY(-10px); transition: opacity .2s, transform .2s; pointer-events: none; }
-    .toast.show { opacity: 1; transform: translateY(0); }
-    .toast.success { border-color: #22c55e; color: #22c55e; }
-    .toast.error { border-color: #e04040; color: #e04040; }
-    .no-shop { text-align: center; color: #555; font-size: 0.9rem; padding: 30px 0; }
-  </style>
-</head>
-<body>
-<div class="container">
-  <div class="header">
-    <h1>🏪 Shop-Manager</h1>
-    <p>Wähle einen Shop und füge mehrere Items gleichzeitig hinzu</p>
-  </div>
+    res.send(page('Shop-Editor', `
+      ${header('🏪 Shop-Editor — Verwaltung')}
+      <div class="card">
+        <style>
+          .se-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;border-bottom:2px solid #e65100;padding-bottom:10px}
+          .se-tab{background:#0d1117;border:1px solid #30363d;border-radius:8px 8px 0 0;padding:9px 16px;cursor:pointer;font-size:.85em;font-weight:600;color:#8b949e;transition:all .15s;border-bottom:2px solid transparent;margin-bottom:-2px}
+          .se-tab.active,.se-tab:hover{color:#fff;border-color:#e65100;background:#161b22}
+          .se-tab.active{background:#1c1c1c}
+          .se-panel{display:none}.se-panel.active{display:block}
+          .se-table{width:100%;border-collapse:collapse;margin-bottom:18px}
+          .se-table th{text-align:left;padding:8px 10px;font-size:.72em;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #21262d}
+          .se-table td{padding:9px 10px;border-bottom:1px solid #161b22;font-size:.88em;vertical-align:middle}
+          .se-table tr:last-child td{border-bottom:none}
+          .se-table tr:hover td{background:#1a1f27}
+          .se-table input[type=text],.se-table input[type=number]{background:#0d1117;border:1px solid #333;border-radius:6px;padding:5px 9px;color:#e0e0e0;font-size:.88em;outline:none;width:100%}
+          .se-table input:focus{border-color:#e65100}
+          .se-btn{padding:5px 12px;border:none;border-radius:6px;font-size:.8em;font-weight:600;cursor:pointer;transition:all .15s}
+          .se-btn-save{background:#e65100;color:#fff}.se-btn-save:hover{background:#bf360c}
+          .se-btn-del{background:#1c0a0a;color:#f85149;border:1px solid #3d1010}.se-btn-del:hover{background:#f85149;color:#fff}
+          .se-btn-cancel{background:#1f2328;color:#8b949e;border:1px solid #30363d}.se-btn-cancel:hover{color:#fff}
+          .se-add-section{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:18px;margin-top:4px}
+          .se-add-title{color:#ffd180;font-size:.78em;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+          .se-add-title::after{content:'';flex:1;height:1px;background:#e65100;opacity:.3}
+          .se-row{display:grid;grid-template-columns:1fr 130px 36px;gap:8px;margin-bottom:8px}
+          .se-row input{background:#161b22;border:1px solid #30363d;border-radius:7px;padding:8px 11px;color:#e0e0e0;font-size:.88em;outline:none;width:100%;transition:border .15s}
+          .se-row input:focus{border-color:#e65100}
+          .se-row-del{background:none;border:1px solid #30363d;border-radius:7px;color:#555;cursor:pointer;font-size:1rem;transition:all .15s}
+          .se-row-del:hover{color:#f85149;border-color:#f85149}
+          .se-add-row-btn{background:none;border:1px dashed #333;border-radius:7px;color:#555;cursor:pointer;padding:8px;font-size:.82em;width:100%;margin-top:4px;transition:all .15s}
+          .se-add-row-btn:hover{color:#e65100;border-color:#e65100}
+          .se-submit{width:100%;padding:12px;background:#e65100;color:#fff;border:none;border-radius:8px;font-size:.95em;font-weight:700;cursor:pointer;margin-top:14px;transition:background .15s}
+          .se-submit:hover{background:#bf360c}
+          .se-submit:disabled{opacity:.5;cursor:not-allowed}
+          .se-empty{text-align:center;color:#444;padding:24px 0;font-size:.85em}
+          .toast2{position:fixed;top:20px;right:20px;background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:12px 18px;font-size:.88em;max-width:300px;z-index:999;opacity:0;transform:translateY(-10px);transition:all .2s;pointer-events:none}
+          .toast2.show{opacity:1;transform:translateY(0)}
+          .toast2.ok{border-color:#22c55e;color:#22c55e}
+          .toast2.err{border-color:#f85149;color:#f85149}
+          .col-hdr{display:grid;grid-template-columns:1fr 130px 36px;gap:8px;margin-bottom:4px;padding:0 0 4px;font-size:.7em;color:#555;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+        </style>
 
-  <div class="section-label">Shop auswählen</div>
-  <div class="shop-grid">${shopCards}</div>
+        <div class="se-tabs">
+          ${Object.entries(SHOP_META_W2).map(([id,m],i) => `<div class="se-tab${i===0?' active':''}" onclick="switchTab('${id}')" id="tab-${id}">${m.emoji} ${m.name}</div>`).join('')}
+        </div>
 
-  <div class="items-section" id="itemsSection">
-    <div class="no-shop" id="noShopHint">← Zuerst einen Shop auswählen</div>
-    <div id="itemsContainer" style="display:none">
-      <div class="col-labels"><span class="c1">Item-Name</span><span class="c2">Preis ($)</span><span class="c3"></span></div>
-      <div id="itemRows"></div>
-      <button class="add-row-btn" onclick="addRow()">+ Zeile hinzufügen</button>
-    </div>
-  </div>
+        ${Object.entries(SHOP_META_W2).map(([id,m],i) => `
+        <div class="se-panel${i===0?' active':''}" id="panel-${id}">
+          <div style="margin-bottom:12px;color:#8b949e;font-size:.8em">Aktuelle Items in <strong style="color:#ffd180">${m.name}</strong>:</div>
+          <table class="se-table" id="tbl-${id}">
+            <thead><tr><th>Item-Name</th><th>Preis ($)</th><th>Aktionen</th></tr></thead>
+            <tbody id="tbody-${id}"><tr><td colspan="3" class="se-empty">Lade...</td></tr></tbody>
+          </table>
 
-  <button class="submit-btn" id="submitBtn" onclick="submitItems()" disabled>Items speichern</button>
-</div>
-<div class="toast" id="toast"></div>
+          <div class="se-add-section">
+            <div class="se-add-title">Neue Items hinzufügen</div>
+            <div class="col-hdr"><span>Item-Name</span><span>Preis ($)</span><span></span></div>
+            <div id="addrows-${id}"></div>
+            <button class="se-add-row-btn" onclick="addRow('${id}')">+ Zeile hinzufügen</button>
+            <button class="se-submit" id="addbtn-${id}" onclick="submitAdd('${id}')">Items speichern</button>
+          </div>
+        </div>
+        `).join('')}
+      </div>
 
-<script>
-  let selectedShop = null;
-  const TOKEN = '${req.params.token}';
-  let rowId = 0;
+      <div class="toast2" id="t2"></div>
 
-  function selectShop(shopId) {
-    document.querySelectorAll('.shop-card').forEach(c => c.classList.remove('selected'));
-    document.querySelector('[data-shop="' + shopId + '"]').classList.add('selected');
-    selectedShop = shopId;
-    document.getElementById('noShopHint').style.display = 'none';
-    document.getElementById('itemsContainer').style.display = '';
-    document.getElementById('submitBtn').disabled = false;
-    if (document.getElementById('itemRows').children.length === 0) addRow();
-  }
+      <script>
+      const TOKEN = '${tok}';
+      let rowIds = {};
+      let allShops = {};
 
-  function addRow() {
-    const id = rowId++;
-    const row = document.createElement('div');
-    row.className = 'item-row';
-    row.id = 'row-' + id;
-    row.innerHTML =
-      '<input type="text" placeholder="Item-Name" class="item-name" />' +
-      '<input type="number" placeholder="Preis" min="1" class="item-price" />' +
-      '<button class="remove-btn" onclick="removeRow(' + id + ')">✕</button>';
-    document.getElementById('itemRows').appendChild(row);
-    row.querySelector('.item-name').focus();
-  }
-
-  function removeRow(id) {
-    const row = document.getElementById('row-' + id);
-    if (row) row.remove();
-  }
-
-  function showToast(msg, type) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast ' + type + ' show';
-    setTimeout(() => t.classList.remove('show'), 3500);
-  }
-
-  async function submitItems() {
-    if (!selectedShop) return showToast('Bitte zuerst einen Shop auswählen.', 'error');
-    const rows = document.querySelectorAll('#itemRows .item-row');
-    const items = [];
-    let hasError = false;
-    rows.forEach(row => {
-      const name = row.querySelector('.item-name').value.trim();
-      const rawPreis = row.querySelector('.item-price').value.replace(/[\s.]/g, '').replace(',', '.');
-      const preis = parseInt(rawPreis);
-      // Komplett leere Zeile → überspringen
-      if (!name && (rawPreis === '' || isNaN(preis))) return;
-      // Teilweise ausgefüllt → Fehler
-      if (!name || isNaN(preis) || preis < 1) { hasError = true; return; }
-      items.push({ name, preis });
-    });
-    if (hasError) return showToast('Bitte alle Felder korrekt ausfüllen (Name + Preis).', 'error');
-    if (items.length === 0) return showToast('Bitte mindestens ein Item ausfüllen.', 'error');
-
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.textContent = 'Wird gespeichert...';
-
-    try {
-      const res = await fetch('/api/shop-manager', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: TOKEN, shopId: selectedShop, items })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        showToast('✅ ' + data.count + ' Item(s) gespeichert!', 'success');
-        document.getElementById('itemRows').innerHTML = '';
-        addRow();
-      } else {
-        showToast('❌ ' + (data.error || 'Fehler'), 'error');
+      async function loadData() {
+        try {
+          const r = await fetch('/api/shop-manager', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token:TOKEN, action:'list'}) });
+          const d = await r.json();
+          if (!d.ok) return;
+          allShops = d.shops;
+          Object.keys(allShops).forEach(renderShop);
+          // Init add rows for first tab
+          Object.keys(allShops).forEach(id => { rowIds[id]=0; if(!document.getElementById('addrows-'+id).children.length) addRow(id); });
+        } catch(e) { console.error(e); }
       }
-    } catch(e) {
-      showToast('❌ Netzwerkfehler', 'error');
-    }
-    btn.disabled = false;
-    btn.textContent = 'Items speichern';
-  }
 
-  document.addEventListener('keydown', e => { if (e.key === 'Enter') submitItems(); });
-</script>
-</body>
-</html>`);
+      function renderShop(shopId) {
+        const tbody = document.getElementById('tbody-'+shopId);
+        if (!tbody) return;
+        const items = allShops[shopId] || [];
+        if (!items.length) { tbody.innerHTML = '<tr><td colspan="3" class="se-empty">Keine Items vorhanden</td></tr>'; return; }
+        tbody.innerHTML = items.map((item, idx) => \`
+          <tr id="row-\${shopId}-\${idx}">
+            <td><span class="item-name-display">\${item.name}</span><input type="text" class="item-name-edit" value="\${item.name}" style="display:none"></td>
+            <td><span class="item-price-display">\${item.preis.toLocaleString('de-DE')}</span><input type="number" class="item-price-edit" value="\${item.preis}" min="1" style="display:none"></td>
+            <td style="display:flex;gap:6px;white-space:nowrap">
+              <button class="se-btn se-btn-save edit-btn" onclick="startEdit('\${shopId}',\${idx})">✏️ Edit</button>
+              <button class="se-btn se-btn-del" onclick="deleteItem('\${shopId}','\${item.name.replace(/'/g,\\\\'\\\\\\\\')}')" title="Löschen">🗑️</button>
+            </td>
+          </tr>
+        \`).join('');
+      }
+
+      function startEdit(shopId, idx) {
+        const row = document.getElementById('row-'+shopId+'-'+idx);
+        const nameDisp = row.querySelector('.item-name-display');
+        const nameEdit = row.querySelector('.item-name-edit');
+        const priceDisp = row.querySelector('.item-price-display');
+        const priceEdit = row.querySelector('.item-price-edit');
+        const btn = row.querySelector('.edit-btn');
+        const isEditing = nameEdit.style.display !== 'none';
+        if (isEditing) {
+          // Save
+          saveEdit(shopId, idx, nameEdit.value.trim(), parseInt(nameEdit.dataset.orig), parseInt(priceEdit.value));
+        } else {
+          nameDisp.style.display = 'none'; nameEdit.style.display = ''; nameEdit.dataset.orig = allShops[shopId][idx].preis;
+          priceDisp.style.display = 'none'; priceEdit.style.display = '';
+          btn.textContent = '💾 Save';
+          // Add cancel btn
+          const td = row.cells[2];
+          if (!td.querySelector('.cancel-btn')) {
+            const cancel = document.createElement('button');
+            cancel.className = 'se-btn se-btn-cancel cancel-btn';
+            cancel.textContent = '✕';
+            cancel.onclick = () => renderShop(shopId);
+            td.insertBefore(cancel, td.querySelector('.se-btn-del'));
+          }
+        }
+      }
+
+      async function saveEdit(shopId, idx, newName, origPreis, newPreis) {
+        const oldName = allShops[shopId][idx].name;
+        if (!newName || isNaN(newPreis) || newPreis < 1) return toast('Ungültige Eingabe', 'err');
+        const r = await fetch('/api/shop-manager', { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({token:TOKEN, action:'edit', shopId, oldName, name: newName, preis: newPreis}) });
+        const d = await r.json();
+        if (d.ok) { toast('✅ Gespeichert', 'ok'); allShops[shopId][idx] = {name: newName, preis: newPreis}; renderShop(shopId); }
+        else toast('❌ ' + (d.error||'Fehler'), 'err');
+      }
+
+      async function deleteItem(shopId, name) {
+        if (!confirm('Item "' + name + '" wirklich löschen?')) return;
+        const r = await fetch('/api/shop-manager', { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({token:TOKEN, action:'delete', shopId, name}) });
+        const d = await r.json();
+        if (d.ok) { toast('✅ Gelöscht', 'ok'); allShops[shopId] = allShops[shopId].filter(i => i.name !== name); renderShop(shopId); }
+        else toast('❌ ' + (d.error||'Fehler'), 'err');
+      }
+
+      function addRow(shopId) {
+        if (!rowIds[shopId]) rowIds[shopId] = 0;
+        const id = rowIds[shopId]++;
+        const container = document.getElementById('addrows-'+shopId);
+        const div = document.createElement('div');
+        div.className = 'se-row'; div.id = 'arow-'+shopId+'-'+id;
+        div.innerHTML = '<input type="text" placeholder="Item-Name" class="arow-name"><input type="number" placeholder="Preis" min="1" class="arow-price"><button class="se-row-del" onclick="this.parentElement.remove()">✕</button>';
+        container.appendChild(div);
+        div.querySelector('.arow-name').focus();
+      }
+
+      async function submitAdd(shopId) {
+        const rows = document.querySelectorAll('#addrows-'+shopId+' .se-row');
+        const items = []; let hasErr = false;
+        rows.forEach(r => {
+          const name = r.querySelector('.arow-name').value.trim();
+          const preis = parseInt(r.querySelector('.arow-price').value);
+          if (!name && isNaN(preis)) return;
+          if (!name || isNaN(preis) || preis < 1) { hasErr = true; return; }
+          items.push({name, preis});
+        });
+        if (hasErr) return toast('❌ Bitte alle Felder korrekt ausfüllen', 'err');
+        if (!items.length) return toast('❌ Mindestens ein Item eingeben', 'err');
+        const btn = document.getElementById('addbtn-'+shopId);
+        btn.disabled = true; btn.textContent = 'Speichern...';
+        const r = await fetch('/api/shop-manager', { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({token:TOKEN, action:'add', shopId, items}) });
+        const d = await r.json();
+        btn.disabled = false; btn.textContent = 'Items speichern';
+        if (d.ok) {
+          toast('✅ ' + d.count + ' Item(s) hinzugefügt' + (d.skipped ? ', ' + d.skipped + ' übersprungen' : ''), 'ok');
+          document.getElementById('addrows-'+shopId).innerHTML = '';
+          addRow(shopId);
+          await loadData();
+        } else toast('❌ ' + (d.error||'Fehler'), 'err');
+      }
+
+      function switchTab(shopId) {
+        document.querySelectorAll('.se-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.se-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-'+shopId).classList.add('active');
+        document.getElementById('panel-'+shopId).classList.add('active');
+      }
+
+      function toast(msg, type) {
+        const t = document.getElementById('t2');
+        t.textContent = msg; t.className = 'toast2 ' + type + ' show';
+        setTimeout(() => t.classList.remove('show'), 3500);
+      }
+
+      loadData();
+      </script>
+    `));
   });
 
   app.post('/api/shop-manager', express.json(), async (req, res) => {
-    const { token, shopId, items } = req.body || {};
-    if (!token || !shopId || !Array.isArray(items) || items.length === 0)
-      return res.json({ ok: false, error: 'Ungültige Anfrage' });
-
+    const { token, shopId, items, action, oldName, name, preis } = req.body || {};
+    if (!token) return res.json({ ok: false, error: 'Kein Token' });
     const toks = loadShopMgrToksW();
     const entry = toks[token];
-    if (!entry || entry.expiresAt < Date.now())
-      return res.json({ ok: false, error: 'Token abgelaufen' });
+    if (!entry || entry.expiresAt < Date.now()) return res.json({ ok: false, error: 'Token abgelaufen' });
 
     const VALID_SHOPS = ['kwik','baumarkt','angler','schwarz','team'];
-    if (!VALID_SHOPS.includes(shopId))
-      return res.json({ ok: false, error: 'Unbekannter Shop' });
-
     const shops = loadShopsW();
-    if (!shops[shopId]) shops[shopId] = [];
-    let added = 0;
-    const skipped = [];
-    for (const { name, preis } of items) {
-      if (!name || typeof name !== 'string' || !Number.isInteger(preis) || preis < 1) continue;
-      const cleanName = name.trim().slice(0, 80);
-      if (shops[shopId].find(i => i.name.toLowerCase() === cleanName.toLowerCase())) {
-        skipped.push(cleanName); continue;
-      }
-      shops[shopId].push({ name: cleanName, preis }); added++;
-    }
-    saveShopsW(shops);
 
-    // Shop-Embed aktualisieren (falls Callback verfügbar)
-    if (typeof shopCb.updateShopEmbed === 'function') {
-      shopCb.updateShopEmbed(shopId).catch(() => {});
+    // ── list ─────────────────────────────────────────────────────────────────
+    if (action === 'list') {
+      const data = {};
+      for (const s of VALID_SHOPS) data[s] = shops[s] || [];
+      return res.json({ ok: true, shops: data });
     }
 
-    // Discord-Log
-    try {
-      const LOG_CH = '1490878131240829028';
-      const ch = await client.channels.fetch(LOG_CH).catch(() => null);
-      if (ch) {
-        const { EmbedBuilder } = require('discord.js');
-        const SHOP_NAMES = { kwik:'Kwik-E-Markt', baumarkt:'Baumarkt', angler:'Angler Shop', schwarz:'Schwarzmarkt', team:'Team-Shop' };
-        const itemList = items.slice(0,15).map(i => `**${i.name}** — ${Number(i.preis).toLocaleString('de-DE')} $`).join('\n');
-        await ch.send({ embeds: [new EmbedBuilder()
-          .setColor(0xE65100)
-          .setTitle('🏪 Shop-Manager: Items hinzugefügt')
-          .addFields(
-            { name: 'Shop',  value: SHOP_NAMES[shopId] || shopId, inline: true },
-            { name: 'Hinzugefügt', value: String(added), inline: true },
-            { name: 'Übersprungen', value: skipped.length > 0 ? skipped.join(', ') : '—', inline: true },
-            { name: 'Von', value: entry.userTag, inline: false },
-            { name: 'Items', value: itemList || '—', inline: false }
-          )
-        ]});
+    // ── add ──────────────────────────────────────────────────────────────────
+    if (action === 'add') {
+      if (!shopId || !VALID_SHOPS.includes(shopId) || !Array.isArray(items) || !items.length)
+        return res.json({ ok: false, error: 'Ungültige Anfrage' });
+      if (!shops[shopId]) shops[shopId] = [];
+      let added = 0, skipped = 0;
+      for (const { name: n, preis: p } of items) {
+        if (!n || typeof n !== 'string' || !Number.isInteger(p) || p < 1) continue;
+        const clean = n.trim().slice(0, 80);
+        if (shops[shopId].find(i => i.name.toLowerCase() === clean.toLowerCase())) { skipped++; continue; }
+        shops[shopId].push({ name: clean, preis: p }); added++;
       }
-    } catch(e) { console.error('[SHOP-MGR LOG]', e.message); }
+      saveShopsW(shops);
+      if (typeof shopCb.updateShopEmbed === 'function') shopCb.updateShopEmbed(shopId).catch(()=>{});
+      _logShopAction(client, entry.userTag, action, shopId, added + ' hinzugefügt' + (skipped ? ', ' + skipped + ' übersprungen' : ''));
+      return res.json({ ok: true, count: added, skipped });
+    }
 
-    return res.json({ ok: true, count: added, skipped: skipped.length });
+    // ── edit ─────────────────────────────────────────────────────────────────
+    if (action === 'edit') {
+      if (!shopId || !VALID_SHOPS.includes(shopId) || !oldName || !name || !Number.isInteger(preis) || preis < 1)
+        return res.json({ ok: false, error: 'Ungültige Anfrage' });
+      if (!shops[shopId]) return res.json({ ok: false, error: 'Shop nicht gefunden' });
+      const itemIdx = shops[shopId].findIndex(i => i.name === oldName);
+      if (itemIdx < 0) return res.json({ ok: false, error: 'Item nicht gefunden' });
+      // Check name conflict (if name changed)
+      if (name !== oldName && shops[shopId].find(i => i.name.toLowerCase() === name.trim().toLowerCase()))
+        return res.json({ ok: false, error: 'Ein Item mit diesem Namen existiert bereits' });
+      shops[shopId][itemIdx] = { name: name.trim().slice(0, 80), preis };
+      saveShopsW(shops);
+      if (typeof shopCb.updateShopEmbed === 'function') shopCb.updateShopEmbed(shopId).catch(()=>{});
+      _logShopAction(client, entry.userTag, action, shopId, oldName + ' → ' + name + ' (' + preis + ' $)');
+      return res.json({ ok: true });
+    }
+
+    // ── delete ────────────────────────────────────────────────────────────────
+    if (action === 'delete') {
+      if (!shopId || !VALID_SHOPS.includes(shopId) || !name)
+        return res.json({ ok: false, error: 'Ungültige Anfrage' });
+      if (!shops[shopId]) return res.json({ ok: false, error: 'Shop nicht gefunden' });
+      const before = shops[shopId].length;
+      shops[shopId] = shops[shopId].filter(i => i.name !== name);
+      if (shops[shopId].length === before) return res.json({ ok: false, error: 'Item nicht gefunden' });
+      saveShopsW(shops);
+      if (typeof shopCb.updateShopEmbed === 'function') shopCb.updateShopEmbed(shopId).catch(()=>{});
+      _logShopAction(client, entry.userTag, action, shopId, name + ' gelöscht');
+      return res.json({ ok: true });
+    }
+
+    return res.json({ ok: false, error: 'Unbekannte Aktion' });
   });
+
+  function _logShopAction(client, userTag, action, shopId, detail) {
+    try {
+      const { EmbedBuilder } = require('discord.js');
+      const SHOP_NAMES = { kwik:'Kwik-E-Markt', baumarkt:'Baumarkt', angler:'Angler Shop', schwarz:'Schwarzmarkt', team:'Team-Shop' };
+      const actionLabels = { add:'➕ Items hinzugefügt', edit:'✏️ Item bearbeitet', delete:'🗑️ Item gelöscht' };
+      const LOG_CH = '1490878131240829028';
+      client.channels.fetch(LOG_CH).then(ch => {
+        if (!ch) return;
+        ch.send({ embeds: [new EmbedBuilder().setColor(0xE65100)
+          .setTitle('🏪 Shop-Editor: ' + (actionLabels[action]||action))
+          .addFields(
+            { name: 'Shop', value: SHOP_NAMES[shopId]||shopId, inline: true },
+            { name: 'Von', value: userTag, inline: true },
+            { name: 'Detail', value: detail, inline: false }
+          )]}).catch(()=>{});
+      }).catch(()=>{});
+    } catch {}
+  }
   // ─── AKTIEN SYSTEM ──────────────────────────────────────────────────────────
   require('./aktien_web')(app, express, DATA_DIR);
   // ─── END AKTIEN SYSTEM ────────────────────────────────────────────────────
