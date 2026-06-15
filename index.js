@@ -7914,10 +7914,10 @@ client.on('messageCreate', async (msg) => {
   if (!msg.content.startsWith('!')) return;
   msg.delete().catch(() => {});
   try {
-    await msg.author.send(
-      'Wir nutzen auf diesem Server nur /commands\n' +
-      'Eine Übersicht dazu findest du im Channel <#1491624319598460958>'
+    const warn = await msg.channel.send(
+      `<@${msg.author.id}> Wir nutzen auf diesem Server nur /commands\nEine Übersicht dazu findest du im Channel <#1491624319598460958>`
     );
+    setTimeout(() => warn.delete().catch(() => {}), 8000);
   } catch { }
 });
 
