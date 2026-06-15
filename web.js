@@ -2503,6 +2503,59 @@ function goBack() {
 
   // ── GET /einreise/gruppe ──────────────────────────────────────────────────
   app.get('/einreise/gruppe', (req, res) => {
+    // Kein Mode angegeben → Auswahl-Seite anzeigen
+    if (!req.query.mode) {
+      return res.send(`<!DOCTYPE html><html lang="de"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gruppeneinreise — Paradise City Roleplay</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;min-height:100vh}
+.wrap{max-width:680px;margin:0 auto;padding:0 16px 60px}
+.authority{text-align:center;background:linear-gradient(135deg,#bf360c,#e65100);padding:26px 20px 22px;border-radius:14px 14px 0 0;margin-top:20px}
+.authority .seal{font-size:2.4em;margin-bottom:6px}
+.authority h1{color:#fff;font-size:1.05em;letter-spacing:3px;text-transform:uppercase;font-weight:700}
+.authority h2{color:#ffd180;font-size:.82em;letter-spacing:1px;margin-top:4px;font-weight:400}
+.card{background:#161b22;border:1px solid #30363d;border-top:none;border-radius:0 0 14px 14px;padding:28px}
+.section-title{color:#ffd180;font-size:.78em;letter-spacing:2px;text-transform:uppercase;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:#e65100;opacity:.35}
+.select-grid{display:grid;gap:14px}
+.select-card{background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:20px;cursor:pointer;transition:all .25s;color:inherit;user-select:none;display:block;text-decoration:none}
+.select-card:hover{border-color:#e65100;background:#1a1f2b;transform:translateY(-2px)}
+.sc-icon{font-size:1.8em;margin-bottom:8px}
+.sc-title{font-size:1em;font-weight:700;color:#fff;margin-bottom:4px}
+.sc-desc{font-size:.8em;color:#8b949e;line-height:1.5}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:#8b949e;font-size:.82em;text-decoration:none;border:1px solid #30363d;border-radius:6px;padding:5px 12px;transition:all .2s;margin:10px 0 0}
+.back-link:hover{border-color:#e65100;color:#e65100}
+.foot{text-align:center;padding:28px 0 0;font-size:.7rem;color:#2a2a2a;letter-spacing:.03em}
+</style></head><body>
+<div class="wrap">
+  <div class="authority">
+    <div class="seal">🏛️</div>
+    <h1>Los Angeles Einwohner Melde Amt</h1>
+    <h2>Gruppeneinreise — Bitte wähle den Einreisestatus</h2>
+  </div>
+  <div class="card">
+    <p class="section-title">Einreisestatus der Gruppe wählen</p>
+    <div class="select-grid">
+      <a class="select-card" href="/einreise/gruppe?mode=legal">
+        <div class="sc-icon">🟢</div>
+        <div class="sc-title">Legale Gruppeneinreise</div>
+        <div class="sc-desc">Alle Mitglieder reisen offiziell ein. Jeder erhält einen Ausweis, darf staatliche Jobs ausführen und startet mit 5.000 $ auf dem Konto.</div>
+      </a>
+      <a class="select-card" href="/einreise/gruppe?mode=illegal">
+        <div class="sc-icon">🔴</div>
+        <div class="sc-title">Illegale Gruppeneinreise</div>
+        <div class="sc-desc">Alle Mitglieder reisen ohne Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Jeder startet mit 5.000 $ Schwarzgeld.</div>
+      </a>
+    </div>
+    <a href="/einreise" class="back-link">← Zurück zur Einreise-Übersicht</a>
+  </div>
+  <div class="foot">Bereitgestellt durch Inhaber von Paradise City Roleplay PS5</div>
+</div>
+</body></html>`);
+    }
+
     const mode = req.query.mode === 'illegal' ? 'illegal' : 'legal';
     const isLegal = mode === 'legal';
 
