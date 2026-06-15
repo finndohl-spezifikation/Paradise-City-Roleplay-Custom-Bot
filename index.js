@@ -4171,7 +4171,6 @@ client.on('interactionCreate', async (interaction) => {
           const choices = (shops.team||[]).filter(i => i.name.toLowerCase().includes(focused)).slice(0,25).map(i => ({name:i.name,value:i.name}));
           return interaction.respond(choices);
         }
-        }
         return interaction.respond([]);
     }
 
@@ -5214,13 +5213,6 @@ client.on('interactionCreate', async (interaction) => {
         } catch (e) {
           return interaction.reply({ content: '❌ DM konnte nicht gesendet werden. Bitte aktiviere DMs von Servermitgliedern.', ephemeral: true });
         }
-      }
-        saveShops(shops); await updateShopEmbed(shopId).catch(() => {});
-        sendLog(LOG_SHOP_CH, new EmbedBuilder().setColor(0xE65100)
-          .setTitle('🏪 Shop-Log: Item gelöscht')
-          .addFields({ name:'Shop', value:SHOP_META[shopId]?.name||shopId, inline:true },{ name:'Item', value:name, inline:true },{ name:'Von', value:`<@${interaction.user.id}>` })
-          ).catch(()=>{});
-        return interaction.reply({ content: '✅ **' + name + '** entfernt.', ephemeral: true });
       }
   
         // ─── MONEY-ADD ──────────────────────────────────────────────────────────
