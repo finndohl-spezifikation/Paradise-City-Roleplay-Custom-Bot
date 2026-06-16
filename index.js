@@ -8748,8 +8748,11 @@ client.once('ready', async () => {
       );
     const old = await ch.messages.fetch({ limit: 20 }).catch(() => null);
     if (old) for (const [, m] of old) { if (m.author.id === client.user.id) await m.delete().catch(() => {}); }
+    const kuerbisImgPath = path.join(__dirname, 'assets', 'kuerbis.png');
+    if (fs.existsSync(kuerbisImgPath)) embed.setImage('attachment://kuerbis.png');
     await ch.send({
       embeds: [embed],
+      files: fs.existsSync(kuerbisImgPath) ? [{ attachment: kuerbisImgPath, name: 'kuerbis.png' }] : [],
       components: [new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('kuerbis_verkaufen').setLabel('💰 Kürbisse Verkaufen').setStyle(ButtonStyle.Success)
       )]
