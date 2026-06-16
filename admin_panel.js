@@ -150,47 +150,25 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       } catch (e) { console.error('[ADMIN] ban-check', e.message); }
     }, 60000);
 
-    // ─── Ankündigungs-Embed: alte Nachricht löschen + neues leeres Embed senden ─
-    const announcedFile = f('admin_panel_announced_v3.json');
-    if (!fs.existsSync(announcedFile)) {
-      setTimeout(async () => {
-        try {
-          const domain = process.env.RAILWAY_PUBLIC_DOMAIN
-            || 'paradise-city-roleplay-custom-bot-production.up.railway.app';
-          const url = `https://${domain}/admin-panel`;
-
-          // Alte Nachrichten aus alten Channels löschen
-          for (const oldChId of ['1491789518603419825', '1516408912172286074']) {
-            try {
-              const oldCh = await client.channels.fetch(oldChId).catch(() => null);
-              if (!oldCh || !oldCh.messages) continue;
-              const msgs = await oldCh.messages.fetch({ limit: 50 });
-              for (const [, msg] of msgs) {
-                if (msg.author.id === client.user?.id &&
-                    (msg.embeds?.some(e => e.title?.includes('Admin Dashboard') || e.url?.includes('admin-panel'))
-                     || msg.components?.length > 0 && msg.embeds?.length > 0)) {
-                  await msg.delete().catch(() => {});
-                }
-              }
-            } catch (e) { console.error('[ADMIN-PANEL] delete old ch', oldChId, e.message); }
-          }
-
-          // Neues leeres Embed (nur Farbe) + Button in neuem Channel senden
-          const ch = await client.channels.fetch('1516408912172286074');
-          if (!ch || !ch.send) return;
-          const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setLabel('Admin-Panel öffnen')
-              .setURL(url)
-              .setStyle(ButtonStyle.Link)
-              .setEmoji('🛠️')
-          );
-          await ch.send({ embeds: [new EmbedBuilder().setColor(0xe65100)], components: [row] });
-          fs.writeFileSync(announcedFile, JSON.stringify({ sent: Date.now() }), 'utf8');
-          console.log('[ADMIN-PANEL] Neues Embed gesendet.');
-        } catch (e) { console.error('[ADMIN-PANEL] Embed-Fehler:', e.message); }
-      }, 5000);
-    }
+    // ─── Embed bei jedem Bot-Neustart senden ─────────────────────────────────
+    setTimeout(async () => {
+      try {
+        const domain = process.env.RAILWAY_PUBLIC_DOMAIN
+          || 'paradise-city-roleplay-custom-bot-production.up.railway.app';
+        const url = `https://${domain}/admin-panel`;
+        const ch = await client.channels.fetch('1516408912172286074');
+        if (!ch || !ch.send) return;
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setLabel('Admin-Panel öffnen')
+            .setURL(url)
+            .setStyle(ButtonStyle.Link)
+            .setEmoji('🛠️')
+        );
+        await ch.send({ embeds: [new EmbedBuilder().setColor(0xe65100)], components: [row] });
+        console.log('[ADMIN-PANEL] Embed gesendet.');
+      } catch (e) { console.error('[ADMIN-PANEL] Embed-Fehler:', e.message); }
+    }, 5000);
   }
 
   // ─── Auth-Middleware ─────────────────────────────────────────────────────────
