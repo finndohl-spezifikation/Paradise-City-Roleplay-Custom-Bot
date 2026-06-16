@@ -15,7 +15,6 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   const ADMIN_ROLE     = '1490855702225485936'; // Diese Rolle wird zum Einloggen benötigt
   const INV_ROLE       = '1490855722534310003'; // Spieler mit dieser Rolle erscheinen in Inventar & Bank
   const VERIFY_ROLE    = '1490855725516460234'; // Verifizierungs-Rolle (Einreise)
-  const ADMIN_PASSWORD = 'Admin69';
 
   const LOGS = {
     server:  { id: '1490878131240829028', label: 'Server Log' },
@@ -172,20 +171,6 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   }
 
   // ─── Auth-Middleware ─────────────────────────────────────────────────────────
-  function requireAuth(req, res, next) {
-    if (!req.session || !req.session.pcAdmin) return res.status(401).json({ error: 'Nicht angemeldet' });
-    // CSRF-Schutz: verändernde Anfragen müssen von der eigenen Domain kommen
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      const src = req.headers.origin || req.headers.referer;
-      if (src) {
-        try {
-          if (new URL(src).host !== req.headers.host) return res.status(403).json({ error: 'Ungültige Herkunft.' });
-        } catch { return res.status(403).json({ error: 'Ungültige Herkunft.' }); }
-      }
-    }
-    return next();
-  }
-
   // Prüft, ob der Ziel-Spieler die Inventar-/Bank-Rolle besitzt (nur diese dürfen verwaltet werden)
   async function targetHasInvRole(userId) {
     const m = await getMember(userId);
@@ -203,43 +188,12 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     return [...set].sort((a, b) => a.localeCompare(b, 'de'));
   }
 
-  // ═════════════════════════════════════════════════════════════════════════════
-  //  LOGIN
-  // ═════════════════════════════════════════════════════════════════════════════
-  app.post('/admin-panel/login', async (req, res) => {
-    try {
-      const discordId = (req.body.discordId || '').trim().replace(/\D/g, '');
-      const password  = (req.body.password || '').trim();
-      if (!discordId || !password) return res.status(400).json({ error: 'Discord-ID und Passwort erforderlich.' });
-      if (!/^\d{17,20}$/.test(discordId)) return res.status(400).json({ error: 'Ungültige Discord-ID (nur Zahlen, 17-20 Stellen).' });
-      if (password !== ADMIN_PASSWORD) return res.status(403).json({ error: 'Falsches Passwort.' });
-
-      // Member direkt per ID laden (muss auf dem Server sein)
-      const g2 = await fetchGuild();
-      if (!g2) return res.status(500).json({ error: 'Server-Verbindung fehlgeschlagen.' });
-      let match;
-      try { match = await g2.members.fetch({ user: discordId, force: true }); } catch {
-        return res.status(403).json({ error: 'Discord-ID nicht auf dem Server gefunden.' });
-      }
-      req.session.pcAdmin = { id: match.id, username: match.user.username, name: serverName(match), ts: Date.now() };
-      return res.json({ ok: true, name: serverName(match) });
-    } catch (e) {
-      console.error('[ADMIN] login', e.message);
-      return res.status(500).json({ error: 'Interner Fehler beim Login.' });
-    }
-  });
-
-  app.post('/admin-panel/logout', (req, res) => {
-    if (req.session) req.session.pcAdmin = null;
-    res.json({ ok: true });
-  });
-
-  app.get('/admin-panel/api/me', requireAuth, (req, res) => res.json(req.session.pcAdmin));
+  app.get('/admin-panel/api/me', (req, res) => res.json({ name: 'Admin', username: 'admin' }));
 
   // ═════════════════════════════════════════════════════════════════════════════
   //  ÜBERSICHT / SERVER STATS
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin-panel/api/overview', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/overview', async (req, res) => {
     try {
       const members = await allMembers();
       let verified = 0, invPlayers = 0;
@@ -258,7 +212,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get('/admin-panel/api/stats', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/stats', async (req, res) => {
     try {
       const ev = loadEvents();
       const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
@@ -284,7 +238,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  VERIFIZIERTE SPIELER
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin-panel/api/verified', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/verified', async (req, res) => {
     try {
       const members = await allMembers();
       const ausweis = loadAusweis();
@@ -307,7 +261,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get('/admin-panel/api/player/:id', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/player/:id', async (req, res) => {
     try {
       const m = await getMember(req.params.id);
       if (!m) return res.status(404).json({ error: 'Spieler nicht auf dem Server.' });
@@ -328,7 +282,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   });
 
   // ─── BANNEN ──────────────────────────────────────────────────────────────────
-  app.post('/admin-panel/api/ban', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/ban', async (req, res) => {
     try {
       const { userId, durationMs, reason } = req.body;
       const grund = (reason || '').trim();
@@ -358,7 +312,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       });
 
       const bans = loadBans();
-      bans[userId] = { reason: grund, until, by: req.session.pcAdmin.username, at: Date.now() };
+      bans[userId] = { reason: grund, until, by: 'admin', at: Date.now() };
       saveBans(bans);
 
       await logTo(MOD_LOG_CH, new EmbedBuilder()
@@ -367,7 +321,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
           { name: 'Spieler', value: `<@${userId}>`, inline: true },
           { name: 'Dauer', value: durLabel, inline: true },
           { name: 'Grund', value: grund },
-          { name: 'Von', value: req.session.pcAdmin.name },
+          { name: 'Von', value: 'Dashboard-Admin' },
         ).setTimestamp());
 
       res.json({ ok: true });
@@ -378,7 +332,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   });
 
   // ─── TIMEOUT ──────────────────────────────────────────────────────────────────
-  app.post('/admin-panel/api/timeout', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/timeout', async (req, res) => {
     try {
       const { userId, durationMs, reason } = req.body;
       const grund = (reason || '').trim();
@@ -408,7 +362,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
           { name: 'Spieler', value: `<@${userId}>`, inline: true },
           { name: 'Dauer', value: humanDur(ms), inline: true },
           { name: 'Grund', value: grund },
-          { name: 'Von', value: req.session.pcAdmin.name },
+          { name: 'Von', value: 'Dashboard-Admin' },
         ).setTimestamp());
 
       res.json({ ok: true });
@@ -424,7 +378,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  GEBANNTE SPIELER
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin-panel/api/bans', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/bans', async (req, res) => {
     try {
       const g = await fetchGuild();
       const stored = loadBans();
@@ -451,18 +405,18 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post('/admin-panel/api/unban', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/unban', async (req, res) => {
     try {
       const { userId } = req.body;
       if (!userId) return res.status(400).json({ error: 'Kein Spieler ausgewählt.' });
       const g = await fetchGuild();
       if (!g) return res.status(500).json({ error: 'Server nicht erreichbar.' });
-      await g.bans.remove(userId, 'Entbannt über Dashboard von ' + req.session.pcAdmin.name);
+      await g.bans.remove(userId, 'Entbannt über Dashboard');
       const bans = loadBans(); delete bans[userId]; saveBans(bans);
       await dmUser(userId, new EmbedBuilder().setColor(0x2ecc71).setTitle('✅ Du wurdest entbannt')
         .setDescription('Du wurdest auf **Paradise City Roleplay** wieder entbannt und kannst dem Server erneut beitreten.').setTimestamp());
       await logTo(MOD_LOG_CH, new EmbedBuilder().setColor(0x2ecc71).setTitle('✅ Spieler entbannt (Dashboard)')
-        .addFields({ name: 'Spieler', value: `<@${userId}>`, inline: true }, { name: 'Von', value: req.session.pcAdmin.name }).setTimestamp());
+        .addFields({ name: 'Spieler', value: `<@${userId}>`, inline: true }, { name: 'Von', value: 'Dashboard-Admin' }).setTimestamp());
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ error: 'Entbannen fehlgeschlagen: ' + e.message });
@@ -472,7 +426,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  INVENTAR & BANK
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin-panel/api/economy', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/economy', async (req, res) => {
     try {
       const members = await allMembers();
       const bargeld = loadBargeld(), konto = loadKonto(), krypto = loadKrypto(), inv = loadInventar();
@@ -497,9 +451,9 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get('/admin-panel/api/items', requireAuth, (req, res) => res.json(itemRegistry()));
+  app.get('/admin-panel/api/items', (req, res) => res.json(itemRegistry()));
 
-  app.post('/admin-panel/api/money', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/money', async (req, res) => {
     try {
       const { userId, type, action, amount } = req.body;
       const amt = Math.abs(Math.floor(Number(amount) || 0));
@@ -525,13 +479,13 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
           { name: 'Spieler', value: `<@${userId}>`, inline: true },
           { name: 'Typ', value: typLabel, inline: true },
           { name: 'Betrag', value: (sign > 0 ? '+' : '-') + amt.toLocaleString('de-CH'), inline: true },
-          { name: 'Von', value: req.session.pcAdmin.name },
+          { name: 'Von', value: 'Dashboard-Admin' },
         ).setTimestamp());
       res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post('/admin-panel/api/item', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/item', async (req, res) => {
     try {
       const { userId, action, item, amount } = req.body;
       const amt = Math.abs(Math.floor(Number(amount) || 1)) || 1;
@@ -557,7 +511,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  SHOPS
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin-panel/api/shops', requireAuth, (req, res) => {
+  app.get('/admin-panel/api/shops', (req, res) => {
     const shops = loadShops();
     const out = {};
     for (const [id, items] of Object.entries(shops)) {
@@ -566,7 +520,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     res.json(out);
   });
 
-  app.post('/admin-panel/api/shop/item/add', requireAuth, (req, res) => {
+  app.post('/admin-panel/api/shop/item/add', (req, res) => {
     try {
       const { shop, name, preis } = req.body;
       const n = (name || '').trim();
@@ -580,7 +534,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post('/admin-panel/api/shop/item/edit', requireAuth, (req, res) => {
+  app.post('/admin-panel/api/shop/item/edit', (req, res) => {
     try {
       const { shop, index, name, preis, moveTo } = req.body;
       const shops = loadShops();
@@ -600,7 +554,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post('/admin-panel/api/shop/item/delete', requireAuth, (req, res) => {
+  app.post('/admin-panel/api/shop/item/delete', (req, res) => {
     try {
       const { shop, index } = req.body;
       const shops = loadShops();
@@ -614,12 +568,12 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  AKTUELLE RAUBÜBERFÄLLE
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin-panel/api/raids', requireAuth, (req, res) => {
+  app.get('/admin-panel/api/raids', (req, res) => {
     const raids = loadRaub().filter(r => r.status === 'offen').sort((a, b) => (b.ts || 0) - (a.ts || 0));
     res.json(raids);
   });
 
-  app.post('/admin-panel/api/raids/fail', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/raids/fail', async (req, res) => {
     try {
       const { id } = req.body;
       const raids = loadRaub();
@@ -657,7 +611,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     }));
   }
 
-  app.get('/admin-panel/api/logs/:type', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/logs/:type', async (req, res) => {
     try {
       const cfg = LOGS[req.params.type];
       if (!cfg) return res.status(404).json({ error: 'Unbekannte Log-Kategorie.' });
@@ -666,14 +620,14 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get('/admin-panel/api/logs', requireAuth, (req, res) => {
+  app.get('/admin-panel/api/logs', (req, res) => {
     res.json(Object.entries(LOGS).map(([k, v]) => ({ key: k, label: v.label })));
   });
 
   // ═════════════════════════════════════════════════════════════════════════════
   //  MOD SYSTEM
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin-panel/api/mod', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/mod', async (req, res) => {
     try {
       const modLog = await fetchChannelLog(MOD_LOG_CH, 30);
       const inviteLog = await fetchChannelLog(INVITE_LOG, 20);
@@ -681,7 +635,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post('/admin-panel/api/sanction', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/sanction', async (req, res) => {
     try {
       const { userId, action, durationMs, reason } = req.body;
       const grund = (reason || '').trim() || 'Verdächtiges Verhalten';
@@ -696,7 +650,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       } else if (action === 'ban') {
         await dmUser(userId, new EmbedBuilder().setColor(0xc0392b).setTitle('🔨 Du wurdest gebannt').addFields({ name: 'Grund', value: grund }).setTimestamp());
         await g.bans.create(userId, { reason: grund });
-        const bans = loadBans(); bans[userId] = { reason: grund, until: null, by: req.session.pcAdmin.username, at: Date.now() }; saveBans(bans);
+        const bans = loadBans(); bans[userId] = { reason: grund, until: null, by: 'admin', at: Date.now() }; saveBans(bans);
       } else { // timeout
         const ms = Math.min(Number(durationMs) || 3600000, 28 * 24 * 60 * 60 * 1000);
         const m = await getMember(userId); if (!m) return res.status(404).json({ error: 'Spieler nicht gefunden.' });
@@ -704,7 +658,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
         await dmUser(userId, new EmbedBuilder().setColor(0xe67e22).setTitle('🔇 Timeout erhalten').addFields({ name: 'Grund', value: grund }, { name: 'Dauer', value: humanDur(ms), inline: true }).setTimestamp());
       }
       await logTo(MOD_LOG_CH, new EmbedBuilder().setColor(0x8e44ad).setTitle('🛡️ Sanktion (Mod-System)')
-        .addFields({ name: 'Spieler', value: `<@${userId}>`, inline: true }, { name: 'Aktion', value: action, inline: true }, { name: 'Grund', value: grund }, { name: 'Von', value: req.session.pcAdmin.name }).setTimestamp());
+        .addFields({ name: 'Spieler', value: `<@${userId}>`, inline: true }, { name: 'Aktion', value: action, inline: true }, { name: 'Grund', value: grund }, { name: 'Von', value: 'Dashboard-Admin' }).setTimestamp());
       res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: 'Sanktion fehlgeschlagen: ' + e.message }); }
   });
@@ -725,7 +679,6 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   app.get('/admin-panel', (req, res) => {
     res.set('Content-Type', 'text/html; charset=utf-8');
-    if (!req.session || !req.session.pcAdmin) return res.send(LOGIN_HTML);
     res.send(DASH_HTML);
   });
 
@@ -911,7 +864,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
     <a id="logtoggle"><span class="ic">📋</span> Logs <span style="margin-left:auto;font-size:.8em" id="logarrow">▸</span></a>
     <div class="sub" id="logsub"></div>
   </div>
-  <div class="usr"><div><div class="nm" id="uname">—</div><div class="rl">Administrator</div></div><button onclick="logout()">Abmelden</button></div>
+  <div class="usr"><div><div class="nm" id="uname">Admin</div><div class="rl">Administrator</div></div></div>
 </div>
 
 <div class="main">
@@ -947,10 +900,10 @@ function fmtNum(n){ return (Number(n)||0).toLocaleString('de-CH'); }
 function fmtTs(t){ if(!t) return '—'; var d=new Date(t); return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
 function ago(t){ var s=Math.floor((Date.now()-t)/1000); if(s<60)return s+'s'; if(s<3600)return Math.floor(s/60)+'min'; if(s<86400)return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d'; }
 
-async function api(p,opts){ var r=await fetch('/admin-panel/api'+p,opts); if(r.status===401){location.href='/admin-panel';throw new Error('auth');} var d=await r.json(); if(!r.ok) throw new Error(d.error||'Fehler'); return d; }
+async function api(p,opts){ var r=await fetch('/admin-panel/api'+p,opts); var d=await r.json(); if(!r.ok) throw new Error(d.error||'Fehler'); return d; }
 async function post(p,body){ return api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); }
 function toast(msg,isErr){ var t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(isErr?' err':''); setTimeout(function(){t.className='toast'+(isErr?' err':'');},3200); }
-function logout(){ fetch('/admin-panel/logout',{method:'POST'}).then(function(){location.href='/admin-panel';}); }
+
 function openModal(html){ document.getElementById('modal').innerHTML=html; document.getElementById('overlay').className='overlay show'; }
 function closeModal(){ document.getElementById('overlay').className='overlay'; }
 document.getElementById('overlay').addEventListener('click',function(e){ if(e.target.id==='overlay') closeModal(); });
