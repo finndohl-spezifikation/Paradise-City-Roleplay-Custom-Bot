@@ -42,28 +42,31 @@ module.exports = function registerAktienRoutes(app, express, DATA_DIR) {
   // ── GET /aktien ────────────────────────────────────────────────────────────
   // Public: no token required → read-only view
   // Private: valid token → full trading UI
+  // ?stock=ID: only show that single stock
   app.get('/aktien', (req, res) => {
-    const token = req.query.token || '';
-    const entry = validateToken(token);
-    const stocks = getStocks();
+    const token     = req.query.token || '';
+    const focusId   = req.query.stock  || '';
+    const entry     = validateToken(token);
+    let   stocks    = getStocks();
+    if (focusId) stocks = stocks.filter(s => s.id === focusId);
 
     if (!entry) {
-      // Public read-only mode
-      return res.send(buildPage('', stocks, {}, 0, false));
+      return res.send(buildPage('', focusId, stocks, {}, 0, false));
     }
 
-    // Authenticated trading mode
     const portfolio = loadPortfolioW();
     const konto     = getKontoAK(entry.userId);
-    return res.send(buildPage(token, stocks, portfolio[entry.userId] || {}, konto.konto || 0, true));
+    return res.send(buildPage(token, focusId, stocks, portfolio[entry.userId] || {}, konto.konto || 0, true));
   });
 
   // ── GET /api/aktien/data ───────────────────────────────────────────────────
   // Public: returns stock data without portfolio/balance
   app.get('/api/aktien/data', (req, res) => {
-    const token = req.query.token || '';
-    const entry = validateToken(token);
-    const stocks = getStocks();
+    const token   = req.query.token || '';
+    const focusId = req.query.stock || '';
+    const entry   = validateToken(token);
+    let   stocks  = getStocks();
+    if (focusId) stocks = stocks.filter(s => s.id === focusId);
     if (!entry) {
       return res.json({ ok:true, loggedIn:false, stocks });
     }
@@ -120,17 +123,18 @@ module.exports = function registerAktienRoutes(app, express, DATA_DIR) {
 };
 
 // ── Page builder ─────────────────────────────────────────────────────────────
-function buildPage(token, stocks, portfolio, balance, loggedIn) {
-  const sj  = JSON.stringify(stocks);
-  const pj  = JSON.stringify(portfolio);
-  const bal = Number(balance)||0;
-  const lg  = !!loggedIn;
+function buildPage(token, focusId, stocks, portfolio, balance, loggedIn) {
+  const sj      = JSON.stringify(stocks);
+  const pj      = JSON.stringify(portfolio);
+  const bal     = Number(balance)||0;
+  const lg      = !!loggedIn;
+  const focusMeta = focusId && stocks.length === 1 ? stocks[0] : null;
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Paradise City — Aktienmarkt</title>
+<title>${focusMeta ? focusMeta.emoji + ' ' + focusMeta.name + ' — Aktienmarkt' : 'Paradise City — Aktienmarkt'}</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}

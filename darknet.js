@@ -159,7 +159,7 @@ module.exports = function initDarknet(app, DATA_DIR, client, darknetTokens) {
     res.json({ ok: true });
   });
 
-  app.post('/api/darknet/market/:id/buy', (req, res) => {
+  app.post('/api/darknet/market/:id/buy', express.json(), (req, res) => {
     const uid = resolveUser(req);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
     const market = loadMarket();
@@ -396,9 +396,9 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 }
 </style>`;
 
-  const DN_SCRIPTS = `
+  const DN_SCRIPTS_TPL = (injectedToken) => `
 <script>
-const TOKEN = new URLSearchParams(location.search).get('dc') || '';
+const TOKEN = ${JSON.stringify(injectedToken || '')};
 async function apiFetch(url, opts={}) {
   const sep = url.includes('?') ? '&' : '?';
   const r = await fetch(url + sep + 'dc=' + TOKEN, opts);
@@ -487,14 +487,14 @@ function typeText(el, text, speed=18) {
 <title>${title} — DARKNET</title>
 ${DN_CSS}
 </head><body>
-${DN_SCRIPTS}
+${DN_SCRIPTS_TPL(token)}
 <div class="matrix-rain"></div>
 ${dnHeader(active, token)}
 <div class="dn-wrap">
 ${body}
 </div>
 ${DN_WALLET_BAR}
-<script>if(TOKEN) refreshWallet();</script>
+<script>refreshWallet();</script>
 </body></html>`;
   }
 
@@ -707,7 +707,6 @@ function toggleCreate() {
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
 }
 function requireToken() {
-  if (!TOKEN) { alert('Du musst dich zuerst einloggen — nutze den Discord-Button um das Darknet zu betreten.'); return false; }
   return true;
 }
 async function createItem() {

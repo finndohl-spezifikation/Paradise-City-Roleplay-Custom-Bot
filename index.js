@@ -7654,7 +7654,8 @@ client.on('interactionCreate', async (interaction) => {
   toks[tok] = { userId: interaction.user.id, userTag: interaction.user.tag, createdAt: Date.now(), expiresAt: Date.now() + 4 * 60 * 60 * 1000 };
   saveAktienToks(toks);
 
-  const aktienUrl = `${WEBAPP_URL_AH}/aktien?token=${tok}`;
+  const stockId2 = interaction.customId.split(':')[1] || '';
+  const aktienUrl = `${WEBAPP_URL_AH}/aktien?token=${tok}${stockId2 ? '&stock=' + stockId2 : ''}`;
   const linkBtn = new ButtonBuilder()
     .setLabel('🌐 Jetzt öffnen')
     .setStyle(ButtonStyle.Link)
@@ -8319,7 +8320,7 @@ client.once('ready', async () => {
         '> Die Fahrzeug-Kapazitäten sind eine **RP-Regel**, an die sich jeder halten muss.'
       );
     const old = await ch.messages.fetch({ limit: 20 }).catch(() => null);
-    if (old) for (const [, m] of old) { if (m.author.id === client.user.id) await m.delete().catch(() => {}); }
+    if (old && old.some(m => m.author.id === client.user.id)) { console.log('[HOLZ] Info-Embed bereits vorhanden, überspringe.'); return; }
     await ch.send({
       embeds: [embed],
       components: [new ActionRowBuilder().addComponents(
@@ -8536,7 +8537,7 @@ client.once('ready', async () => {
         '> Die Fahrzeug-Kapazitäten sind eine **RP-Regel**, an die sich jeder halten muss.'
       );
     const old = await ch.messages.fetch({ limit: 20 }).catch(() => null);
-    if (old) for (const [, m] of old) { if (m.author.id === client.user.id) await m.delete().catch(() => {}); }
+    if (old && old.some(m => m.author.id === client.user.id)) { console.log('[MINEN] Info-Embed bereits vorhanden, überspringe.'); return; }
     await ch.send({
       embeds: [embed],
       components: [new ActionRowBuilder().addComponents(
@@ -8747,7 +8748,7 @@ client.once('ready', async () => {
         '> Die Fahrzeug-Kapazitäten sind eine **RP-Regel**, an die sich jeder halten muss.'
       );
     const old = await ch.messages.fetch({ limit: 20 }).catch(() => null);
-    if (old) for (const [, m] of old) { if (m.author.id === client.user.id) await m.delete().catch(() => {}); }
+    if (old && old.some(m => m.author.id === client.user.id)) { console.log('[KÜRBIS] Info-Embed bereits vorhanden, überspringe.'); return; }
     const kuerbisImgPath = path.join(__dirname, 'assets', 'kuerbis.jpeg');
     if (fs.existsSync(kuerbisImgPath)) embed.setImage('attachment://kuerbis.jpeg');
     await ch.send({
@@ -8989,7 +8990,7 @@ client.once('ready', async () => {
     const angelnImgPath = path.join(__dirname, 'assets', 'angeln.png');
     if (fs.existsSync(angelnImgPath)) embed.setImage('attachment://angeln.png');
     const old = await ch.messages.fetch({ limit: 20 }).catch(() => null);
-    if (old) for (const [, m] of old) { if (m.author.id === client.user.id) await m.delete().catch(() => {}); }
+    if (old && old.some(m => m.author.id === client.user.id)) { console.log('[ANGELN] Info-Embed bereits vorhanden, überspringe.'); return; }
     await ch.send({
       embeds: [embed],
       files: fs.existsSync(angelnImgPath) ? [{ attachment: angelnImgPath, name: 'angeln.png' }] : [],
