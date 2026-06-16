@@ -8908,6 +8908,225 @@ client.on('interactionCreate', async (interaction) => {
   } catch (e) { console.error('[KÜRBIS] interaction:', e.message); }
 });
 
+// ═════════════════════════════════════════════════════════════════════════════
+//  ANGELN SYSTEM
+// ═════════════════════════════════════════════════════════════════════════════
+const ANGELN_INFO_CH  = '1490894254006993026';
+const ANGELN_FOTO_CH  = '1490894255474872392';
+const ANGELN_FARM_DUR = 10 * 60 * 1000;
+const ANGELN_ARTEN_FILE = path.join(__dirname, 'data', 'angeln_arten.json');
+const ANGELN_ARTEN_DEFAULT = [
+  { name: '🥇 | Goldener Saibling',                       preis: 50000, kategorie: 'jackpot', gewicht: 1  },
+  { name: '🦈 | Weisser Hai',                             preis: 10000, kategorie: 'fisch',   gewicht: 3  },
+  { name: '🦈 | Riffhai',                                 preis: 6000,  kategorie: 'fisch',   gewicht: 3  },
+  { name: '🐬 | Delfin',                                  preis: 4000,  kategorie: 'fisch',   gewicht: 3  },
+  { name: '🐟 | Stachelrochen',                           preis: 2000,  kategorie: 'fisch',   gewicht: 8  },
+  { name: '🐠 | Thunfisch',                               preis: 1000,  kategorie: 'fisch',   gewicht: 8  },
+  { name: '🐡 | Schwertfisch',                            preis: 800,   kategorie: 'fisch',   gewicht: 8  },
+  { name: '🐟 | Barrakuda',                               preis: 500,   kategorie: 'fisch',   gewicht: 8  },
+  { name: '🐢 | Meeresschildkröte',                       preis: 300,   kategorie: 'fisch',   gewicht: 8  },
+  { name: '🐟 | Lachs',                                   preis: 250,   kategorie: 'fisch',   gewicht: 15 },
+  { name: '🐟 | Hecht',                                   preis: 200,   kategorie: 'fisch',   gewicht: 15 },
+  { name: '🐟 | Forelle',                                 preis: 100,   kategorie: 'fisch',   gewicht: 15 },
+  { name: '🐟 | Wels',                                    preis: 80,    kategorie: 'fisch',   gewicht: 15 },
+  { name: '🦑 | Tintenfisch',                             preis: 35,    kategorie: 'fisch',   gewicht: 12 },
+  { name: '🐍 | Aal',                                     preis: 15,    kategorie: 'fisch',   gewicht: 12 },
+  { name: '🦀 | Krebs',                                   preis: 10,    kategorie: 'fisch',   gewicht: 12 },
+  { name: '🥒 | Seegurke',                                preis: 5,     kategorie: 'fisch',   gewicht: 12 },
+  { name: '👢 | Stiefel',                                  preis: 0,     kategorie: 'müll',    gewicht: 8  },
+  { name: '🤢 | Benutztes Kondom',                        preis: 0,     kategorie: 'müll',    gewicht: 8  },
+  { name: '🌿 | Seetang',                                 preis: 0,     kategorie: 'müll',    gewicht: 8  },
+  { name: '🗑️ | Sack Müll',                               preis: 0,     kategorie: 'müll',    gewicht: 8  },
+  { name: '💍 | Schmuckkästchen',                         preis: 0,     kategorie: 'spezial', gewicht: 2  },
+  { name: '🍾 | Flasche mit dem Lohn Check von der Laura',preis: 0,     kategorie: 'spezial', gewicht: 2  },
+  { name: '🗡️ | Antiker Kavallerie-Dolch',                preis: 0,     kategorie: 'spezial', gewicht: 2  },
+  { name: 'schnur_gerissen',                              preis: 0,     kategorie: 'ereignis',gewicht: 15 },
+];
+function loadAngelnArten() {
+  try { return JSON.parse(fs.readFileSync(ANGELN_ARTEN_FILE, 'utf8')); }
+  catch { fs.writeFileSync(ANGELN_ARTEN_FILE, JSON.stringify(ANGELN_ARTEN_DEFAULT, null, 2), 'utf8'); return ANGELN_ARTEN_DEFAULT; }
+}
+function angelnWeightedRandom(items) {
+  const total = items.reduce((s, i) => s + (i.gewicht || 1), 0);
+  let r = Math.random() * total;
+  for (const item of items) { r -= (item.gewicht || 1); if (r <= 0) return item; }
+  return items[items.length - 1];
+}
+const angelnActiveFishers = new Map();
+
+client.once('ready', async () => {
+  try {
+    const ch = await client.channels.fetch(ANGELN_INFO_CH).catch(() => null);
+    if (!ch) return;
+    const arten = loadAngelnArten();
+    const fische   = arten.filter(a => a.kategorie === 'fisch' || a.kategorie === 'jackpot');
+    const muell    = arten.filter(a => a.kategorie === 'müll');
+    const spezial  = arten.filter(a => a.kategorie === 'spezial');
+    const embed = new EmbedBuilder()
+      .setColor(0x2980b9)
+      .setTitle('🎣 Angeln — Anleitung')
+      .setDescription(
+        '**So funktioniert das Angeln:**\n\n' +
+        '`1.` Kaufe eine **Angelrute** im Angler Shop\n' +
+        '`2.` Kaufe ein **Boot** im Angler Shop\n' +
+        '`3.` Fahre mit deinem Boot ins Meer\n' +
+        '`4.` Poste ein **Foto** im <#' + ANGELN_FOTO_CH + '> Kanal\n' +
+        '`5.` Warte **10 Minuten** — du erhältst per DM deine Beute\n' +
+        '`6.` Klicke unten auf **💰 Fisch Verkaufen** um deinen Fang zu verkaufen\n\n' +
+        '🥇 **Jackpot**\n' +
+        '▸ 🥇 | Goldener Saibling — **50.000$** *(sehr selten)*\n\n' +
+        '🐟 **Fische & Preise:**\n' +
+        fische.filter(a => a.kategorie === 'fisch').map(a => '▸ ' + a.name + ' — **' + a.preis.toLocaleString('de-CH') + '$**').join('\n') + '\n\n' +
+        '🗑️ **Müll** *(kein Wert)*\n' +
+        muell.map(a => '▸ ' + a.name).join(' · ') + '\n\n' +
+        '✨ **Spezial** *(selten, RP-Items)*\n' +
+        spezial.map(a => '▸ ' + a.name).join('\n') + '\n\n' +
+        '> **Info**\n' +
+        '> Du brauchst eine **Angelrute** und ein **Boot** im Inventar.\n' +
+        '> Die Beute ist zufällig gewichtet — seltene Fische sind schwerer zu fangen.\n' +
+        '> Auf dem Foto muss das Boot sichtbar sein — sonst gilt das Angeln als **ungültig**.'
+      );
+    const angelnImgPath = path.join(__dirname, 'assets', 'angeln.png');
+    if (fs.existsSync(angelnImgPath)) embed.setImage('attachment://angeln.png');
+    const old = await ch.messages.fetch({ limit: 20 }).catch(() => null);
+    if (old) for (const [, m] of old) { if (m.author.id === client.user.id) await m.delete().catch(() => {}); }
+    await ch.send({
+      embeds: [embed],
+      files: fs.existsSync(angelnImgPath) ? [{ attachment: angelnImgPath, name: 'angeln.png' }] : [],
+      components: [new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('angeln_verkaufen').setLabel('💰 Fisch Verkaufen').setStyle(ButtonStyle.Success)
+      )]
+    });
+    console.log('[ANGELN] Info-Embed gesendet.');
+  } catch (e) { console.error('[ANGELN] Info-Embed Fehler:', e.message); }
+});
+
+client.on('messageCreate', async (msg) => {
+  try {
+    if (msg.channel.id !== ANGELN_FOTO_CH) return;
+    if (msg.author.bot) return;
+    const hasImage = msg.attachments.some(a => a.contentType && a.contentType.startsWith('image/'));
+    if (!hasImage) { await msg.delete().catch(() => {}); return; }
+    const userId = msg.author.id;
+    if (angelnActiveFishers.has(userId)) {
+      await msg.delete().catch(() => {});
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe65100)
+          .setTitle('🎣 Du angelst bereits!')
+          .setDescription('Warte bis dein aktuelles Angeln abgeschlossen ist.')] });
+      } catch {}
+      return;
+    }
+    const inv = getUserInv(userId);
+    const angelruteKey = Object.keys(inv).find(k => k.toLowerCase().includes('angelrute'));
+    const bootKey      = Object.keys(inv).find(k => k.toLowerCase().includes('boot'));
+    if (!angelruteKey || !(inv[angelruteKey] >= 1)) {
+      await msg.delete().catch(() => {});
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe74c3c)
+          .setTitle('❌ Keine Angelrute')
+          .setDescription('Du besitzt keine **Angelrute**! Kaufe diese zuerst im **Angler Shop**.')] });
+      } catch {}
+      return;
+    }
+    if (!bootKey || !(inv[bootKey] >= 1)) {
+      await msg.delete().catch(() => {});
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe74c3c)
+          .setTitle('❌ Kein Boot')
+          .setDescription('Du besitzt kein **Boot**! Kaufe dieses zuerst im **Angler Shop**.')] });
+      } catch {}
+      return;
+    }
+    setTimeout(() => msg.delete().catch(() => {}), 5000);
+    try {
+      const u = await client.users.fetch(userId);
+      await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0x2980b9)
+        .setTitle('🎣 Angeln gestartet!')
+        .setDescription('Du angelst jetzt auf dem Meer!\nIn **10 Minuten** erhältst du per DM deine Beute.')
+        .addFields(
+          { name: '🎣 Status',  value: 'Angelrute ausgeworfen…', inline: true },
+          { name: '⏱️ Wartezeit', value: '10 Minuten', inline: true },
+        ).setTimestamp()
+      ] });
+    } catch (e) { console.error('[ANGELN] DM-Fehler:', e.message); }
+    const timer = setTimeout(async () => {
+      angelnActiveFishers.delete(userId);
+      const arten = loadAngelnArten();
+      const catch_ = angelnWeightedRandom(arten);
+      try {
+        const user = await client.users.fetch(userId);
+        if (catch_.kategorie === 'ereignis') {
+          await (await user.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe74c3c)
+            .setTitle('😬 Schnur gerissen!')
+            .setDescription('Deine **Schnur ist gerissen**! Du hast leider nichts gefangen.\nVersuch es nächstes Mal nochmal!').setTimestamp()
+          ] });
+          return;
+        }
+        const uInv = getUserInv(userId);
+        uInv[catch_.name] = (uInv[catch_.name] || 0) + 1;
+        setUserInv(userId, uInv);
+        let title, color, desc;
+        if (catch_.kategorie === 'jackpot') {
+          title = '🥇 JACKPOT! Goldener Saibling!'; color = 0xf1c40f;
+          desc = '**WOW!** Du hast den sagenhaften **Goldenen Saibling** gefangen!\n\n▸ 1x ' + catch_.name + '\n💰 Wert: **50.000$**\n\n💰 Klicke auf **Fisch Verkaufen** im Angeln-Kanal!';
+        } else if (catch_.kategorie === 'spezial') {
+          title = '✨ Spezialfund!'; color = 0x9b59b6;
+          desc = 'Du hast etwas **Besonderes** gefunden!\n\n▸ 1x ' + catch_.name + '\n\n*Dieses Item hat einen besonderen RP-Wert.*';
+        } else if (catch_.kategorie === 'müll') {
+          title = '🗑️ Müll gefischt…'; color = 0x95a5a6;
+          desc = 'Heute war kein Glückstag… Du hast **Müll** gefangen:\n\n▸ 1x ' + catch_.name;
+        } else {
+          title = '🎣 Fang des Tages!'; color = 0x2980b9;
+          desc = 'Du hast **' + catch_.name + '** gefangen!\n\n▸ 1x ' + catch_.name + '\n💰 Wert: **' + catch_.preis.toLocaleString('de-CH') + '$**\n\n💰 Klicke auf **Fisch Verkaufen** im Angeln-Kanal!';
+        }
+        await (await user.createDM()).send({ embeds: [new EmbedBuilder().setColor(color)
+          .setTitle(title).setDescription(desc)
+          .addFields(
+            { name: '🎣 Fang',  value: catch_.name, inline: true },
+            { name: '💰 Wert',  value: catch_.preis > 0 ? '**' + catch_.preis.toLocaleString('de-CH') + '$**' : 'Kein Wert', inline: true },
+          ).setTimestamp()
+        ] });
+      } catch (e) { console.error('[ANGELN] Completion-DM:', e.message); }
+    }, ANGELN_FARM_DUR);
+    angelnActiveFishers.set(userId, { timer });
+  } catch (e) { console.error('[ANGELN] messageCreate:', e.message); }
+});
+
+client.on('interactionCreate', async (interaction) => {
+  try {
+    if (!interaction.isButton() || interaction.customId !== 'angeln_verkaufen') return;
+    await interaction.deferReply({ flags: 64 });
+    const userId = interaction.user.id;
+    const inv = getUserInv(userId);
+    const arten = loadAngelnArten();
+    let totalGeld = 0;
+    const verkauft = [];
+    for (const art of arten.filter(a => (a.kategorie === 'fisch' || a.kategorie === 'jackpot') && a.preis > 0)) {
+      const menge = inv[art.name] || 0;
+      if (menge > 0) {
+        totalGeld += menge * art.preis;
+        verkauft.push({ name: art.name, menge, wert: menge * art.preis });
+        delete inv[art.name];
+      }
+    }
+    if (!verkauft.length) return interaction.editReply({ content: '❌ Du hast keine Fische im Inventar!' });
+    setUserInv(userId, inv);
+    const k = getKonto(userId);
+    k.konto = (k.konto || 0) + totalGeld;
+    setKonto(userId, k);
+    const fields = verkauft.map(v => ({ name: v.name, value: v.menge + 'x → **' + v.wert.toLocaleString('de-CH') + '$**', inline: true }));
+    fields.push({ name: '💰 Gesamt', value: '**' + totalGeld.toLocaleString('de-CH') + '$** auf dein Konto gutgeschrieben', inline: false });
+    return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x2980b9)
+      .setTitle('✅ Fisch verkauft!')
+      .setDescription('Dein Fang wurde erfolgreich verkauft.')
+      .addFields(fields).setTimestamp()] });
+  } catch (e) { console.error('[ANGELN] interaction:', e.message); }
+});
+
 (function loginWithRetry(attempt) {
 
 // ─── ! COMMAND WARNUNG ──────────────────────────────────────────────────────
