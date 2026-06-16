@@ -1357,6 +1357,15 @@ async function updateFirmenEmbed(client) {
 client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
   client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
+  // ─── /dashboard Slash Command registrieren ────────────────────────────────
+  try {
+    const _dashRest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    await _dashRest.put(
+      Routes.applicationGuildCommands(client.user.id, '1498482541751963698'),
+      { body: [new SlashCommandBuilder().setName('dashboard').setDescription('Öffnet das Inhaber-Dashboard (nur für Inhaber)').toJSON()] }
+    );
+    console.log('[DASHBOARD] /dashboard erfolgreich registriert.');
+  } catch (e) { console.error('[DASHBOARD] Registrierung fehlgeschlagen:', e.message); }
   // ─── EINMALIG: Team-Overview-Embed neu senden (v_paradise_4) ───────────────
   {
     const setup = loadSetup();
@@ -8212,16 +8221,6 @@ client.on('interactionCreate', async (interaction) => {
 const DASHBOARD_OWNER_ROLES = ['1490855702225485936'];
 const GUILD_ID_DASHBOARD    = '1498482541751963698';
 
-client.once('ready', async () => {
-  try {
-    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-    await rest.put(
-      Routes.applicationGuildCommands(client.user.id, GUILD_ID_DASHBOARD),
-      { body: [new SlashCommandBuilder().setName('dashboard').setDescription('Öffnet das Inhaber-Dashboard (nur für Inhaber)').toJSON()] }
-    );
-    console.log('[DASHBOARD] Slash Command /dashboard registriert.');
-  } catch (e) { console.error('[DASHBOARD] Command-Registrierung fehlgeschlagen:', e.message); }
-});
 
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
