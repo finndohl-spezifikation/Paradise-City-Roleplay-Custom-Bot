@@ -8477,6 +8477,223 @@ client.on('interactionCreate', async (interaction) => {
   } catch (e) { console.error('[HOLZ] interaction:', e.message); }
 });
 
+// ═════════════════════════════════════════════════════════════════════════════
+//  MINEN-FARMING SYSTEM
+// ═════════════════════════════════════════════════════════════════════════════
+const MINEN_INFO_CH  = '1490894245832163328';
+const MINEN_FOTO_CH  = '1490894246587404380';
+const MINEN_FARM_DUR = 3 * 60 * 1000;
+const MINEN_ARTEN_FILE = path.join(__dirname, 'data', 'minen_arten.json');
+const MINEN_ARTEN_DEFAULT = [
+  { name: '⛏️ | Rubin',      preis: 10000, einheit: 'Stück' },
+  { name: '⛏️ | Smaragd',    preis: 7500,  einheit: 'Stück' },
+  { name: '⛏️ | Diamant',    preis: 6000,  einheit: 'Stück' },
+  { name: '⛏️ | Gold',       preis: 400,   einheit: '100kg' },
+  { name: '⛏️ | Silber',     preis: 240,   einheit: '100kg' },
+  { name: '⛏️ | Metall',     preis: 140,   einheit: '100kg' },
+  { name: '⛏️ | Steinkohle', preis: 100,   einheit: '100kg' },
+];
+function loadMinenArten() {
+  try { return JSON.parse(fs.readFileSync(MINEN_ARTEN_FILE, 'utf8')); }
+  catch { fs.writeFileSync(MINEN_ARTEN_FILE, JSON.stringify(MINEN_ARTEN_DEFAULT, null, 2), 'utf8'); return MINEN_ARTEN_DEFAULT; }
+}
+const MINEN_FAHRZEUGE = [
+  { id: 'v4tuer',  label: '🚘 4 Türer',  legalKg: 500,   maxKg: 700   },
+  { id: 'pickup',  label: '🛻 Pickup',   legalKg: 1000,  maxKg: 1400  },
+  { id: 'van',     label: '🚐 Van',      legalKg: 1400,  maxKg: 1700  },
+  { id: 'mule',    label: '🚚 Mule',     legalKg: 4000,  maxKg: 6000  },
+  { id: 'pounder', label: '🚛 Pounder',  legalKg: 10000, maxKg: 13000 },
+];
+const minenActiveFarmers = new Map();
+
+client.once('ready', async () => {
+  try {
+    const ch = await client.channels.fetch(MINEN_INFO_CH).catch(() => null);
+    if (!ch) return;
+    const arten = loadMinenArten();
+    const embed = new EmbedBuilder()
+      .setColor(0x7f8c8d)
+      .setTitle('⛏️ Minen Farmen — Anleitung')
+      .setDescription(
+        '**So funktioniert das Minen-Farming:**\n\n' +
+        '`1.` Kaufe eine **Spitzhacke** im Baumarkt\n' +
+        '`2.` Fahre mit deinem Fahrzeug zum **markierten Ort**\n' +
+        '`3.` Poste ein **Foto** im <#' + MINEN_FOTO_CH + '> Kanal\n' +
+        '`4.` Wähle dein **Fahrzeug** per DM aus\n' +
+        '`5.` Warte **3 Minuten** — du erhältst automatisch deine **Beute**\n' +
+        '`6.` Klicke unten auf **💰 Erz Verkaufen** um deine Beute zu Geld zu machen\n\n' +
+        '⛏️ **Beute & Preise:**\n' +
+        arten.map(a => '▸ ' + a.name + ' — **' + a.preis.toLocaleString('de-CH') + '$** pro ' + a.einheit).join('\n') + '\n\n' +
+        '⚖️ **Fahrzeug-Kapazitäten (RP-Regel):**\n' +
+        '▸ 🚘 4 Türer — **500kg** legal / **700kg** max\n' +
+        '▸ 🛻 Pickup — **1.000kg** legal / **1.400kg** max\n' +
+        '▸ 🚐 Van — **1.400kg** legal / **1.700kg** max\n' +
+        '▸ 🚚 Mule — **4.000kg** legal / **6.000kg** max\n' +
+        '▸ 🚛 Pounder — **10.000kg** legal / **13.000kg** max\n\n' +
+        '> **Info**\n' +
+        '> Pro **3 Minuten** erhältst du eine zufällige **Beute**. Die Art ist immer zufällig.\n' +
+        '> Auf dem Foto muss das Fahrzeug sichtbar sein — sonst gilt das Farmen als **ungültig**.\n' +
+        '> Die Fahrzeug-Kapazitäten sind eine **RP-Regel**, an die sich jeder halten muss.'
+      );
+    const old = await ch.messages.fetch({ limit: 20 }).catch(() => null);
+    if (old) for (const [, m] of old) { if (m.author.id === client.user.id) await m.delete().catch(() => {}); }
+    await ch.send({
+      embeds: [embed],
+      components: [new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('minen_verkaufen').setLabel('💰 Erz Verkaufen').setStyle(ButtonStyle.Success)
+      )]
+    });
+    console.log('[MINEN] Info-Embed gesendet.');
+  } catch (e) { console.error('[MINEN] Info-Embed Fehler:', e.message); }
+});
+
+client.on('messageCreate', async (msg) => {
+  try {
+    if (msg.channel.id !== MINEN_FOTO_CH) return;
+    if (msg.author.bot) return;
+    const hasImage = msg.attachments.some(a => a.contentType && a.contentType.startsWith('image/'));
+    if (!hasImage) { await msg.delete().catch(() => {}); return; }
+    const userId = msg.author.id;
+    if (minenActiveFarmers.has(userId)) {
+      await msg.delete().catch(() => {});
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe65100)
+          .setTitle('⛏️ Du farmst bereits!')
+          .setDescription('Warte bis dein aktuelles Farmen abgeschlossen ist.')] });
+      } catch {}
+      return;
+    }
+    const inv = getUserInv(userId);
+    const spitzhackeKey = Object.keys(inv).find(k =>
+      k.toLowerCase().replace(/ä/g, 'a').includes('spitzhacke') ||
+      k.toLowerCase().includes('spitzhacke')
+    );
+    if (!spitzhackeKey || !(inv[spitzhackeKey] >= 1)) {
+      await msg.delete().catch(() => {});
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe74c3c)
+          .setTitle('❌ Keine Spitzhacke')
+          .setDescription('Du besitzt keine **Spitzhacke**! Kaufe diese zuerst im **Baumarkt**.')] });
+      } catch {}
+      return;
+    }
+    setTimeout(() => msg.delete().catch(() => {}), 5000);
+    try {
+      const u = await client.users.fetch(userId);
+      await (await u.createDM()).send({
+        embeds: [new EmbedBuilder().setColor(0x7f8c8d)
+          .setTitle('⛏️ Minen farmen – Fahrzeug wählen')
+          .setDescription('Wähle dein **Fahrzeug** aus.\nDu erhältst eine zufällige **Beute** nach 3 Minuten — die Kapazitäten sind eine RP-Regel:')
+          .addFields(MINEN_FAHRZEUGE.map(fz => ({
+            name: fz.label,
+            value: 'Legal: **' + fz.legalKg.toLocaleString('de-CH') + 'kg** | Max: **' + fz.maxKg.toLocaleString('de-CH') + 'kg**',
+            inline: true,
+          })))
+          .setFooter({ text: 'Du hast 5 Minuten um ein Fahrzeug auszuwählen.' })
+        ],
+        components: [new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('minen_fz:' + userId)
+            .setPlaceholder('Fahrzeug auswählen...')
+            .addOptions(MINEN_FAHRZEUGE.map(fz =>
+              new StringSelectMenuOptionBuilder()
+                .setLabel(fz.label)
+                .setValue(fz.id)
+                .setDescription('Legal: ' + fz.legalKg.toLocaleString('de-CH') + 'kg | Max: ' + fz.maxKg.toLocaleString('de-CH') + 'kg')
+            ))
+        )]
+      });
+    } catch (e) { console.error('[MINEN] DM-Fehler:', e.message); }
+  } catch (e) { console.error('[MINEN] messageCreate:', e.message); }
+});
+
+client.on('interactionCreate', async (interaction) => {
+  try {
+    if (interaction.isButton() && interaction.customId === 'minen_verkaufen') {
+      await interaction.deferReply({ flags: 64 });
+      const userId = interaction.user.id;
+      const inv = getUserInv(userId);
+      const minenArten = loadMinenArten();
+      let totalGeld = 0;
+      const verkauft = [];
+      for (const art of minenArten) {
+        const menge = inv[art.name] || 0;
+        if (menge > 0) {
+          totalGeld += menge * art.preis;
+          verkauft.push({ name: art.name, menge, wert: menge * art.preis, einheit: art.einheit });
+          delete inv[art.name];
+        }
+      }
+      if (!verkauft.length) return interaction.editReply({ content: '❌ Du hast kein Erz im Inventar!' });
+      setUserInv(userId, inv);
+      const k = getKonto(userId);
+      k.konto = (k.konto || 0) + totalGeld;
+      setKonto(userId, k);
+      const fields = verkauft.map(v => ({ name: v.name, value: v.menge + 'x → **' + v.wert.toLocaleString('de-CH') + '$**', inline: true }));
+      fields.push({ name: '💰 Gesamt', value: '**' + totalGeld.toLocaleString('de-CH') + '$** auf dein Konto gutgeschrieben', inline: false });
+      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x7f8c8d)
+        .setTitle('✅ Erz verkauft!')
+        .setDescription('Dein Erz wurde erfolgreich verkauft.')
+        .addFields(fields).setTimestamp()] });
+    }
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('minen_fz:')) {
+      const userId = interaction.customId.split(':')[1];
+      if (interaction.user.id !== userId) return interaction.reply({ content: '❌ Das ist nicht dein Menü!', flags: 64 });
+      if (minenActiveFarmers.has(userId)) return interaction.reply({ content: '❌ Du farmst bereits!', flags: 64 });
+      const fzId = interaction.values[0];
+      const fz = MINEN_FAHRZEUGE.find(f => f.id === fzId);
+      if (!fz) return interaction.reply({ content: '❌ Ungültiges Fahrzeug.', flags: 64 });
+      await interaction.update({
+        embeds: [new EmbedBuilder().setColor(0x7f8c8d)
+          .setTitle('⛏️ Farmen gestartet!')
+          .setDescription('Du farmst jetzt mit dem **' + fz.label + '**.\nIn **3 Minuten** erhältst du deine Beute und wirst per DM benachrichtigt!')
+          .addFields(
+            { name: '🚗 Fahrzeug',  value: fz.label, inline: true },
+            { name: '⚖️ Kapazität', value: 'Legal: **' + fz.legalKg.toLocaleString('de-CH') + 'kg** | Max: **' + fz.maxKg.toLocaleString('de-CH') + 'kg**', inline: true },
+            { name: '📦 Ausbeute',  value: 'Zufälliges Erz — Art wird nach dem Farmen bekannt', inline: true },
+          ).setTimestamp()
+        ],
+        components: [new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('minen_fz_done:' + userId)
+            .setPlaceholder(fz.label + ' ✅')
+            .setDisabled(true)
+            .addOptions([{ label: fz.label, value: fz.id }])
+        )]
+      });
+      const timer = setTimeout(async () => {
+        minenActiveFarmers.delete(userId);
+        const minenArten = loadMinenArten();
+        const art = minenArten[Math.floor(Math.random() * minenArten.length)];
+        const uInv = getUserInv(userId);
+        uInv[art.name] = (uInv[art.name] || 0) + 1;
+        setUserInv(userId, uInv);
+        try {
+          const user = await client.users.fetch(userId);
+          await (await user.createDM()).send({
+            embeds: [new EmbedBuilder().setColor(0x7f8c8d)
+              .setTitle('⛏️ Erz abgebaut!')
+              .setDescription(
+                'Du hast mit dem **' + fz.label + '** folgendes Erz abgebaut:\n\n' +
+                '▸ 1x ' + art.name + '\n\n' +
+                '💰 Gehe in den Minen-Kanal und klicke auf **Erz Verkaufen** um dein Erz zu verkaufen.'
+              )
+              .addFields(
+                { name: '⛏️ Erz',    value: art.name, inline: true },
+                { name: '📦 Menge',  value: '1x (' + art.einheit + ')', inline: true },
+                { name: '💰 Wert',   value: '**' + art.preis.toLocaleString('de-CH') + '$**', inline: true },
+              ).setTimestamp()
+            ]
+          });
+        } catch (e) { console.error('[MINEN] Completion-DM:', e.message); }
+      }, MINEN_FARM_DUR);
+      minenActiveFarmers.set(userId, { vehicle: fzId, fz, timer });
+    }
+  } catch (e) { console.error('[MINEN] interaction:', e.message); }
+});
+
 (function loginWithRetry(attempt) {
 
 // ─── ! COMMAND WARNUNG ──────────────────────────────────────────────────────
