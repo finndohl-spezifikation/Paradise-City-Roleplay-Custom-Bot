@@ -1384,9 +1384,6 @@ client.once('ready', async () => {
       }
     } catch(e) { console.error('[CAPTCHA] Embed Fehler:', e.message); }
   }
-      } catch(e) { console.error('[CAPTCHA] Embed Fehler:', e.message); }
-    }
-  }
     // ─── EINMALIG: Lotto + Handy Footer-Cleanup (v_paradise_6) ───────────────
   {
     const setup = loadSetup();
