@@ -186,7 +186,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  LOGIN
   // ═════════════════════════════════════════════════════════════════════════════
-  app.post('/admin/login', async (req, res) => {
+  app.post('/admin-panel/login', async (req, res) => {
     try {
       const username = (req.body.username || '').trim();
       const password = (req.body.password || '').trim();
@@ -214,17 +214,17 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     }
   });
 
-  app.post('/admin/logout', (req, res) => {
+  app.post('/admin-panel/logout', (req, res) => {
     if (req.session) req.session.pcAdmin = null;
     res.json({ ok: true });
   });
 
-  app.get('/admin/api/me', requireAuth, (req, res) => res.json(req.session.pcAdmin));
+  app.get('/admin-panel/api/me', requireAuth, (req, res) => res.json(req.session.pcAdmin));
 
   // ═════════════════════════════════════════════════════════════════════════════
   //  ÜBERSICHT / SERVER STATS
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin/api/overview', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/overview', requireAuth, async (req, res) => {
     try {
       const members = await allMembers();
       let verified = 0, invPlayers = 0;
@@ -243,7 +243,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get('/admin/api/stats', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/stats', requireAuth, async (req, res) => {
     try {
       const ev = loadEvents();
       const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
@@ -269,7 +269,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  VERIFIZIERTE SPIELER
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin/api/verified', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/verified', requireAuth, async (req, res) => {
     try {
       const members = await allMembers();
       const ausweis = loadAusweis();
@@ -292,7 +292,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get('/admin/api/player/:id', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/player/:id', requireAuth, async (req, res) => {
     try {
       const m = await getMember(req.params.id);
       if (!m) return res.status(404).json({ error: 'Spieler nicht auf dem Server.' });
@@ -313,7 +313,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   });
 
   // ─── BANNEN ──────────────────────────────────────────────────────────────────
-  app.post('/admin/api/ban', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/ban', requireAuth, async (req, res) => {
     try {
       const { userId, durationMs, reason } = req.body;
       const grund = (reason || '').trim();
@@ -363,7 +363,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   });
 
   // ─── TIMEOUT ──────────────────────────────────────────────────────────────────
-  app.post('/admin/api/timeout', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/timeout', requireAuth, async (req, res) => {
     try {
       const { userId, durationMs, reason } = req.body;
       const grund = (reason || '').trim();
@@ -409,7 +409,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  GEBANNTE SPIELER
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin/api/bans', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/bans', requireAuth, async (req, res) => {
     try {
       const g = await fetchGuild();
       const stored = loadBans();
@@ -436,7 +436,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post('/admin/api/unban', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/unban', requireAuth, async (req, res) => {
     try {
       const { userId } = req.body;
       if (!userId) return res.status(400).json({ error: 'Kein Spieler ausgewählt.' });
@@ -457,7 +457,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  INVENTAR & BANK
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin/api/economy', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/economy', requireAuth, async (req, res) => {
     try {
       const members = await allMembers();
       const bargeld = loadBargeld(), konto = loadKonto(), krypto = loadKrypto(), inv = loadInventar();
@@ -482,9 +482,9 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get('/admin/api/items', requireAuth, (req, res) => res.json(itemRegistry()));
+  app.get('/admin-panel/api/items', requireAuth, (req, res) => res.json(itemRegistry()));
 
-  app.post('/admin/api/money', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/money', requireAuth, async (req, res) => {
     try {
       const { userId, type, action, amount } = req.body;
       const amt = Math.abs(Math.floor(Number(amount) || 0));
@@ -516,7 +516,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post('/admin/api/item', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/item', requireAuth, async (req, res) => {
     try {
       const { userId, action, item, amount } = req.body;
       const amt = Math.abs(Math.floor(Number(amount) || 1)) || 1;
@@ -542,7 +542,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  SHOPS
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin/api/shops', requireAuth, (req, res) => {
+  app.get('/admin-panel/api/shops', requireAuth, (req, res) => {
     const shops = loadShops();
     const out = {};
     for (const [id, items] of Object.entries(shops)) {
@@ -551,7 +551,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     res.json(out);
   });
 
-  app.post('/admin/api/shop/item/add', requireAuth, (req, res) => {
+  app.post('/admin-panel/api/shop/item/add', requireAuth, (req, res) => {
     try {
       const { shop, name, preis } = req.body;
       const n = (name || '').trim();
@@ -565,7 +565,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post('/admin/api/shop/item/edit', requireAuth, (req, res) => {
+  app.post('/admin-panel/api/shop/item/edit', requireAuth, (req, res) => {
     try {
       const { shop, index, name, preis, moveTo } = req.body;
       const shops = loadShops();
@@ -585,7 +585,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post('/admin/api/shop/item/delete', requireAuth, (req, res) => {
+  app.post('/admin-panel/api/shop/item/delete', requireAuth, (req, res) => {
     try {
       const { shop, index } = req.body;
       const shops = loadShops();
@@ -599,12 +599,12 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  AKTUELLE RAUBÜBERFÄLLE
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin/api/raids', requireAuth, (req, res) => {
+  app.get('/admin-panel/api/raids', requireAuth, (req, res) => {
     const raids = loadRaub().filter(r => r.status === 'offen').sort((a, b) => (b.ts || 0) - (a.ts || 0));
     res.json(raids);
   });
 
-  app.post('/admin/api/raids/fail', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/raids/fail', requireAuth, async (req, res) => {
     try {
       const { id } = req.body;
       const raids = loadRaub();
@@ -642,7 +642,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     }));
   }
 
-  app.get('/admin/api/logs/:type', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/logs/:type', requireAuth, async (req, res) => {
     try {
       const cfg = LOGS[req.params.type];
       if (!cfg) return res.status(404).json({ error: 'Unbekannte Log-Kategorie.' });
@@ -651,14 +651,14 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get('/admin/api/logs', requireAuth, (req, res) => {
+  app.get('/admin-panel/api/logs', requireAuth, (req, res) => {
     res.json(Object.entries(LOGS).map(([k, v]) => ({ key: k, label: v.label })));
   });
 
   // ═════════════════════════════════════════════════════════════════════════════
   //  MOD SYSTEM
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin/api/mod', requireAuth, async (req, res) => {
+  app.get('/admin-panel/api/mod', requireAuth, async (req, res) => {
     try {
       const modLog = await fetchChannelLog(MOD_LOG_CH, 30);
       const inviteLog = await fetchChannelLog(INVITE_LOG, 20);
@@ -666,7 +666,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post('/admin/api/sanction', requireAuth, async (req, res) => {
+  app.post('/admin-panel/api/sanction', requireAuth, async (req, res) => {
     try {
       const { userId, action, durationMs, reason } = req.body;
       const grund = (reason || '').trim() || 'Verdächtiges Verhalten';
@@ -708,13 +708,13 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   //  FRONTEND (HTML)
   // ═════════════════════════════════════════════════════════════════════════════
-  app.get('/admin', (req, res) => {
+  app.get('/admin-panel', (req, res) => {
     res.set('Content-Type', 'text/html; charset=utf-8');
     if (!req.session || !req.session.pcAdmin) return res.send(LOGIN_HTML);
     res.send(DASH_HTML);
   });
 
-  console.log('[ADMIN-PANEL] Admin-Dashboard bereit unter /admin');
+  console.log('[ADMIN-PANEL] Admin-Dashboard bereit unter /admin-panel');
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -761,9 +761,9 @@ document.getElementById('f').addEventListener('submit', async function(e){
   err.style.display='none';
   var btn = document.querySelector('.btn'); btn.textContent='Anmelden...'; btn.disabled=true;
   try{
-    var r = await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('username').value,password:document.getElementById('password').value})});
+    var r = await fetch('/admin-panel/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('username').value,password:document.getElementById('password').value})});
     var d = await r.json();
-    if(r.ok && d.ok){ location.href='/admin'; return; }
+    if(r.ok && d.ok){ location.href='/admin-panel'; return; }
     err.textContent = d.error || 'Anmeldung fehlgeschlagen.'; err.style.display='block';
   }catch(ex){ err.textContent='Verbindungsfehler.'; err.style.display='block'; }
   btn.textContent='Anmelden'; btn.disabled=false;
@@ -932,10 +932,10 @@ function fmtNum(n){ return (Number(n)||0).toLocaleString('de-CH'); }
 function fmtTs(t){ if(!t) return '—'; var d=new Date(t); return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
 function ago(t){ var s=Math.floor((Date.now()-t)/1000); if(s<60)return s+'s'; if(s<3600)return Math.floor(s/60)+'min'; if(s<86400)return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d'; }
 
-async function api(p,opts){ var r=await fetch('/admin/api'+p,opts); if(r.status===401){location.href='/admin';throw new Error('auth');} var d=await r.json(); if(!r.ok) throw new Error(d.error||'Fehler'); return d; }
+async function api(p,opts){ var r=await fetch('/admin-panel/api'+p,opts); if(r.status===401){location.href='/admin-panel';throw new Error('auth');} var d=await r.json(); if(!r.ok) throw new Error(d.error||'Fehler'); return d; }
 async function post(p,body){ return api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); }
 function toast(msg,isErr){ var t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(isErr?' err':''); setTimeout(function(){t.className='toast'+(isErr?' err':'');},3200); }
-function logout(){ fetch('/admin/logout',{method:'POST'}).then(function(){location.href='/admin';}); }
+function logout(){ fetch('/admin-panel/logout',{method:'POST'}).then(function(){location.href='/admin-panel';}); }
 function openModal(html){ document.getElementById('modal').innerHTML=html; document.getElementById('overlay').className='overlay show'; }
 function closeModal(){ document.getElementById('overlay').className='overlay'; }
 document.getElementById('overlay').addEventListener('click',function(e){ if(e.target.id==='overlay') closeModal(); });
