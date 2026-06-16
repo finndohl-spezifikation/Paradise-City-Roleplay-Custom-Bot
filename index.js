@@ -8341,7 +8341,11 @@ client.on('messageCreate', async (msg) => {
       return;
     }
     const inv = getUserInv(userId);
-    if (!(inv['Kettensäge'] >= 1)) {
+    const kettensaegeKey = Object.keys(inv).find(k =>
+      k.toLowerCase().replace(/ä/g, 'a').includes('kettensage') ||
+      k.toLowerCase().includes('kettensäge')
+    );
+    if (!kettensaegeKey || !(inv[kettensaegeKey] >= 1)) {
       await msg.delete().catch(() => {});
       try {
         const u = await client.users.fetch(userId);
