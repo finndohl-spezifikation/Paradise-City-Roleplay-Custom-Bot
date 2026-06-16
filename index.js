@@ -5536,7 +5536,12 @@ client.on('interactionCreate', async (interaction) => {
               .setStyle(ButtonStyle.Link)
               .setEmoji('🛠️')
           );
-          return interaction.reply({ embeds: [new EmbedBuilder().setColor(0xe65100)], components: [row], ephemeral: true });
+          await interaction.reply({
+            content: `🛠️ **Admin-Panel — Paradise City Roleplay**\n🔗 ${url}`,
+            components: [row],
+            ephemeral: true
+          });
+          return;
         }
 
         if (commandName === 'charakter-reset') {
