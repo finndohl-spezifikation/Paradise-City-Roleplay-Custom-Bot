@@ -8319,6 +8319,11 @@ client.on('interactionCreate', async (interaction) => {
 // ═════════════════════════════════════════════════════════════════════════════
 //  HOLZ-FARMING SYSTEM
 // ═════════════════════════════════════════════════════════════════════════════
+// ─── VERKAUF-PRÜFUNG (gemeinsam für alle Farming-Systeme) ─────────────────────
+const VERKAUF_PRÜF_CH = '1516408912172286074';
+const pendingVerkauf  = new Map(); // userId → { farmType, items, totalGeld, color, emoji, label }
+// ─────────────────────────────────────────────────────────────────────────────
+
 const HOLZ_INFO_CH  = '1490894243445604553';
 const HOLZ_FOTO_CH  = '1490894244733255872';
 const HOLZ_FARM_DUR = 3 * 60 * 1000;
@@ -8457,29 +8462,27 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.isButton() && interaction.customId === 'holz_verkaufen') {
       await interaction.deferReply({ flags: 64 });
       const userId = interaction.user.id;
+      if (pendingVerkauf.has(userId)) return interaction.editReply({ content: '❌ Du hast bereits eine ausstehende Verkaufsprüfung. Bitte warte auf die Entscheidung des Teams.' });
       const inv = getUserInv(userId);
       let totalGeld = 0;
       const verkauft = [];
       const holzArten = loadHolzArten();
       for (const art of holzArten) {
         const menge = inv[art.name] || 0;
-        if (menge > 0) {
-          totalGeld += menge * art.preis;
-          verkauft.push({ name: art.name, menge, wert: menge * art.preis });
-          delete inv[art.name];
-        }
+        if (menge > 0) { totalGeld += menge * art.preis; verkauft.push({ name: art.name, menge, wert: menge * art.preis }); }
       }
       if (!verkauft.length) return interaction.editReply({ content: '❌ Du hast kein Holz im Inventar!' });
-      setUserInv(userId, inv);
-      const k = getKonto(userId);
-      k.konto = (k.konto || 0) + totalGeld;
-      setKonto(userId, k);
-      const fields = verkauft.map(v => ({ name: v.name, value: v.menge + 'x → **' + v.wert.toLocaleString('de-CH') + '$**', inline: true }));
-      fields.push({ name: '💰 Gesamt', value: '**' + totalGeld.toLocaleString('de-CH') + '$** auf dein Konto gutgeschrieben', inline: false });
-      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x27ae60)
-        .setTitle('✅ Holz verkauft!')
-        .setDescription('Dein Holz wurde erfolgreich verkauft.')
-        .addFields(fields).setTimestamp()] });
+      pendingVerkauf.set(userId, { farmType: 'holz', items: verkauft, totalGeld, color: 0x27ae60, emoji: '🌲', label: 'Holz' });
+      setTimeout(() => pendingVerkauf.delete(userId), 10 * 60 * 1000);
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe65100)
+          .setTitle('🌲 Holz verkaufen — Foto erforderlich')
+          .setDescription('Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Fahrzeug am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.')
+          .setFooter({ text: 'Foto einfach als Nachricht in diese DM senden.' })
+        ] });
+      } catch {}
+      return interaction.editReply({ content: '📬 Wir haben dir eine DM geschickt! Sende dort dein Foto um den Verkauf abzuschließen.' });
     }
   } catch (e) { console.error('[HOLZ] interaction:', e.message); }
 });
@@ -8628,29 +8631,27 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.isButton() && interaction.customId === 'minen_verkaufen') {
       await interaction.deferReply({ flags: 64 });
       const userId = interaction.user.id;
+      if (pendingVerkauf.has(userId)) return interaction.editReply({ content: '❌ Du hast bereits eine ausstehende Verkaufsprüfung. Bitte warte auf die Entscheidung des Teams.' });
       const inv = getUserInv(userId);
       const minenArten = loadMinenArten();
       let totalGeld = 0;
       const verkauft = [];
       for (const art of minenArten) {
         const menge = inv[art.name] || 0;
-        if (menge > 0) {
-          totalGeld += menge * art.preis;
-          verkauft.push({ name: art.name, menge, wert: menge * art.preis, einheit: art.einheit });
-          delete inv[art.name];
-        }
+        if (menge > 0) { totalGeld += menge * art.preis; verkauft.push({ name: art.name, menge, wert: menge * art.preis }); }
       }
       if (!verkauft.length) return interaction.editReply({ content: '❌ Du hast kein Erz im Inventar!' });
-      setUserInv(userId, inv);
-      const k = getKonto(userId);
-      k.konto = (k.konto || 0) + totalGeld;
-      setKonto(userId, k);
-      const fields = verkauft.map(v => ({ name: v.name, value: v.menge + 'x → **' + v.wert.toLocaleString('de-CH') + '$**', inline: true }));
-      fields.push({ name: '💰 Gesamt', value: '**' + totalGeld.toLocaleString('de-CH') + '$** auf dein Konto gutgeschrieben', inline: false });
-      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x7f8c8d)
-        .setTitle('✅ Erz verkauft!')
-        .setDescription('Dein Erz wurde erfolgreich verkauft.')
-        .addFields(fields).setTimestamp()] });
+      pendingVerkauf.set(userId, { farmType: 'minen', items: verkauft, totalGeld, color: 0x7f8c8d, emoji: '⛏️', label: 'Erz' });
+      setTimeout(() => pendingVerkauf.delete(userId), 10 * 60 * 1000);
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0x7f8c8d)
+          .setTitle('⛏️ Erz verkaufen — Foto erforderlich')
+          .setDescription('Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Fahrzeug am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.')
+          .setFooter({ text: 'Foto einfach als Nachricht in diese DM senden.' })
+        ] });
+      } catch {}
+      return interaction.editReply({ content: '📬 Wir haben dir eine DM geschickt! Sende dort dein Foto um den Verkauf abzuschließen.' });
     }
   } catch (e) { console.error('[MINEN] interaction:', e.message); }
 });
@@ -8796,29 +8797,27 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.isButton() && interaction.customId === 'kuerbis_verkaufen') {
       await interaction.deferReply({ flags: 64 });
       const userId = interaction.user.id;
+      if (pendingVerkauf.has(userId)) return interaction.editReply({ content: '❌ Du hast bereits eine ausstehende Verkaufsprüfung. Bitte warte auf die Entscheidung des Teams.' });
       const inv = getUserInv(userId);
       const kuerbisArten = loadKuerbisArten();
       let totalGeld = 0;
       const verkauft = [];
       for (const art of kuerbisArten) {
         const menge = inv[art.name] || 0;
-        if (menge > 0) {
-          totalGeld += menge * art.preis;
-          verkauft.push({ name: art.name, menge, wert: menge * art.preis });
-          delete inv[art.name];
-        }
+        if (menge > 0) { totalGeld += menge * art.preis; verkauft.push({ name: art.name, menge, wert: menge * art.preis }); }
       }
       if (!verkauft.length) return interaction.editReply({ content: '❌ Du hast keine Kürbisse im Inventar!' });
-      setUserInv(userId, inv);
-      const k = getKonto(userId);
-      k.konto = (k.konto || 0) + totalGeld;
-      setKonto(userId, k);
-      const fields = verkauft.map(v => ({ name: v.name, value: v.menge + 'x → **' + v.wert.toLocaleString('de-CH') + '$**', inline: true }));
-      fields.push({ name: '💰 Gesamt', value: '**' + totalGeld.toLocaleString('de-CH') + '$** auf dein Konto gutgeschrieben', inline: false });
-      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xe67e22)
-        .setTitle('✅ Kürbisse verkauft!')
-        .setDescription('Deine Kürbisse wurden erfolgreich verkauft.')
-        .addFields(fields).setTimestamp()] });
+      pendingVerkauf.set(userId, { farmType: 'kuerbis', items: verkauft, totalGeld, color: 0xe67e22, emoji: '🎃', label: 'Kürbisse' });
+      setTimeout(() => pendingVerkauf.delete(userId), 10 * 60 * 1000);
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe67e22)
+          .setTitle('🎃 Kürbisse verkaufen — Foto erforderlich')
+          .setDescription('Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Fahrzeug am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.')
+          .setFooter({ text: 'Foto einfach als Nachricht in diese DM senden.' })
+        ] });
+      } catch {}
+      return interaction.editReply({ content: '📬 Wir haben dir eine DM geschickt! Sende dort dein Foto um den Verkauf abzuschließen.' });
     }
   } catch (e) { console.error('[KÜRBIS] interaction:', e.message); }
 });
@@ -9016,31 +9015,150 @@ client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton() || interaction.customId !== 'angeln_verkaufen') return;
     await interaction.deferReply({ flags: 64 });
     const userId = interaction.user.id;
+    if (pendingVerkauf.has(userId)) return interaction.editReply({ content: '❌ Du hast bereits eine ausstehende Verkaufsprüfung. Bitte warte auf die Entscheidung des Teams.' });
     const inv = getUserInv(userId);
     const arten = loadAngelnArten();
     let totalGeld = 0;
     const verkauft = [];
     for (const art of arten.filter(a => (a.kategorie === 'fisch' || a.kategorie === 'jackpot') && a.preis > 0)) {
       const menge = inv[art.name] || 0;
-      if (menge > 0) {
-        totalGeld += menge * art.preis;
-        verkauft.push({ name: art.name, menge, wert: menge * art.preis });
-        delete inv[art.name];
-      }
+      if (menge > 0) { totalGeld += menge * art.preis; verkauft.push({ name: art.name, menge, wert: menge * art.preis }); }
     }
     if (!verkauft.length) return interaction.editReply({ content: '❌ Du hast keine Fische im Inventar!' });
-    setUserInv(userId, inv);
-    const k = getKonto(userId);
-    k.konto = (k.konto || 0) + totalGeld;
-    setKonto(userId, k);
-    const fields = verkauft.map(v => ({ name: v.name, value: v.menge + 'x → **' + v.wert.toLocaleString('de-CH') + '$**', inline: true }));
-    fields.push({ name: '💰 Gesamt', value: '**' + totalGeld.toLocaleString('de-CH') + '$** auf dein Konto gutgeschrieben', inline: false });
-    return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x2980b9)
-      .setTitle('✅ Fisch verkauft!')
-      .setDescription('Dein Fang wurde erfolgreich verkauft.')
-      .addFields(fields).setTimestamp()] });
+    pendingVerkauf.set(userId, { farmType: 'angeln', items: verkauft, totalGeld, color: 0x2980b9, emoji: '🎣', label: 'Fisch' });
+    setTimeout(() => pendingVerkauf.delete(userId), 10 * 60 * 1000);
+    try {
+      const u = await client.users.fetch(userId);
+      await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0x2980b9)
+        .setTitle('🎣 Fisch verkaufen — Foto erforderlich')
+        .setDescription('Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Boot am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.')
+        .setFooter({ text: 'Foto einfach als Nachricht in diese DM senden.' })
+      ] });
+    } catch {}
+    return interaction.editReply({ content: '📬 Wir haben dir eine DM geschickt! Sende dort dein Foto um den Verkauf abzuschließen.' });
   } catch (e) { console.error('[ANGELN] interaction:', e.message); }
 });
+
+// ─── VERKAUF-PRÜFUNG: DM-Foto empfangen ──────────────────────────────────────
+client.on('messageCreate', async (msg) => {
+  try {
+    if (msg.author.bot) return;
+    if (msg.guild) return; // nur DMs
+    const userId = msg.author.id;
+    const pending = pendingVerkauf.get(userId);
+    if (!pending) return;
+    const hasImage = msg.attachments.some(a => a.contentType && a.contentType.startsWith('image/'));
+    if (!hasImage) {
+      await msg.reply('❌ Bitte sende ein **Foto** (Bild-Datei). Nur Bilder werden als Nachweis akzeptiert.');
+      return;
+    }
+    const imageUrl = msg.attachments.find(a => a.contentType && a.contentType.startsWith('image/')).url;
+    const fields = pending.items.map(v => ({ name: v.name, value: v.menge + 'x → **' + v.wert.toLocaleString('de-CH') + '$**', inline: true }));
+    fields.push({ name: '💰 Gesamtwert', value: '**' + pending.totalGeld.toLocaleString('de-CH') + '$**', inline: false });
+    const prüfEmbed = new EmbedBuilder()
+      .setColor(pending.color)
+      .setTitle(pending.emoji + ' Verkaufsantrag — ' + pending.label)
+      .setDescription('<@' + userId + '> (`' + userId + '`) möchte seinen **' + pending.label + '** verkaufen.\n\nBitte Foto prüfen und entscheiden:')
+      .addFields(fields)
+      .setImage(imageUrl)
+      .setTimestamp()
+      .setFooter({ text: 'Verkaufsantrag von ' + msg.author.tag });
+    const prüfCh = await client.channels.fetch(VERKAUF_PRÜF_CH).catch(() => null);
+    if (!prüfCh) { await msg.reply('❌ Prüfkanal nicht gefunden. Bitte Team kontaktieren.'); return; }
+    await prüfCh.send({
+      embeds: [prüfEmbed],
+      components: [new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('vkauf_ok:' + userId).setLabel('✅ Korrekt').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('vkauf_nok:' + userId).setLabel('❌ Inkorrekt').setStyle(ButtonStyle.Danger),
+      )]
+    });
+    await msg.reply({ embeds: [new EmbedBuilder().setColor(0x2ecc71)
+      .setTitle('📸 Foto eingereicht!')
+      .setDescription('Dein Foto wurde ans Team weitergeleitet. Du wirst per DM über die Entscheidung informiert.')
+    ] });
+  } catch (e) { console.error('[VERKAUF-PRÜFUNG] DM-Foto:', e.message); }
+});
+
+// ─── VERKAUF-PRÜFUNG: Korrekt / Inkorrekt Buttons ────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  try {
+    if (interaction.isButton() && interaction.customId.startsWith('vkauf_ok:')) {
+      const userId = interaction.customId.split(':')[1];
+      const pending = pendingVerkauf.get(userId);
+      if (!pending) return interaction.reply({ content: '❌ Dieser Verkaufsantrag ist abgelaufen oder wurde bereits bearbeitet.', flags: 64 });
+      pendingVerkauf.delete(userId);
+      const inv = getUserInv(userId);
+      for (const item of pending.items) { delete inv[item.name]; }
+      setUserInv(userId, inv);
+      const k = getKonto(userId);
+      k.konto = (k.konto || 0) + pending.totalGeld;
+      setKonto(userId, k);
+      const fields = pending.items.map(v => ({ name: v.name, value: v.menge + 'x → **' + v.wert.toLocaleString('de-CH') + '$**', inline: true }));
+      fields.push({ name: '💰 Gesamt', value: '**' + pending.totalGeld.toLocaleString('de-CH') + '$** auf Konto gutgeschrieben', inline: false });
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0x27ae60)
+          .setTitle('✅ Verkauf genehmigt — ' + pending.emoji + ' ' + pending.label)
+          .setDescription('Dein Verkauf wurde vom Team **genehmigt**! Das Geld wurde auf dein Konto gutgeschrieben.')
+          .addFields(fields).setTimestamp()
+        ] });
+      } catch {}
+      await interaction.update({
+        embeds: [EmbedBuilder.from(interaction.message.embeds[0]).setColor(0x27ae60).setTitle('✅ GENEHMIGT — ' + pending.emoji + ' ' + pending.label).setDescription('Genehmigt von <@' + interaction.user.id + '>').setImage(interaction.message.embeds[0].image?.url || null)],
+        components: [new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('vkauf_done').setLabel('✅ Genehmigt von ' + interaction.user.username).setStyle(ButtonStyle.Success).setDisabled(true)
+        )]
+      });
+    }
+    if (interaction.isButton() && interaction.customId.startsWith('vkauf_nok:')) {
+      const userId = interaction.customId.split(':')[1];
+      if (!pendingVerkauf.has(userId)) return interaction.reply({ content: '❌ Dieser Verkaufsantrag ist abgelaufen oder wurde bereits bearbeitet.', flags: 64 });
+      const modal = new ModalBuilder()
+        .setCustomId('vkauf_ablehnen:' + userId)
+        .setTitle('Verkauf ablehnen — Begründung')
+        .addComponents(new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId('begruendung')
+            .setLabel('Begründung für die Ablehnung')
+            .setStyle(TextInputStyle.Paragraph)
+            .setPlaceholder('z.B. Kein Fahrzeug sichtbar, falscher Standort...')
+            .setRequired(true)
+            .setMaxLength(500)
+        ));
+      await interaction.showModal(modal);
+    }
+    if (interaction.isModalSubmit() && interaction.customId.startsWith('vkauf_ablehnen:')) {
+      const userId = interaction.customId.split(':')[1];
+      const pending = pendingVerkauf.get(userId);
+      if (!pending) return interaction.reply({ content: '❌ Dieser Verkaufsantrag ist abgelaufen oder wurde bereits bearbeitet.', flags: 64 });
+      pendingVerkauf.delete(userId);
+      const begruendung = interaction.fields.getTextInputValue('begruendung');
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe74c3c)
+          .setTitle('❌ Verkauf abgelehnt — ' + pending.emoji + ' ' + pending.label)
+          .setDescription('Dein Verkaufsantrag wurde vom Team **abgelehnt**.\n\nDeine Items wurden **nicht** aus dem Inventar entfernt und kein Geld ausgezahlt.')
+          .addFields({ name: '📋 Begründung', value: begruendung, inline: false })
+          .setTimestamp()
+        ] });
+      } catch {}
+      await interaction.reply({ flags: 64, embeds: [new EmbedBuilder().setColor(0xe74c3c)
+        .setTitle('❌ Verkauf abgelehnt')
+        .setDescription('Begründung wurde an <@' + userId + '> per DM geschickt.')
+        .addFields({ name: '📋 Begründung', value: begruendung })
+      ] });
+      try {
+        await interaction.message.edit({
+          embeds: [EmbedBuilder.from(interaction.message.embeds[0]).setColor(0xe74c3c).setTitle('❌ ABGELEHNT — ' + pending.emoji + ' ' + pending.label).setDescription('Abgelehnt von <@' + interaction.user.id + '>\n\n**Begründung:** ' + begruendung).setImage(interaction.message.embeds[0].image?.url || null)],
+          components: [new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('vkauf_done2').setLabel('❌ Abgelehnt von ' + interaction.user.username).setStyle(ButtonStyle.Danger).setDisabled(true)
+          )]
+        });
+      } catch {}
+    }
+  } catch (e) { console.error('[VERKAUF-PRÜFUNG] interaction:', e.message); }
+});
+// ─── END VERKAUF-PRÜFUNG ──────────────────────────────────────────────────────
 
 (function loginWithRetry(attempt) {
 
