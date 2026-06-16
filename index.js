@@ -47,6 +47,7 @@ function _fsGenToken(userId, createdBy) {
 // ─── Datenspeicherung ─────────────────────────────────────────────────────────
 const DATA_DIR      = path.join(__dirname, 'data');
 let _shopCb = {};
+let _cmdCount = 0; // wird im ready-Handler gesetzt, dann in /server genutzt
 const SHOP_MGR_TOK_FILE = path.join(DATA_DIR, 'shop_mgr_tokens.json');
 function loadShopMgrToks() { try { return JSON.parse(fs.readFileSync(SHOP_MGR_TOK_FILE,'utf8')); } catch { return {}; } }
 function saveShopMgrToks(d) { fs.writeFileSync(SHOP_MGR_TOK_FILE, JSON.stringify(d,null,2),'utf8'); }
@@ -2001,6 +2002,7 @@ client.once('ready', async () => {
       .toJSON(),
 
     ];
+  _cmdCount = commands.length; // global merken für /server Handler
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   console.log('[COMMANDS] Guilds in cache:', client.guilds.cache.size, '| Commands to register:', commands.length);
@@ -5495,10 +5497,10 @@ client.on('interactionCreate', async (interaction) => {
           const botCount      = g.members.cache.filter(m => m.user.bot).size;
           const humanCount    = memberCount - botCount;
           const roleCount     = g.roles.cache.size - 1; // ohne @everyone
-          const textChannels  = g.channels.cache.filter(c => c.type === 0).size;
-          const voiceChannels = g.channels.cache.filter(c => c.type === 2).size;
-          const categoryCount = g.channels.cache.filter(c => c.type === 4).size;
-          const cmdCount      = commands.length;
+          const textChannels  = g.channels.cache.filter(c => c.type === ChannelType.GuildText).size;
+          const voiceChannels = g.channels.cache.filter(c => c.type === ChannelType.GuildVoice).size;
+          const categoryCount = g.channels.cache.filter(c => c.type === ChannelType.GuildCategory).size;
+          const cmdCount      = _cmdCount;
           const created       = `<t:${Math.floor(g.createdTimestamp / 1000)}:D>`;
           const embed = new EmbedBuilder()
             .setColor(0xe65100)
