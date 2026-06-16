@@ -3777,7 +3777,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── 3. Spam-Erkennung ─────────────────────────────────────────────────────
-  if (!isExempt(member)) {
+  if (!isExempt(member) && message.author.id !== message.guild.ownerId) {
     const userId = message.author.id;
     if (!spamTracker.has(userId))
       spamTracker.set(userId, { msgs: [], violations: 0, windowTimer: null });
