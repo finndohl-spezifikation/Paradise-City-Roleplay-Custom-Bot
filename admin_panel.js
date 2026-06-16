@@ -150,14 +150,14 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       } catch (e) { console.error('[ADMIN] ban-check', e.message); }
     }, 60000);
 
-    // ─── Embed bei jedem Bot-Neustart senden ─────────────────────────────────
-    setTimeout(async () => {
+    // ─── Embed nach Bot-Login senden (ready-Event abwarten) ──────────────────
+    client.once('ready', async () => {
       try {
         const domain = process.env.RAILWAY_PUBLIC_DOMAIN
           || 'paradise-city-roleplay-custom-bot-production.up.railway.app';
         const url = `https://${domain}/admin-panel`;
         const ch = await client.channels.fetch('1516408912172286074');
-        if (!ch || !ch.send) return;
+        if (!ch || !ch.send) { console.error('[ADMIN-PANEL] Channel nicht gefunden.'); return; }
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setLabel('Admin-Panel öffnen')
@@ -166,9 +166,9 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
             .setEmoji('🛠️')
         );
         await ch.send({ embeds: [new EmbedBuilder().setColor(0xe65100)], components: [row] });
-        console.log('[ADMIN-PANEL] Embed gesendet.');
+        console.log('[ADMIN-PANEL] Embed gesendet in', ch.name);
       } catch (e) { console.error('[ADMIN-PANEL] Embed-Fehler:', e.message); }
-    }, 5000);
+    });
   }
 
   // ─── Auth-Middleware ─────────────────────────────────────────────────────────

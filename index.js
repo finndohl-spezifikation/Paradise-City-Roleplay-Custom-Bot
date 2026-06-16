@@ -2001,6 +2001,11 @@ client.once('ready', async () => {
       .setDescription('Zeigt eine Übersicht des Servers (nur für dich sichtbar)')
       .toJSON(),
 
+    new SlashCommandBuilder()
+      .setName('admin')
+      .setDescription('Öffnet das Admin-Panel (nur für dich sichtbar)')
+      .toJSON(),
+
     ];
   _cmdCount = commands.length; // global merken für /server Handler
 
@@ -5517,6 +5522,21 @@ client.on('interactionCreate', async (interaction) => {
             .setFooter({ text: 'Nur für dich sichtbar • Paradise City Roleplay' })
             .setTimestamp();
           return interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+
+        // ─── /admin ─────────────────────────────────────────────────────────────
+        if (commandName === 'admin') {
+          const domain = process.env.RAILWAY_PUBLIC_DOMAIN
+            || 'paradise-city-roleplay-custom-bot-production.up.railway.app';
+          const url = `https://${domain}/admin-panel`;
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setLabel('Admin-Panel öffnen')
+              .setURL(url)
+              .setStyle(ButtonStyle.Link)
+              .setEmoji('🛠️')
+          );
+          return interaction.reply({ embeds: [new EmbedBuilder().setColor(0xe65100)], components: [row], ephemeral: true });
         }
 
         if (commandName === 'charakter-reset') {
