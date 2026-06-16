@@ -1853,8 +1853,50 @@ client.once('ready', async () => {
         .toJSON(),
     new SlashCommandBuilder().setName('teamshop').setDescription('Öffnet den Team-Shop').toJSON(),
     new SlashCommandBuilder()
-      .setName('shop-editor')
-      .setDescription('Shop-Editor öffnen — Vollständige Verwaltung aller Shops')
+      .setName('shop-add')
+      .setDescription('Item zu einem Shop hinzufügen')
+      .addStringOption(o => o.setName('shop').setDescription('Shop').setRequired(true)
+        .addChoices(
+          { name: '🏪 Kwik-E-Markt', value: 'kwik' },
+          { name: '🔨 Baumarkt',      value: 'baumarkt' },
+          { name: '🎣 Angler Shop',   value: 'angler' },
+          { name: '🌑 Schwarzmarkt',  value: 'schwarz' },
+        ))
+      .addStringOption(o => o.setName('name').setDescription('Name des Items').setRequired(true))
+      .addIntegerOption(o => o.setName('preis').setDescription('Preis in $').setRequired(true).setMinValue(1))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('shop-edit')
+      .setDescription('Item in einem Shop bearbeiten')
+      .addStringOption(o => o.setName('shop').setDescription('Shop').setRequired(true)
+        .addChoices(
+          { name: '🏪 Kwik-E-Markt', value: 'kwik' },
+          { name: '🔨 Baumarkt',      value: 'baumarkt' },
+          { name: '🎣 Angler Shop',   value: 'angler' },
+          { name: '🌑 Schwarzmarkt',  value: 'schwarz' },
+        ))
+      .addStringOption(o => o.setName('item').setDescription('Item auswählen').setRequired(true).setAutocomplete(true))
+      .addStringOption(o => o.setName('neuer_name').setDescription('Neuer Name (optional)'))
+      .addIntegerOption(o => o.setName('neuer_preis').setDescription('Neuer Preis in $ (optional)').setMinValue(1))
+      .addStringOption(o => o.setName('neuer_shop').setDescription('In anderen Shop verschieben (optional)')
+        .addChoices(
+          { name: '🏪 Kwik-E-Markt', value: 'kwik' },
+          { name: '🔨 Baumarkt',      value: 'baumarkt' },
+          { name: '🎣 Angler Shop',   value: 'angler' },
+          { name: '🌑 Schwarzmarkt',  value: 'schwarz' },
+        ))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('shop-delete')
+      .setDescription('Item aus einem Shop löschen')
+      .addStringOption(o => o.setName('shop').setDescription('Shop').setRequired(true)
+        .addChoices(
+          { name: '🏪 Kwik-E-Markt', value: 'kwik' },
+          { name: '🔨 Baumarkt',      value: 'baumarkt' },
+          { name: '🎣 Angler Shop',   value: 'angler' },
+          { name: '🌑 Schwarzmarkt',  value: 'schwarz' },
+        ))
+      .addStringOption(o => o.setName('item').setDescription('Item auswählen').setRequired(true).setAutocomplete(true))
       .toJSON(),
     new SlashCommandBuilder()
       .setName('money-add')
@@ -4302,6 +4344,17 @@ client.on('interactionCreate', async (interaction) => {
           const choices = (shops.team||[]).filter(i => i.name.toLowerCase().includes(focused)).slice(0,25).map(i => ({name:i.name,value:i.name}));
           return interaction.respond(choices);
         }
+        if (cmd === 'shop-edit' || cmd === 'shop-delete') {
+          const shopId = interaction.options.getString('shop');
+          const focused = interaction.options.getFocused().toLowerCase();
+          const shops = loadShops();
+          const items = shopId ? (shops[shopId] || []) : Object.values(shops).flat();
+          const choices = items
+            .filter(it => it.name && it.name.toLowerCase().includes(focused))
+            .slice(0, 25)
+            .map(it => ({ name: it.name + ' — ' + it.preis + '$', value: it.name }));
+          return interaction.respond(choices);
+        }
         return interaction.respond([]);
     }
 
@@ -5331,24 +5384,60 @@ client.on('interactionCreate', async (interaction) => {
         );
         return interaction.reply({ embeds: [buildTeamShopEmbed(items, 0)], components: [row], ephemeral: true });
       }
-      if (commandName === 'shop-editor') {
-        const tok = require('crypto').randomBytes(16).toString('hex');
-        const toks = loadShopMgrToks();
-        toks[tok] = { userId: interaction.user.id, userTag: interaction.user.tag, expiresAt: Date.now() + 3600000 };
-        for (const k of Object.keys(toks)) { if (toks[k].expiresAt < Date.now()) delete toks[k]; }
-        saveShopMgrToks(toks);
-        const _WEBAPP2 = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
-        const editorUrl = _WEBAPP2 + '/shop-manager/' + tok;
-        try {
-          await interaction.user.send({ embeds: [new EmbedBuilder()
-            .setColor(0xE65100)
-            .setTitle('🏪 Shop-Editor — Paradise City Roleplay')
-            .setDescription('Hier ist dein persönlicher Zugang zum Shop-Editor:\n\n🔗 **[Shop-Editor öffnen](' + editorUrl + ')**\n\n⏱️ *Link ist 1 Stunde gültig.*')
-          ]});
-          return interaction.reply({ content: '✅ Der Shop-Editor Link wurde dir per DM gesendet!', ephemeral: true });
-        } catch (e) {
-          return interaction.reply({ content: '❌ DM konnte nicht gesendet werden. Bitte aktiviere DMs von Servermitgliedern.', ephemeral: true });
+      if (commandName === 'shop-add') {
+        const mem = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+        if (!mem?.roles.cache.has('1490855702225485936')) return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+        const shopId  = interaction.options.getString('shop');
+        const name    = interaction.options.getString('name').trim();
+        const preis   = interaction.options.getInteger('preis');
+        const shops   = loadShops();
+        if (!shops[shopId]) shops[shopId] = [];
+        if (shops[shopId].some(it => it.name.toLowerCase() === name.toLowerCase()))
+          return interaction.reply({ content: `❌ **${name}** existiert bereits in diesem Shop.`, ephemeral: true });
+        shops[shopId].push({ name, preis });
+        saveShops(shops);
+        await _shopCb.updateShopEmbed(shopId).catch(() => {});
+        return interaction.reply({ content: `✅ **${name}** für **${preis.toLocaleString('de-CH')}$** wurde zum **${_shopCb.SHOP_META[shopId].name}** hinzugefügt.`, ephemeral: true });
+      }
+      if (commandName === 'shop-edit') {
+        const mem = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+        if (!mem?.roles.cache.has('1490855702225485936')) return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+        const shopId    = interaction.options.getString('shop');
+        const itemName  = interaction.options.getString('item');
+        const neuerName = interaction.options.getString('neuer_name');
+        const neuerPreis = interaction.options.getInteger('neuer_preis');
+        const neuerShop = interaction.options.getString('neuer_shop');
+        const shops = loadShops();
+        const idx = (shops[shopId] || []).findIndex(it => it.name === itemName);
+        if (idx === -1) return interaction.reply({ content: `❌ **${itemName}** nicht im **${_shopCb.SHOP_META[shopId].name}** gefunden.`, ephemeral: true });
+        const item = shops[shopId][idx];
+        if (neuerName) item.name = neuerName.trim();
+        if (neuerPreis) item.preis = neuerPreis;
+        if (neuerShop && neuerShop !== shopId) {
+          shops[shopId].splice(idx, 1);
+          if (!shops[neuerShop]) shops[neuerShop] = [];
+          shops[neuerShop].push(item);
+          saveShops(shops);
+          await _shopCb.updateShopEmbed(shopId).catch(() => {});
+          await _shopCb.updateShopEmbed(neuerShop).catch(() => {});
+          return interaction.reply({ content: `✅ **${item.name}** wurde zum **${_shopCb.SHOP_META[neuerShop].name}** verschoben.`, ephemeral: true });
         }
+        saveShops(shops);
+        await _shopCb.updateShopEmbed(shopId).catch(() => {});
+        return interaction.reply({ content: `✅ **${itemName}** wurde aktualisiert.`, ephemeral: true });
+      }
+      if (commandName === 'shop-delete') {
+        const mem = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+        if (!mem?.roles.cache.has('1490855702225485936')) return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+        const shopId   = interaction.options.getString('shop');
+        const itemName = interaction.options.getString('item');
+        const shops    = loadShops();
+        const before   = (shops[shopId] || []).length;
+        shops[shopId]  = (shops[shopId] || []).filter(it => it.name !== itemName);
+        if (shops[shopId].length === before) return interaction.reply({ content: `❌ **${itemName}** nicht im **${_shopCb.SHOP_META[shopId].name}** gefunden.`, ephemeral: true });
+        saveShops(shops);
+        await _shopCb.updateShopEmbed(shopId).catch(() => {});
+        return interaction.reply({ content: `🗑️ **${itemName}** wurde aus dem **${_shopCb.SHOP_META[shopId].name}** gelöscht.`, ephemeral: true });
       }
   
         // ─── MONEY-ADD ──────────────────────────────────────────────────────────
@@ -8172,6 +8261,196 @@ client.on('interactionCreate', async (interaction) => {
     new ButtonBuilder().setLabel('🌐 Jetzt verifizieren').setStyle(ButtonStyle.Link).setURL(link)
   );
   return interaction.reply({ embeds: [verifyEmbed], components: [verifyRow], ephemeral: true });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  HOLZ-FARMING SYSTEM
+// ═════════════════════════════════════════════════════════════════════════════
+const HOLZ_INFO_CH  = '1490894243445604553';
+const HOLZ_FOTO_CH  = '1490894244733255872';
+const HOLZ_FARM_DUR = 3 * 60 * 1000;
+const HOLZ_ARTEN = [
+  { name: 'Mammutbaum Holz', preis: 220 },
+  { name: 'Weisstanne Holz', preis: 210 },
+  { name: 'Rotahorn Holz',   preis: 190 },
+  { name: 'Buche Holz',      preis: 180 },
+  { name: 'Fichte Holz',     preis: 170 },
+];
+const HOLZ_FAHRZEUGE = [
+  { id: 'v4tuer',  label: '🚘 4 Türer',  legalKg: 500,   maxKg: 700   },
+  { id: 'pickup',  label: '🛻 Pickup',   legalKg: 1000,  maxKg: 1400  },
+  { id: 'van',     label: '🚐 Van',      legalKg: 1400,  maxKg: 1700  },
+  { id: 'mule',    label: '🚚 Mule',     legalKg: 4000,  maxKg: 6000  },
+  { id: 'pounder', label: '🚛 Pounder',  legalKg: 10000, maxKg: 13000 },
+];
+const holzActiveFarmers = new Map();
+
+client.once('ready', async () => {
+  try {
+    const ch = await client.channels.fetch(HOLZ_INFO_CH).catch(() => null);
+    if (!ch) return;
+    const embed = new EmbedBuilder()
+      .setColor(0x27ae60)
+      .setTitle('🌲 Holz Farmen — Anleitung')
+      .setDescription(
+        '**So funktioniert das Holz-Farming:**\n\n' +
+        '`1.` Kaufe eine **Kettensäge** im Baumarkt\n' +
+        '`2.` Fahre mit deinem Fahrzeug in den Wald\n' +
+        '`3.` Poste ein **Foto** im <#' + HOLZ_FOTO_CH + '> Kanal\n' +
+        '`4.` Wähle dein **Fahrzeug** per DM aus\n' +
+        '`5.` Warte **3 Minuten** — du bekommst eine DM wenn du fertig bist\n' +
+        '`6.` Klicke **💰 Holz Verkaufen** in der DM um dein Holz zu verkaufen\n\n' +
+        '🪵 **Holzarten & Preise (pro 100kg):**\n' +
+        HOLZ_ARTEN.map(a => '▸ ' + a.name + ' — **' + a.preis + '$**').join('\n')
+      )
+      .setFooter({ text: 'Paradise City Roleplay • Holz-Farming' })
+      .setTimestamp();
+    const old = await ch.messages.fetch({ limit: 20 }).catch(() => null);
+    if (old) for (const [, m] of old) { if (m.author.id === client.user.id) await m.delete().catch(() => {}); }
+    await ch.send({ embeds: [embed] });
+    console.log('[HOLZ] Info-Embed gesendet.');
+  } catch (e) { console.error('[HOLZ] Info-Embed Fehler:', e.message); }
+});
+
+client.on('messageCreate', async (msg) => {
+  try {
+    if (msg.channel.id !== HOLZ_FOTO_CH) return;
+    if (msg.author.bot) return;
+    const hasImage = msg.attachments.some(a => a.contentType && a.contentType.startsWith('image/'));
+    if (!hasImage) { await msg.delete().catch(() => {}); return; }
+    const userId = msg.author.id;
+    if (holzActiveFarmers.has(userId)) {
+      await msg.delete().catch(() => {});
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe65100)
+          .setTitle('🌲 Du farmst bereits!')
+          .setDescription('Warte bis dein aktuelles Farmen abgeschlossen ist.')] });
+      } catch {}
+      return;
+    }
+    const inv = getUserInv(userId);
+    if (!(inv['Kettensäge'] >= 1)) {
+      await msg.delete().catch(() => {});
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe74c3c)
+          .setTitle('❌ Keine Kettensäge')
+          .setDescription('Du besitzt keine **Kettensäge**! Kaufe diese zuerst im **Baumarkt**.')] });
+      } catch {}
+      return;
+    }
+    setTimeout(() => msg.delete().catch(() => {}), 5000);
+    try {
+      const u = await client.users.fetch(userId);
+      await (await u.createDM()).send({
+        embeds: [new EmbedBuilder().setColor(0xe65100)
+          .setTitle('🌲 Holz farmen – Fahrzeug wählen')
+          .setDescription('Wähle dein **Fahrzeug** für das Farmen aus:')
+          .addFields(
+            { name: '🚘 4 Türer',  value: 'Legal: **500kg** | Max: **700kg**',            inline: true },
+            { name: '🛻 Pickup',   value: "Legal: **1'000kg** | Max: **1'400kg**",         inline: true },
+            { name: '🚐 Van',      value: "Legal: **1'400kg** | Max: **1'700kg**",         inline: true },
+            { name: '🚚 Mule',     value: "Legal: **4'000kg** | Max: **6'000kg**",         inline: true },
+            { name: '🚛 Pounder',  value: "Legal: **10'000kg** | Max: **13'000kg**",       inline: true },
+          )
+          .setFooter({ text: 'Du hast 5 Minuten um ein Fahrzeug auszuwählen.' })
+        ],
+        components: [new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('holz_fz:' + userId)
+            .setPlaceholder('Fahrzeug auswählen...')
+            .addOptions(HOLZ_FAHRZEUGE.map(fz =>
+              new StringSelectMenuOptionBuilder()
+                .setLabel(fz.label)
+                .setValue(fz.id)
+                .setDescription('Legal: ' + fz.legalKg.toLocaleString('de-CH') + 'kg | Max: ' + fz.maxKg.toLocaleString('de-CH') + 'kg')
+            ))
+        )]
+      });
+    } catch (e) { console.error('[HOLZ] DM-Fehler:', e.message); }
+  } catch (e) { console.error('[HOLZ] messageCreate:', e.message); }
+});
+
+client.on('interactionCreate', async (interaction) => {
+  try {
+    if (interaction.isButton() && interaction.customId === 'holz_verkaufen') {
+      await interaction.deferReply({ flags: 64 });
+      const userId = interaction.user.id;
+      const inv = getUserInv(userId);
+      let totalGeld = 0;
+      const verkauft = [];
+      for (const art of HOLZ_ARTEN) {
+        const menge = inv[art.name] || 0;
+        if (menge > 0) {
+          totalGeld += menge * art.preis;
+          verkauft.push({ name: art.name, menge, wert: menge * art.preis });
+          delete inv[art.name];
+        }
+      }
+      if (!verkauft.length) return interaction.editReply({ content: '❌ Du hast kein Holz im Inventar!' });
+      setUserInv(userId, inv);
+      const k = getKonto(userId);
+      k.konto = (k.konto || 0) + totalGeld;
+      setKonto(userId, k);
+      const fields = verkauft.map(v => ({ name: v.name, value: v.menge + 'x → **' + v.wert.toLocaleString('de-CH') + '$**', inline: true }));
+      fields.push({ name: '💰 Gesamt', value: '**' + totalGeld.toLocaleString('de-CH') + '$** auf dein Konto gutgeschrieben', inline: false });
+      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x27ae60)
+        .setTitle('✅ Holz verkauft!')
+        .setDescription('Dein Holz wurde erfolgreich verkauft.')
+        .addFields(fields).setTimestamp()] });
+    }
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('holz_fz:')) {
+      const userId = interaction.customId.split(':')[1];
+      if (interaction.user.id !== userId) return interaction.reply({ content: '❌ Das ist nicht dein Menü!', flags: 64 });
+      if (holzActiveFarmers.has(userId)) return interaction.reply({ content: '❌ Du farmst bereits!', flags: 64 });
+      const fzId = interaction.values[0];
+      const fz = HOLZ_FAHRZEUGE.find(f => f.id === fzId);
+      if (!fz) return interaction.reply({ content: '❌ Ungültiges Fahrzeug.', flags: 64 });
+      await interaction.update({
+        embeds: [new EmbedBuilder().setColor(0x27ae60)
+          .setTitle('🌲 Farmen gestartet!')
+          .setDescription('Du farmst jetzt mit dem **' + fz.label + '**.\nDu wirst in **3 Minuten** benachrichtigt!')
+          .addFields(
+            { name: '🚗 Fahrzeug',       value: fz.label, inline: true },
+            { name: '⚖️ Kapazität',      value: 'Legal: **' + fz.legalKg.toLocaleString('de-CH') + 'kg** | Max: **' + fz.maxKg.toLocaleString('de-CH') + 'kg**', inline: true },
+          ).setTimestamp()
+        ],
+        components: [new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('holz_fz_done:' + userId)
+            .setPlaceholder(fz.label + ' ✅')
+            .setDisabled(true)
+            .addOptions([{ label: fz.label, value: fz.id }])
+        )]
+      });
+      const timer = setTimeout(async () => {
+        holzActiveFarmers.delete(userId);
+        const art = HOLZ_ARTEN[Math.floor(Math.random() * HOLZ_ARTEN.length)];
+        const uInv = getUserInv(userId);
+        uInv[art.name] = (uInv[art.name] || 0) + 1;
+        setUserInv(userId, uInv);
+        try {
+          const user = await client.users.fetch(userId);
+          await (await user.createDM()).send({
+            embeds: [new EmbedBuilder().setColor(0x27ae60)
+              .setTitle('🌲 Holz geerntet!')
+              .setDescription('Du hast **100kg ' + art.name + '** geerntet und es wurde deinem Inventar hinzugefügt!')
+              .addFields(
+                { name: '🪵 Holzart', value: art.name, inline: true },
+                { name: '⚖️ Menge',   value: '100kg (1x)', inline: true },
+                { name: '💰 Wert',    value: art.preis + '$ pro 100kg', inline: true },
+              ).setTimestamp()
+            ],
+            components: [new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId('holz_verkaufen').setLabel('💰 Holz Verkaufen').setStyle(ButtonStyle.Success)
+            )]
+          });
+        } catch (e) { console.error('[HOLZ] Completion-DM:', e.message); }
+      }, HOLZ_FARM_DUR);
+      holzActiveFarmers.set(userId, { vehicle: fzId, timer });
+    }
+  } catch (e) { console.error('[HOLZ] interaction:', e.message); }
 });
 
 (function loginWithRetry(attempt) {

@@ -6191,7 +6191,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;mi
 
   // ── Führerschein-System ─────────────────────────────────────────────────
   try { require('./fuehrerschein')(app, DATA_DIR, client, express); } catch(e) { console.error('[FUEHRERSCHEIN]', e.message); }
-  try { require('./admin_panel')(app, DATA_DIR, client, express); } catch(e) { console.error('[ADMIN-PANEL]', e.message); }
 
 
   app.listen(PORT, '0.0.0.0', () => console.log('Web-Server running on port '+PORT));
