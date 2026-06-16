@@ -153,8 +153,23 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
 
   // ─── Auth-Middleware ─────────────────────────────────────────────────────────
   function requireAuth(req, res, next) {
-    if (req.session && req.session.pcAdmin) return next();
-    return res.status(401).json({ error: 'Nicht angemeldet' });
+    if (!req.session || !req.session.pcAdmin) return res.status(401).json({ error: 'Nicht angemeldet' });
+    // CSRF-Schutz: verändernde Anfragen müssen von der eigenen Domain kommen
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      const src = req.headers.origin || req.headers.referer;
+      if (src) {
+        try {
+          if (new URL(src).host !== req.headers.host) return res.status(403).json({ error: 'Ungültige Herkunft.' });
+        } catch { return res.status(403).json({ error: 'Ungültige Herkunft.' }); }
+      }
+    }
+    return next();
+  }
+
+  // Prüft, ob der Ziel-Spieler die Inventar-/Bank-Rolle besitzt (nur diese dürfen verwaltet werden)
+  async function targetHasInvRole(userId) {
+    const m = await getMember(userId);
+    return !!(m && m.roles && m.roles.cache && m.roles.cache.has(INV_ROLE));
   }
 
   // ─── Hilfsfunktion: Item-Registry (nur Items aus den Shops) ──────────────────
@@ -474,6 +489,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       const { userId, type, action, amount } = req.body;
       const amt = Math.abs(Math.floor(Number(amount) || 0));
       if (!userId || !amt) return res.status(400).json({ error: 'Ungültige Angaben.' });
+      if (!(await targetHasInvRole(userId))) return res.status(403).json({ error: 'Dieser Spieler hat keine Inventar-/Bank-Berechtigung.' });
       const sign = action === 'remove' ? -1 : 1;
 
       if (type === 'bargeld') {
@@ -506,6 +522,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       const amt = Math.abs(Math.floor(Number(amount) || 1)) || 1;
       const name = (item || '').trim();
       if (!userId || !name) return res.status(400).json({ error: 'Ungültige Angaben.' });
+      if (!(await targetHasInvRole(userId))) return res.status(403).json({ error: 'Dieser Spieler hat keine Inventar-/Bank-Berechtigung.' });
       if (action === 'add' && !itemRegistry().includes(name)) {
         return res.status(400).json({ error: 'Dieses Item existiert in keinem Shop. Nur Shop-Items erlaubt.' });
       }
