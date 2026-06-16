@@ -751,9 +751,11 @@ const DASH_HTML = `<!DOCTYPE html><html lang="de"><head>
 body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex}
 ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#30363d;border-radius:8px}::-webkit-scrollbar-track{background:transparent}
 a{color:inherit;text-decoration:none}
-/* Sidebar */
-.sidebar{width:248px;background:linear-gradient(180deg,#15110a,#0d1117);border-right:1px solid var(--border);min-height:100vh;position:fixed;top:0;left:0;display:flex;flex-direction:column;z-index:50;transition:transform .22s cubic-bezier(.4,0,.2,1)}
-.sidebar.hidden{transform:translateX(-100%)}
+/* Sidebar – Overlay-Drawer (standardmäßig ausgeblendet) */
+.sidebar{width:260px;background:linear-gradient(180deg,#15110a,#0d1117);border-right:1px solid var(--border);height:100vh;position:fixed;top:0;left:0;display:flex;flex-direction:column;z-index:200;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.sidebar.open{transform:translateX(0)}
+.sb-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:199}
+.sb-backdrop.show{display:block}
 .brand{padding:20px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px}
 .brand .seal{font-size:1.7em}
 .brand .t1{font-size:.86em;font-weight:700;letter-spacing:1px;color:#fff}
@@ -771,9 +773,8 @@ a{color:inherit;text-decoration:none}
 .usr .nm{font-size:.82em;color:#fff;font-weight:600}.usr .rl{font-size:.66em;color:var(--gold)}
 .usr button{background:#21262d;border:1px solid var(--border);color:#c9d1d9;border-radius:7px;padding:7px 10px;font-size:.72em;cursor:pointer}
 .usr button:hover{background:#30363d;color:#fff}
-/* Main */
-.main{margin-left:248px;flex:1;padding:26px 30px 60px;width:calc(100% - 248px);transition:margin-left .22s cubic-bezier(.4,0,.2,1),width .22s cubic-bezier(.4,0,.2,1)}
-.main.full{margin-left:0;width:100%}
+/* Main – immer volle Breite */
+.main{margin-left:0;flex:1;padding:26px 30px 60px;width:100%}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
 .topbar h1{font-size:1.5em;color:#fff;display:flex;align-items:center;gap:10px}
 .topbar .sub{color:var(--muted);font-size:.85em;margin-top:3px}
@@ -790,7 +791,7 @@ a{color:inherit;text-decoration:none}
 .grid.c3{grid-template-columns:repeat(3,1fr)}
 .grid.c2{grid-template-columns:repeat(2,1fr)}
 @media(max-width:1100px){.grid.c4{grid-template-columns:repeat(2,1fr)}.grid.c3{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:900px){.sidebar{transform:translateX(-100%)}.sidebar.visible{transform:none}.main{margin-left:0;width:100%}.main.full{margin-left:0;width:100%}.grid.c4,.grid.c3,.grid.c2{grid-template-columns:1fr}}
+@media(max-width:760px){.grid.c4,.grid.c3,.grid.c2{grid-template-columns:1fr}.main{padding:16px 12px 60px}}
 .stat{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden}
 .stat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
 .stat .lab{color:var(--muted);font-size:.74em;text-transform:uppercase;letter-spacing:1px}
@@ -853,6 +854,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .search{max-width:320px;margin-bottom:14px}
 </style></head><body>
 
+<div class="sb-backdrop" id="sb-backdrop" onclick="closeSidebar()"></div>
 <div class="sidebar" id="sidebar">
   <div class="brand"><div class="seal">🛡️</div><div><div class="t1">ADMIN DASHBOARD</div><div class="t2">Paradise City Roleplay</div></div></div>
   <div class="nav" id="nav">
@@ -922,19 +924,18 @@ function closeModal(){ document.getElementById('overlay').className='overlay'; }
 document.getElementById('overlay').addEventListener('click',function(e){ if(e.target.id==='overlay') closeModal(); });
 
 /* ── SIDEBAR TOGGLE ── */
-var _sidebarOpen = window.innerWidth >= 900;
-function toggleSidebar(){
-  var sb=document.getElementById('sidebar');
-  var mn=document.getElementById('main');
-  _sidebarOpen=!_sidebarOpen;
-  if(_sidebarOpen){ sb.classList.remove('hidden'); mn.classList.remove('full'); }
-  else { sb.classList.add('hidden'); mn.classList.add('full'); }
+function openSidebar(){
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sb-backdrop').classList.add('show');
 }
-window.addEventListener('resize',function(){
-  var sb=document.getElementById('sidebar'); var mn=document.getElementById('main');
-  if(window.innerWidth<900){ _sidebarOpen=false; sb.classList.add('hidden'); mn.classList.add('full'); }
-  else { _sidebarOpen=true; sb.classList.remove('hidden'); mn.classList.remove('full'); }
-});
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sb-backdrop').classList.remove('show');
+}
+function toggleSidebar(){
+  if(document.getElementById('sidebar').classList.contains('open')) closeSidebar();
+  else openSidebar();
+}
 
 /* ── SYNC INFO ── */
 function updateSyncInfo(){
@@ -949,7 +950,7 @@ function setActive(sec){
 function nav(sec){ cur=sec; var meta=SECTIONS[sec]; if(meta){document.getElementById('ptitle').textContent=meta.t;document.getElementById('psub').textContent=meta.s;} setActive(sec); render(sec); }
 function reload(){ if(cur.indexOf('log:')===0) renderLog(cur.slice(4)); else render(cur); updateSyncInfo(); }
 
-document.querySelectorAll('#nav a[data-sec]').forEach(function(a){ a.addEventListener('click',function(){nav(a.getAttribute('data-sec'));}); });
+document.querySelectorAll('#nav a[data-sec]').forEach(function(a){ a.addEventListener('click',function(){closeSidebar();nav(a.getAttribute('data-sec'));}); });
 document.getElementById('logtoggle').addEventListener('click',function(){ var s=document.getElementById('logsub'); s.classList.toggle('open'); document.getElementById('logarrow').textContent=s.classList.contains('open')?'▾':'▸'; });
 
 function C(){ return document.getElementById('content'); }
@@ -1185,21 +1186,14 @@ async function renderLog(type){ loading(); try{ var d=await api('/logs/'+type); 
 
 /* ── INIT ── */
 async function init(){
-  // Sidebar-Startzustand
-  if(window.innerWidth<900){
-    document.getElementById('sidebar').classList.add('hidden');
-    document.getElementById('main').classList.add('full');
-    _sidebarOpen=false;
-  }
   try{ var me=await api('/me'); document.getElementById('uname').textContent=me.name||me.username; }catch(e){}
   try{
     LOG_TYPES=await api('/logs');
     var sub=document.getElementById('logsub');
-    sub.innerHTML=LOG_TYPES.map(function(l){return '<a data-log="'+l.key+'" onclick="navLog(\\''+l.key+'\\')">'+esc(l.label)+'</a>';}).join('');
+    sub.innerHTML=LOG_TYPES.map(function(l){return '<a data-log="'+l.key+'" onclick="closeSidebar();navLog(\\''+l.key+'\\')">'+esc(l.label)+'</a>';}).join('');
   }catch(e){}
   nav('overview');
   updateSyncInfo();
-  // Auto-Refresh alle 30 Sekunden
   setInterval(function(){ reload(); },30000);
 }
 init();
