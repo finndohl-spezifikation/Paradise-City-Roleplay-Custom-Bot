@@ -5387,6 +5387,8 @@ client.on('interactionCreate', async (interaction) => {
             const neu = Math.max(0, cur - betrag);
             setCash(target.id, neu);
             addTrans(target.id, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} ${MONEY_GIF} Bargeld (Admin)`, betrag: -betrag });
+          } else if (typ === 'pc_coins') {
+            const w2 = getWallet(target.id); w2.dc = Math.max(0, (Number(w2.dc)||0) - betrag); setWallet(target.id, w2);
           } else {
             const k = getKonto(target.id);
             if (typ === 'konto') k.konto = Math.max(0, k.konto - betrag);
@@ -5394,8 +5396,6 @@ client.on('interactionCreate', async (interaction) => {
             setKonto(target.id, k);
             addTrans(target.id, { ts: Date.now(), text: `-${betrag.toLocaleString('de-CH')} ${MONEY_GIF} ${typ === 'konto' ? 'Kontogeld' : 'Schwarzgeld'} (Admin)`, betrag: -betrag });
           }
-          } else if (typ === 'pc_coins') {
-            const w2 = getWallet(target.id); w2.dc = Math.max(0, (Number(w2.dc)||0) - betrag); setWallet(target.id, w2);
           const typLabel = typ === 'konto' ? 'Kontogeld' : typ === 'bargeld' ? 'Bargeld' : typ === 'pc_coins' ? 'PC Coins' : 'Schwarzgeld';
           sendLog(LOG_MONEY_CH, new EmbedBuilder().setColor(0xE65100)
             .setTitle('💰 Geld-Log: Geld abgezogen (/money-remove)')
