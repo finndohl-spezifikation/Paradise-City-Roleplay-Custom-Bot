@@ -7923,23 +7923,13 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
     const grund = interaction.options.getString('grund');
     saveEinreiseSperre({ aktiv: true, grund });
-    return interaction.reply({ embeds: [new EmbedBuilder()
-      .setColor(0xdc2626)
-      .setTitle('🚫 Einreise-Sperre aktiviert')
-      .setDescription(`Die Einreise-Sperre wurde aktiviert.\n\n**Grund:** ${grund}\n\nKein neuer Charakter kann erstellt werden bis die Sperre mit \`/einreise-freigeben\` aufgehoben wird.`)
-      .setTimestamp()
-    ] });
+    return interaction.reply({ content: '🚫 Einreise-Sperre wurde aktiviert.', ephemeral: true });
   }
   if (interaction.commandName === 'einreise-freigeben') {
     if (!interaction.member.permissions.has(require('discord.js').PermissionFlagsBits.Administrator))
       return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
     saveEinreiseSperre({ aktiv: false, grund: null });
-    return interaction.reply({ embeds: [new EmbedBuilder()
-      .setColor(0x22c55e)
-      .setTitle('✅ Einreise-Sperre aufgehoben')
-      .setDescription('Die Einreise-Sperre wurde aufgehoben. Neue Charaktere können wieder erstellt werden.')
-      .setTimestamp()
-    ] });
+    return interaction.reply({ content: '✅ Einreise-Sperre wurde aufgehoben.', ephemeral: true });
   }
 });
 // ─── END EINREISE-SPERRE COMMANDS ────────────────────────────────────────────
