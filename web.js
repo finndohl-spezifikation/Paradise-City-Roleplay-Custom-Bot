@@ -6136,7 +6136,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;mi
           </label>
           <label class="rule-item" id="ri3" onclick="tick(3)">
             <input type="checkbox" name="r3" value="1" id="cb3" required>
-            <span class="rule-text">Ich bestätige hiermit, dass ich dem Server in keinem Fall versuche, Schäden zu verursachen.</span>
+            <span class="rule-text">Ich bestätige hiermit, dass ich dem Server in keinem Fall versuche, Schaden zuzufügen.</span>
           </label>
         </div>
         <button class="btn" type="submit" id="submitBtn" disabled>&#9989; Bestätigen &amp; Zugang erhalten</button>
