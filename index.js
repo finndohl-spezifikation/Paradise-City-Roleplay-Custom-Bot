@@ -8416,32 +8416,39 @@ client.on('messageCreate', async (msg) => {
       return;
     }
     setTimeout(() => msg.delete().catch(() => {}), 5000);
+    holzActiveFarmers.set(userId, { timer: null });
     try {
       const u = await client.users.fetch(userId);
-      await (await u.createDM()).send({
-        embeds: [new EmbedBuilder().setColor(0xe65100)
-          .setTitle('🌲 Holz farmen – Fahrzeug wählen')
-          .setDescription('Wähle dein **Fahrzeug** aus.\nDu erhältst immer **100kg Holz** pro 3 Minuten — die Kapazitäten sind eine RP-Regel:')
-          .addFields(HOLZ_FAHRZEUGE.map(fz => ({
-            name: fz.label,
-            value: 'Legal: **' + fz.legalKg.toLocaleString('de-CH') + 'kg** | Max: **' + fz.maxKg.toLocaleString('de-CH') + 'kg**',
-            inline: true,
-          })))
-          .setFooter({ text: 'Du hast 5 Minuten um ein Fahrzeug auszuwählen.' })
-        ],
-        components: [new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId('holz_fz:' + userId)
-            .setPlaceholder('Fahrzeug auswählen...')
-            .addOptions(HOLZ_FAHRZEUGE.map(fz =>
-              new StringSelectMenuOptionBuilder()
-                .setLabel(fz.label)
-                .setValue(fz.id)
-                .setDescription('Legal: ' + fz.legalKg.toLocaleString('de-CH') + 'kg | Max: ' + fz.maxKg.toLocaleString('de-CH') + 'kg')
-            ))
-        )]
-      });
+      await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe65100)
+        .setTitle('🌲 Holz farmen – Gestartet!')
+        .setDescription('Dein Foto wurde registriert. In **3 Minuten** erhältst du **100kg Holz** und wirst per DM benachrichtigt!')
+        .addFields({ name: '📦 Ausbeute', value: 'Immer genau **100kg** — Holzart ist zufällig', inline: false })
+        .setTimestamp()
+      ] });
     } catch (e) { console.error('[HOLZ] DM-Fehler:', e.message); }
+    const holzTimer = setTimeout(async () => {
+      holzActiveFarmers.delete(userId);
+      const holzArten = loadHolzArten();
+      const art = holzArten[Math.floor(Math.random() * holzArten.length)];
+      const uInv = getUserInv(userId);
+      uInv[art.name] = (uInv[art.name] || 0) + 1;
+      setUserInv(userId, uInv);
+      try {
+        const user = await client.users.fetch(userId);
+        await (await user.createDM()).send({
+          embeds: [new EmbedBuilder().setColor(0x27ae60)
+            .setTitle('🌲 Holz geerntet!')
+            .setDescription('Du hast **100kg Holz** geerntet!\n\n▸ 1x ' + art.name + '\n\n💰 Gehe in den Holz-Kanal und klicke auf **Holz Verkaufen** um dein Holz zu verkaufen.')
+            .addFields(
+              { name: '🪵 Holzart', value: art.name, inline: true },
+              { name: '⚖️ Menge',   value: '100kg (1x)', inline: true },
+              { name: '💰 Wert',    value: '**' + art.preis + '$**', inline: true },
+            ).setTimestamp()
+          ]
+        });
+      } catch (e) { console.error('[HOLZ] Completion-DM:', e.message); }
+    }, HOLZ_FARM_DUR);
+    holzActiveFarmers.set(userId, { timer: holzTimer });
   } catch (e) { console.error('[HOLZ] messageCreate:', e.message); }
 });
 
@@ -8473,59 +8480,6 @@ client.on('interactionCreate', async (interaction) => {
         .setTitle('✅ Holz verkauft!')
         .setDescription('Dein Holz wurde erfolgreich verkauft.')
         .addFields(fields).setTimestamp()] });
-    }
-    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('holz_fz:')) {
-      const userId = interaction.customId.split(':')[1];
-      if (interaction.user.id !== userId) return interaction.reply({ content: '❌ Das ist nicht dein Menü!', flags: 64 });
-      if (holzActiveFarmers.has(userId)) return interaction.reply({ content: '❌ Du farmst bereits!', flags: 64 });
-      const fzId = interaction.values[0];
-      const fz = HOLZ_FAHRZEUGE.find(f => f.id === fzId);
-      if (!fz) return interaction.reply({ content: '❌ Ungültiges Fahrzeug.', flags: 64 });
-      await interaction.update({
-        embeds: [new EmbedBuilder().setColor(0x27ae60)
-          .setTitle('🌲 Farmen gestartet!')
-          .setDescription('Du farmst jetzt mit dem **' + fz.label + '**.\nIn **3 Minuten** erhältst du **100kg Holz** und wirst per DM benachrichtigt!')
-          .addFields(
-            { name: '🚗 Fahrzeug',  value: fz.label, inline: true },
-            { name: '⚖️ Kapazität', value: 'Legal: **' + fz.legalKg.toLocaleString('de-CH') + 'kg** | Max: **' + fz.maxKg.toLocaleString('de-CH') + 'kg**', inline: true },
-            { name: '📦 Ausbeute',  value: 'Immer genau **100kg** — Holzart ist zufällig', inline: true },
-          ).setTimestamp()
-        ],
-        components: [new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId('holz_fz_done:' + userId)
-            .setPlaceholder(fz.label + ' ✅')
-            .setDisabled(true)
-            .addOptions([{ label: fz.label, value: fz.id }])
-        )]
-      });
-      const timer = setTimeout(async () => {
-        holzActiveFarmers.delete(userId);
-        const holzArten = loadHolzArten();
-        const art = holzArten[Math.floor(Math.random() * holzArten.length)];
-        const uInv = getUserInv(userId);
-        uInv[art.name] = (uInv[art.name] || 0) + 1;
-        setUserInv(userId, uInv);
-        try {
-          const user = await client.users.fetch(userId);
-          await (await user.createDM()).send({
-            embeds: [new EmbedBuilder().setColor(0x27ae60)
-              .setTitle('🌲 Holz geerntet!')
-              .setDescription(
-                'Du hast mit dem **' + fz.label + '** **100kg Holz** geerntet!\n\n' +
-                '▸ 1x ' + art.name + '\n\n' +
-                '💰 Gehe in den Holz-Kanal und klicke auf **Holz Verkaufen** um dein Holz zu verkaufen.'
-              )
-              .addFields(
-                { name: '🪵 Holzart', value: art.name, inline: true },
-                { name: '⚖️ Menge',   value: '100kg (1x)', inline: true },
-                { name: '💰 Wert',    value: '**' + art.preis + '$**', inline: true },
-              ).setTimestamp()
-            ]
-          });
-        } catch (e) { console.error('[HOLZ] Completion-DM:', e.message); }
-      }, HOLZ_FARM_DUR);
-      holzActiveFarmers.set(userId, { vehicle: fzId, fz, timer });
     }
   } catch (e) { console.error('[HOLZ] interaction:', e.message); }
 });
@@ -8633,32 +8587,39 @@ client.on('messageCreate', async (msg) => {
       return;
     }
     setTimeout(() => msg.delete().catch(() => {}), 5000);
+    minenActiveFarmers.set(userId, { timer: null });
     try {
       const u = await client.users.fetch(userId);
-      await (await u.createDM()).send({
-        embeds: [new EmbedBuilder().setColor(0x7f8c8d)
-          .setTitle('⛏️ Minen farmen – Fahrzeug wählen')
-          .setDescription('Wähle dein **Fahrzeug** aus.\nDu erhältst eine zufällige **Beute** nach 3 Minuten — die Kapazitäten sind eine RP-Regel:')
-          .addFields(MINEN_FAHRZEUGE.map(fz => ({
-            name: fz.label,
-            value: 'Legal: **' + fz.legalKg.toLocaleString('de-CH') + 'kg** | Max: **' + fz.maxKg.toLocaleString('de-CH') + 'kg**',
-            inline: true,
-          })))
-          .setFooter({ text: 'Du hast 5 Minuten um ein Fahrzeug auszuwählen.' })
-        ],
-        components: [new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId('minen_fz:' + userId)
-            .setPlaceholder('Fahrzeug auswählen...')
-            .addOptions(MINEN_FAHRZEUGE.map(fz =>
-              new StringSelectMenuOptionBuilder()
-                .setLabel(fz.label)
-                .setValue(fz.id)
-                .setDescription('Legal: ' + fz.legalKg.toLocaleString('de-CH') + 'kg | Max: ' + fz.maxKg.toLocaleString('de-CH') + 'kg')
-            ))
-        )]
-      });
+      await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0x7f8c8d)
+        .setTitle('⛏️ Minen farmen – Gestartet!')
+        .setDescription('Dein Foto wurde registriert. In **3 Minuten** erhältst du deine Beute und wirst per DM benachrichtigt!')
+        .addFields({ name: '📦 Ausbeute', value: 'Zufälliges Erz — Art wird nach dem Farmen bekannt', inline: false })
+        .setTimestamp()
+      ] });
     } catch (e) { console.error('[MINEN] DM-Fehler:', e.message); }
+    const minenTimer = setTimeout(async () => {
+      minenActiveFarmers.delete(userId);
+      const minenArten = loadMinenArten();
+      const art = minenArten[Math.floor(Math.random() * minenArten.length)];
+      const uInv = getUserInv(userId);
+      uInv[art.name] = (uInv[art.name] || 0) + 1;
+      setUserInv(userId, uInv);
+      try {
+        const user = await client.users.fetch(userId);
+        await (await user.createDM()).send({
+          embeds: [new EmbedBuilder().setColor(0x7f8c8d)
+            .setTitle('⛏️ Erz abgebaut!')
+            .setDescription('Du hast folgendes Erz abgebaut:\n\n▸ 1x ' + art.name + '\n\n💰 Gehe in den Minen-Kanal und klicke auf **Erz Verkaufen** um dein Erz zu verkaufen.')
+            .addFields(
+              { name: '⛏️ Erz',    value: art.name, inline: true },
+              { name: '📦 Menge',  value: '1x (' + art.einheit + ')', inline: true },
+              { name: '💰 Wert',   value: '**' + art.preis.toLocaleString('de-CH') + '$**', inline: true },
+            ).setTimestamp()
+          ]
+        });
+      } catch (e) { console.error('[MINEN] Completion-DM:', e.message); }
+    }, MINEN_FARM_DUR);
+    minenActiveFarmers.set(userId, { timer: minenTimer });
   } catch (e) { console.error('[MINEN] messageCreate:', e.message); }
 });
 
@@ -8690,59 +8651,6 @@ client.on('interactionCreate', async (interaction) => {
         .setTitle('✅ Erz verkauft!')
         .setDescription('Dein Erz wurde erfolgreich verkauft.')
         .addFields(fields).setTimestamp()] });
-    }
-    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('minen_fz:')) {
-      const userId = interaction.customId.split(':')[1];
-      if (interaction.user.id !== userId) return interaction.reply({ content: '❌ Das ist nicht dein Menü!', flags: 64 });
-      if (minenActiveFarmers.has(userId)) return interaction.reply({ content: '❌ Du farmst bereits!', flags: 64 });
-      const fzId = interaction.values[0];
-      const fz = MINEN_FAHRZEUGE.find(f => f.id === fzId);
-      if (!fz) return interaction.reply({ content: '❌ Ungültiges Fahrzeug.', flags: 64 });
-      await interaction.update({
-        embeds: [new EmbedBuilder().setColor(0x7f8c8d)
-          .setTitle('⛏️ Farmen gestartet!')
-          .setDescription('Du farmst jetzt mit dem **' + fz.label + '**.\nIn **3 Minuten** erhältst du deine Beute und wirst per DM benachrichtigt!')
-          .addFields(
-            { name: '🚗 Fahrzeug',  value: fz.label, inline: true },
-            { name: '⚖️ Kapazität', value: 'Legal: **' + fz.legalKg.toLocaleString('de-CH') + 'kg** | Max: **' + fz.maxKg.toLocaleString('de-CH') + 'kg**', inline: true },
-            { name: '📦 Ausbeute',  value: 'Zufälliges Erz — Art wird nach dem Farmen bekannt', inline: true },
-          ).setTimestamp()
-        ],
-        components: [new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId('minen_fz_done:' + userId)
-            .setPlaceholder(fz.label + ' ✅')
-            .setDisabled(true)
-            .addOptions([{ label: fz.label, value: fz.id }])
-        )]
-      });
-      const timer = setTimeout(async () => {
-        minenActiveFarmers.delete(userId);
-        const minenArten = loadMinenArten();
-        const art = minenArten[Math.floor(Math.random() * minenArten.length)];
-        const uInv = getUserInv(userId);
-        uInv[art.name] = (uInv[art.name] || 0) + 1;
-        setUserInv(userId, uInv);
-        try {
-          const user = await client.users.fetch(userId);
-          await (await user.createDM()).send({
-            embeds: [new EmbedBuilder().setColor(0x7f8c8d)
-              .setTitle('⛏️ Erz abgebaut!')
-              .setDescription(
-                'Du hast mit dem **' + fz.label + '** folgendes Erz abgebaut:\n\n' +
-                '▸ 1x ' + art.name + '\n\n' +
-                '💰 Gehe in den Minen-Kanal und klicke auf **Erz Verkaufen** um dein Erz zu verkaufen.'
-              )
-              .addFields(
-                { name: '⛏️ Erz',    value: art.name, inline: true },
-                { name: '📦 Menge',  value: '1x (' + art.einheit + ')', inline: true },
-                { name: '💰 Wert',   value: '**' + art.preis.toLocaleString('de-CH') + '$**', inline: true },
-              ).setTimestamp()
-            ]
-          });
-        } catch (e) { console.error('[MINEN] Completion-DM:', e.message); }
-      }, MINEN_FARM_DUR);
-      minenActiveFarmers.set(userId, { vehicle: fzId, fz, timer });
     }
   } catch (e) { console.error('[MINEN] interaction:', e.message); }
 });
@@ -8847,32 +8755,39 @@ client.on('messageCreate', async (msg) => {
       return;
     }
     setTimeout(() => msg.delete().catch(() => {}), 5000);
+    kuerbisActiveFarmers.set(userId, { timer: null });
     try {
       const u = await client.users.fetch(userId);
-      await (await u.createDM()).send({
-        embeds: [new EmbedBuilder().setColor(0xe67e22)
-          .setTitle('🎃 Kürbisse ernten – Fahrzeug wählen')
-          .setDescription('Wähle dein **Fahrzeug** aus.\nDu erhältst immer **1 Kürbis** pro 3 Minuten — die Kapazitäten sind eine RP-Regel:')
-          .addFields(KUERBIS_FAHRZEUGE.map(fz => ({
-            name: fz.label,
-            value: 'Max: **' + fz.maxStueck + ' Kürbisse**',
-            inline: true,
-          })))
-          .setFooter({ text: 'Du hast 5 Minuten um ein Fahrzeug auszuwählen.' })
-        ],
-        components: [new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId('kuerbis_fz:' + userId)
-            .setPlaceholder('Fahrzeug auswählen...')
-            .addOptions(KUERBIS_FAHRZEUGE.map(fz =>
-              new StringSelectMenuOptionBuilder()
-                .setLabel(fz.label)
-                .setValue(fz.id)
-                .setDescription('Max. ' + fz.maxStueck + ' Kürbisse (RP-Regel)')
-            ))
-        )]
-      });
+      await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe67e22)
+        .setTitle('🎃 Kürbisse ernten – Gestartet!')
+        .setDescription('Dein Foto wurde registriert. In **3 Minuten** erhältst du deinen Kürbis und wirst per DM benachrichtigt!')
+        .addFields({ name: '📦 Ausbeute', value: 'Immer genau **1 Kürbis** — Sorte ist zufällig', inline: false })
+        .setTimestamp()
+      ] });
     } catch (e) { console.error('[KÜRBIS] DM-Fehler:', e.message); }
+    const kuerbisTimer = setTimeout(async () => {
+      kuerbisActiveFarmers.delete(userId);
+      const kuerbisArten = loadKuerbisArten();
+      const art = kuerbisArten[Math.floor(Math.random() * kuerbisArten.length)];
+      const uInv = getUserInv(userId);
+      uInv[art.name] = (uInv[art.name] || 0) + 1;
+      setUserInv(userId, uInv);
+      try {
+        const user = await client.users.fetch(userId);
+        await (await user.createDM()).send({
+          embeds: [new EmbedBuilder().setColor(0xe67e22)
+            .setTitle('🎃 Kürbis geerntet!')
+            .setDescription('Du hast folgenden Kürbis geerntet:\n\n▸ 1x ' + art.name + '\n\n💰 Gehe in den Kürbis-Kanal und klicke auf **Kürbisse Verkaufen** um deinen Kürbis zu verkaufen.')
+            .addFields(
+              { name: '🎃 Sorte',  value: art.name, inline: true },
+              { name: '📦 Menge',  value: '1x Stück', inline: true },
+              { name: '💰 Wert',   value: '**' + art.preis + '$**', inline: true },
+            ).setTimestamp()
+          ]
+        });
+      } catch (e) { console.error('[KÜRBIS] Completion-DM:', e.message); }
+    }, KUERBIS_FARM_DUR);
+    kuerbisActiveFarmers.set(userId, { timer: kuerbisTimer });
   } catch (e) { console.error('[KÜRBIS] messageCreate:', e.message); }
 });
 
@@ -8904,59 +8819,6 @@ client.on('interactionCreate', async (interaction) => {
         .setTitle('✅ Kürbisse verkauft!')
         .setDescription('Deine Kürbisse wurden erfolgreich verkauft.')
         .addFields(fields).setTimestamp()] });
-    }
-    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('kuerbis_fz:')) {
-      const userId = interaction.customId.split(':')[1];
-      if (interaction.user.id !== userId) return interaction.reply({ content: '❌ Das ist nicht dein Menü!', flags: 64 });
-      if (kuerbisActiveFarmers.has(userId)) return interaction.reply({ content: '❌ Du erntest bereits!', flags: 64 });
-      const fzId = interaction.values[0];
-      const fz = KUERBIS_FAHRZEUGE.find(f => f.id === fzId);
-      if (!fz) return interaction.reply({ content: '❌ Ungültiges Fahrzeug.', flags: 64 });
-      await interaction.update({
-        embeds: [new EmbedBuilder().setColor(0xe67e22)
-          .setTitle('🎃 Ernte gestartet!')
-          .setDescription('Du erntest jetzt mit dem **' + fz.label + '**.\nIn **3 Minuten** erhältst du deinen Kürbis und wirst per DM benachrichtigt!')
-          .addFields(
-            { name: '🚗 Fahrzeug',  value: fz.label, inline: true },
-            { name: '📦 Kapazität', value: 'Max. **' + fz.maxStueck + ' Kürbisse** (RP-Regel)', inline: true },
-            { name: '🎃 Ausbeute',  value: 'Immer genau **1 Kürbis** — Sorte ist zufällig', inline: true },
-          ).setTimestamp()
-        ],
-        components: [new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId('kuerbis_fz_done:' + userId)
-            .setPlaceholder(fz.label + ' ✅')
-            .setDisabled(true)
-            .addOptions([{ label: fz.label, value: fz.id }])
-        )]
-      });
-      const timer = setTimeout(async () => {
-        kuerbisActiveFarmers.delete(userId);
-        const kuerbisArten = loadKuerbisArten();
-        const art = kuerbisArten[Math.floor(Math.random() * kuerbisArten.length)];
-        const uInv = getUserInv(userId);
-        uInv[art.name] = (uInv[art.name] || 0) + 1;
-        setUserInv(userId, uInv);
-        try {
-          const user = await client.users.fetch(userId);
-          await (await user.createDM()).send({
-            embeds: [new EmbedBuilder().setColor(0xe67e22)
-              .setTitle('🎃 Kürbis geerntet!')
-              .setDescription(
-                'Du hast mit dem **' + fz.label + '** folgenden Kürbis geerntet:\n\n' +
-                '▸ 1x ' + art.name + '\n\n' +
-                '💰 Gehe in den Kürbis-Kanal und klicke auf **Kürbisse Verkaufen** um deinen Kürbis zu verkaufen.'
-              )
-              .addFields(
-                { name: '🎃 Sorte',  value: art.name, inline: true },
-                { name: '📦 Menge',  value: '1x Stück', inline: true },
-                { name: '💰 Wert',   value: '**' + art.preis + '$**', inline: true },
-              ).setTimestamp()
-            ]
-          });
-        } catch (e) { console.error('[KÜRBIS] Completion-DM:', e.message); }
-      }, KUERBIS_FARM_DUR);
-      kuerbisActiveFarmers.set(userId, { vehicle: fzId, fz, timer });
     }
   } catch (e) { console.error('[KÜRBIS] interaction:', e.message); }
 });
