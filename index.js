@@ -8269,13 +8269,18 @@ client.on('interactionCreate', async (interaction) => {
 const HOLZ_INFO_CH  = '1490894243445604553';
 const HOLZ_FOTO_CH  = '1490894244733255872';
 const HOLZ_FARM_DUR = 3 * 60 * 1000;
-const HOLZ_ARTEN = [
-  { name: 'Mammutbaum Holz', preis: 220 },
-  { name: 'Weisstanne Holz', preis: 210 },
-  { name: 'Rotahorn Holz',   preis: 190 },
-  { name: 'Buche Holz',      preis: 180 },
-  { name: 'Fichte Holz',     preis: 170 },
+const HOLZ_ARTEN_FILE = path.join(__dirname, 'data', 'holz_arten.json');
+const HOLZ_ARTEN_DEFAULT = [
+  { name: '🪵 | Mammutbaum Holz',  preis: 220 },
+  { name: '🪵 | Weisstannen Holz', preis: 210 },
+  { name: '🪵 | Rotahorn Holz',    preis: 190 },
+  { name: '🪵 | Buchen Holz',      preis: 180 },
+  { name: '🪵 | Fichten Holz',     preis: 170 },
 ];
+function loadHolzArten() {
+  try { return JSON.parse(fs.readFileSync(HOLZ_ARTEN_FILE, 'utf8')); }
+  catch { fs.writeFileSync(HOLZ_ARTEN_FILE, JSON.stringify(HOLZ_ARTEN_DEFAULT, null, 2), 'utf8'); return HOLZ_ARTEN_DEFAULT; }
+}
 const HOLZ_FAHRZEUGE = [
   { id: 'v4tuer',  label: '🚘 4 Türer',  legalKg: 500,   maxKg: 700,   minItems: 3,   maxItems: 5   },
   { id: 'pickup',  label: '🛻 Pickup',   legalKg: 1000,  maxKg: 1400,  minItems: 8,   maxItems: 12  },
@@ -8301,7 +8306,7 @@ client.once('ready', async () => {
         '`5.` Warte **3 Minuten** — du bekommst eine DM wenn du fertig bist\n' +
         '`6.` Klicke unten auf **💰 Holz Verkaufen** um dein Holz zu Geld zu machen\n\n' +
         '🪵 **Holzarten & Preise (pro 100kg):**\n' +
-        HOLZ_ARTEN.map(a => '▸ ' + a.name + ' — **' + a.preis + '$**').join('\n') + '\n\n' +
+        loadHolzArten().map(a => '▸ ' + a.name + ' — **' + a.preis + '$**').join('\n') + '\n\n' +
         '> **Info**\n' +
         '> Auf dem Foto muss das Fahrzeug, was du nutzt, ebenfalls sichtbar sein.\n' +
         '> Wenn das nicht so ist, gilt das Farmen als **ungültig**.'
@@ -8384,7 +8389,8 @@ client.on('interactionCreate', async (interaction) => {
       const inv = getUserInv(userId);
       let totalGeld = 0;
       const verkauft = [];
-      for (const art of HOLZ_ARTEN) {
+      const holzArten = loadHolzArten();
+      for (const art of holzArten) {
         const menge = inv[art.name] || 0;
         if (menge > 0) {
           totalGeld += menge * art.preis;
@@ -8436,7 +8442,8 @@ client.on('interactionCreate', async (interaction) => {
         const uInv = getUserInv(userId);
         const ernte = {};
         for (let i = 0; i < count; i++) {
-          const art = HOLZ_ARTEN[Math.floor(Math.random() * HOLZ_ARTEN.length)];
+          const holzArten = loadHolzArten();
+          const art = holzArten[Math.floor(Math.random() * holzArten.length)];
           uInv[art.name] = (uInv[art.name] || 0) + 1;
           ernte[art.name] = (ernte[art.name] || 0) + 1;
         }
