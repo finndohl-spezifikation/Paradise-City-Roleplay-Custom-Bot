@@ -8319,8 +8319,9 @@ client.on('interactionCreate', async (interaction) => {
 //  HOLZ-FARMING SYSTEM
 // ═════════════════════════════════════════════════════════════════════════════
 // ─── VERKAUF-PRÜFUNG (gemeinsam für alle Farming-Systeme) ─────────────────────
-const VERKAUF_PRÜF_CH = '1516408912172286074';
-const pendingVerkauf  = new Map(); // userId → { farmType, items, totalGeld, color, emoji, label }
+const VERKAUF_PRÜF_CH  = '1516408912172286074';
+const FARM_KONTROLLE_CH = '1516559315094474852';
+const pendingVerkauf   = new Map(); // userId → { farmType, items, totalGeld, color, emoji, label }
 // ─────────────────────────────────────────────────────────────────────────────
 
 const HOLZ_INFO_CH  = '1490894243445604553';
@@ -8453,6 +8454,18 @@ client.on('messageCreate', async (msg) => {
       } catch (e) { console.error('[HOLZ] Completion-DM:', e.message); }
     }, HOLZ_FARM_DUR);
     holzActiveFarmers.set(userId, { timer: holzTimer });
+    try {
+      const kontrolleCh = await client.channels.fetch(FARM_KONTROLLE_CH).catch(() => null);
+      if (kontrolleCh) {
+        const img = msg.attachments.find(a => a.contentType && a.contentType.startsWith('image/'));
+        await kontrolleCh.send({ embeds: [new EmbedBuilder().setColor(0xe65100)
+          .setTitle('🌲 Farm-Kontrolle — Holz farmen')
+          .setDescription('<@' + userId + '> (`' + msg.author.tag + '`) hat mit dem **Holz-Farmen** begonnen.')
+          .setImage(img ? img.url : null)
+          .setFooter({ text: 'User-ID: ' + userId }).setTimestamp()
+        ] });
+      }
+    } catch (e) { console.error('[HOLZ] Kontrolle:', e.message); }
   } catch (e) { console.error('[HOLZ] messageCreate:', e.message); }
 });
 
@@ -8622,6 +8635,18 @@ client.on('messageCreate', async (msg) => {
       } catch (e) { console.error('[MINEN] Completion-DM:', e.message); }
     }, MINEN_FARM_DUR);
     minenActiveFarmers.set(userId, { timer: minenTimer });
+    try {
+      const kontrolleCh = await client.channels.fetch(FARM_KONTROLLE_CH).catch(() => null);
+      if (kontrolleCh) {
+        const img = msg.attachments.find(a => a.contentType && a.contentType.startsWith('image/'));
+        await kontrolleCh.send({ embeds: [new EmbedBuilder().setColor(0x7f8c8d)
+          .setTitle('⛏️ Farm-Kontrolle — Minen farmen')
+          .setDescription('<@' + userId + '> (`' + msg.author.tag + '`) hat mit dem **Minen-Farmen** begonnen.')
+          .setImage(img ? img.url : null)
+          .setFooter({ text: 'User-ID: ' + userId }).setTimestamp()
+        ] });
+      }
+    } catch (e) { console.error('[MINEN] Kontrolle:', e.message); }
   } catch (e) { console.error('[MINEN] messageCreate:', e.message); }
 });
 
@@ -8788,6 +8813,18 @@ client.on('messageCreate', async (msg) => {
       } catch (e) { console.error('[KÜRBIS] Completion-DM:', e.message); }
     }, KUERBIS_FARM_DUR);
     kuerbisActiveFarmers.set(userId, { timer: kuerbisTimer });
+    try {
+      const kontrolleCh = await client.channels.fetch(FARM_KONTROLLE_CH).catch(() => null);
+      if (kontrolleCh) {
+        const img = msg.attachments.find(a => a.contentType && a.contentType.startsWith('image/'));
+        await kontrolleCh.send({ embeds: [new EmbedBuilder().setColor(0xe67e22)
+          .setTitle('🎃 Farm-Kontrolle — Kürbis farmen')
+          .setDescription('<@' + userId + '> (`' + msg.author.tag + '`) hat mit dem **Kürbis-Farmen** begonnen.')
+          .setImage(img ? img.url : null)
+          .setFooter({ text: 'User-ID: ' + userId }).setTimestamp()
+        ] });
+      }
+    } catch (e) { console.error('[KÜRBIS] Kontrolle:', e.message); }
   } catch (e) { console.error('[KÜRBIS] messageCreate:', e.message); }
 });
 
@@ -9006,6 +9043,18 @@ client.on('messageCreate', async (msg) => {
       } catch (e) { console.error('[ANGELN] Completion-DM:', e.message); }
     }, ANGELN_FARM_DUR);
     angelnActiveFishers.set(userId, { timer });
+    try {
+      const kontrolleCh = await client.channels.fetch(FARM_KONTROLLE_CH).catch(() => null);
+      if (kontrolleCh) {
+        const img = msg.attachments.find(a => a.contentType && a.contentType.startsWith('image/'));
+        await kontrolleCh.send({ embeds: [new EmbedBuilder().setColor(0x2980b9)
+          .setTitle('🎣 Farm-Kontrolle — Angeln')
+          .setDescription('<@' + userId + '> (`' + msg.author.tag + '`) hat mit dem **Angeln** begonnen.')
+          .setImage(img ? img.url : null)
+          .setFooter({ text: 'User-ID: ' + userId }).setTimestamp()
+        ] });
+      }
+    } catch (e) { console.error('[ANGELN] Kontrolle:', e.message); }
   } catch (e) { console.error('[ANGELN] messageCreate:', e.message); }
 });
 
