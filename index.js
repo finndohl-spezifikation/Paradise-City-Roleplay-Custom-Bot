@@ -8485,13 +8485,13 @@ const MINEN_FOTO_CH  = '1490894246587404380';
 const MINEN_FARM_DUR = 3 * 60 * 1000;
 const MINEN_ARTEN_FILE = path.join(__dirname, 'data', 'minen_arten.json');
 const MINEN_ARTEN_DEFAULT = [
-  { name: '⛏️ | Rubin',      preis: 10000, einheit: 'Stück' },
-  { name: '⛏️ | Smaragd',    preis: 7500,  einheit: 'Stück' },
-  { name: '⛏️ | Diamant',    preis: 6000,  einheit: 'Stück' },
-  { name: '⛏️ | Gold',       preis: 400,   einheit: '100kg' },
-  { name: '⛏️ | Silber',     preis: 240,   einheit: '100kg' },
-  { name: '⛏️ | Metall',     preis: 140,   einheit: '100kg' },
-  { name: '⛏️ | Steinkohle', preis: 100,   einheit: '100kg' },
+  { name: '<:emoji_49:1516505838607536250> | Rubin',      preis: 10000, einheit: 'Stück' },
+  { name: '<:emoji_50:1516505987492745276> | Smaragd',    preis: 7500,  einheit: 'Stück' },
+  { name: '💎 | Diamant',                                 preis: 6000,  einheit: 'Stück' },
+  { name: '<:emoji_51:1516506190656438617> | Gold',       preis: 400,   einheit: '100kg' },
+  { name: '🪙 | Silber',                                  preis: 240,   einheit: '100kg' },
+  { name: '🪙 | Metall',                                  preis: 140,   einheit: '100kg' },
+  { name: '🪨 | Steinkohle',                              preis: 100,   einheit: '100kg' },
 ];
 function loadMinenArten() {
   try { return JSON.parse(fs.readFileSync(MINEN_ARTEN_FILE, 'utf8')); }
