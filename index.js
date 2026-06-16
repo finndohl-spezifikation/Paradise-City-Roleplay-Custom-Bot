@@ -1360,25 +1360,30 @@ client.once('ready', async () => {
       console.log('[FIX] Team-Overview-Embed wird neu gesendet.');
     }
   }
-  // ─── EINMALIG: Captcha-Verifikations-Embed senden ───────────────────────────
+  // ─── IMMER: Captcha-Verifikations-Embed aktualisieren ─────────────────────
   {
-    const _setup = loadSetup();
-    if (!_setup.captchaEmbedSent) {
-      _setup.captchaEmbedSent = true;
-      saveSetup(_setup);
-      try {
-        const _captchaCh = await client.channels.fetch(CAPTCHA_CH_ID).catch(() => null);
-        if (_captchaCh) {
-          const _captchaEmbed = new EmbedBuilder()
-            .setColor(0xFF6B00)
-            .setTitle('🔐 Server-Verifikation')
-            .setDescription('Um Zugang zu **Paradise City Roleplay** zu erhalten, musst du ein kurzes Captcha lösen.\n\nKlicke auf den Button unten um zu starten.');
-          const _captchaRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('captcha_start').setLabel('🔒 Jetzt verifizieren').setStyle(ButtonStyle.Success)
-          );
-          await _captchaCh.send({ embeds: [_captchaEmbed], components: [_captchaRow] });
-          console.log('[CAPTCHA] Verifikations-Embed gesendet.');
+    try {
+      const _captchaCh = await client.channels.fetch(CAPTCHA_CH_ID).catch(() => null);
+      if (_captchaCh) {
+        // Altes Bot-Embed löschen
+        const _oldMsgs = await _captchaCh.messages.fetch({ limit: 20 }).catch(() => null);
+        if (_oldMsgs) {
+          const _oldEmbed = _oldMsgs.find(m => m.author.id === client.user.id && m.embeds.length > 0 && m.components.length > 0);
+          if (_oldEmbed) await _oldEmbed.delete().catch(() => {});
         }
+        // Neues Embed senden
+        const _captchaEmbed = new EmbedBuilder()
+          .setColor(0xFF6B00)
+          .setTitle('🔐 Server-Verifikation')
+          .setDescription('Um Zugang zu **Paradise City Roleplay** zu erhalten, musst du ein kurzes Captcha lösen.\n\nKlicke auf den Button unten um zu starten. Das Captcha besteht aus **4 Ziffern** — einfach ablesen und eingeben.');
+        const _captchaRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('captcha_start').setLabel('🔒 Jetzt verifizieren').setStyle(ButtonStyle.Success)
+        );
+        await _captchaCh.send({ embeds: [_captchaEmbed], components: [_captchaRow] });
+        console.log('[CAPTCHA] Verifikations-Embed neu gesendet.');
+      }
+    } catch(e) { console.error('[CAPTCHA] Embed Fehler:', e.message); }
+  }
       } catch(e) { console.error('[CAPTCHA] Embed Fehler:', e.message); }
     }
   }
@@ -1870,6 +1875,17 @@ client.once('ready', async () => {
       .addUserOption(o => o.setName('spieler').setDescription('Spieler auswählen').setRequired(true))
       .addStringOption(o => o.setName('art').setDescription('Einreiseart').setRequired(true)
         .addChoices({ name: 'Legal', value: 'legal' }, { name: 'Illegal', value: 'illegal' }))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('einreise-sperre')
+      .setDescription('Aktiviert eine Einreise-Sperre auf dem Server (kein neuer Charakter möglich)')
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .addStringOption(opt => opt.setName('grund').setDescription('Grund für die Einreise-Sperre').setRequired(true))
+      .toJSON(),
+    new SlashCommandBuilder()
+      .setName('einreise-freigeben')
+      .setDescription('Hebt die Einreise-Sperre wieder auf')
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
       .toJSON(),
     new SlashCommandBuilder()
         .setName('lotto-ziehung')
@@ -3852,6 +3868,16 @@ client.on('channelCreate', async (channel) => {
 
 client.on('channelUpdate', async (oldCh, newCh) => {
   if (!newCh.guild) return;
+  // Nur loggen wenn echte Inhaltsänderungen vorliegen (keine Positions-Updates)
+  const meaningfulChange =
+    oldCh.name !== newCh.name ||
+    (oldCh.topic ?? '') !== (newCh.topic ?? '') ||
+    oldCh.nsfw !== newCh.nsfw ||
+    oldCh.parentId !== newCh.parentId ||
+    (oldCh.rateLimitPerUser ?? 0) !== (newCh.rateLimitPerUser ?? 0) ||
+    (oldCh.bitrate ?? 0) !== (newCh.bitrate ?? 0) ||
+    (oldCh.userLimit ?? 0) !== (newCh.userLimit ?? 0);
+  if (!meaningfulChange) return;
   const entry    = await getAuditEntry(newCh.guild, AuditLogEvent.ChannelUpdate);
   const executor = entry?.executor;
   if (executor?.id === client.user?.id) return;
@@ -7885,6 +7911,39 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 
+// ─── EINREISE-SPERRE COMMANDS ────────────────────────────────────────────────
+const EINREISE_SPERRE_FILE = path.join(DATA_DIR, 'einreise_sperre.json');
+function loadEinreiseSperre() { try { return JSON.parse(fs.readFileSync(EINREISE_SPERRE_FILE,'utf8')); } catch { return { aktiv: false, grund: null }; } }
+function saveEinreiseSperre(d) { fs.writeFileSync(EINREISE_SPERRE_FILE, JSON.stringify(d,null,2)); }
+
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+  if (interaction.commandName === 'einreise-sperre') {
+    if (!interaction.member.permissions.has(require('discord.js').PermissionFlagsBits.Administrator))
+      return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+    const grund = interaction.options.getString('grund');
+    saveEinreiseSperre({ aktiv: true, grund });
+    return interaction.reply({ embeds: [new EmbedBuilder()
+      .setColor(0xdc2626)
+      .setTitle('🚫 Einreise-Sperre aktiviert')
+      .setDescription(`Die Einreise-Sperre wurde aktiviert.\n\n**Grund:** ${grund}\n\nKein neuer Charakter kann erstellt werden bis die Sperre mit \`/einreise-freigeben\` aufgehoben wird.`)
+      .setTimestamp()
+    ] });
+  }
+  if (interaction.commandName === 'einreise-freigeben') {
+    if (!interaction.member.permissions.has(require('discord.js').PermissionFlagsBits.Administrator))
+      return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+    saveEinreiseSperre({ aktiv: false, grund: null });
+    return interaction.reply({ embeds: [new EmbedBuilder()
+      .setColor(0x22c55e)
+      .setTitle('✅ Einreise-Sperre aufgehoben')
+      .setDescription('Die Einreise-Sperre wurde aufgehoben. Neue Charaktere können wieder erstellt werden.')
+      .setTimestamp()
+    ] });
+  }
+});
+// ─── END EINREISE-SPERRE COMMANDS ────────────────────────────────────────────
+
 // ─── EINREISE STARTEN BUTTON ──────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
@@ -7896,6 +7955,18 @@ client.on('interactionCreate', async (interaction) => {
 
   if (hasRole) {
     return interaction.reply({ content: '❌ Du hast schon einen Charakter', ephemeral: true });
+  }
+
+  // Einreise-Sperre prüfen
+  const _sperre = loadEinreiseSperre();
+  if (_sperre.aktiv) {
+    return interaction.reply({ embeds: [new EmbedBuilder()
+      .setColor(0xdc2626)
+      .setTitle('🚫 Einreise Stopp')
+      .setDescription('**Aktuell ist auf unserem Server ein Einreise Stopp\nBitte Versuche es zu einem Anderen Zeitpunkt wieder**')
+      .addFields({ name: '📋 Grund', value: _sperre.grund || 'Kein Grund angegeben' })
+      .setTimestamp()
+    ], ephemeral: true });
   }
 
   const WEBAPP_URL_EI = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
