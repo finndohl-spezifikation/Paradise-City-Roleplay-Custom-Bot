@@ -1995,6 +1995,11 @@ client.once('ready', async () => {
       .setDescription('Zeigt alle verfügbaren Commands auf diesem Server an')
       .toJSON(),
 
+    new SlashCommandBuilder()
+      .setName('server')
+      .setDescription('Zeigt eine Übersicht des Servers (nur für dich sichtbar)')
+      .toJSON(),
+
     ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -5478,6 +5483,37 @@ client.on('interactionCreate', async (interaction) => {
               { name: '🎮 Spielmechaniken', value: '`/verstecken` `/fesseln`\n`/raub-fail` `/raub-cooldown`', inline: false },
             )
             .setFooter({ text: 'Tippe / in Discord um alle Commands direkt auszuwählen' });
+          return interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+
+        // ─── /server ────────────────────────────────────────────────────────────
+        if (commandName === 'server') {
+          const g = interaction.guild;
+          if (!g) return interaction.reply({ content: '❌ Nur auf einem Server nutzbar.', ephemeral: true });
+          await g.members.fetch().catch(() => {});
+          const memberCount   = g.memberCount;
+          const botCount      = g.members.cache.filter(m => m.user.bot).size;
+          const humanCount    = memberCount - botCount;
+          const roleCount     = g.roles.cache.size - 1; // ohne @everyone
+          const textChannels  = g.channels.cache.filter(c => c.type === 0).size;
+          const voiceChannels = g.channels.cache.filter(c => c.type === 2).size;
+          const categoryCount = g.channels.cache.filter(c => c.type === 4).size;
+          const cmdCount      = commands.length;
+          const created       = `<t:${Math.floor(g.createdTimestamp / 1000)}:D>`;
+          const embed = new EmbedBuilder()
+            .setColor(0xe65100)
+            .setTitle(`🏙️ ${g.name} — Server-Übersicht`)
+            .setThumbnail(g.iconURL({ dynamic: true }) || null)
+            .addFields(
+              { name: '👥 Mitglieder',       value: `**${memberCount}** gesamt\n👤 ${humanCount} Menschen · 🤖 ${botCount} Bots`, inline: true },
+              { name: '🎭 Rollen',            value: `**${roleCount}** Rollen`, inline: true },
+              { name: '💬 Kanäle',            value: `**${textChannels}** Text · **${voiceChannels}** Voice\n📁 ${categoryCount} Kategorien`, inline: true },
+              { name: '⚡ Slash-Commands',    value: `**${cmdCount}** registrierte Commands`, inline: true },
+              { name: '📅 Server erstellt',   value: created, inline: true },
+              { name: '🆔 Server-ID',         value: `\`${g.id}\``, inline: true },
+            )
+            .setFooter({ text: 'Nur für dich sichtbar • Paradise City Roleplay' })
+            .setTimestamp();
           return interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
