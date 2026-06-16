@@ -4240,6 +4240,9 @@ client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
   const { commandName, member, user } = interaction;
 
+  // Early exit for commands handled by dedicated listeners
+  if (commandName === 'einreise-sperre' || commandName === 'einreise-freigeben') return;
+
   try {
 
   // /delete
