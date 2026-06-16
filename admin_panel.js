@@ -229,25 +229,18 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
   // ═════════════════════════════════════════════════════════════════════════════
   app.post('/admin-panel/login', async (req, res) => {
     try {
-      const username = (req.body.username || '').trim();
-      const password = (req.body.password || '').trim();
-      if (!username || !password) return res.status(400).json({ error: 'Benutzername und Passwort erforderlich.' });
+      const discordId = (req.body.discordId || '').trim().replace(/\D/g, '');
+      const password  = (req.body.password || '').trim();
+      if (!discordId || !password) return res.status(400).json({ error: 'Discord-ID und Passwort erforderlich.' });
+      if (!/^\d{17,20}$/.test(discordId)) return res.status(400).json({ error: 'Ungültige Discord-ID (nur Zahlen, 17-20 Stellen).' });
       if (password !== ADMIN_PASSWORD) return res.status(403).json({ error: 'Falsches Passwort.' });
 
-      const members = await allMembers();
-      const uLow = username.toLowerCase().replace(/^@/, '');
-      let match = null;
-      for (const m of members.values()) {
-        const u = m.user.username.toLowerCase();
-        const gn = (m.user.globalName || '').toLowerCase();
-        const nick = (m.nickname || '').toLowerCase();
-        if (u === uLow || gn === uLow || nick === uLow) { match = m; break; }
-      }
-      if (!match) return res.status(403).json({ error: 'Discord-Benutzer nicht auf dem Server gefunden.' });
-      // Frisch fetchen (force:true umgeht den Cache) damit die Rollen aktuell sind
+      // Direkt per ID fetchen – keine Namenssuche, immer aktuelle Daten
       const g2 = await fetchGuild();
-      if (g2) {
-        try { match = await g2.members.fetch({ user: match.id, force: true }); } catch { /* gecachte Version als Fallback */ }
+      if (!g2) return res.status(500).json({ error: 'Server-Verbindung fehlgeschlagen.' });
+      let match;
+      try { match = await g2.members.fetch({ user: discordId, force: true }); } catch {
+        return res.status(403).json({ error: 'Discord-ID nicht auf dem Server gefunden.' });
       }
       if (!match.roles.cache.has(ADMIN_ROLE)) {
         return res.status(403).json({ error: 'Zugriff verweigert – dir fehlt die erforderliche Berechtigung.' });
@@ -791,8 +784,8 @@ input:focus{border-color:#e65100}
   <div class="body">
     <div class="err" id="err"></div>
     <form id="f">
-      <label>Discord Benutzername</label>
-      <input type="text" id="username" placeholder="dein.benutzername" autocomplete="username" required>
+      <label>Discord ID</label>
+      <input type="text" id="discordId" placeholder="z.B. 123456789012345678" autocomplete="off" inputmode="numeric" pattern="\d{17,20}" required>
       <label>Passwort</label>
       <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
       <button class="btn" type="submit">Anmelden</button>
@@ -807,7 +800,7 @@ document.getElementById('f').addEventListener('submit', async function(e){
   err.style.display='none';
   var btn = document.querySelector('.btn'); btn.textContent='Anmelden...'; btn.disabled=true;
   try{
-    var r = await fetch('/admin-panel/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('username').value,password:document.getElementById('password').value})});
+    var r = await fetch('/admin-panel/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({discordId:document.getElementById('discordId').value.trim(),password:document.getElementById('password').value})});
     var d = await r.json();
     if(r.ok && d.ok){ location.href='/admin-panel'; return; }
     err.textContent = d.error || 'Anmeldung fehlgeschlagen.'; err.style.display='block';
