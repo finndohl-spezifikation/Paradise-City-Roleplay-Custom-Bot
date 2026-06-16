@@ -243,19 +243,39 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       const members = await allMembers();
       const ausweis = loadAusweis();
       const list = [];
+      const seen = new Set();
+      const BLANK = 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+      // 1) Alle Mitglieder mit VERIFY_ROLE
       for (const m of members.values()) {
         if (!m.roles.cache.has(VERIFY_ROLE)) continue;
+        seen.add(m.id);
         const a = ausweis[m.id];
         list.push({
-          id: m.id,
-          username: m.user.username,
-          name: serverName(m),
+          id: m.id, username: m.user.username, name: serverName(m),
           avatar: m.user.displayAvatarURL({ size: 64 }),
-          roles: roleNames(m),
-          verified: true,
+          roles: roleNames(m), verified: true,
           character: a ? { vorname: a.vorname, nachname: a.nachname, geburtsdatum: a.geburtsdatum } : null,
         });
       }
+
+      // 2) Spieler mit Ausweis-Eintrag, die noch nicht in der Liste sind
+      for (const uid of Object.keys(ausweis)) {
+        if (seen.has(uid)) continue;
+        seen.add(uid);
+        const m = members.get(uid);
+        const a = ausweis[uid];
+        list.push({
+          id: uid,
+          username: m ? m.user.username : uid,
+          name: m ? serverName(m) : uid,
+          avatar: m ? m.user.displayAvatarURL({ size: 64 }) : BLANK,
+          roles: m ? roleNames(m) : [],
+          verified: !!(m && m.roles.cache.has(VERIFY_ROLE)),
+          character: { vorname: a.vorname, nachname: a.nachname, geburtsdatum: a.geburtsdatum },
+        });
+      }
+
       list.sort((a, b) => a.name.localeCompare(b.name, 'de'));
       res.json(list);
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -312,7 +332,9 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       });
 
       const bans = loadBans();
-      bans[userId] = { reason: grund, until, by: 'admin', at: Date.now() };
+      const bannedMember = await getMember(userId).catch(() => null);
+      const bannedUsername = bannedMember ? (bannedMember.user.tag || bannedMember.user.username) : userId;
+      bans[userId] = { reason: grund, until, by: 'admin', at: Date.now(), username: bannedUsername };
       saveBans(bans);
 
       await logTo(MOD_LOG_CH, new EmbedBuilder()
@@ -383,23 +405,37 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       const g = await fetchGuild();
       const stored = loadBans();
       const list = [];
+      const seen = new Set();
+
+      // 1) Alle echten Discord-Bans holen (keine Rollenprüfung)
       if (g) {
-        const bans = await g.bans.fetch().catch(() => null);
+        const bans = await g.bans.fetch().catch(e => { console.error('[ADMIN] bans.fetch', e.message); return null; });
         if (bans) {
           for (const b of bans.values()) {
+            seen.add(b.user.id);
             const s = stored[b.user.id] || {};
             list.push({
               id: b.user.id,
-              username: b.user.username,
+              username: b.user.tag || b.user.username,
               avatar: b.user.displayAvatarURL ? b.user.displayAvatarURL({ size: 64 }) : null,
               reason: s.reason || b.reason || 'Kein Grund angegeben',
-              until: s.until || null,
-              by: s.by || null,
-              at: s.at || null,
+              until: s.until || null, by: s.by || null, at: s.at || null,
             });
           }
         }
       }
+
+      // 2) Lokal gespeicherte Bans, die nicht mehr in der Discord-Liste sind
+      for (const [uid, s] of Object.entries(stored)) {
+        if (seen.has(uid)) continue;
+        seen.add(uid);
+        list.push({
+          id: uid, username: s.username || uid, avatar: null,
+          reason: s.reason || 'Kein Grund angegeben',
+          until: s.until || null, by: s.by || null, at: s.at || null,
+        });
+      }
+
       list.sort((a, b) => (b.at || 0) - (a.at || 0));
       res.json(list);
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -431,21 +467,39 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       const members = await allMembers();
       const bargeld = loadBargeld(), konto = loadKonto(), krypto = loadKrypto(), inv = loadInventar();
       const list = [];
+      const seen = new Set();
+      const BLANK = 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+      // 1) Mitglieder mit INV_ROLE
       for (const m of members.values()) {
         if (!m.roles.cache.has(INV_ROLE)) continue;
-        const k = konto[m.id] || { konto: 0, schwarz: 0 };
+        seen.add(m.id);
+        const k = konto[m.id] || {};
         list.push({
-          id: m.id,
-          username: m.user.username,
-          name: serverName(m),
+          id: m.id, username: m.user.username, name: serverName(m),
           avatar: m.user.displayAvatarURL({ size: 64 }),
-          bargeld: bargeld[m.id] || 0,
-          konto: k.konto || 0,
-          schwarz: k.schwarz || 0,
-          coins: (krypto[m.id] && krypto[m.id].dc) || 0,
-          items: inv[m.id] || {},
+          bargeld: bargeld[m.id] || 0, konto: k.konto || 0, schwarz: k.schwarz || 0,
+          coins: (krypto[m.id] && krypto[m.id].dc) || 0, items: inv[m.id] || {},
         });
       }
+
+      // 2) Spieler mit Daten in den JSON-Dateien (kein Rollenfilter)
+      const allIds = new Set([...Object.keys(bargeld), ...Object.keys(konto), ...Object.keys(inv)]);
+      for (const uid of allIds) {
+        if (seen.has(uid)) continue;
+        seen.add(uid);
+        const m = members.get(uid);
+        const k = konto[uid] || {};
+        list.push({
+          id: uid,
+          username: m ? m.user.username : uid,
+          name: m ? serverName(m) : uid,
+          avatar: m ? m.user.displayAvatarURL({ size: 64 }) : BLANK,
+          bargeld: bargeld[uid] || 0, konto: k.konto || 0, schwarz: k.schwarz || 0,
+          coins: (krypto[uid] && krypto[uid].dc) || 0, items: inv[uid] || {},
+        });
+      }
+
       list.sort((a, b) => a.name.localeCompare(b.name, 'de'));
       res.json(list);
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -853,6 +907,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .itemchip .n{color:#fff}.itemchip .a{color:var(--accent);font-weight:700}
 .search{max-width:320px;margin-bottom:14px}
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:6px}
+.d-emoji{width:20px;height:20px;vertical-align:middle;border-radius:3px;margin:0 1px}
 @media(max-width:640px){
   .main{padding:12px 8px 60px}
   .search{max-width:100%}
@@ -927,6 +982,19 @@ var _eco = [], _items = [], _verified = [];
 
 function esc(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function cleanName(s){ if(!s)return ''; return String(s).replace(/<a?:[^:>]+:\d+>/g,'').replace(/^\s*\|\s*/,'').replace(/\|\s*$/,'').trim()||String(s); }
+function renderName(s){
+  if(!s) return '';
+  var parts=String(s).split(/(<a?:[^:>]+:\d+>)/);
+  var out=parts.map(function(p){
+    var m=p.match(/^<(a)?:([^:>]+):(\d+)>$/);
+    if(m){
+      var ext=m[1]?'gif':'webp';
+      return '<img src="https://cdn.discordapp.com/emojis/'+m[3]+'.'+ext+'?size=20" alt=":'+m[2]+':" title=":'+m[2]+':" class="d-emoji">';
+    }
+    return esc(p);
+  }).join('');
+  return out.replace(/^\s*\|\s*/,'').trim()||esc(s);
+}
 function fmtNum(n){ return (Number(n)||0).toLocaleString('de-CH'); }
 function fmtTs(t){ if(!t) return '—'; var d=new Date(t); return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
 function ago(t){ var s=Math.floor((Date.now()-t)/1000); if(s<60)return s+'s'; if(s<3600)return Math.floor(s/60)+'min'; if(s<86400)return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d'; }
@@ -1129,9 +1197,9 @@ async function renderShops(){
     else{
       h+='<div class="tbl-wrap"><table><thead><tr><th>Item</th><th>Preis</th><th></th></tr></thead><tbody>';
       s.items.forEach(function(it,i){
-        var dn=cleanName(it.name);
-        var safeN=esc(it.name).replace(/\\\\/g,'').replace(/'/g,"\\'");
-        h+='<tr><td>'+esc(dn)+'</td><td style="white-space:nowrap">'+fmtNum(it.preis)+'</td><td style="text-align:right;white-space:nowrap"><button class="btn gray sm" onclick="editShopItem(\\''+sid+'\\','+i+',\\''+safeN+'\\','+it.preis+')">✏️<span class="btn-txt"> Bearb.</span></button> <button class="btn red sm" onclick="delShopItem(\\''+sid+'\\','+i+')">🗑️</button></td></tr>';
+        var dn=renderName(it.name);
+        var safeN=cleanName(it.name).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        h+='<tr><td>'+dn+'</td><td style="white-space:nowrap">'+fmtNum(it.preis)+'</td><td style="text-align:right;white-space:nowrap"><button class="btn gray sm" onclick="editShopItem(\\''+sid+'\\','+i+',\\''+safeN+'\\','+it.preis+')">✏️<span class="btn-txt"> Bearb.</span></button> <button class="btn red sm" onclick="delShopItem(\\''+sid+'\\','+i+')">🗑️</button></td></tr>';
       });
       h+='</tbody></table></div>';
     }
