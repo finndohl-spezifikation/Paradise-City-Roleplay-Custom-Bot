@@ -235,15 +235,12 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       if (!/^\d{17,20}$/.test(discordId)) return res.status(400).json({ error: 'Ungültige Discord-ID (nur Zahlen, 17-20 Stellen).' });
       if (password !== ADMIN_PASSWORD) return res.status(403).json({ error: 'Falsches Passwort.' });
 
-      // Direkt per ID fetchen – keine Namenssuche, immer aktuelle Daten
+      // Member direkt per ID laden (muss auf dem Server sein)
       const g2 = await fetchGuild();
       if (!g2) return res.status(500).json({ error: 'Server-Verbindung fehlgeschlagen.' });
       let match;
       try { match = await g2.members.fetch({ user: discordId, force: true }); } catch {
         return res.status(403).json({ error: 'Discord-ID nicht auf dem Server gefunden.' });
-      }
-      if (!match.roles.cache.has(ADMIN_ROLE)) {
-        return res.status(403).json({ error: 'Zugriff verweigert – dir fehlt die erforderliche Berechtigung.' });
       }
       req.session.pcAdmin = { id: match.id, username: match.user.username, name: serverName(match), ts: Date.now() };
       return res.json({ ok: true, name: serverName(match) });
