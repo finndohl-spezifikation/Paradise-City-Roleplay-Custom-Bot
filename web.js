@@ -1686,16 +1686,27 @@ async function doSell() {
       const _sp = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'einreise_sperre.json'), 'utf8'));
       if (_sp && _sp.aktiv) {
         return res.send(page('Einreise gesperrt', `
-          <div style="text-align:center;padding:40px 20px">
-            <div style="font-size:3.5em;margin-bottom:16px">🚫</div>
-            <h1 style="color:#dc2626;font-size:2em;font-weight:900;margin-bottom:16px">EINREISE STOPP</h1>
-            <p style="color:#e0e0e0;font-size:1.1em;margin-bottom:24px">
-              Aktuell ist auf unserem Server ein Einreise Stopp<br>
-              Bitte Versuche es zu einem Anderen Zeitpunkt wieder
-            </p>
-            <div style="background:#1a0505;border:2px solid #dc2626;border-radius:12px;padding:16px 24px;display:inline-block;max-width:420px">
-              <p style="color:#aaa;font-size:.85em;margin-bottom:4px">📋 Grund</p>
-              <p style="color:#fff;font-size:1em;font-weight:600">${escHtml(_sp.grund||'Kein Grund angegeben')}</p>
+          <style>
+            @keyframes sperrePopIn{from{opacity:0;transform:scale(.55) translateY(80px)}to{opacity:1;transform:scale(1) translateY(0)}}
+            @keyframes sperreFadeOverlay{from{opacity:0}to{opacity:1}}
+            #sperreOverlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation:sperreFadeOverlay .3s ease}
+            #sperreBox{background:linear-gradient(160deg,#2a0808 0%,#1a0505 60%,#200808 100%);border:2px solid #dc2626;border-radius:18px;max-width:480px;width:100%;padding:36px 30px;text-align:center;animation:sperrePopIn .55s cubic-bezier(.34,1.56,.64,1);box-shadow:0 0 60px rgba(220,38,38,.35),0 0 120px rgba(220,38,38,.1)}
+            .sp-icon{font-size:3.2em;display:block;margin-bottom:14px;filter:drop-shadow(0 0 12px rgba(220,38,38,.7))}
+            .sp-title{color:#ef4444;font-size:1.85em;font-weight:900;letter-spacing:1px;margin-bottom:10px;text-shadow:0 0 20px rgba(239,68,68,.5)}
+            .sp-sub{color:#fca5a5;font-size:.95em;line-height:1.7;margin-bottom:22px}
+            .sp-grund-wrap{background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.45);border-radius:10px;padding:14px 20px;margin-top:6px}
+            .sp-grund-label{color:#f87171;font-size:.76em;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+            .sp-grund-text{color:#fff;font-size:1em;font-weight:600;line-height:1.5}
+          </style>
+          <div id=sperreOverlay>
+            <div id=sperreBox>
+              <span class=sp-icon>🚫</span>
+              <div class=sp-title>EINREISE STOPP</div>
+              <div class=sp-sub>Aktuell ist auf dem Server ein Einreise Stopp aktiv.<br>Bitte versuche es zu einem anderen Zeitpunkt erneut.</div>
+              <div class=sp-grund-wrap>
+                <div class=sp-grund-label>📋 Grund</div>
+                <div class=sp-grund-text>${escHtml(_sp.grund||'Kein Grund angegeben')}</div>
+              </div>
             </div>
           </div>
         `));
