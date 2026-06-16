@@ -8694,6 +8694,217 @@ client.on('interactionCreate', async (interaction) => {
   } catch (e) { console.error('[MINEN] interaction:', e.message); }
 });
 
+// ═════════════════════════════════════════════════════════════════════════════
+//  KÜRBIS-FARMING SYSTEM
+// ═════════════════════════════════════════════════════════════════════════════
+const KUERBIS_INFO_CH  = '1490894248973828278';
+const KUERBIS_FOTO_CH  = '1490894250286649365';
+const KUERBIS_FARM_DUR = 3 * 60 * 1000;
+const KUERBIS_ARTEN_FILE = path.join(__dirname, 'data', 'kuerbis_arten.json');
+const KUERBIS_ARTEN_DEFAULT = [
+  { name: '🎃 | Kronenkürbis',     preis: 100 },
+  { name: '🎃 | Black Futsu Kürbis', preis: 50 },
+  { name: '🎃 | Kakai Kürbis',      preis: 30  },
+  { name: '🎃 | Butternut Kürbis',  preis: 20  },
+  { name: '🎃 | Spaghetti Kürbis',  preis: 15  },
+];
+function loadKuerbisArten() {
+  try { return JSON.parse(fs.readFileSync(KUERBIS_ARTEN_FILE, 'utf8')); }
+  catch { fs.writeFileSync(KUERBIS_ARTEN_FILE, JSON.stringify(KUERBIS_ARTEN_DEFAULT, null, 2), 'utf8'); return KUERBIS_ARTEN_DEFAULT; }
+}
+const KUERBIS_FAHRZEUGE = [
+  { id: 'v4tuer',  label: '🚘 4 Türer',  maxStueck: 25  },
+  { id: 'pickup',  label: '🛻 Pickup',   maxStueck: 40  },
+  { id: 'van',     label: '🚐 Van',      maxStueck: 60  },
+  { id: 'mule',    label: '🚚 Mule',     maxStueck: 120 },
+  { id: 'pounder', label: '🚛 Pounder',  maxStueck: 150 },
+];
+const kuerbisActiveFarmers = new Map();
+
+client.once('ready', async () => {
+  try {
+    const ch = await client.channels.fetch(KUERBIS_INFO_CH).catch(() => null);
+    if (!ch) return;
+    const arten = loadKuerbisArten();
+    const embed = new EmbedBuilder()
+      .setColor(0xe67e22)
+      .setTitle('🎃 Kürbisse Ernten — Anleitung')
+      .setDescription(
+        '**So funktioniert das Kürbis-Farming:**\n\n' +
+        '`1.` Kaufe eine **Gartenschere** im Baumarkt\n' +
+        '`2.` Fahre mit deinem Fahrzeug zum **markierten Ort**\n' +
+        '`3.` Poste ein **Foto** im <#' + KUERBIS_FOTO_CH + '> Kanal\n' +
+        '`4.` Wähle dein **Fahrzeug** per DM aus\n' +
+        '`5.` Warte **3 Minuten** — du erhältst automatisch deinen **Kürbis**\n' +
+        '`6.` Klicke unten auf **💰 Kürbisse Verkaufen** um deine Ernte zu Geld zu machen\n\n' +
+        '🎃 **Kürbissorten & Preise (pro Stück):**\n' +
+        arten.map(a => '▸ ' + a.name + ' — **' + a.preis + '$**').join('\n') + '\n\n' +
+        '⚖️ **Fahrzeug-Kapazitäten (RP-Regel):**\n' +
+        KUERBIS_FAHRZEUGE.map(fz => '▸ ' + fz.label + ' — **' + fz.maxStueck + ' Kürbisse**').join('\n') + '\n\n' +
+        '> **Info**\n' +
+        '> Pro **3 Minuten** erhältst du immer genau **1 Kürbis**. Die Sorte ist zufällig.\n' +
+        '> Auf dem Foto muss das Fahrzeug sichtbar sein — sonst gilt das Farmen als **ungültig**.\n' +
+        '> Die Fahrzeug-Kapazitäten sind eine **RP-Regel**, an die sich jeder halten muss.'
+      );
+    const old = await ch.messages.fetch({ limit: 20 }).catch(() => null);
+    if (old) for (const [, m] of old) { if (m.author.id === client.user.id) await m.delete().catch(() => {}); }
+    await ch.send({
+      embeds: [embed],
+      components: [new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('kuerbis_verkaufen').setLabel('💰 Kürbisse Verkaufen').setStyle(ButtonStyle.Success)
+      )]
+    });
+    console.log('[KÜRBIS] Info-Embed gesendet.');
+  } catch (e) { console.error('[KÜRBIS] Info-Embed Fehler:', e.message); }
+});
+
+client.on('messageCreate', async (msg) => {
+  try {
+    if (msg.channel.id !== KUERBIS_FOTO_CH) return;
+    if (msg.author.bot) return;
+    const hasImage = msg.attachments.some(a => a.contentType && a.contentType.startsWith('image/'));
+    if (!hasImage) { await msg.delete().catch(() => {}); return; }
+    const userId = msg.author.id;
+    if (kuerbisActiveFarmers.has(userId)) {
+      await msg.delete().catch(() => {});
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe65100)
+          .setTitle('🎃 Du erntest bereits!')
+          .setDescription('Warte bis deine aktuelle Ernte abgeschlossen ist.')] });
+      } catch {}
+      return;
+    }
+    const inv = getUserInv(userId);
+    const gartenschereKey = Object.keys(inv).find(k =>
+      k.toLowerCase().replace(/ä/g, 'a').includes('gartenschere') ||
+      k.toLowerCase().includes('gartenschere')
+    );
+    if (!gartenschereKey || !(inv[gartenschereKey] >= 1)) {
+      await msg.delete().catch(() => {});
+      try {
+        const u = await client.users.fetch(userId);
+        await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe74c3c)
+          .setTitle('❌ Keine Gartenschere')
+          .setDescription('Du besitzt keine **Gartenschere**! Kaufe diese zuerst im **Baumarkt**.')] });
+      } catch {}
+      return;
+    }
+    setTimeout(() => msg.delete().catch(() => {}), 5000);
+    try {
+      const u = await client.users.fetch(userId);
+      await (await u.createDM()).send({
+        embeds: [new EmbedBuilder().setColor(0xe67e22)
+          .setTitle('🎃 Kürbisse ernten – Fahrzeug wählen')
+          .setDescription('Wähle dein **Fahrzeug** aus.\nDu erhältst immer **1 Kürbis** pro 3 Minuten — die Kapazitäten sind eine RP-Regel:')
+          .addFields(KUERBIS_FAHRZEUGE.map(fz => ({
+            name: fz.label,
+            value: 'Max: **' + fz.maxStueck + ' Kürbisse**',
+            inline: true,
+          })))
+          .setFooter({ text: 'Du hast 5 Minuten um ein Fahrzeug auszuwählen.' })
+        ],
+        components: [new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('kuerbis_fz:' + userId)
+            .setPlaceholder('Fahrzeug auswählen...')
+            .addOptions(KUERBIS_FAHRZEUGE.map(fz =>
+              new StringSelectMenuOptionBuilder()
+                .setLabel(fz.label)
+                .setValue(fz.id)
+                .setDescription('Max. ' + fz.maxStueck + ' Kürbisse (RP-Regel)')
+            ))
+        )]
+      });
+    } catch (e) { console.error('[KÜRBIS] DM-Fehler:', e.message); }
+  } catch (e) { console.error('[KÜRBIS] messageCreate:', e.message); }
+});
+
+client.on('interactionCreate', async (interaction) => {
+  try {
+    if (interaction.isButton() && interaction.customId === 'kuerbis_verkaufen') {
+      await interaction.deferReply({ flags: 64 });
+      const userId = interaction.user.id;
+      const inv = getUserInv(userId);
+      const kuerbisArten = loadKuerbisArten();
+      let totalGeld = 0;
+      const verkauft = [];
+      for (const art of kuerbisArten) {
+        const menge = inv[art.name] || 0;
+        if (menge > 0) {
+          totalGeld += menge * art.preis;
+          verkauft.push({ name: art.name, menge, wert: menge * art.preis });
+          delete inv[art.name];
+        }
+      }
+      if (!verkauft.length) return interaction.editReply({ content: '❌ Du hast keine Kürbisse im Inventar!' });
+      setUserInv(userId, inv);
+      const k = getKonto(userId);
+      k.konto = (k.konto || 0) + totalGeld;
+      setKonto(userId, k);
+      const fields = verkauft.map(v => ({ name: v.name, value: v.menge + 'x → **' + v.wert.toLocaleString('de-CH') + '$**', inline: true }));
+      fields.push({ name: '💰 Gesamt', value: '**' + totalGeld.toLocaleString('de-CH') + '$** auf dein Konto gutgeschrieben', inline: false });
+      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0xe67e22)
+        .setTitle('✅ Kürbisse verkauft!')
+        .setDescription('Deine Kürbisse wurden erfolgreich verkauft.')
+        .addFields(fields).setTimestamp()] });
+    }
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('kuerbis_fz:')) {
+      const userId = interaction.customId.split(':')[1];
+      if (interaction.user.id !== userId) return interaction.reply({ content: '❌ Das ist nicht dein Menü!', flags: 64 });
+      if (kuerbisActiveFarmers.has(userId)) return interaction.reply({ content: '❌ Du erntest bereits!', flags: 64 });
+      const fzId = interaction.values[0];
+      const fz = KUERBIS_FAHRZEUGE.find(f => f.id === fzId);
+      if (!fz) return interaction.reply({ content: '❌ Ungültiges Fahrzeug.', flags: 64 });
+      await interaction.update({
+        embeds: [new EmbedBuilder().setColor(0xe67e22)
+          .setTitle('🎃 Ernte gestartet!')
+          .setDescription('Du erntest jetzt mit dem **' + fz.label + '**.\nIn **3 Minuten** erhältst du deinen Kürbis und wirst per DM benachrichtigt!')
+          .addFields(
+            { name: '🚗 Fahrzeug',  value: fz.label, inline: true },
+            { name: '📦 Kapazität', value: 'Max. **' + fz.maxStueck + ' Kürbisse** (RP-Regel)', inline: true },
+            { name: '🎃 Ausbeute',  value: 'Immer genau **1 Kürbis** — Sorte ist zufällig', inline: true },
+          ).setTimestamp()
+        ],
+        components: [new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('kuerbis_fz_done:' + userId)
+            .setPlaceholder(fz.label + ' ✅')
+            .setDisabled(true)
+            .addOptions([{ label: fz.label, value: fz.id }])
+        )]
+      });
+      const timer = setTimeout(async () => {
+        kuerbisActiveFarmers.delete(userId);
+        const kuerbisArten = loadKuerbisArten();
+        const art = kuerbisArten[Math.floor(Math.random() * kuerbisArten.length)];
+        const uInv = getUserInv(userId);
+        uInv[art.name] = (uInv[art.name] || 0) + 1;
+        setUserInv(userId, uInv);
+        try {
+          const user = await client.users.fetch(userId);
+          await (await user.createDM()).send({
+            embeds: [new EmbedBuilder().setColor(0xe67e22)
+              .setTitle('🎃 Kürbis geerntet!')
+              .setDescription(
+                'Du hast mit dem **' + fz.label + '** folgenden Kürbis geerntet:\n\n' +
+                '▸ 1x ' + art.name + '\n\n' +
+                '💰 Gehe in den Kürbis-Kanal und klicke auf **Kürbisse Verkaufen** um deinen Kürbis zu verkaufen.'
+              )
+              .addFields(
+                { name: '🎃 Sorte',  value: art.name, inline: true },
+                { name: '📦 Menge',  value: '1x Stück', inline: true },
+                { name: '💰 Wert',   value: '**' + art.preis + '$**', inline: true },
+              ).setTimestamp()
+            ]
+          });
+        } catch (e) { console.error('[KÜRBIS] Completion-DM:', e.message); }
+      }, KUERBIS_FARM_DUR);
+      kuerbisActiveFarmers.set(userId, { vehicle: fzId, fz, timer });
+    }
+  } catch (e) { console.error('[KÜRBIS] interaction:', e.message); }
+});
+
 (function loginWithRetry(attempt) {
 
 // ─── ! COMMAND WARNUNG ──────────────────────────────────────────────────────
