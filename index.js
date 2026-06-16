@@ -946,6 +946,8 @@ function loadSetup()    { try { return JSON.parse(fs.readFileSync(SETUP_FILE,   
 function saveSetup(d)   { fs.writeFileSync(SETUP_FILE,   JSON.stringify(d, null, 2), 'utf8'); }
 
 const inviteCache = new Map();
+const captchaPending = new Map(); // userId -> { code, expires, attempts }
+const CAPTCHA_CH_ID = '1516251730357125202';
 
 // ─── Kanal-IDs ───────────────────────────────────────────────────────────────
 const CH = {
@@ -1926,6 +1928,11 @@ client.once('ready', async () => {
       .setName('commands')
       .setDescription('Zeigt alle verfügbaren Commands auf diesem Server an')
       .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('captcha-setup')
+      .setDescription('Sendet das Verifikations-Embed in den Captcha-Kanal (Admin)')
+      .toJSON(),
     ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -2707,6 +2714,47 @@ client.once('ready', async () => {
 
 
     // ─── TICKET INTERAKTIONEN ─────────────────────────────────────────────────────
+
+// ─── CAPTCHA UTILITIES ────────────────────────────────────────────────────────
+function genCaptchaCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length: 6}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+async function buildCaptchaImg(code) {
+  const { createCanvas } = require('@napi-rs/canvas');
+  const W = 300, H = 110;
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#16213e';
+  ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 10; i++) {
+    ctx.strokeStyle = 'hsl(' + Math.floor(Math.random()*360) + ',50%,55%)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(Math.random()*W, Math.random()*H);
+    ctx.bezierCurveTo(Math.random()*W, Math.random()*H, Math.random()*W, Math.random()*H, Math.random()*W, Math.random()*H);
+    ctx.stroke();
+  }
+  const clrs = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff9f1c','#c77dff'];
+  const cw = (W - 20) / code.length;
+  for (let i = 0; i < code.length; i++) {
+    ctx.save();
+    ctx.translate(15 + i * cw + cw / 2, H / 2 + 8);
+    ctx.rotate((Math.random() - 0.5) * 0.55);
+    ctx.font = 'bold ' + (32 + Math.floor(Math.random() * 10)) + 'px sans-serif';
+    ctx.fillStyle = clrs[i % clrs.length];
+    ctx.textAlign = 'center';
+    ctx.fillText(code[i], 0, 0);
+    ctx.restore();
+  }
+  for (let i = 0; i < 80; i++) {
+    ctx.fillStyle = 'rgba(255,255,255,' + (Math.random()*0.35+0.05) + ')';
+    const s = 1 + Math.floor(Math.random()*2);
+    ctx.fillRect(Math.random()*W, Math.random()*H, s, s);
+  }
+  return canvas.toBuffer('image/png');
+}
+
   client.on('interactionCreate', async (interaction) => {
     try {
 
@@ -3093,11 +3141,7 @@ client.on('guildMemberAdd', async (member) => {
   }
 
   if (!member.user.bot) {
-    // Auto-Rolle (nur für Erstbeitritt)
-    { const _fm = loadFormerMembers(); if (!_fm[member.id]) {
-      try { await member.roles.add('1490855725516460234'); }
-      catch (e) { console.error('Auto-Rolle Fehler:', e.message); }
-    } }
+    // Auto-Rolle: nur für Rückkehrender (neue Mitglieder müssen Captcha lösen)
 
     // Invite-Tracking
     const oldCache = inviteCache.get(member.guild.id) ?? new Map();
@@ -3184,6 +3228,11 @@ client.on('guildMemberAdd', async (member) => {
               'Wenn du noch Fragen hast bezüglich der Einreise oder rund um den Server, steht dir das Support-Team jederzeit zur Verfügung. Wir wünschen dir viel Spaß bei deinem Start auf Paradise City Roleplay 😎'
             )
           ]});
+          await member.send({ embeds: [new EmbedBuilder()
+            .setColor(0xFF6B00)
+            .setTitle('🔐 Verifizierung erforderlich')
+            .setDescription('**Wichtig:** Bevor du auf dem Server aktiv sein kannst, musst du dich verifizieren!\n\nGehe in den Channel <#1516251730357125202> und klicke auf **🔒 Jetzt verifizieren**, um ein Captcha zu lösen.\n\nErst danach erhältst du die Einreise-Rolle und Zugang zum Server.')
+          ]}).catch(()=>{});
         }
       } catch { /* DMs deaktiviert */ }
 
@@ -3783,13 +3832,15 @@ client.on('messageUpdate', async (oldMsg, newMsg) => {
 
 // ─── KANAL / ROLLE EVENTS ─────────────────────────────────────────────────────
 client.on('channelDelete', async (channel) => {
+  if (!channel.guild) return;
   const entry    = await getAuditEntry(channel.guild, AuditLogEvent.ChannelDelete);
   const executor = entry?.executor;
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
     .setColor(Colors.Red).setTitle('🗑️ Kanal gelöscht')
     .addFields(
-      { name: 'Kanal',        value: channel.name },
-      { name: 'Gelöscht von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' }
+      { name: 'Kanal',        value: '#' + channel.name },
+      { name: 'Gelöscht von', value: executor ? '<@' + executor.id + '> (' + executor.tag + ')' : 'Unbekannt' },
+      { name: 'Zeitpunkt',    value: '<t:' + ts() + ':F>' }
     )
   );
   if (!executor) return;
@@ -3800,38 +3851,45 @@ client.on('channelDelete', async (channel) => {
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
       .setColor(Colors.Red).setTitle('⏱️ Timeout — Kanal gelöscht')
       .addFields(
-        { name: 'Nutzer', value: `<@${executor.id}> (${executor.tag})` },
+        { name: 'Nutzer', value: '<@' + executor.id + '> (' + executor.tag + ')' },
         { name: 'Dauer',  value: '20 Minuten' },
-        { name: 'Grund',  value: `Kanal **${channel.name}** gelöscht` }
+        { name: 'Grund',  value: 'Kanal **#' + channel.name + '** gelöscht' }
       )
     );
   } catch (e) { console.error('Timeout Fehler:', e.message); }
 });
 
 client.on('channelCreate', async (channel) => {
+  if (!channel.guild) return;
   const entry    = await getAuditEntry(channel.guild, AuditLogEvent.ChannelCreate);
   const executor = entry?.executor;
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
     .setColor(Colors.Green).setTitle('➕ Kanal erstellt')
     .addFields(
-      { name: 'Kanal',        value: `<#${channel.id}> (${channel.name})` },
-      { name: 'Erstellt von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' }
+      { name: 'Kanal',        value: '<#' + channel.id + '> — #' + channel.name },
+      { name: 'Erstellt von', value: executor ? '<@' + executor.id + '> (' + executor.tag + ')' : 'Unbekannt' },
+      { name: 'Zeitpunkt',    value: '<t:' + ts() + ':F>' }
     )
   );
 });
 
 client.on('channelUpdate', async (oldCh, newCh) => {
+  if (!newCh.guild) return;
   const entry    = await getAuditEntry(newCh.guild, AuditLogEvent.ChannelUpdate);
   const executor = entry?.executor;
   if (executor?.id === client.user?.id) return;
+  const _fields = [
+    { name: 'Kanal',          value: '<#' + newCh.id + '> — #' + newCh.name },
+    { name: 'Bearbeitet von', value: executor ? '<@' + executor.id + '> (' + executor.tag + ')' : 'Unbekannt' },
+  ];
+  if (oldCh.name !== newCh.name) {
+    _fields.push({ name: 'Alter Name', value: '#' + oldCh.name, inline: true });
+    _fields.push({ name: 'Neuer Name', value: '#' + newCh.name, inline: true });
+  }
+  _fields.push({ name: 'Zeitpunkt', value: '<t:' + ts() + ':F>' });
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
     .setColor(Colors.Yellow).setTitle('✏️ Kanal bearbeitet')
-    .addFields(
-      { name: 'Kanal',          value: `<#${newCh.id}>` },
-      { name: 'Bearbeitet von', value: executor ? `<@${executor.id}> (${executor.tag})` : 'Unbekannt' },
-      { name: 'Alter Name',     value: oldCh.name, inline: true },
-      { name: 'Neuer Name',     value: newCh.name, inline: true }
-    )
+    .addFields(..._fields)
   );
 });
 
@@ -5344,6 +5402,23 @@ client.on('interactionCreate', async (interaction) => {
           await interaction.deferReply({ ephemeral: true });
           await doLottoZiehung(client);
           return interaction.editReply({ content: '✅ Lotto-Ziehung wurde manuell durchgeführt!' });
+        }
+
+        if (commandName === 'captcha-setup') {
+          if (!member.permissions.has(PermissionFlagsBits.Administrator)) return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+          try {
+            const setupCh = await client.channels.fetch(CAPTCHA_CH_ID);
+            const setupEmbed = new EmbedBuilder()
+              .setColor(0xFF6B00)
+              .setTitle('🔐 Server-Verifikation')
+              .setDescription('Um Zugang zu **Paradise City Roleplay** zu erhalten, musst du ein kurzes Captcha lösen.\n\nKlicke auf den Button unten um zu starten. Du hast **5 Versuche**.')
+              .setFooter({ text: 'Neue Mitglieder müssen sich verifizieren' });
+            const setupRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId('captcha_start').setLabel('🔒 Jetzt verifizieren').setStyle(ButtonStyle.Success)
+            );
+            await setupCh.send({ embeds: [setupEmbed], components: [setupRow] });
+            return interaction.reply({ content: '✅ Verifikations-Embed gesendet!', ephemeral: true });
+          } catch(e) { return interaction.reply({ content: '❌ Fehler: ' + e.message, ephemeral: true }); }
         }
 
         if (commandName === 'commands') {
@@ -7932,7 +8007,97 @@ _webMod(client, DATA_DIR, lapdTokens, _shopCb);
 if (!process.env.DISCORD_TOKEN) {
   console.error('[FEHLER] DISCORD_TOKEN fehlt – Bot startet nicht.');
 } else {
-  (function loginWithRetry(attempt) {
+  
+// ─── CAPTCHA INTERACTION HANDLER ─────────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  const EINREISE = '1490855725516460234';
+
+  if (interaction.isButton() && interaction.customId === 'captcha_start') {
+    const userId = interaction.user.id;
+    const member = interaction.member;
+    if (!member) return interaction.reply({ content: '❌ Nur auf dem Server nutzbar.', ephemeral: true });
+    if (member.roles.cache.has(EINREISE)) return interaction.reply({ content: '✅ Du bist bereits verifiziert!', ephemeral: true });
+    const existing = captchaPending.get(userId);
+    if (existing && existing.blocked && existing.blocked > Date.now()) {
+      const mins = Math.ceil((existing.blocked - Date.now()) / 60000);
+      return interaction.reply({ content: '🚫 Zu viele Fehlversuche. Bitte warte noch ' + mins + ' Minute(n).', ephemeral: true });
+    }
+    const code = genCaptchaCode();
+    captchaPending.set(userId, { code, expires: Date.now() + 5 * 60 * 1000, attempts: 0 });
+    let imgBuffer;
+    try { imgBuffer = await buildCaptchaImg(code); }
+    catch (e) { console.error('Captcha-Bild Fehler:', e.message); return interaction.reply({ content: '❌ Captcha konnte nicht generiert werden.', ephemeral: true }); }
+    const attachment = new AttachmentBuilder(imgBuffer, { name: 'captcha.png' });
+    const captchaEmbed = new EmbedBuilder()
+      .setColor(0xFF6B00).setTitle('🔠 Captcha lösen')
+      .setDescription('Tippe die **6 Zeichen** vom Bild ab. Groß-/Kleinschreibung egal.\nDu hast **5 Minuten** Zeit.')
+      .setImage('attachment://captcha.png');
+    const captchaRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('captcha_enter').setLabel('✏️ Code eingeben').setStyle(ButtonStyle.Primary)
+    );
+    return interaction.reply({ embeds: [captchaEmbed], files: [attachment], components: [captchaRow], ephemeral: true });
+  }
+
+  if (interaction.isButton() && interaction.customId === 'captcha_enter') {
+    const userId = interaction.user.id;
+    const pending = captchaPending.get(userId);
+    if (!pending || pending.expires < Date.now()) {
+      captchaPending.delete(userId);
+      return interaction.reply({ content: '⏰ Captcha abgelaufen. Klicke erneut auf **🔒 Jetzt verifizieren**.', ephemeral: true });
+    }
+    const modal = new ModalBuilder().setCustomId('captcha_check').setTitle('Captcha Code eingeben');
+    const textInput = new TextInputBuilder()
+      .setCustomId('captcha_input').setLabel('Code vom Bild eingeben')
+      .setStyle(TextInputStyle.Short).setMinLength(6).setMaxLength(6)
+      .setPlaceholder('z.B. AB3D5F').setRequired(true);
+    modal.addComponents(new ActionRowBuilder().addComponents(textInput));
+    return interaction.showModal(modal);
+  }
+
+  if (interaction.isModalSubmit() && interaction.customId === 'captcha_check') {
+    const userId = interaction.user.id;
+    const member = interaction.member;
+    const pending = captchaPending.get(userId);
+    if (!pending || pending.expires < Date.now()) {
+      captchaPending.delete(userId);
+      return interaction.reply({ content: '⏰ Captcha abgelaufen. Bitte starte neu mit **🔒 Jetzt verifizieren**.', ephemeral: true });
+    }
+    const input = interaction.fields.getTextInputValue('captcha_input').trim().toUpperCase();
+    if (input === pending.code.toUpperCase()) {
+      captchaPending.delete(userId);
+      try {
+        await member.roles.add(EINREISE);
+        return interaction.reply({ content: '✅ **Verifizierung erfolgreich!** Willkommen auf Paradise City Roleplay!', ephemeral: true });
+      } catch (e) { return interaction.reply({ content: '❌ Rolle konnte nicht vergeben werden: ' + e.message, ephemeral: true }); }
+    } else {
+      pending.attempts += 1;
+      if (pending.attempts >= 5) {
+        pending.blocked = Date.now() + 10 * 60 * 1000;
+        captchaPending.set(userId, pending);
+        return interaction.reply({ content: '🚫 **5 Fehlversuche.** Du bist für 10 Minuten gesperrt.', ephemeral: true });
+      }
+      const newCode = genCaptchaCode();
+      pending.code = newCode;
+      pending.expires = Date.now() + 5 * 60 * 1000;
+      captchaPending.set(userId, pending);
+      let img2;
+      try { img2 = await buildCaptchaImg(newCode); }
+      catch (e) { return interaction.reply({ content: '❌ Falscher Code. Starte neu mit **🔒 Jetzt verifizieren**.', ephemeral: true }); }
+      const att2 = new AttachmentBuilder(img2, { name: 'captcha.png' });
+      const attLeft = 5 - pending.attempts;
+      const retryEmbed = new EmbedBuilder()
+        .setColor(Colors.Red).setTitle('❌ Falscher Code — Neues Captcha')
+        .setDescription('Falscher Code! Du hast noch **' + attLeft + ' Versuch(e)**. Neues Captcha:')
+        .setImage('attachment://captcha.png');
+      const retryRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('captcha_enter').setLabel('✏️ Code eingeben').setStyle(ButtonStyle.Primary)
+      );
+      return interaction.reply({ embeds: [retryEmbed], files: [att2], components: [retryRow], ephemeral: true });
+    }
+  }
+});
+
+(function loginWithRetry(attempt) {
 
 // ─── ! COMMAND WARNUNG ──────────────────────────────────────────────────────
 client.on('messageCreate', async (msg) => {
