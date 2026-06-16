@@ -1046,6 +1046,7 @@ const URL_REGEX = /https?:\/\/[^\s]+/gi;
 
 const spamTracker             = new Map();
 const SPAM_LIMIT              = 20;
+const SPAM_WARN_LIMIT         = 10;
 const SPAM_WINDOW_MS          = 6000;
 const SPAM_TIMEOUT_VIOLATIONS = 3;
 const SPAM_TIMEOUT_DURATION   = 10 * 60 * 1000;
@@ -1061,6 +1062,8 @@ const client = new Client({
     GatewayIntentBits.GuildIntegrations,
     GatewayIntentBits.GuildInvites,
     GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.AutoModerationConfiguration,
+    GatewayIntentBits.AutoModerationExecution,
   ],
   partials: [Partials.Channel, Partials.Message, Partials.GuildMember, Partials.Reaction],
 });
@@ -1410,7 +1413,7 @@ client.once('ready', async () => {
           console.log(`[AUTOMOD] Regel erstellt auf: ${guild.name}`);
         }
       }
-    } catch (e) { console.error('[AUTOMOD] Fehler:', e.message); }
+    } catch (e) { console.error('[AUTOMOD] Fehler:', e.message, e.code || ''); }
   }
 
     // ─── EINMALIG: Lotto + Handy Footer-Cleanup (v_paradise_6) ───────────────
@@ -3790,37 +3793,44 @@ client.on('messageCreate', async (message) => {
       if (spamTracker.has(userId)) spamTracker.get(userId).msgs = [];
     }, SPAM_WINDOW_MS);
 
+    // ── Warnung bei 10 Nachrichten ────────────────────────────────────────
+    if (tracker.msgs.length === SPAM_WARN_LIMIT) {
+      try {
+        await message.author.send({ embeds: [new EmbedBuilder()
+          .setColor(Colors.Orange)
+          .setTitle('⚠️ Spam-Warnung')
+          .setDescription(
+            'Du hast in kurzer Zeit **10 Nachrichten** gesendet.\n\n' +
+            '🛑 Wenn du weitermachst, wirst du automatisch für **10 Minuten** getimeouted.'
+          )
+        ]});
+      } catch {}
+    }
+
+    // ── Timeout bei 20 Nachrichten ───────────────────────────────────────
     if (tracker.msgs.length >= SPAM_LIMIT) {
       const toDelete = [...tracker.msgs];
       tracker.msgs   = [];
       tracker.violations = 0;
 
-      // ALLE gespeicherten Spam-Nachrichten löschen
-      await Promise.allSettled(toDelete.map(m => m.delete()));
+      // ALLE Spam-Nachrichten löschen
+      await Promise.allSettled(toDelete.map(m => m.delete().catch(() => {})));
 
       // 10 Minuten Timeout vergeben
       try {
         await member.timeout(SPAM_TIMEOUT_DURATION, 'Spam (20 Nachrichten)');
       } catch (e) { console.error('Timeout Fehler:', e.message); }
 
-      // DM an den Betroffenen
+      // Rotes Embed im Kanal (für alle sichtbar)
       try {
-        await message.author.send({ embeds: [new EmbedBuilder()
+        await message.channel.send({ embeds: [new EmbedBuilder()
           .setColor(Colors.Red)
-          .setTitle('⏱️ Du wurdest getimeouted')
+          .setTitle('⏱️ Auto-Timeout — Spam')
           .setDescription(
-            'Du hast innerhalb kurzer Zeit **20 oder mehr Nachrichten** gesendet und wurdest daher automatisch für **10 Minuten** getimeouted.\n\n' +
-            '⚠️ Bitte halte dich an die Serverregeln und vermeide Spam.'
+            `<@${message.author.id}> wurde wegen **Spam** automatisch für **10 Minuten** getimeouted.`
           )
         ]});
       } catch {}
-
-      // Nur die Person sieht die Warnung im Kanal
-      await sendPrivate(
-        member,
-        message.channel,
-        '⏱️ Du wurdest wegen Spam für **10 Minuten** getimeouted. Bitte schau in deine DMs.'
-      );
 
       // Mod-Log
       await sendLog(CH.MOD_LOG, new EmbedBuilder()
