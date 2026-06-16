@@ -8282,11 +8282,11 @@ function loadHolzArten() {
   catch { fs.writeFileSync(HOLZ_ARTEN_FILE, JSON.stringify(HOLZ_ARTEN_DEFAULT, null, 2), 'utf8'); return HOLZ_ARTEN_DEFAULT; }
 }
 const HOLZ_FAHRZEUGE = [
-  { id: 'v4tuer',  label: '🚘 4 Türer',  legalKg: 500,   maxKg: 700,   minItems: 3,   maxItems: 5   },
-  { id: 'pickup',  label: '🛻 Pickup',   legalKg: 1000,  maxKg: 1400,  minItems: 8,   maxItems: 12  },
-  { id: 'van',     label: '🚐 Van',      legalKg: 1400,  maxKg: 1700,  minItems: 12,  maxItems: 16  },
-  { id: 'mule',    label: '🚚 Mule',     legalKg: 4000,  maxKg: 6000,  minItems: 35,  maxItems: 55  },
-  { id: 'pounder', label: '🚛 Pounder',  legalKg: 10000, maxKg: 13000, minItems: 90,  maxItems: 125 },
+  { id: 'v4tuer',  label: '🚘 4 Türer',  legalKg: 500,   maxKg: 700   },
+  { id: 'pickup',  label: '🛻 Pickup',   legalKg: 1000,  maxKg: 1400  },
+  { id: 'van',     label: '🚐 Van',      legalKg: 1400,  maxKg: 1700  },
+  { id: 'mule',    label: '🚚 Mule',     legalKg: 4000,  maxKg: 6000  },
+  { id: 'pounder', label: '🚛 Pounder',  legalKg: 10000, maxKg: 13000 },
 ];
 const holzActiveFarmers = new Map();
 
@@ -8303,13 +8303,20 @@ client.once('ready', async () => {
         '`2.` Fahre mit deinem Fahrzeug in den Wald\n' +
         '`3.` Poste ein **Foto** im <#' + HOLZ_FOTO_CH + '> Kanal\n' +
         '`4.` Wähle dein **Fahrzeug** per DM aus\n' +
-        '`5.` Warte **3 Minuten** — du bekommst eine DM wenn du fertig bist\n' +
+        '`5.` Warte **3 Minuten** — du erhältst automatisch **100kg Holz**\n' +
         '`6.` Klicke unten auf **💰 Holz Verkaufen** um dein Holz zu Geld zu machen\n\n' +
         '🪵 **Holzarten & Preise (pro 100kg):**\n' +
         loadHolzArten().map(a => '▸ ' + a.name + ' — **' + a.preis + '$**').join('\n') + '\n\n' +
+        '⚖️ **Fahrzeug-Kapazitäten (RP-Regel):**\n' +
+        '▸ 🚘 4 Türer — **500kg** legal / **700kg** max\n' +
+        '▸ 🛻 Pickup — **1.000kg** legal / **1.400kg** max\n' +
+        '▸ 🚐 Van — **1.400kg** legal / **1.700kg** max\n' +
+        '▸ 🚚 Mule — **4.000kg** legal / **6.000kg** max\n' +
+        '▸ 🚛 Pounder — **10.000kg** legal / **13.000kg** max\n\n' +
         '> **Info**\n' +
-        '> Auf dem Foto muss das Fahrzeug, was du nutzt, ebenfalls sichtbar sein.\n' +
-        '> Wenn das nicht so ist, gilt das Farmen als **ungültig**.'
+        '> Pro **3 Minuten** erhältst du immer genau **100kg Holz**. Die Holzart ist zufällig.\n' +
+        '> Auf dem Foto muss das Fahrzeug sichtbar sein — sonst gilt das Farmen als **ungültig**.\n' +
+        '> Die Fahrzeug-Kapazitäten sind eine **RP-Regel**, an die sich jeder halten muss.'
       );
     const old = await ch.messages.fetch({ limit: 20 }).catch(() => null);
     if (old) for (const [, m] of old) { if (m.author.id === client.user.id) await m.delete().catch(() => {}); }
@@ -8361,10 +8368,10 @@ client.on('messageCreate', async (msg) => {
       await (await u.createDM()).send({
         embeds: [new EmbedBuilder().setColor(0xe65100)
           .setTitle('🌲 Holz farmen – Fahrzeug wählen')
-          .setDescription('Wähle dein **Fahrzeug** aus. Je größer das Fahrzeug, desto mehr Holz kannst du mitnehmen:')
+          .setDescription('Wähle dein **Fahrzeug** aus.\nDu erhältst immer **100kg Holz** pro 3 Minuten — die Kapazitäten sind eine RP-Regel:')
           .addFields(HOLZ_FAHRZEUGE.map(fz => ({
             name: fz.label,
-            value: 'Legal: **' + fz.legalKg.toLocaleString('de-CH') + 'kg** | Max: **' + fz.maxKg.toLocaleString('de-CH') + 'kg**\n📦 ca. **' + fz.minItems + '–' + fz.maxItems + ' Holz-Items**',
+            value: 'Legal: **' + fz.legalKg.toLocaleString('de-CH') + 'kg** | Max: **' + fz.maxKg.toLocaleString('de-CH') + 'kg**',
             inline: true,
           })))
           .setFooter({ text: 'Du hast 5 Minuten um ein Fahrzeug auszuwählen.' })
@@ -8377,7 +8384,7 @@ client.on('messageCreate', async (msg) => {
               new StringSelectMenuOptionBuilder()
                 .setLabel(fz.label)
                 .setValue(fz.id)
-                .setDescription('Legal: ' + fz.legalKg.toLocaleString('de-CH') + 'kg | ca. ' + fz.minItems + '–' + fz.maxItems + ' Items')
+                .setDescription('Legal: ' + fz.legalKg.toLocaleString('de-CH') + 'kg | Max: ' + fz.maxKg.toLocaleString('de-CH') + 'kg')
             ))
         )]
       });
@@ -8424,11 +8431,11 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.update({
         embeds: [new EmbedBuilder().setColor(0x27ae60)
           .setTitle('🌲 Farmen gestartet!')
-          .setDescription('Du farmst jetzt mit dem **' + fz.label + '**.\nDu wirst in **3 Minuten** per DM benachrichtigt!')
+          .setDescription('Du farmst jetzt mit dem **' + fz.label + '**.\nIn **3 Minuten** erhältst du **100kg Holz** und wirst per DM benachrichtigt!')
           .addFields(
-            { name: '🚗 Fahrzeug',    value: fz.label, inline: true },
-            { name: '⚖️ Kapazität',   value: 'Legal: **' + fz.legalKg.toLocaleString('de-CH') + 'kg** | Max: **' + fz.maxKg.toLocaleString('de-CH') + 'kg**', inline: true },
-            { name: '📦 Mögliche Ausbeute', value: 'ca. **' + fz.minItems + '–' + fz.maxItems + ' Holz-Items**', inline: true },
+            { name: '🚗 Fahrzeug',  value: fz.label, inline: true },
+            { name: '⚖️ Kapazität', value: 'Legal: **' + fz.legalKg.toLocaleString('de-CH') + 'kg** | Max: **' + fz.maxKg.toLocaleString('de-CH') + 'kg**', inline: true },
+            { name: '📦 Ausbeute',  value: 'Immer genau **100kg** — Holzart ist zufällig', inline: true },
           ).setTimestamp()
         ],
         components: [new ActionRowBuilder().addComponents(
@@ -8441,27 +8448,25 @@ client.on('interactionCreate', async (interaction) => {
       });
       const timer = setTimeout(async () => {
         holzActiveFarmers.delete(userId);
-        // Zufällige Anzahl Items je nach Fahrzeug
-        const count = fz.minItems + Math.floor(Math.random() * (fz.maxItems - fz.minItems + 1));
+        const holzArten = loadHolzArten();
+        const art = holzArten[Math.floor(Math.random() * holzArten.length)];
         const uInv = getUserInv(userId);
-        const ernte = {};
-        for (let i = 0; i < count; i++) {
-          const holzArten = loadHolzArten();
-          const art = holzArten[Math.floor(Math.random() * holzArten.length)];
-          uInv[art.name] = (uInv[art.name] || 0) + 1;
-          ernte[art.name] = (ernte[art.name] || 0) + 1;
-        }
+        uInv[art.name] = (uInv[art.name] || 0) + 1;
         setUserInv(userId, uInv);
         try {
           const user = await client.users.fetch(userId);
-          const ernteText = Object.entries(ernte).map(([n, q]) => '▸ ' + q + 'x ' + n).join('\n');
           await (await user.createDM()).send({
             embeds: [new EmbedBuilder().setColor(0x27ae60)
               .setTitle('🌲 Holz geerntet!')
               .setDescription(
-                'Du hast mit dem **' + fz.label + '** insgesamt **' + count + ' Holz-Items** geerntet!\n\n' +
-                ernteText + '\n\n' +
+                'Du hast mit dem **' + fz.label + '** **100kg Holz** geerntet!\n\n' +
+                '▸ 1x ' + art.name + '\n\n' +
                 '💰 Gehe in den Holz-Kanal und klicke auf **Holz Verkaufen** um dein Holz zu verkaufen.'
+              )
+              .addFields(
+                { name: '🪵 Holzart', value: art.name, inline: true },
+                { name: '⚖️ Menge',   value: '100kg (1x)', inline: true },
+                { name: '💰 Wert',    value: '**' + art.preis + '$**', inline: true },
               ).setTimestamp()
             ]
           });
