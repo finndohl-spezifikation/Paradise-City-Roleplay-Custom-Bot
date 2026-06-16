@@ -6099,7 +6099,7 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
       ctx.translate(10 + i * cw + cw / 2, H / 2 + 16);
       // Minimale Rotation — gut lesbar
       ctx.rotate((Math.random() - 0.5) * 0.18);
-      ctx.font = 'bold 54px monospace';
+      ctx.font = 'bold 52px Arial, Helvetica, sans-serif';
       ctx.fillStyle = clrs[i % clrs.length];
       ctx.textAlign = 'center';
       // Leichter Schatten für bessere Lesbarkeit
