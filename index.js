@@ -21,6 +21,9 @@ const {
   ChannelType,
   AttachmentBuilder,
   ActivityType,
+  AutoModerationRuleEventType,
+  AutoModerationRuleTriggerType,
+  AutoModerationActionType,
 } = require('discord.js');
 const fs   = require('fs');
 const path   = require('path');
@@ -1360,7 +1363,7 @@ client.once('ready', async () => {
       console.log('[FIX] Team-Overview-Embed wird neu gesendet.');
     }
   }
-  // ─── IMMER: Captcha-Verifikations-Embed aktualisieren ─────────────────────
+  // ─── IMMER: Verifikations-Embed aktualisieren ─────────────────────────────
   {
     try {
       const _captchaCh = await client.channels.fetch(CAPTCHA_CH_ID).catch(() => null);
@@ -1375,15 +1378,41 @@ client.once('ready', async () => {
         const _captchaEmbed = new EmbedBuilder()
           .setColor(0xFF6B00)
           .setTitle('🔐 Server-Verifikation')
-          .setDescription('Um Zugang zu **Paradise City Roleplay** zu erhalten, musst du ein kurzes Captcha lösen.\n\nKlicke auf den Button unten um zu starten. Das Captcha besteht aus **4 Ziffern** — einfach ablesen und eingeben.');
+          .setDescription('Klicke auf den Button und bestätige alle wichtigen Serverregeln,\num Zugang zu **Paradise City Roleplay** zu erhalten.');
         const _captchaRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId('captcha_start').setLabel('🔒 Jetzt verifizieren').setStyle(ButtonStyle.Success)
         );
         await _captchaCh.send({ embeds: [_captchaEmbed], components: [_captchaRow] });
-        console.log('[CAPTCHA] Verifikations-Embed neu gesendet.');
+        console.log('[VERIFY] Verifikations-Embed neu gesendet.');
       }
-    } catch(e) { console.error('[CAPTCHA] Embed Fehler:', e.message); }
+    } catch(e) { console.error('[VERIFY] Embed Fehler:', e.message); }
   }
+
+  // ─── AutoMod: Anti-Mention-Spam Regel anlegen (gibt Bot das AutoMod-Badge) ──
+  {
+    try {
+      for (const guild of client.guilds.cache.values()) {
+        const existing = await guild.autoModerationRules.fetch().catch(() => null);
+        const alreadyExists = existing && existing.some(r => r.name === 'PCR — Anti-Mention-Spam');
+        if (!alreadyExists) {
+          await guild.autoModerationRules.create({
+            name: 'PCR — Anti-Mention-Spam',
+            eventType: AutoModerationRuleEventType.MessageSend,
+            triggerType: AutoModerationRuleTriggerType.MentionSpam,
+            triggerMetadata: { mentionTotalLimit: 8, mentionRaidProtectionEnabled: true },
+            actions: [{
+              type: AutoModerationActionType.BlockMessage,
+              metadata: { customMessage: '⚠️ Zu viele Erwähnungen in einer Nachricht — Paradise City Roleplay.' }
+            }],
+            enabled: true,
+            reason: 'Paradise City Roleplay — Automatischer Mention-Spam-Schutz'
+          });
+          console.log(`[AUTOMOD] Regel erstellt auf: ${guild.name}`);
+        }
+      }
+    } catch (e) { console.error('[AUTOMOD] Fehler:', e.message); }
+  }
+
     // ─── EINMALIG: Lotto + Handy Footer-Cleanup (v_paradise_6) ───────────────
   {
     const setup = loadSetup();
@@ -3221,7 +3250,7 @@ client.on('guildMemberAdd', async (member) => {
           await member.send({ embeds: [new EmbedBuilder()
             .setColor(0xFF6B00)
             .setTitle('🔐 Verifizierung erforderlich')
-            .setDescription('**Wichtig:** Bevor du auf dem Server aktiv sein kannst, musst du dich verifizieren!\n\nGehe in den Channel <#1516251730357125202> und klicke auf **🔒 Jetzt verifizieren**, um ein Captcha zu lösen.\n\nErst danach erhältst du die Einreise-Rolle und Zugang zum Server.')
+            .setDescription('**Wichtig:** Bevor du auf dem Server aktiv sein kannst, musst du dich verifizieren!\n\nGehe in den Channel <#1516251730357125202>, klicke auf **🔒 Jetzt verifizieren** und bestätige alle wichtigen Serverregeln.\n\nErst danach erhältst du die Einreise-Rolle und Zugang zum Server.')
           ]}).catch(()=>{});
         }
       } catch { /* DMs deaktiviert */ }
@@ -8064,8 +8093,8 @@ client.on('interactionCreate', async (interaction) => {
 
   const verifyEmbed = new EmbedBuilder()
     .setColor(0xFF6B00)
-    .setTitle('🔐 Verifizierung starten')
-    .setDescription('Klicke auf den Button um dich auf unserer Seite zu verifizieren.\nDer Link ist **15 Minuten** gültig und nur für dich.');
+    .setTitle('🔐 Regelbestätigung starten')
+    .setDescription('Klicke auf den Button und bestätige alle wichtigen Serverregeln.\nDer Link ist **15 Minuten** gültig und nur für dich.');
   const verifyRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setLabel('🌐 Jetzt verifizieren').setStyle(ButtonStyle.Link).setURL(link)
   );
