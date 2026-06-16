@@ -315,6 +315,10 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       const until = dur > 0 ? Date.now() + dur : null;
       const durLabel = dur > 0 ? humanDur(dur) : 'Permanent';
 
+      // Username VOR dem Bann merken (danach Member nicht mehr fetchbar)
+      const preBanMember = await getMember(userId).catch(() => null);
+      const saveUsername = preBanMember ? (preBanMember.user.tag || preBanMember.user.username) : userId;
+
       // DM VOR dem Bann senden (danach nicht mehr möglich)
       await dmUser(userId, new EmbedBuilder()
         .setColor(0xc0392b)
@@ -332,9 +336,7 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       });
 
       const bans = loadBans();
-      const bannedMember = await getMember(userId).catch(() => null);
-      const bannedUsername = bannedMember ? (bannedMember.user.tag || bannedMember.user.username) : userId;
-      bans[userId] = { reason: grund, until, by: 'admin', at: Date.now(), username: bannedUsername };
+      bans[userId] = { reason: grund, until, by: 'admin', at: Date.now(), username: saveUsername };
       saveBans(bans);
 
       await logTo(MOD_LOG_CH, new EmbedBuilder()
@@ -512,7 +514,6 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       const { userId, type, action, amount } = req.body;
       const amt = Math.abs(Math.floor(Number(amount) || 0));
       if (!userId || !amt) return res.status(400).json({ error: 'Ungültige Angaben.' });
-      if (!(await targetHasInvRole(userId))) return res.status(403).json({ error: 'Dieser Spieler hat keine Inventar-/Bank-Berechtigung.' });
       const sign = action === 'remove' ? -1 : 1;
 
       if (type === 'bargeld') {
@@ -545,7 +546,6 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       const amt = Math.abs(Math.floor(Number(amount) || 1)) || 1;
       const name = (item || '').trim();
       if (!userId || !name) return res.status(400).json({ error: 'Ungültige Angaben.' });
-      if (!(await targetHasInvRole(userId))) return res.status(403).json({ error: 'Dieser Spieler hat keine Inventar-/Bank-Berechtigung.' });
       if (action === 'add' && !itemRegistry().includes(name)) {
         return res.status(400).json({ error: 'Dieses Item existiert in keinem Shop. Nur Shop-Items erlaubt.' });
       }
@@ -698,23 +698,33 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       if (!g) return res.status(500).json({ error: 'Server nicht erreichbar.' });
 
       if (action === 'kick') {
-        const m = await getMember(userId); if (!m) return res.status(404).json({ error: 'Spieler nicht gefunden.' });
+        const m = await getMember(userId);
+        if (!m) return res.status(404).json({ error: 'Spieler nicht auf dem Server gefunden. Kick nicht möglich.' });
         await dmUser(userId, new EmbedBuilder().setColor(0xe67e22).setTitle('👢 Du wurdest gekickt').addFields({ name: 'Grund', value: grund }).setTimestamp());
         await m.kick(grund);
       } else if (action === 'ban') {
         await dmUser(userId, new EmbedBuilder().setColor(0xc0392b).setTitle('🔨 Du wurdest gebannt').addFields({ name: 'Grund', value: grund }).setTimestamp());
         await g.bans.create(userId, { reason: grund });
-        const bans = loadBans(); bans[userId] = { reason: grund, until: null, by: 'admin', at: Date.now() }; saveBans(bans);
+        const bans = loadBans();
+        const snMember = await getMember(userId).catch(() => null);
+        bans[userId] = { reason: grund, until: null, by: 'admin', at: Date.now(), username: snMember ? (snMember.user.tag || snMember.user.username) : userId };
+        saveBans(bans);
       } else { // timeout
         const ms = Math.min(Number(durationMs) || 3600000, 28 * 24 * 60 * 60 * 1000);
-        const m = await getMember(userId); if (!m) return res.status(404).json({ error: 'Spieler nicht gefunden.' });
+        const m = await getMember(userId);
+        if (!m) return res.status(404).json({ error: 'Spieler nicht auf dem Server gefunden. Timeout nicht möglich.' });
         await m.timeout(ms, grund);
         await dmUser(userId, new EmbedBuilder().setColor(0xe67e22).setTitle('🔇 Timeout erhalten').addFields({ name: 'Grund', value: grund }, { name: 'Dauer', value: humanDur(ms), inline: true }).setTimestamp());
       }
       await logTo(MOD_LOG_CH, new EmbedBuilder().setColor(0x8e44ad).setTitle('🛡️ Sanktion (Mod-System)')
         .addFields({ name: 'Spieler', value: `<@${userId}>`, inline: true }, { name: 'Aktion', value: action, inline: true }, { name: 'Grund', value: grund }, { name: 'Von', value: 'Dashboard-Admin' }).setTimestamp());
       res.json({ ok: true });
-    } catch (e) { res.status(500).json({ error: 'Sanktion fehlgeschlagen: ' + e.message }); }
+    } catch (e) {
+      const msg = e.code === 50013
+        ? 'Fehlende Berechtigung: Dem Bot fehlt die nötige Rolle/Berechtigung (z.B. Mitglieder bannen/kicken). Bitte Bot-Rolle in Discord höher setzen.'
+        : 'Sanktion fehlgeschlagen: ' + e.message;
+      res.status(500).json({ error: msg });
+    }
   });
 
   // ─── Dauer-Formatierung ──────────────────────────────────────────────────────
