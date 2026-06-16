@@ -852,6 +852,21 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .itemchip{display:inline-flex;align-items:center;gap:6px;background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:5px 10px;margin:3px;font-size:.8em}
 .itemchip .n{color:#fff}.itemchip .a{color:var(--accent);font-weight:700}
 .search{max-width:320px;margin-bottom:14px}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:6px}
+@media(max-width:640px){
+  .main{padding:12px 8px 60px}
+  .search{max-width:100%}
+  .card{padding:12px 8px}
+  th{padding:8px 6px;font-size:.68em}
+  td{padding:9px 6px;font-size:.8em}
+  .av{width:22px;height:22px;margin-right:4px}
+  .btn.sm{padding:5px 7px;font-size:.74em}
+  .btn-txt{display:none}
+  .rolechip{font-size:.65em;padding:1px 5px}
+  .topbar h1{font-size:1.1em}
+  .stat .val{font-size:1.5em}
+  .grid.c4{grid-template-columns:repeat(2,1fr)}
+}
 </style></head><body>
 
 <div class="sb-backdrop" id="sb-backdrop" onclick="closeSidebar()"></div>
@@ -911,6 +926,7 @@ var LOG_TYPES = [];
 var _eco = [], _items = [], _verified = [];
 
 function esc(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cleanName(s){ if(!s)return ''; return String(s).replace(/<a?:[^:>]+:\d+>/g,'').replace(/^\s*\|\s*/,'').replace(/\|\s*$/,'').trim()||String(s); }
 function fmtNum(n){ return (Number(n)||0).toLocaleString('de-CH'); }
 function fmtTs(t){ if(!t) return '—'; var d=new Date(t); return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
 function ago(t){ var s=Math.floor((Date.now()-t)/1000); if(s<60)return s+'s'; if(s<3600)return Math.floor(s/60)+'min'; if(s<86400)return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d'; }
@@ -1020,13 +1036,13 @@ async function renderVerified(){
   _verified=await api('/verified');
   if(!_verified.length){ C().innerHTML='<div class="empty"><div class="ic">✅</div>Keine verifizierten Spieler gefunden.</div>'; return; }
   var h='<input class="search" placeholder="🔍 Suchen nach Name oder ID…" oninput="filterTable(this.value,\\'vtable\\')">';
-  h+='<div class="card"><table id="vtable"><thead><tr><th>Spieler</th><th>Serverprofil</th><th>Charakter</th><th>Rollen</th><th>Discord-ID</th><th></th></tr></thead><tbody>';
+  h+='<div class="card"><div class="tbl-wrap"><table id="vtable"><thead><tr><th>Spieler</th><th>Profil</th><th>Charakter</th><th>Rollen</th><th></th></tr></thead><tbody>';
   _verified.forEach(function(p){
     var ch=p.character?esc(p.character.vorname+' '+p.character.nachname):'<span class="muted">—</span>';
-    var roles=p.roles.slice(0,4).map(function(r){return '<span class="rolechip">'+esc(r)+'</span>';}).join('')+(p.roles.length>4?'<span class="muted" style="font-size:.74em">+'+(p.roles.length-4)+'</span>':'');
-    h+='<tr data-s="'+esc((p.name+' '+p.username+' '+p.id).toLowerCase())+'"><td><img class="av" src="'+esc(p.avatar)+'">'+esc(p.username)+'</td><td>'+esc(p.name)+'</td><td>'+ch+'</td><td>'+roles+'</td><td><span class="muted" style="font-size:.84em">'+esc(p.id)+'</span></td><td><button class="btn sm" onclick="openPlayer(\\''+p.id+'\\')">Verwalten</button></td></tr>';
+    var roles=p.roles.slice(0,3).map(function(r){return '<span class="rolechip">'+esc(r)+'</span>';}).join('')+(p.roles.length>3?'<span class="muted" style="font-size:.7em"> +'+( p.roles.length-3)+'</span>':'');
+    h+='<tr data-s="'+esc((p.name+' '+p.username+' '+p.id).toLowerCase())+'"><td><img class="av" src="'+esc(p.avatar)+'">'+esc(p.username)+'</td><td>'+esc(p.name)+'</td><td>'+ch+'</td><td>'+roles+'</td><td style="white-space:nowrap"><button class="btn sm" onclick="openPlayer(\\''+p.id+'\\')">›<span class="btn-txt"> Verwalten</span></button></td></tr>';
   });
-  h+='</tbody></table></div>';
+  h+='</tbody></table></div></div>';
   C().innerHTML=h;
 }
 function filterTable(q,id){ q=q.toLowerCase(); var rows=document.querySelectorAll('#'+id+' tbody tr'); rows.forEach(function(r){ r.style.display=(r.getAttribute('data-s')||'').indexOf(q)>=0?'':'none'; }); }
@@ -1060,12 +1076,12 @@ async function doTimeout(id){ var reason=document.getElementById('toReason').val
 async function renderBans(){
   var list=await api('/bans');
   if(!list.length){ C().innerHTML='<div class="empty"><div class="ic">🚫</div>Aktuell sind keine Spieler gebannt.</div>'; return; }
-  var h='<div class="card"><table><thead><tr><th>Spieler</th><th>Grund</th><th>Dauer</th><th>Gebannt von</th><th></th></tr></thead><tbody>';
+  var h='<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Spieler</th><th>Grund</th><th>Dauer</th><th>Von</th><th></th></tr></thead><tbody>';
   list.forEach(function(b){
     var dur=b.until?('Bis '+fmtTs(b.until)):'<span class="pill r">Permanent</span>';
-    h+='<tr><td>'+(b.avatar?'<img class="av" src="'+esc(b.avatar)+'">':'')+esc(b.username)+'<div class="muted" style="font-size:.76em">'+esc(b.id)+'</div></td><td>'+esc(b.reason)+'</td><td>'+dur+'</td><td>'+(b.by?esc(b.by):'<span class="muted">—</span>')+'</td><td><button class="btn green sm" onclick="doUnban(\\''+b.id+'\\')">Entbannen</button></td></tr>';
+    h+='<tr><td style="white-space:nowrap">'+(b.avatar?'<img class="av" src="'+esc(b.avatar)+'">':'')+esc(b.username)+'</td><td>'+esc(b.reason)+'</td><td style="white-space:nowrap">'+dur+'</td><td>'+(b.by?esc(b.by):'<span class="muted">—</span>')+'</td><td style="white-space:nowrap"><button class="btn green sm" onclick="doUnban(\\''+b.id+'\\')">✓<span class="btn-txt"> Entbannen</span></button></td></tr>';
   });
-  h+='</tbody></table></div>';
+  h+='</tbody></table></div></div>';
   C().innerHTML=h;
 }
 async function doUnban(id){ if(!confirm('Diesen Spieler wirklich entbannen?'))return; try{ await post('/unban',{userId:id}); toast('Spieler wurde entbannt.'); render('bans'); }catch(e){ toast(e.message,true);} }
@@ -1076,12 +1092,12 @@ async function renderEconomy(){
   try{ _items=await api('/items'); }catch(e){ _items=[]; }
   if(!_eco.length){ C().innerHTML='<div class="empty"><div class="ic">💰</div>Keine Spieler mit der entsprechenden Rolle gefunden.</div>'; return; }
   var h='<input class="search" placeholder="🔍 Spieler suchen…" oninput="filterTable(this.value,\\'etable\\')">';
-  h+='<div class="card"><table id="etable"><thead><tr><th>Spieler</th><th>Bargeld</th><th>Konto</th><th>Schwarzgeld</th><th>PC-Coins</th><th>Items</th><th></th></tr></thead><tbody>';
+  h+='<div class="card"><div class="tbl-wrap"><table id="etable"><thead><tr><th>Spieler</th><th>💵 Bar</th><th>🏦 Konto</th><th>🖤 Schwarz</th><th>🪙 Coins</th><th>📦</th><th></th></tr></thead><tbody>';
   _eco.forEach(function(p,idx){
     var itemCount=Object.keys(p.items||{}).length;
-    h+='<tr data-s="'+esc((p.name+' '+p.username+' '+p.id).toLowerCase())+'"><td><img class="av" src="'+esc(p.avatar)+'">'+esc(p.name)+'<div class="muted" style="font-size:.74em">'+esc(p.id)+'</div></td><td>'+fmtNum(p.bargeld)+'</td><td>'+fmtNum(p.konto)+'</td><td>'+fmtNum(p.schwarz)+'</td><td>'+fmtNum(p.coins)+'</td><td>'+itemCount+'</td><td><button class="btn sm" onclick="openEco('+idx+')">Verwalten</button></td></tr>';
+    h+='<tr data-s="'+esc((p.name+' '+p.username+' '+p.id).toLowerCase())+'"><td style="white-space:nowrap"><img class="av" src="'+esc(p.avatar)+'">'+esc(p.name)+'</td><td style="white-space:nowrap">'+fmtNum(p.bargeld)+'</td><td style="white-space:nowrap">'+fmtNum(p.konto)+'</td><td style="white-space:nowrap">'+fmtNum(p.schwarz)+'</td><td style="white-space:nowrap">'+fmtNum(p.coins)+'</td><td>'+itemCount+'</td><td style="white-space:nowrap"><button class="btn sm" onclick="openEco('+idx+')">›<span class="btn-txt"> Verwalten</span></button></td></tr>';
   });
-  h+='</tbody></table></div>';
+  h+='</tbody></table></div></div>';
   C().innerHTML=h;
 }
 function openEco(idx){
@@ -1111,9 +1127,13 @@ async function renderShops(){
     h+='<div class="card"><h3>🏪 '+esc(s.label)+' <span class="muted" style="font-size:.8em;font-weight:400">('+s.items.length+' Items)</span> <button class="btn sm" style="margin-left:auto" onclick="addShopItem(\\''+sid+'\\')">+ Item</button></h3>';
     if(!s.items.length){ h+='<div class="muted" style="font-size:.86em">Keine Items in diesem Shop.</div>'; }
     else{
-      h+='<table><thead><tr><th>Item</th><th>Preis</th><th></th></tr></thead><tbody>';
-      s.items.forEach(function(it,i){ h+='<tr><td>'+esc(it.name)+'</td><td>'+fmtNum(it.preis)+'</td><td style="text-align:right"><button class="btn gray sm" onclick="editShopItem(\\''+sid+'\\','+i+',\\''+esc(it.name).replace(/\\\\/g,'').replace(/'/g,"\\\\'")+'\\','+it.preis+')">Bearbeiten</button> <button class="btn red sm" onclick="delShopItem(\\''+sid+'\\','+i+')">Löschen</button></td></tr>'; });
-      h+='</tbody></table>';
+      h+='<div class="tbl-wrap"><table><thead><tr><th>Item</th><th>Preis</th><th></th></tr></thead><tbody>';
+      s.items.forEach(function(it,i){
+        var dn=cleanName(it.name);
+        var safeN=esc(it.name).replace(/\\\\/g,'').replace(/'/g,"\\'");
+        h+='<tr><td>'+esc(dn)+'</td><td style="white-space:nowrap">'+fmtNum(it.preis)+'</td><td style="text-align:right;white-space:nowrap"><button class="btn gray sm" onclick="editShopItem(\\''+sid+'\\','+i+',\\''+safeN+'\\','+it.preis+')">✏️<span class="btn-txt"> Bearb.</span></button> <button class="btn red sm" onclick="delShopItem(\\''+sid+'\\','+i+')">🗑️</button></td></tr>';
+      });
+      h+='</tbody></table></div>';
     }
     h+='</div>';
   });
