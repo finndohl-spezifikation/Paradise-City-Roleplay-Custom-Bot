@@ -244,10 +244,10 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
         if (u === uLow || gn === uLow || nick === uLow) { match = m; break; }
       }
       if (!match) return res.status(403).json({ error: 'Discord-Benutzer nicht auf dem Server gefunden.' });
-      // Frisch fetchen damit der Role-Cache aktuell ist (nicht veralteter Bulk-Cache)
+      // Frisch fetchen (force:true umgeht den Cache) damit die Rollen aktuell sind
       const g2 = await fetchGuild();
       if (g2) {
-        try { match = await g2.members.fetch(match.id); } catch { /* falls fetch fehlschlägt, gecachte Version behalten */ }
+        try { match = await g2.members.fetch({ user: match.id, force: true }); } catch { /* gecachte Version als Fallback */ }
       }
       if (!match.roles.cache.has(ADMIN_ROLE)) {
         return res.status(403).json({ error: 'Zugriff verweigert – dir fehlt die erforderliche Berechtigung.' });
