@@ -8208,6 +8208,58 @@ client.on('interactionCreate', async (interaction) => {
 });
 // ─── END DARKNET BETRETEN BUTTON ─────────────────────────────────────────────
 
+// ─── INHABER DASHBOARD COMMAND ────────────────────────────────────────────────
+const DASHBOARD_OWNER_ROLES = ['1490855702225485936'];
+const GUILD_ID_DASHBOARD    = '1498482541751963698';
+
+client.once('ready', async () => {
+  try {
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    await rest.put(
+      Routes.applicationGuildCommands(client.user.id, GUILD_ID_DASHBOARD),
+      { body: [new SlashCommandBuilder().setName('dashboard').setDescription('Öffnet das Inhaber-Dashboard (nur für Inhaber)').toJSON()] }
+    );
+    console.log('[DASHBOARD] Slash Command /dashboard registriert.');
+  } catch (e) { console.error('[DASHBOARD] Command-Registrierung fehlgeschlagen:', e.message); }
+});
+
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+  if (interaction.commandName !== 'dashboard') return;
+  try {
+    const member = interaction.member;
+    const isOwner = DASHBOARD_OWNER_ROLES.some(r => member?.roles?.cache?.has(r));
+    if (!isOwner) {
+      return interaction.reply({ content: '❌ Du hast keine Berechtigung für das Inhaber-Dashboard.', ephemeral: true });
+    }
+    await interaction.deferReply({ ephemeral: true });
+    const WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
+    const tok = crypto.randomBytes(24).toString('hex');
+    const { dashboardTokens } = require('./web');
+    if (!dashboardTokens) {
+      return interaction.editReply({ content: '❌ Dashboard-System nicht bereit. Bitte kurz warten.' });
+    }
+    dashboardTokens.set(tok, { userId: interaction.user.id, expiresAt: Date.now() + 10 * 60 * 1000 });
+    setTimeout(() => dashboardTokens.delete(tok), 10 * 60 * 1000);
+    const url = WEBAPP + '/dashboard?token=' + tok;
+    try {
+      const dm = await interaction.user.createDM();
+      await dm.send({ embeds: [new EmbedBuilder()
+        .setColor(0x4f7cf7)
+        .setTitle('🏙️ Inhaber Dashboard — Zugang')
+        .setDescription('Klicke auf den Link um das Dashboard zu öffnen.\n\n⏳ **Link gültig für 10 Minuten.**\n🔒 Du wirst nach einem Passwort gefragt.')
+        .addFields({ name: '🔗 Dashboard-Link', value: url, inline: false })
+        .setFooter({ text: 'Teile diesen Link nicht mit anderen Personen.' })
+        .setTimestamp()
+      ] });
+    } catch {}
+    await interaction.editReply({ content: '📬 Der Dashboard-Link wurde dir per DM geschickt!' });
+  } catch (e) {
+    console.error('[DASHBOARD CMD]', e.message);
+    await interaction.editReply({ content: '❌ Fehler: ' + e.message }).catch(() => {});
+  }
+});
+// ─── END INHABER DASHBOARD COMMAND ───────────────────────────────────────────
 
 // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
