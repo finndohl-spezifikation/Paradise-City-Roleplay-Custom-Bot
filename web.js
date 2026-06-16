@@ -6044,6 +6044,144 @@ body{background:#030b1a;color:#e0e0e0;font-family:"Segoe UI",sans-serif;min-heig
   // ── Darknet v2 ───────────────────────────────────────────────────────────
   initDarknet(app, DATA_DIR, client, darknetTokens);
 
+
+  // ─── CAPTCHA VERIFICATION ROUTES ──────────────────────────────────────────────
+  const CAPTCHA_TOKEN_FILE = path.join(DATA_DIR, 'captcha_tokens.json');
+  function loadCaptchaTokens() { try { return JSON.parse(fs.readFileSync(CAPTCHA_TOKEN_FILE, 'utf8')); } catch { return {}; } }
+  function saveCaptchaTokens(d) { fs.writeFileSync(CAPTCHA_TOKEN_FILE, JSON.stringify(d, null, 2), 'utf8'); }
+  if (!fs.existsSync(CAPTCHA_TOKEN_FILE)) fs.writeFileSync(CAPTCHA_TOKEN_FILE, '{}', 'utf8');
+
+  function genCaptchaCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    return Array.from({length: 6}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  }
+  async function buildCaptchaImg(code) {
+    const { createCanvas } = require('@napi-rs/canvas');
+    const W = 320, H = 120;
+    const canvas = createCanvas(W, H);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#16213e';
+    ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < 12; i++) {
+      ctx.strokeStyle = 'hsl(' + Math.floor(Math.random()*360) + ',50%,55%)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.random()*W, Math.random()*H);
+      ctx.bezierCurveTo(Math.random()*W, Math.random()*H, Math.random()*W, Math.random()*H, Math.random()*W, Math.random()*H);
+      ctx.stroke();
+    }
+    const clrs = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff9f1c','#c77dff'];
+    const cw = (W - 20) / code.length;
+    for (let i = 0; i < code.length; i++) {
+      ctx.save();
+      ctx.translate(15 + i * cw + cw / 2, H / 2 + 8);
+      ctx.rotate((Math.random() - 0.5) * 0.55);
+      ctx.font = 'bold ' + (34 + Math.floor(Math.random() * 10)) + 'px sans-serif';
+      ctx.fillStyle = clrs[i % clrs.length];
+      ctx.textAlign = 'center';
+      ctx.fillText(code[i], 0, 0);
+      ctx.restore();
+    }
+    for (let i = 0; i < 90; i++) {
+      ctx.fillStyle = 'rgba(255,255,255,' + (Math.random()*0.3+0.05) + ')';
+      const s = 1 + Math.floor(Math.random()*2);
+      ctx.fillRect(Math.random()*W, Math.random()*H, s, s);
+    }
+    return canvas.toBuffer('image/png');
+  }
+
+  function captchaPage(content) {
+    return `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verifizierung — Paradise City Roleplay</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}.card{background:#161b22;border:1px solid #30363d;border-radius:14px;max-width:440px;width:100%;overflow:hidden}.hdr{background:linear-gradient(135deg,#bf360c,#e65100);padding:24px 20px 20px;text-align:center}.hdr .seal{font-size:2.2em;margin-bottom:6px}.hdr h1{color:#fff;font-size:.95em;letter-spacing:3px;text-transform:uppercase;font-weight:700}.hdr h2{color:#ffd180;font-size:.78em;letter-spacing:1px;margin-top:4px;font-weight:400}.body{padding:28px 24px}.desc{color:#8b949e;font-size:.88em;line-height:1.6;margin-bottom:20px;text-align:center}.cap-img-wrap{text-align:center;margin-bottom:16px}.cap-img{border-radius:8px;border:2px solid #30363d;max-width:100%;cursor:pointer}.reload-note{color:#8b949e;font-size:.75em;text-align:center;margin-bottom:18px}.err{background:#1c0a0a;border:1px solid #f85149;color:#f85149;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:.85em;text-align:center}.inp{width:100%;padding:12px 16px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#fff;font-size:1.15em;letter-spacing:5px;text-transform:uppercase;outline:none;text-align:center;transition:border .15s;font-weight:700}.inp:focus{border-color:#e65100}.btn{width:100%;padding:14px;background:#e65100;color:#fff;border:none;border-radius:8px;font-size:1em;font-weight:700;letter-spacing:1px;cursor:pointer;margin-top:14px;transition:background .15s}.btn:hover{background:#bf360c}.note{color:#8b949e;font-size:.75em;text-align:center;margin-top:12px}.ok-icon{font-size:3.5em;margin-bottom:14px;display:block}.ok-h{color:#3fb950;font-size:1.3em;margin-bottom:10px}.ok-p{color:#8b949e;font-size:.88em;line-height:1.6}</style></head><body><div class="card"><div class="hdr"><div class="seal">&#127963;&#65039;</div><h1>Paradise City Roleplay</h1><h2>Server-Verifizierung</h2></div><div class="body">${content}</div></div></body></html>`;
+  }
+
+  // GET /verify/:token — show captcha page
+  app.get('/verify/:token', async (req, res) => {
+    const toks = loadCaptchaTokens();
+    const entry = toks[req.params.token];
+    if (!entry || entry.expiresAt < Date.now()) {
+      return res.send(captchaPage('<div class="desc">&#9203; Dieser Link ist ungültig oder abgelaufen.<br>Bitte klicke in Discord erneut auf <strong>Jetzt verifizieren</strong>.</div>'));
+    }
+    if (entry.verified) {
+      return res.send(captchaPage('<div style="text-align:center"><span class="ok-icon">&#9989;</span><h2 class="ok-h">Bereits verifiziert!</h2><p class="ok-p">Du bist bereits verifiziert. Du kannst diesen Tab schließen.</p></div>'));
+    }
+    // Generate captcha code if not yet done
+    if (!entry.code) {
+      entry.code = genCaptchaCode();
+      toks[req.params.token] = entry;
+      saveCaptchaTokens(toks);
+    }
+    const err = req.query.err ? '<div class="err">&#10060; Falscher Code. Noch <strong>' + (5 - (entry.attempts||0)) + ' Versuch(e)</strong>.</div>' : '';
+    const html = err + `<p class="desc">Löse das Captcha um Zugang zu<br><strong>Paradise City Roleplay</strong> zu erhalten.</p><div class="cap-img-wrap"><img class="cap-img" src="/verify/${req.params.token}/image?r=${Date.now()}" width="320" height="120" alt="Captcha" onclick="this.src='/verify/${req.params.token}/new-image?r='+Date.now()"></div><p class="reload-note">Bild nicht lesbar? Klicke drauf f&#252;r ein neues.</p><form method="POST" action="/verify/${req.params.token}"><input class="inp" type="text" name="code" placeholder="Code eingeben..." maxlength="6" autofocus autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"><button class="btn" type="submit">&#10003; Best&#228;tigen</button></form><p class="note">&#128274; Dein Link läuft in 15 Minuten ab.</p>`;
+    res.send(captchaPage(html));
+  });
+
+  // GET /verify/:token/image — serve captcha PNG
+  app.get('/verify/:token/image', async (req, res) => {
+    const toks = loadCaptchaTokens();
+    const entry = toks[req.params.token];
+    if (!entry || entry.expiresAt < Date.now()) return res.status(404).end();
+    if (!entry.code) { entry.code = genCaptchaCode(); toks[req.params.token] = entry; saveCaptchaTokens(toks); }
+    try {
+      const img = await buildCaptchaImg(entry.code);
+      res.set('Content-Type', 'image/png').set('Cache-Control', 'no-store').send(img);
+    } catch (e) { res.status(500).end(); }
+  });
+
+  // GET /verify/:token/new-image — generate new captcha code + serve image
+  app.get('/verify/:token/new-image', async (req, res) => {
+    const toks = loadCaptchaTokens();
+    const entry = toks[req.params.token];
+    if (!entry || entry.expiresAt < Date.now()) return res.status(404).end();
+    entry.code = genCaptchaCode();
+    toks[req.params.token] = entry;
+    saveCaptchaTokens(toks);
+    try {
+      const img = await buildCaptchaImg(entry.code);
+      res.set('Content-Type', 'image/png').set('Cache-Control', 'no-store').send(img);
+    } catch (e) { res.status(500).end(); }
+  });
+
+  // POST /verify/:token — check code, assign role
+  app.post('/verify/:token', express.urlencoded({ extended: false }), async (req, res) => {
+    const toks = loadCaptchaTokens();
+    const entry = toks[req.params.token];
+    if (!entry || entry.expiresAt < Date.now()) {
+      return res.send(captchaPage('<div class="desc">&#9203; Link abgelaufen. Bitte in Discord erneut <strong>Jetzt verifizieren</strong> klicken.</div>'));
+    }
+    if (entry.verified) {
+      return res.send(captchaPage('<div style="text-align:center"><span class="ok-icon">&#9989;</span><h2 class="ok-h">Bereits verifiziert!</h2><p class="ok-p">Du kannst diesen Tab schließen.</p></div>'));
+    }
+
+    const input = (req.body.code || '').trim().toUpperCase();
+    const correct = (entry.code || '').toUpperCase();
+
+    if (input !== correct) {
+      entry.attempts = (entry.attempts || 0) + 1;
+      if (entry.attempts >= 5) {
+        delete toks[req.params.token];
+        saveCaptchaTokens(toks);
+        return res.send(captchaPage('<div style="text-align:center"><span class="ok-icon">&#128683;</span><h2 style="color:#f85149;font-size:1.2em;margin-bottom:10px">Zu viele Fehlversuche</h2><p class="ok-p">Bitte in Discord erneut auf <strong>Jetzt verifizieren</strong> klicken.</p></div>'));
+      }
+      toks[req.params.token] = entry;
+      saveCaptchaTokens(toks);
+      // New captcha on wrong answer
+      entry.code = genCaptchaCode();
+      toks[req.params.token] = entry;
+      saveCaptchaTokens(toks);
+      return res.redirect('/verify/' + req.params.token + '?err=1');
+    }
+
+    // ✅ Correct — assign role
+    entry.verified = true;
+    saveCaptchaTokens(toks);
+    const EINREISE = '1490855725516460234';
+    try {
+      const member = await getMember(entry.userId);
+      if (member) await member.roles.add(EINREISE);
+    } catch (e) { console.error('Captcha role assign error:', e.message); }
+    res.send(captchaPage('<div style="text-align:center"><span class="ok-icon">&#9989;</span><h2 class="ok-h">Verifizierung erfolgreich!</h2><p class="ok-p">Willkommen auf <strong>Paradise City Roleplay</strong>!<br>Du hast nun Zugang zum Server.<br><br>Du kannst diesen Tab schließen.</p></div>'));
+  });
+
   // ── Start ────────────────────────────────────────────────────────────────
   const PORT = process.env.PORT || 8080;
 
