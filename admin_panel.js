@@ -752,7 +752,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#30363d;border-radius:8px}::-webkit-scrollbar-track{background:transparent}
 a{color:inherit;text-decoration:none}
 /* Sidebar */
-.sidebar{width:248px;background:linear-gradient(180deg,#15110a,#0d1117);border-right:1px solid var(--border);min-height:100vh;position:fixed;top:0;left:0;display:flex;flex-direction:column;z-index:50}
+.sidebar{width:248px;background:linear-gradient(180deg,#15110a,#0d1117);border-right:1px solid var(--border);min-height:100vh;position:fixed;top:0;left:0;display:flex;flex-direction:column;z-index:50;transition:transform .22s cubic-bezier(.4,0,.2,1)}
+.sidebar.hidden{transform:translateX(-100%)}
 .brand{padding:20px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px}
 .brand .seal{font-size:1.7em}
 .brand .t1{font-size:.86em;font-weight:700;letter-spacing:1px;color:#fff}
@@ -771,19 +772,25 @@ a{color:inherit;text-decoration:none}
 .usr button{background:#21262d;border:1px solid var(--border);color:#c9d1d9;border-radius:7px;padding:7px 10px;font-size:.72em;cursor:pointer}
 .usr button:hover{background:#30363d;color:#fff}
 /* Main */
-.main{margin-left:248px;flex:1;padding:26px 30px 60px;width:calc(100% - 248px)}
+.main{margin-left:248px;flex:1;padding:26px 30px 60px;width:calc(100% - 248px);transition:margin-left .22s cubic-bezier(.4,0,.2,1),width .22s cubic-bezier(.4,0,.2,1)}
+.main.full{margin-left:0;width:100%}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
 .topbar h1{font-size:1.5em;color:#fff;display:flex;align-items:center;gap:10px}
 .topbar .sub{color:var(--muted);font-size:.85em;margin-top:3px}
+.topbar-right{display:flex;align-items:center;gap:8px}
 .refresh{background:#21262d;border:1px solid var(--border);color:#c9d1d9;border-radius:8px;padding:9px 14px;font-size:.82em;cursor:pointer}
 .refresh:hover{background:#30363d;color:#fff}
+.sync-info{color:var(--muted);font-size:.74em;white-space:nowrap}
+.hamburger{background:#21262d;border:1px solid var(--border);color:#c9d1d9;border-radius:8px;padding:9px 12px;font-size:1em;cursor:pointer;line-height:1;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center}
+.hamburger:hover{background:#30363d;color:#fff}
+.hamburger span{display:block;width:18px;height:2px;background:currentColor;border-radius:2px;transition:transform .2s}
 /* Cards / grid */
 .grid{display:grid;gap:16px}
 .grid.c4{grid-template-columns:repeat(4,1fr)}
 .grid.c3{grid-template-columns:repeat(3,1fr)}
 .grid.c2{grid-template-columns:repeat(2,1fr)}
 @media(max-width:1100px){.grid.c4{grid-template-columns:repeat(2,1fr)}.grid.c3{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:760px){.sidebar{transform:translateX(-100%)}.main{margin-left:0;width:100%}.grid.c4,.grid.c3,.grid.c2{grid-template-columns:1fr}}
+@media(max-width:900px){.sidebar{transform:translateX(-100%)}.sidebar.visible{transform:none}.main{margin-left:0;width:100%}.main.full{margin-left:0;width:100%}.grid.c4,.grid.c3,.grid.c2{grid-template-columns:1fr}}
 .stat{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden}
 .stat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
 .stat .lab{color:var(--muted);font-size:.74em;text-transform:uppercase;letter-spacing:1px}
@@ -846,7 +853,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .search{max-width:320px;margin-bottom:14px}
 </style></head><body>
 
-<div class="sidebar">
+<div class="sidebar" id="sidebar">
   <div class="brand"><div class="seal">🛡️</div><div><div class="t1">ADMIN DASHBOARD</div><div class="t2">Paradise City Roleplay</div></div></div>
   <div class="nav" id="nav">
     <div class="cat">Allgemein</div>
@@ -867,10 +874,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   <div class="usr"><div><div class="nm" id="uname">Admin</div><div class="rl">Administrator</div></div></div>
 </div>
 
-<div class="main">
+<div class="main" id="main">
   <div class="topbar">
     <div><h1 id="ptitle">🏠 Startseite</h1><div class="sub" id="psub">Übersicht des Admin Dashboards</div></div>
-    <button class="refresh" onclick="reload()">↻ Aktualisieren</button>
+    <div class="topbar-right">
+      <span class="sync-info" id="syncinfo">—</span>
+      <button class="refresh" onclick="reload()">↻ Aktualisieren</button>
+      <button class="hamburger" onclick="toggleSidebar()" title="Menü ein-/ausklappen">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
   </div>
   <div id="content"><div class="loading">Lädt…</div></div>
 </div>
@@ -908,13 +921,33 @@ function openModal(html){ document.getElementById('modal').innerHTML=html; docum
 function closeModal(){ document.getElementById('overlay').className='overlay'; }
 document.getElementById('overlay').addEventListener('click',function(e){ if(e.target.id==='overlay') closeModal(); });
 
+/* ── SIDEBAR TOGGLE ── */
+var _sidebarOpen = window.innerWidth >= 900;
+function toggleSidebar(){
+  var sb=document.getElementById('sidebar');
+  var mn=document.getElementById('main');
+  _sidebarOpen=!_sidebarOpen;
+  if(_sidebarOpen){ sb.classList.remove('hidden'); mn.classList.remove('full'); }
+  else { sb.classList.add('hidden'); mn.classList.add('full'); }
+}
+window.addEventListener('resize',function(){
+  var sb=document.getElementById('sidebar'); var mn=document.getElementById('main');
+  if(window.innerWidth<900){ _sidebarOpen=false; sb.classList.add('hidden'); mn.classList.add('full'); }
+  else { _sidebarOpen=true; sb.classList.remove('hidden'); mn.classList.remove('full'); }
+});
+
+/* ── SYNC INFO ── */
+function updateSyncInfo(){
+  var d=new Date(); document.getElementById('syncinfo').textContent='Sync: '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
 var cur='overview';
 function setActive(sec){
   var as=document.querySelectorAll('#nav a'); for(var i=0;i<as.length;i++) as[i].classList.remove('active');
   var el=document.querySelector('#nav a[data-sec="'+sec+'"]'); if(el) el.classList.add('active');
 }
 function nav(sec){ cur=sec; var meta=SECTIONS[sec]; if(meta){document.getElementById('ptitle').textContent=meta.t;document.getElementById('psub').textContent=meta.s;} setActive(sec); render(sec); }
-function reload(){ if(cur.indexOf('log:')===0) renderLog(cur.slice(4)); else render(cur); }
+function reload(){ if(cur.indexOf('log:')===0) renderLog(cur.slice(4)); else render(cur); updateSyncInfo(); }
 
 document.querySelectorAll('#nav a[data-sec]').forEach(function(a){ a.addEventListener('click',function(){nav(a.getAttribute('data-sec'));}); });
 document.getElementById('logtoggle').addEventListener('click',function(){ var s=document.getElementById('logsub'); s.classList.toggle('open'); document.getElementById('logarrow').textContent=s.classList.contains('open')?'▾':'▸'; });
@@ -1152,6 +1185,12 @@ async function renderLog(type){ loading(); try{ var d=await api('/logs/'+type); 
 
 /* ── INIT ── */
 async function init(){
+  // Sidebar-Startzustand
+  if(window.innerWidth<900){
+    document.getElementById('sidebar').classList.add('hidden');
+    document.getElementById('main').classList.add('full');
+    _sidebarOpen=false;
+  }
   try{ var me=await api('/me'); document.getElementById('uname').textContent=me.name||me.username; }catch(e){}
   try{
     LOG_TYPES=await api('/logs');
@@ -1159,6 +1198,9 @@ async function init(){
     sub.innerHTML=LOG_TYPES.map(function(l){return '<a data-log="'+l.key+'" onclick="navLog(\\''+l.key+'\\')">'+esc(l.label)+'</a>';}).join('');
   }catch(e){}
   nav('overview');
+  updateSyncInfo();
+  // Auto-Refresh alle 30 Sekunden
+  setInterval(function(){ reload(); },30000);
 }
 init();
 </script>
