@@ -1042,7 +1042,7 @@ const INVITE_REGEX = /(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0
 const URL_REGEX = /https?:\/\/[^\s]+/gi;
 
 const spamTracker             = new Map();
-const SPAM_LIMIT              = 10;
+const SPAM_LIMIT              = 20;
 const SPAM_WINDOW_MS          = 6000;
 const SPAM_TIMEOUT_VIOLATIONS = 3;
 const SPAM_TIMEOUT_DURATION   = 10 * 60 * 1000;
@@ -3691,9 +3691,14 @@ client.on('messageCreate', async (message) => {
   const member = message.member ||
     await message.guild.members.fetch(message.author.id).catch(() => null);
 
-  // !hallo
-  if (message.content.toLowerCase() === '!hallo') {
-    await message.reply(`👋 Hallo ${message.author.username}! Willkommen bei **Paradise City Roleplay**!`);
+  // ── ! Befehle → nur für den Absender sichtbar ──────────────────────────────
+  if (message.content.startsWith('!')) {
+    await message.delete().catch(() => {});
+    await sendPrivate(
+      member,
+      message.channel,
+      '❌ **! Befehle existieren auf diesem Server nicht.**\nBitte nutze Slash-Befehle (/), falls du etwas benötigst.'
+    );
     return;
   }
 
@@ -3759,33 +3764,45 @@ client.on('messageCreate', async (message) => {
     if (tracker.msgs.length >= SPAM_LIMIT) {
       const toDelete = [...tracker.msgs];
       tracker.msgs   = [];
-      tracker.violations += 1;
+      tracker.violations = 0;
 
       // ALLE gespeicherten Spam-Nachrichten löschen
       await Promise.allSettled(toDelete.map(m => m.delete()));
 
-      // Nur die Person sieht die Warnung
+      // 10 Minuten Timeout vergeben
+      try {
+        await member.timeout(SPAM_TIMEOUT_DURATION, 'Spam (20 Nachrichten)');
+      } catch (e) { console.error('Timeout Fehler:', e.message); }
+
+      // DM an den Betroffenen
+      try {
+        await message.author.send({ embeds: [new EmbedBuilder()
+          .setColor(Colors.Red)
+          .setTitle('⏱️ Du wurdest getimeouted')
+          .setDescription(
+            'Du hast innerhalb kurzer Zeit **20 oder mehr Nachrichten** gesendet und wurdest daher automatisch für **10 Minuten** getimeouted.\n\n' +
+            '⚠️ Bitte halte dich an die Serverregeln und vermeide Spam.'
+          )
+        ]});
+      } catch {}
+
+      // Nur die Person sieht die Warnung im Kanal
       await sendPrivate(
         member,
         message.channel,
-        '⚠️ Du hast zu viele Nachrichten auf einmal gesendet! Bitte verlangsame dich.'
+        '⏱️ Du wurdest wegen Spam für **10 Minuten** getimeouted. Bitte schau in deine DMs.'
       );
 
-      // Bei 3 Verstößen → 10min Timeout
-      if (tracker.violations >= SPAM_TIMEOUT_VIOLATIONS) {
-        tracker.violations = 0;
-        try {
-          await member.timeout(SPAM_TIMEOUT_DURATION, 'Spam (3 Wiederholungen)');
-          await sendLog(CH.MOD_LOG, new EmbedBuilder()
-            .setColor(Colors.Red).setTitle('⏱️ Timeout — Spam')
-            .addFields(
-              { name: 'Nutzer', value: `<@${message.author.id}> (${message.author.tag})` },
-              { name: 'Dauer',  value: '10 Minuten' },
-              { name: 'Grund',  value: '3x Spam-Verstöße' }
-            )
-          );
-        } catch (e) { console.error('Timeout Fehler:', e.message); }
-      }
+      // Mod-Log
+      await sendLog(CH.MOD_LOG, new EmbedBuilder()
+        .setColor(Colors.Red).setTitle('⏱️ Auto-Timeout — Spam')
+        .addFields(
+          { name: 'Nutzer', value: `<@${message.author.id}> (${message.author.tag})` },
+          { name: 'Kanal',  value: `<#${message.channel.id}>` },
+          { name: 'Dauer',  value: '10 Minuten' },
+          { name: 'Grund',  value: '20 Nachrichten in kurzer Zeit (Spam)' }
+        )
+      );
     }
   }
 });
