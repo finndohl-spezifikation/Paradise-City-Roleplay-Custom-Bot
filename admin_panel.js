@@ -150,8 +150,8 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
       } catch (e) { console.error('[ADMIN] ban-check', e.message); }
     }, 60000);
 
-    // ─── Einmaliges Ankündigungs-Embed beim ersten Start ─────────────────────
-    const announcedFile = f('admin_panel_announced.json');
+    // ─── Ankündigungs-Embed: alte Nachricht löschen + neues leeres Embed senden ─
+    const announcedFile = f('admin_panel_announced_v2.json');
     if (!fs.existsSync(announcedFile)) {
       setTimeout(async () => {
         try {
@@ -160,23 +160,19 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
           const url = `https://${domain}/admin-panel`;
           const ch = await client.channels.fetch('1491789518603419825');
           if (!ch || !ch.send) return;
-          const embed = new EmbedBuilder()
-            .setColor(0xe65100)
-            .setTitle('🛠️ Admin Dashboard • Paradise City Roleplay')
-            .setURL(url)
-            .setDescription(
-              '**Das Admin-Panel ist jetzt verfügbar!**\n\n' +
-              '> 🔐 **Login:** Discord-Benutzername + Passwort\n' +
-              '> 👮 **Zugang:** Nur für Admins mit der entsprechenden Rolle\n\n' +
-              '**Funktionen:**\n' +
-              '• Spieler verwalten (Bann, Timeout, Inventar, Bank)\n' +
-              '• Shops bearbeiten\n' +
-              '• Logs & Server-Statistiken\n' +
-              '• Raubüberfälle & Mod-System'
-            )
-            .addFields({ name: '🌐 Link', value: `[Zum Admin-Panel]( ${url} )` })
-            .setFooter({ text: 'Paradise City Roleplay • Admin System' })
-            .setTimestamp();
+
+          // Alte Admin-Panel-Nachrichten vom Bot löschen
+          try {
+            const msgs = await ch.messages.fetch({ limit: 50 });
+            for (const [, msg] of msgs) {
+              if (msg.author.id === client.user?.id &&
+                  msg.embeds?.some(e => e.title?.includes('Admin Dashboard') || e.url?.includes('admin-panel'))) {
+                await msg.delete().catch(() => {});
+              }
+            }
+          } catch (e) { console.error('[ADMIN-PANEL] delete old:', e.message); }
+
+          // Neues leeres Embed (nur Farbe) + Button senden
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setLabel('Admin-Panel öffnen')
@@ -184,11 +180,11 @@ module.exports = function initAdminPanel(app, DATA_DIR, client, express) {
               .setStyle(ButtonStyle.Link)
               .setEmoji('🛠️')
           );
-          await ch.send({ embeds: [embed], components: [row] });
+          await ch.send({ embeds: [new EmbedBuilder().setColor(0xe65100)], components: [row] });
           fs.writeFileSync(announcedFile, JSON.stringify({ sent: Date.now() }), 'utf8');
-          console.log('[ADMIN-PANEL] Ankündigungs-Embed gesendet.');
+          console.log('[ADMIN-PANEL] Neues Embed gesendet.');
         } catch (e) { console.error('[ADMIN-PANEL] Embed-Fehler:', e.message); }
-      }, 5000); // 5s warten bis Bot vollständig bereit
+      }, 5000);
     }
   }
 
