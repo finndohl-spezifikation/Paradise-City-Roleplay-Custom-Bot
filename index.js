@@ -1921,6 +1921,11 @@ client.once('ready', async () => {
       .setDescription('Fessle einen anderen Spieler mit Handschellen (aus Baumarkt)')
       .addUserOption(o => o.setName('spieler').setDescription('Welchen Spieler möchtest du fesseln?').setRequired(true))
       .toJSON(),
+
+    new SlashCommandBuilder()
+      .setName('commands')
+      .setDescription('Zeigt alle verfügbaren Commands auf diesem Server an')
+      .toJSON(),
     ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -4177,6 +4182,8 @@ client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
   const { commandName, member, user } = interaction;
 
+  try {
+
   // /delete
   if (commandName === 'delete') {
     if (!member.permissions.has(PermissionFlagsBits.ManageMessages))
@@ -5339,6 +5346,24 @@ client.on('interactionCreate', async (interaction) => {
           return interaction.editReply({ content: '✅ Lotto-Ziehung wurde manuell durchgeführt!' });
         }
 
+        if (commandName === 'commands') {
+          const embed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setTitle('📋 Alle Commands — Paradise City Roleplay')
+            .addFields(
+              { name: '🔨 Moderation', value: '`/delete` `/ban` `/unban` `/timeout`', inline: false },
+              { name: '⚠️ Verwarnungen', value: '`/warn` `/warn-remove` `/warnlist`\n`/teamwarn` `/teamwarn-remove` `/teamwarn-list`', inline: false },
+              { name: '🪪 Charakter & Dokumente', value: '`/ausweis` `/ausweis-create` `/ausweis-delete`\n`/fuehrerschein` `/fuehrerschein-create` `/fuehrerschein-delete` `/fuehrerschein-edit`\n`/charakter-reset` `/einreise-link`', inline: false },
+              { name: '🎒 Inventar & Wirtschaft', value: '`/rucksack` `/lager` `/übergeben` `/use`\n`/item-give` `/item-remove`\n`/money-add` `/money-remove` `/bargeld`\n`/rechnung-create`', inline: false },
+              { name: '🏪 Shop & Lotto', value: '`/teamshop` `/shop-editor` `/lotto-ziehung`', inline: false },
+              { name: '🏢 Fraktionen', value: '`/frakadd` `/frak-delete`\n`/frakwarn` `/frakwarn-remove`\n`/fraksperre` `/fraksperre-remove`', inline: false },
+              { name: '🎉 Events & Abstimmungen', value: '`/event` `/giveaway` `/abstimmung` `/aktivitätscheck`\n`/vorschlag` `/vorschlag-yes` `/vorschlag-no`\n`/lobby-abstimmung` `/lobby-open` `/lobby-close`', inline: false },
+              { name: '🎮 Spielmechaniken', value: '`/verstecken` `/fesseln`\n`/raub-fail` `/raub-cooldown`', inline: false },
+            )
+            .setFooter({ text: 'Tippe / in Discord um alle Commands direkt auszuwählen' });
+          return interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+
         if (commandName === 'charakter-reset') {
         await interaction.deferReply({ ephemeral: true });
         const target = interaction.options.getUser('spieler');
@@ -5397,7 +5422,16 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
 
-  // ─── INVENTAR: Buttons & Modals ──────────────────────────────────────────────
+  } catch(e) {
+    console.error('[SlashCmd Error] ' + (typeof commandName !== 'undefined' ? commandName : '?'), e && e.stack ? e.stack : e);
+    try {
+      const _em = '❌ Interner Fehler: ' + (e && e.message ? e.message : String(e));
+      if (interaction.deferred || interaction.replied) await interaction.editReply({ content: _em }).catch(()=>{});
+      else await interaction.reply({ content: _em, ephemeral: true }).catch(()=>{});
+    } catch {}
+  }
+
+  // ─── INVENTAR: Buttons & Modals ────────────────────────────────────────────────
 });
 
   
@@ -7906,9 +7940,13 @@ client.on('messageCreate', async (msg) => {
   if (!msg.content.startsWith('!')) return;
   msg.delete().catch(() => {});
   try {
-    await msg.author.send({
-      content: `❌ Auf **Paradise City Roleplay** nutzen wir nur **/commands** — keine \`!\`-Befehle.\n📋 Alle Commands findest du in <#1491624319598460958>`
-    });
+    const bangEmbed = new EmbedBuilder()
+      .setColor(0xE65100)
+      .setTitle('❌ Falsche Befehlsart')
+      .setDescription('Hey <@' + msg.author.id + '>, auf **Paradise City Roleplay** nutzen wir **keine `!`-Befehle!**\n\n📋 Alle Commands findest du mit `/commands` oder in <#1491624319598460958>.')
+      .setFooter({ text: 'Diese Nachricht wird in 10 Sekunden gelöscht.' });
+    const bangSent = await msg.channel.send({ embeds: [bangEmbed] });
+    setTimeout(() => bangSent.delete().catch(() => {}), 10000);
   } catch { }
 });
 
