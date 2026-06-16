@@ -1360,7 +1360,29 @@ client.once('ready', async () => {
       console.log('[FIX] Team-Overview-Embed wird neu gesendet.');
     }
   }
-  // ─── EINMALIG: Lotto + Handy Footer-Cleanup (v_paradise_6) ───────────────
+  // ─── EINMALIG: Captcha-Verifikations-Embed senden ───────────────────────────
+  {
+    const _setup = loadSetup();
+    if (!_setup.captchaEmbedSent) {
+      _setup.captchaEmbedSent = true;
+      saveSetup(_setup);
+      try {
+        const _captchaCh = await client.channels.fetch(CAPTCHA_CH_ID).catch(() => null);
+        if (_captchaCh) {
+          const _captchaEmbed = new EmbedBuilder()
+            .setColor(0xFF6B00)
+            .setTitle('🔐 Server-Verifikation')
+            .setDescription('Um Zugang zu **Paradise City Roleplay** zu erhalten, musst du ein kurzes Captcha lösen.\n\nKlicke auf den Button unten um zu starten.');
+          const _captchaRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('captcha_start').setLabel('🔒 Jetzt verifizieren').setStyle(ButtonStyle.Success)
+          );
+          await _captchaCh.send({ embeds: [_captchaEmbed], components: [_captchaRow] });
+          console.log('[CAPTCHA] Verifikations-Embed gesendet.');
+        }
+      } catch(e) { console.error('[CAPTCHA] Embed Fehler:', e.message); }
+    }
+  }
+    // ─── EINMALIG: Lotto + Handy Footer-Cleanup (v_paradise_6) ───────────────
   {
     const setup = loadSetup();
     if (!setup.footerCleanupV6Done) {
@@ -1928,10 +1950,6 @@ client.once('ready', async () => {
       .setDescription('Zeigt alle verfügbaren Commands auf diesem Server an')
       .toJSON(),
 
-    new SlashCommandBuilder()
-      .setName('captcha-setup')
-      .setDescription('Sendet das Verifikations-Embed in den Captcha-Kanal (Admin)')
-      .toJSON(),
     ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -5361,23 +5379,6 @@ client.on('interactionCreate', async (interaction) => {
           await interaction.deferReply({ ephemeral: true });
           await doLottoZiehung(client);
           return interaction.editReply({ content: '✅ Lotto-Ziehung wurde manuell durchgeführt!' });
-        }
-
-        if (commandName === 'captcha-setup') {
-          if (!member.permissions.has(PermissionFlagsBits.Administrator)) return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
-          try {
-            const setupCh = await client.channels.fetch(CAPTCHA_CH_ID);
-            const setupEmbed = new EmbedBuilder()
-              .setColor(0xFF6B00)
-              .setTitle('🔐 Server-Verifikation')
-              .setDescription('Um Zugang zu **Paradise City Roleplay** zu erhalten, musst du ein kurzes Captcha lösen.\n\nKlicke auf den Button unten um zu starten. Du hast **5 Versuche**.')
-              .setFooter({ text: 'Neue Mitglieder müssen sich verifizieren' });
-            const setupRow = new ActionRowBuilder().addComponents(
-              new ButtonBuilder().setCustomId('captcha_start').setLabel('🔒 Jetzt verifizieren').setStyle(ButtonStyle.Success)
-            );
-            await setupCh.send({ embeds: [setupEmbed], components: [setupRow] });
-            return interaction.reply({ content: '✅ Verifikations-Embed gesendet!', ephemeral: true });
-          } catch(e) { return interaction.reply({ content: '❌ Fehler: ' + e.message, ephemeral: true }); }
         }
 
         if (commandName === 'commands') {
