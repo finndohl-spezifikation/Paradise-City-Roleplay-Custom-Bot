@@ -47,7 +47,6 @@ function _fsGenToken(userId, createdBy) {
 // ─── Datenspeicherung ─────────────────────────────────────────────────────────
 const DATA_DIR      = path.join(__dirname, 'data');
 let _shopCb = {};
-let _cmdCount = 0; // wird im ready-Handler gesetzt, dann in /server genutzt
 const SHOP_MGR_TOK_FILE = path.join(DATA_DIR, 'shop_mgr_tokens.json');
 function loadShopMgrToks() { try { return JSON.parse(fs.readFileSync(SHOP_MGR_TOK_FILE,'utf8')); } catch { return {}; } }
 function saveShopMgrToks(d) { fs.writeFileSync(SHOP_MGR_TOK_FILE, JSON.stringify(d,null,2),'utf8'); }
@@ -2049,18 +2048,8 @@ client.once('ready', async () => {
       .setDescription('Zeigt alle verfügbaren Commands auf diesem Server an')
       .toJSON(),
 
-    new SlashCommandBuilder()
-      .setName('server')
-      .setDescription('Zeigt eine Übersicht des Servers (nur für dich sichtbar)')
-      .toJSON(),
-
-    new SlashCommandBuilder()
-      .setName('admin')
-      .setDescription('Öffnet das Admin-Panel (nur für dich sichtbar)')
-      .toJSON(),
-
     ];
-  _cmdCount = commands.length; // global merken für /server Handler
+
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   console.log('[COMMANDS] Guilds in cache:', client.guilds.cache.size, '| Commands to register:', commands.length);
@@ -5591,57 +5580,6 @@ client.on('interactionCreate', async (interaction) => {
             )
             .setFooter({ text: 'Tippe / in Discord um alle Commands direkt auszuwählen' });
           return interaction.reply({ embeds: [embed], ephemeral: true });
-        }
-
-        // ─── /server ────────────────────────────────────────────────────────────
-        if (commandName === 'server') {
-          const g = interaction.guild;
-          if (!g) return interaction.reply({ content: '❌ Nur auf einem Server nutzbar.', ephemeral: true });
-          await g.members.fetch().catch(() => {});
-          const memberCount   = g.memberCount;
-          const botCount      = g.members.cache.filter(m => m.user.bot).size;
-          const humanCount    = memberCount - botCount;
-          const roleCount     = g.roles.cache.size - 1; // ohne @everyone
-          const textChannels  = g.channels.cache.filter(c => c.type === ChannelType.GuildText).size;
-          const voiceChannels = g.channels.cache.filter(c => c.type === ChannelType.GuildVoice).size;
-          const categoryCount = g.channels.cache.filter(c => c.type === ChannelType.GuildCategory).size;
-          const cmdCount      = _cmdCount;
-          const created       = `<t:${Math.floor(g.createdTimestamp / 1000)}:D>`;
-          const embed = new EmbedBuilder()
-            .setColor(0xe65100)
-            .setTitle(`🏙️ ${g.name} — Server-Übersicht`)
-            .setThumbnail(g.iconURL({ dynamic: true }) || null)
-            .addFields(
-              { name: '👥 Mitglieder',       value: `**${memberCount}** gesamt\n👤 ${humanCount} Menschen · 🤖 ${botCount} Bots`, inline: true },
-              { name: '🎭 Rollen',            value: `**${roleCount}** Rollen`, inline: true },
-              { name: '💬 Kanäle',            value: `**${textChannels}** Text · **${voiceChannels}** Voice\n📁 ${categoryCount} Kategorien`, inline: true },
-              { name: '⚡ Slash-Commands',    value: `**${cmdCount}** registrierte Commands`, inline: true },
-              { name: '📅 Server erstellt',   value: created, inline: true },
-              { name: '🆔 Server-ID',         value: `\`${g.id}\``, inline: true },
-            )
-            .setFooter({ text: 'Nur für dich sichtbar • Paradise City Roleplay' })
-            .setTimestamp();
-          return interaction.reply({ embeds: [embed], ephemeral: true });
-        }
-
-        // ─── /admin ─────────────────────────────────────────────────────────────
-        if (commandName === 'admin') {
-          const domain = process.env.RAILWAY_PUBLIC_DOMAIN
-            || 'paradise-city-roleplay-custom-bot-production.up.railway.app';
-          const url = `https://${domain}/admin-panel`;
-          const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setLabel('Admin-Panel öffnen')
-              .setURL(url)
-              .setStyle(ButtonStyle.Link)
-              .setEmoji('🛠️')
-          );
-          await interaction.reply({
-            content: `🛠️ **Admin-Panel — Paradise City Roleplay**\n🔗 ${url}`,
-            components: [row],
-            ephemeral: true
-          });
-          return;
         }
 
         if (commandName === 'charakter-reset') {
