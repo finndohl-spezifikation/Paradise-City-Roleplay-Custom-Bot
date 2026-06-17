@@ -9151,34 +9151,6 @@ client.on('interactionCreate', async (interaction) => {
 });
 // ─── END VERKAUF-PRÜFUNG ──────────────────────────────────────────────────────
 
-(function loginWithRetry(attempt) {
-
-// ─── ! COMMAND WARNUNG ──────────────────────────────────────────────────────
-client.on('messageCreate', async (msg) => {
-  if (msg.author.bot || !msg.guild) return;
-  if (!msg.content.startsWith('!')) return;
-  msg.delete().catch(() => {});
-  try {
-    const bangEmbed = new EmbedBuilder()
-      .setColor(0xE65100)
-      .setTitle('❌ Falsche Befehlsart')
-      .setDescription('Hey <@' + msg.author.id + '>, auf **Paradise City Roleplay** nutzen wir **keine `!`-Befehle!**\n\n📋 Alle Commands findest du mit `/commands` oder in <#1491624319598460958>.')
-      .setFooter({ text: 'Diese Nachricht wird in 10 Sekunden gelöscht.' });
-    const bangSent = await msg.channel.send({ embeds: [bangEmbed] });
-    setTimeout(() => bangSent.delete().catch(() => {}), 10000);
-  } catch { }
-});
-
-    client.login(process.env.DISCORD_TOKEN)
-      .then(() => console.log('[LOGIN] Erfolgreich eingeloggt (Versuch ' + attempt + ')'))
-      .catch(err => {
-        const wait = Math.min(30000, attempt * 5000);
-        console.error('[LOGIN FEHLER] Versuch ' + attempt + ':', err.message || err);
-        console.log('[LOGIN] Neuer Versuch in ' + (wait/1000) + 's...');
-        setTimeout(() => loginWithRetry(attempt + 1), wait);
-      });
-  })(1);
-}
 // ═════════════════════════════════════════════════════════════════════════════
 //  RUCKSACK EMBED — Button-System im Inventar-Kanal
 // ═════════════════════════════════════════════════════════════════════════════
@@ -9326,4 +9298,32 @@ client.on('interactionCreate', async (interaction) => {
   } catch (e) { console.error('[RUCKSACK] interaction:', e.message); }
 });
 
+(function loginWithRetry(attempt) {
+
+// ─── ! COMMAND WARNUNG ──────────────────────────────────────────────────────
+client.on('messageCreate', async (msg) => {
+  if (msg.author.bot || !msg.guild) return;
+  if (!msg.content.startsWith('!')) return;
+  msg.delete().catch(() => {});
+  try {
+    const bangEmbed = new EmbedBuilder()
+      .setColor(0xE65100)
+      .setTitle('❌ Falsche Befehlsart')
+      .setDescription('Hey <@' + msg.author.id + '>, auf **Paradise City Roleplay** nutzen wir **keine `!`-Befehle!**\n\n📋 Alle Commands findest du mit `/commands` oder in <#1491624319598460958>.')
+      .setFooter({ text: 'Diese Nachricht wird in 10 Sekunden gelöscht.' });
+    const bangSent = await msg.channel.send({ embeds: [bangEmbed] });
+    setTimeout(() => bangSent.delete().catch(() => {}), 10000);
+  } catch { }
+});
+
+    client.login(process.env.DISCORD_TOKEN)
+      .then(() => console.log('[LOGIN] Erfolgreich eingeloggt (Versuch ' + attempt + ')'))
+      .catch(err => {
+        const wait = Math.min(30000, attempt * 5000);
+        console.error('[LOGIN FEHLER] Versuch ' + attempt + ':', err.message || err);
+        console.log('[LOGIN] Neuer Versuch in ' + (wait/1000) + 's...');
+        setTimeout(() => loginWithRetry(attempt + 1), wait);
+      });
+  })(1);
+}
 // deploy
