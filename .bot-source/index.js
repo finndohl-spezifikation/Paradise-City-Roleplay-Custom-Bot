@@ -9188,10 +9188,17 @@ const RUCKSACK_PER_PAGE = 10;
 
 client.once('ready', async () => {
   try {
-    const setup = loadSetup();
-    if (setup.rucksackEmbedV1Sent) { console.log('[RUCKSACK] Embed bereits vorhanden, überspringe.'); return; }
     const ch = await client.channels.fetch(RUCKSACK_CH).catch(() => null);
     if (!ch) { console.error('[RUCKSACK] Kanal nicht gefunden:', RUCKSACK_CH); return; }
+    // Altes Rucksack-Embed des Bots löschen (damit es nicht anhäuft)
+    const old = await ch.messages.fetch({ limit: 50 }).catch(() => null);
+    if (old) {
+      for (const msg of old.values()) {
+        if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '🎒 Rucksack System') {
+          await msg.delete().catch(() => {});
+        }
+      }
+    }
     const embed = new EmbedBuilder()
       .setColor(0xe65100)
       .setTitle('🎒 Rucksack System')
@@ -9205,8 +9212,6 @@ client.once('ready', async () => {
       new ButtonBuilder().setCustomId('rucksack_other').setLabel('👤 Anderer Rucksack Öffnen').setStyle(ButtonStyle.Secondary)
     );
     await ch.send({ embeds: [embed], components: [row] });
-    setup.rucksackEmbedV1Sent = true;
-    saveSetup(setup);
     console.log('[RUCKSACK] Embed gesendet.');
   } catch (e) { console.error('[RUCKSACK] Embed Fehler:', e.message); }
 });
