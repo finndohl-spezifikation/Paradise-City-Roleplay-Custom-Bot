@@ -1820,12 +1820,6 @@ client.once('ready', async () => {
       .toJSON(),
 
       new SlashCommandBuilder()
-        .setName('rucksack')
-        .setDescription('Zeigt dein Inventar an')
-        .addUserOption(opt => opt.setName('spieler').setDescription('Inventar eines anderen Spielers').setRequired(false))
-        .toJSON(),
-
-      new SlashCommandBuilder()
         .setName('übergeben')
         .setDescription('Übergibt Items an einen anderen Spieler')
         .addStringOption(opt => opt.setName('item').setDescription('Item aus deinem Inventar').setRequired(true).setAutocomplete(true))
@@ -5266,17 +5260,6 @@ client.on('interactionCreate', async (interaction) => {
             await ch.send({ embeds: [embed] });
             return;
           }
-        // /rucksack
-        if (commandName === 'rucksack') {
-          if (interaction.channelId !== INV_CH) return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${INV_CH}>.`, ephemeral: true });
-          const target = interaction.options.getUser('spieler') || user;
-          const inv = getUserInv(target.id);
-          const totalPages = Math.max(1, Math.ceil(Object.keys(inv).length / ITEMS_PER_PAGE));
-          const embed = buildInvEmbed(target, 0, inv);
-          const rows = [invPageButtons(0, totalPages, target.id, 'inv')];
-          return interaction.reply({ embeds: [embed], components: rows, ephemeral: true });
-        }
-
         // /lager
         if (commandName === 'lager') {
           if (interaction.channelId !== INV_CH) return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${INV_CH}>.`, ephemeral: true });
@@ -5572,7 +5555,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: '🔨 Moderation', value: '`/delete` `/ban` `/unban` `/timeout`', inline: false },
               { name: '⚠️ Verwarnungen', value: '`/warn` `/warn-remove` `/warnlist`\n`/teamwarn` `/teamwarn-remove` `/teamwarn-list`', inline: false },
               { name: '🪪 Charakter & Dokumente', value: '`/ausweis` `/ausweis-create` `/ausweis-delete`\n`/fuehrerschein` `/fuehrerschein-create` `/fuehrerschein-delete` `/fuehrerschein-edit`\n`/charakter-reset` `/einreise-link`', inline: false },
-              { name: '🎒 Inventar & Wirtschaft', value: '`/rucksack` `/lager` `/übergeben` `/use`\n`/item-give` `/item-remove`\n`/money-add` `/money-remove` `/bargeld`\n`/rechnung-create`', inline: false },
+              { name: '🎒 Inventar & Wirtschaft', value: '`/lager` `/übergeben` `/use`\n`/item-give` `/item-remove`\n`/money-add` `/money-remove` `/bargeld`\n`/rechnung-create`', inline: false },
               { name: '🏪 Shop & Lotto', value: '`/teamshop` `/shop-editor` `/lotto-ziehung`', inline: false },
               { name: '🏢 Fraktionen', value: '`/frakadd` `/frak-delete`\n`/frakwarn` `/frakwarn-remove`\n`/fraksperre` `/fraksperre-remove`', inline: false },
               { name: '🎉 Events & Abstimmungen', value: '`/event` `/giveaway` `/abstimmung` `/aktivitätscheck`\n`/vorschlag` `/vorschlag-yes` `/vorschlag-no`\n`/lobby-abstimmung` `/lobby-open` `/lobby-close`', inline: false },
@@ -9196,4 +9179,146 @@ client.on('messageCreate', async (msg) => {
       });
   })(1);
 }
+// ═════════════════════════════════════════════════════════════════════════════
+//  RUCKSACK EMBED — Button-System im Inventar-Kanal
+// ═════════════════════════════════════════════════════════════════════════════
+const RUCKSACK_CH      = '1490882591023173682';
+const RUCKSACK_ROLLE   = '1490855722534310003';
+const RUCKSACK_PER_PAGE = 10;
+
+client.once('ready', async () => {
+  try {
+    const setup = loadSetup();
+    if (setup.rucksackEmbedV1Sent) { console.log('[RUCKSACK] Embed bereits vorhanden, überspringe.'); return; }
+    const ch = await client.channels.fetch(RUCKSACK_CH).catch(() => null);
+    if (!ch) { console.error('[RUCKSACK] Kanal nicht gefunden:', RUCKSACK_CH); return; }
+    const embed = new EmbedBuilder()
+      .setColor(0xe65100)
+      .setTitle('🎒 Rucksack System')
+      .setDescription(
+        'Hier kannst du deinen eigenen Rucksack einsehen oder den Rucksack eines anderen Spielers durchsuchen.\n\n' +
+        '▸ **Rucksack Öffnen** — zeigt dein eigenes Inventar\n' +
+        '▸ **Anderer Rucksack Öffnen** — suche nach einem Spieler und sieh seinen Rucksack ein'
+      );
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('rucksack_self').setLabel('🎒 Rucksack Öffnen').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId('rucksack_other').setLabel('👤 Anderer Rucksack Öffnen').setStyle(ButtonStyle.Secondary)
+    );
+    await ch.send({ embeds: [embed], components: [row] });
+    setup.rucksackEmbedV1Sent = true;
+    saveSetup(setup);
+    console.log('[RUCKSACK] Embed gesendet.');
+  } catch (e) { console.error('[RUCKSACK] Embed Fehler:', e.message); }
+});
+
+client.on('interactionCreate', async (interaction) => {
+  try {
+    // ── 🎒 Eigener Rucksack ───────────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'rucksack_self') {
+      const inv = getUserInv(interaction.user.id);
+      const items = Object.entries(inv);
+      const totalPages = Math.max(1, Math.ceil(items.length / RUCKSACK_PER_PAGE));
+      const pageItems = items.slice(0, RUCKSACK_PER_PAGE);
+      const desc = pageItems.length
+        ? pageItems.map(([n,q],i) => `\`${(i+1).toString().padStart(2,'0')}\`  **${n}** — ${q}x`).join('\n')
+        : '_Dein Rucksack ist leer_';
+      const embed = new EmbedBuilder()
+        .setColor(0xe65100)
+        .setTitle('🎒 Rucksack von ' + interaction.user.username)
+        .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true }))
+        .setDescription(desc)
+        .setFooter({ text: 'Seite 1 / ' + totalPages });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('rinv_prev:0:' + interaction.user.id).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId('rinv_next:0:' + interaction.user.id).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1)
+      );
+      return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+    }
+
+    // ── 👤 Anderer Rucksack — Modal anzeigen ─────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'rucksack_other') {
+      const modal = new ModalBuilder()
+        .setCustomId('rucksack_search')
+        .setTitle('👤 Spieler suchen');
+      modal.addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('rucksack_name')
+          .setLabel('Spielername (Ingame-Name oder Discord-Name)')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('z.B. Max Mustermann')
+          .setMinLength(2)
+          .setRequired(true)
+      ));
+      return interaction.showModal(modal);
+    }
+
+    // ── 👤 Modal-Submit: Spieler suchen & Inventar anzeigen ──────────────────
+    if (interaction.isModalSubmit() && interaction.customId === 'rucksack_search') {
+      await interaction.deferReply({ ephemeral: true });
+      const query = interaction.fields.getTextInputValue('rucksack_name').toLowerCase().trim();
+      const guild = interaction.guild;
+      await guild.members.fetch().catch(() => {});
+      const matches = guild.members.cache.filter(m =>
+        m.roles.cache.has(RUCKSACK_ROLLE) &&
+        (
+          m.displayName.toLowerCase().includes(query) ||
+          m.user.username.toLowerCase().includes(query)
+        )
+      );
+      if (matches.size === 0) {
+        return interaction.editReply({ content: `❌ Kein Mitglied mit der Bürger-Rolle gefunden, das **${query}** im Namen hat.` });
+      }
+      const target = matches.first();
+      const inv = getUserInv(target.id);
+      const items = Object.entries(inv);
+      const totalPages = Math.max(1, Math.ceil(items.length / RUCKSACK_PER_PAGE));
+      const pageItems = items.slice(0, RUCKSACK_PER_PAGE);
+      const desc = pageItems.length
+        ? pageItems.map(([n,q],i) => `\`${(i+1).toString().padStart(2,'0')}\`  **${n}** — ${q}x`).join('\n')
+        : '_Rucksack ist leer_';
+      const embed = new EmbedBuilder()
+        .setColor(0xe65100)
+        .setTitle('🎒 Rucksack von ' + target.displayName)
+        .setThumbnail(target.user.displayAvatarURL({ dynamic: true }))
+        .setDescription(desc)
+        .setFooter({ text: 'Seite 1 / ' + totalPages + ' • ' + target.user.tag });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('rinv_prev:0:' + target.id).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId('rinv_next:0:' + target.id).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1)
+      );
+      return interaction.editReply({ embeds: [embed], components: [row] });
+    }
+
+    // ── Inventar-Pagination (rinv_prev / rinv_next) ───────────────────────────
+    if (interaction.isButton() && (interaction.customId.startsWith('rinv_prev:') || interaction.customId.startsWith('rinv_next:'))) {
+      const parts = interaction.customId.split(':');
+      const action = parts[0];
+      let page = parseInt(parts[1]);
+      const targetId = parts[2];
+      const targetUser = await client.users.fetch(targetId).catch(() => null);
+      if (!targetUser) return interaction.reply({ content: '❌ Spieler nicht gefunden.', ephemeral: true });
+      const inv = getUserInv(targetId);
+      const items = Object.entries(inv);
+      const totalPages = Math.max(1, Math.ceil(items.length / RUCKSACK_PER_PAGE));
+      if (action === 'rinv_prev') page = Math.max(0, page - 1);
+      else page = Math.min(totalPages - 1, page + 1);
+      const pageItems = items.slice(page * RUCKSACK_PER_PAGE, (page + 1) * RUCKSACK_PER_PAGE);
+      const desc = pageItems.length
+        ? pageItems.map(([n,q],i) => `\`${(page*RUCKSACK_PER_PAGE+i+1).toString().padStart(2,'0')}\`  **${n}** — ${q}x`).join('\n')
+        : '_Keine Items auf dieser Seite_';
+      const embed = new EmbedBuilder()
+        .setColor(0xe65100)
+        .setTitle('🎒 Rucksack von ' + targetUser.username)
+        .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+        .setDescription(desc)
+        .setFooter({ text: 'Seite ' + (page + 1) + ' / ' + totalPages });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('rinv_prev:' + page + ':' + targetId).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+        new ButtonBuilder().setCustomId('rinv_next:' + page + ':' + targetId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1)
+      );
+      return interaction.update({ embeds: [embed], components: [row] });
+    }
+  } catch (e) { console.error('[RUCKSACK] interaction:', e.message); }
+});
+
 // deploy
