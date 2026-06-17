@@ -2047,6 +2047,11 @@ client.once('ready', async () => {
       .setDescription('Zeigt alle verfügbaren Commands auf diesem Server an')
       .toJSON(),
 
+    new SlashCommandBuilder()
+      .setName('rucksack')
+      .setDescription('Sendet das Rucksack-System Embed in den Inventar-Kanal (nur Admin)')
+      .toJSON(),
+
     ];
 
 
@@ -2821,37 +2826,6 @@ client.once('ready', async () => {
 
       // ── LAPD: Team-Übersicht initialisieren ──────────────────────────────────
       await updateLapdTeamOverview();
-
-      // ── RUCKSACK EMBED ────────────────────────────────────────────────────────
-      try {
-        const rCh = await client.channels.fetch(RUCKSACK_CH).catch(() => null);
-        if (!rCh) {
-          console.error('[RUCKSACK] Kanal nicht gefunden:', RUCKSACK_CH);
-        } else {
-          const oldMsgs = await rCh.messages.fetch({ limit: 50 }).catch(() => null);
-          if (oldMsgs) {
-            for (const msg of oldMsgs.values()) {
-              if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '🎒 Rucksack System') {
-                await msg.delete().catch(() => {});
-              }
-            }
-          }
-          const rEmbed = new EmbedBuilder()
-            .setColor(0xe65100)
-            .setTitle('🎒 Rucksack System')
-            .setDescription(
-              'Hier kannst du deinen eigenen Rucksack einsehen oder den Rucksack eines anderen Spielers durchsuchen.\n\n' +
-              '▸ **Rucksack Öffnen** — zeigt dein eigenes Inventar\n' +
-              '▸ **Anderer Rucksack Öffnen** — suche nach einem Spieler und sieh seinen Rucksack ein'
-            );
-          const rRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('rucksack_self').setLabel('🎒 Rucksack Öffnen').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('rucksack_other').setLabel('👤 Anderer Rucksack Öffnen').setStyle(ButtonStyle.Secondary)
-          );
-          await rCh.send({ embeds: [rEmbed], components: [rRow] });
-          console.log('[RUCKSACK] Embed gesendet.');
-        }
-      } catch (e) { console.error('[RUCKSACK] Fehler:', e.message); }
 
     });
 
@@ -5302,6 +5276,44 @@ client.on('interactionCreate', async (interaction) => {
           const embed = buildLagerEmbed(target, 0, lager);
           const rows = [invPageButtons(0, totalPages, target.id, 'lager'), lagerActionButtons(0, target.id)];
           return interaction.reply({ embeds: [embed], components: rows, ephemeral: true });
+        }
+
+        // /rucksack — sendet Rucksack-System Embed in den Kanal (nur Admin)
+        if (commandName === 'rucksack') {
+          if (!member.roles.cache.has('1490855702225485936')) {
+            return interaction.reply({ content: '❌ Nur Admins können diesen Command nutzen.', ephemeral: true });
+          }
+          await interaction.deferReply({ ephemeral: true });
+          try {
+            const rCh = await client.channels.fetch(RUCKSACK_CH).catch(() => null);
+            if (!rCh) return interaction.editReply({ content: '❌ Rucksack-Kanal nicht gefunden.' });
+            // Altes Embed löschen
+            const oldMsgs = await rCh.messages.fetch({ limit: 50 }).catch(() => null);
+            if (oldMsgs) {
+              for (const msg of oldMsgs.values()) {
+                if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '🎒 Rucksack System') {
+                  await msg.delete().catch(() => {});
+                }
+              }
+            }
+            // Neues Embed senden
+            const rEmbed = new EmbedBuilder()
+              .setColor(0xe65100)
+              .setTitle('🎒 Rucksack System')
+              .setDescription(
+                'Hier kannst du deinen eigenen Rucksack einsehen oder den Rucksack eines anderen Spielers durchsuchen.\n\n' +
+                '▸ **Rucksack Öffnen** — zeigt dein eigenes Inventar\n' +
+                '▸ **Anderer Rucksack Öffnen** — suche nach einem Spieler und sieh seinen Rucksack ein'
+              );
+            const rRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId('rucksack_self').setLabel('🎒 Rucksack Öffnen').setStyle(ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId('rucksack_other').setLabel('👤 Anderer Rucksack Öffnen').setStyle(ButtonStyle.Secondary)
+            );
+            await rCh.send({ embeds: [rEmbed], components: [rRow] });
+            return interaction.editReply({ content: `✅ Rucksack-Embed wurde in <#${RUCKSACK_CH}> gesendet.` });
+          } catch (e) {
+            return interaction.editReply({ content: '❌ Fehler: ' + e.message });
+          }
         }
 
         // /übergeben
