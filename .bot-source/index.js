@@ -956,6 +956,11 @@ const RUCKSACK_CH       = '1490882591023173682';
 const RUCKSACK_ROLLE    = '1490855722534310003';
 const RUCKSACK_PER_PAGE = 10;
 
+// ─── Fehlendes-Item-System ────────────────────────────────────────────────────
+const FEHLEND_CH    = '1490882596668707017';
+const FEHLEND_ROLLE = '1490855718658510908';
+const pendingFehlend = new Map(); // requestId → { userId, item, qty }
+
 // ─── Kanal-IDs ───────────────────────────────────────────────────────────────
 const CH = {
   ACTIVITY:    '1497385121324732567',
@@ -1393,6 +1398,35 @@ client.once('ready', async () => {
       console.log('[RUCKSACK] Embed gesendet.');
     } catch (e) { console.error('[RUCKSACK] Fehler:', e.message); }
   })();
+
+  // ── FEHLENDES-ITEM EMBED (läuft beim Start, unabhängig) ───────────────────
+  (async () => {
+    try {
+      const fCh = await client.channels.fetch(FEHLEND_CH).catch(() => null);
+      if (!fCh) { console.error('[FEHLEND] Kanal nicht gefunden:', FEHLEND_CH); return; }
+      const oldMsgs = await fCh.messages.fetch({ limit: 50 }).catch(() => null);
+      if (oldMsgs) {
+        for (const msg of oldMsgs.values()) {
+          if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '❓ Fehlendes Item melden') {
+            await msg.delete().catch(() => {});
+          }
+        }
+      }
+      const fEmbed = new EmbedBuilder()
+        .setColor(0xe74c3c)
+        .setTitle('❓ Fehlendes Item melden')
+        .setDescription(
+          'Du vermisst ein Item aus deinem Inventar?\n\n' +
+          'Klicke auf den Button, gib das Item und die Menge an — das Team prüft deinen Antrag und gibt dir das Item bei Bestätigung automatisch.'
+        );
+      const fRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('fehlend_open').setLabel('🔍 Fehlendes Item').setStyle(ButtonStyle.Danger)
+      );
+      await fCh.send({ embeds: [fEmbed], components: [fRow] });
+      console.log('[FEHLEND] Embed gesendet.');
+    } catch (e) { console.error('[FEHLEND] Fehler:', e.message); }
+  })();
+
   // ─── /dashboard Slash Command registrieren ────────────────────────────────
   try {
     const _dashRest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -9322,4 +9356,141 @@ client.on('messageCreate', async (msg) => {
       });
   })(1);
 }
+
+// ─── FEHLENDES-ITEM HANDLER ───────────────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  try {
+    // ── Button: Fehlendes Item öffnen ────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'fehlend_open') {
+      const modal = new ModalBuilder()
+        .setCustomId('fehlend_modal')
+        .setTitle('Fehlendes Item melden');
+      const itemInput = new TextInputBuilder()
+        .setCustomId('fehlend_item')
+        .setLabel('Welches Item fehlt dir?')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('z.B. Goldbarren')
+        .setRequired(true)
+        .setMaxLength(80);
+      const mengeInput = new TextInputBuilder()
+        .setCustomId('fehlend_menge')
+        .setLabel('Menge')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('z.B. 5')
+        .setRequired(true)
+        .setMaxLength(10);
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(itemInput),
+        new ActionRowBuilder().addComponents(mengeInput)
+      );
+      return await interaction.showModal(modal);
+    }
+
+    // ── Modal: Antrag absenden ────────────────────────────────────────────────
+    if (interaction.isModalSubmit() && interaction.customId === 'fehlend_modal') {
+      const item = interaction.fields.getTextInputValue('fehlend_item').trim();
+      const mengeRaw = interaction.fields.getTextInputValue('fehlend_menge').trim();
+      const menge = parseInt(mengeRaw, 10);
+      if (!menge || menge < 1) {
+        return await interaction.reply({ content: '❌ Bitte gib eine gültige Menge ein (mindestens 1).', ephemeral: true });
+      }
+      const requestId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      pendingFehlend.set(requestId, { userId: interaction.user.id, item, qty: menge });
+      // Antrag in den Kanal posten
+      const fCh = await client.channels.fetch(FEHLEND_CH).catch(() => null);
+      if (!fCh) return await interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
+      const reqEmbed = new EmbedBuilder()
+        .setColor(0xf39c12)
+        .setTitle('📋 Item-Antrag')
+        .addFields(
+          { name: '👤 Spieler', value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true },
+          { name: '📦 Item', value: item, inline: true },
+          { name: '🔢 Menge', value: String(menge), inline: true }
+        )
+        .setFooter({ text: 'Antrag-ID: ' + requestId })
+        .setTimestamp();
+      const confirmRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('fehlend_confirm:' + requestId)
+          .setLabel('✅ Bestätigen')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId('fehlend_ablehnen:' + requestId)
+          .setLabel('❌ Ablehnen')
+          .setStyle(ButtonStyle.Danger)
+      );
+      const reqMsg = await fCh.send({ embeds: [reqEmbed], components: [confirmRow] });
+      // Referenz speichern für späteres Bearbeiten
+      pendingFehlend.set(requestId, { userId: interaction.user.id, item, qty: menge, msgId: reqMsg.id });
+      return await interaction.reply({ content: `✅ Dein Antrag für **${menge}x ${item}** wurde eingereicht und wird vom Team geprüft.`, ephemeral: true });
+    }
+
+    // ── Button: Bestätigen ────────────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId.startsWith('fehlend_confirm:')) {
+      const member = interaction.member || await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
+      if (!member?.roles?.cache?.has(FEHLEND_ROLLE)) {
+        return await interaction.reply({ content: '❌ Du hast keine Berechtigung, Anträge zu bestätigen.', ephemeral: true });
+      }
+      const requestId = interaction.customId.split(':')[1];
+      const req = pendingFehlend.get(requestId);
+      if (!req) {
+        return await interaction.reply({ content: '❌ Dieser Antrag ist nicht mehr aktiv oder bereits bearbeitet worden.', ephemeral: true });
+      }
+      // Item dem Spieler geben
+      const inv = getUserInv(req.userId);
+      inv[req.item] = (inv[req.item] || 0) + req.qty;
+      setUserInv(req.userId, inv);
+      pendingFehlend.delete(requestId);
+      // Embed aktualisieren
+      const doneEmbed = new EmbedBuilder()
+        .setColor(0x27ae60)
+        .setTitle('✅ Item-Antrag bestätigt')
+        .addFields(
+          { name: '👤 Spieler', value: `<@${req.userId}>`, inline: true },
+          { name: '📦 Item', value: req.item, inline: true },
+          { name: '🔢 Menge', value: String(req.qty), inline: true },
+          { name: '👮 Bestätigt von', value: `<@${interaction.user.id}>`, inline: true }
+        )
+        .setTimestamp();
+      await interaction.update({ embeds: [doneEmbed], components: [] });
+      // Spieler benachrichtigen
+      const player = await client.users.fetch(req.userId).catch(() => null);
+      if (player) {
+        await player.send(`✅ Dein Antrag für **${req.qty}x ${req.item}** wurde bestätigt. Das Item wurde deinem Inventar hinzugefügt.`).catch(() => {});
+      }
+      return;
+    }
+
+    // ── Button: Ablehnen ──────────────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId.startsWith('fehlend_ablehnen:')) {
+      const member = interaction.member || await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
+      if (!member?.roles?.cache?.has(FEHLEND_ROLLE)) {
+        return await interaction.reply({ content: '❌ Du hast keine Berechtigung, Anträge abzulehnen.', ephemeral: true });
+      }
+      const requestId = interaction.customId.split(':')[1];
+      const req = pendingFehlend.get(requestId);
+      if (!req) {
+        return await interaction.reply({ content: '❌ Dieser Antrag ist nicht mehr aktiv oder bereits bearbeitet worden.', ephemeral: true });
+      }
+      pendingFehlend.delete(requestId);
+      const rejectEmbed = new EmbedBuilder()
+        .setColor(0xe74c3c)
+        .setTitle('❌ Item-Antrag abgelehnt')
+        .addFields(
+          { name: '👤 Spieler', value: `<@${req.userId}>`, inline: true },
+          { name: '📦 Item', value: req.item, inline: true },
+          { name: '🔢 Menge', value: String(req.qty), inline: true },
+          { name: '👮 Abgelehnt von', value: `<@${interaction.user.id}>`, inline: true }
+        )
+        .setTimestamp();
+      await interaction.update({ embeds: [rejectEmbed], components: [] });
+      const player = await client.users.fetch(req.userId).catch(() => null);
+      if (player) {
+        await player.send(`❌ Dein Antrag für **${req.qty}x ${req.item}** wurde leider abgelehnt.`).catch(() => {});
+      }
+      return;
+    }
+  } catch (e) { console.error('[FEHLEND] Interaction-Fehler:', e.message); }
+});
+
 // deploy
