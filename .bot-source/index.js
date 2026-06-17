@@ -1363,6 +1363,36 @@ async function updateFirmenEmbed(client) {
 client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
   client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
+
+  // ── RUCKSACK EMBED (läuft zuerst, unabhängig vom Rest) ─────────────────────
+  (async () => {
+    try {
+      const rCh = await client.channels.fetch(RUCKSACK_CH).catch(() => null);
+      if (!rCh) { console.error('[RUCKSACK] Kanal nicht gefunden:', RUCKSACK_CH); return; }
+      const oldMsgs = await rCh.messages.fetch({ limit: 50 }).catch(() => null);
+      if (oldMsgs) {
+        for (const msg of oldMsgs.values()) {
+          if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '🎒 Rucksack System') {
+            await msg.delete().catch(() => {});
+          }
+        }
+      }
+      const rEmbed = new EmbedBuilder()
+        .setColor(0xe65100)
+        .setTitle('🎒 Rucksack System')
+        .setDescription(
+          'Hier kannst du deinen eigenen Rucksack einsehen oder den Rucksack eines anderen Spielers durchsuchen.\n\n' +
+          '▸ **Rucksack Öffnen** — zeigt dein eigenes Inventar\n' +
+          '▸ **Anderer Rucksack Öffnen** — suche nach einem Spieler und sieh seinen Rucksack ein'
+        );
+      const rRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('rucksack_self').setLabel('🎒 Rucksack Öffnen').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('rucksack_other').setLabel('👤 Anderer Rucksack Öffnen').setStyle(ButtonStyle.Secondary)
+      );
+      await rCh.send({ embeds: [rEmbed], components: [rRow] });
+      console.log('[RUCKSACK] Embed gesendet.');
+    } catch (e) { console.error('[RUCKSACK] Fehler:', e.message); }
+  })();
   // ─── /dashboard Slash Command registrieren ────────────────────────────────
   try {
     const _dashRest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -2821,37 +2851,6 @@ client.once('ready', async () => {
 
       // ── LAPD: Team-Übersicht initialisieren ──────────────────────────────────
       await updateLapdTeamOverview();
-
-      // ── RUCKSACK EMBED ────────────────────────────────────────────────────────
-      try {
-        const rCh = await client.channels.fetch(RUCKSACK_CH).catch(() => null);
-        if (!rCh) {
-          console.error('[RUCKSACK] Kanal nicht gefunden:', RUCKSACK_CH);
-        } else {
-          const oldMsgs = await rCh.messages.fetch({ limit: 50 }).catch(() => null);
-          if (oldMsgs) {
-            for (const msg of oldMsgs.values()) {
-              if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '🎒 Rucksack System') {
-                await msg.delete().catch(() => {});
-              }
-            }
-          }
-          const rEmbed = new EmbedBuilder()
-            .setColor(0xe65100)
-            .setTitle('🎒 Rucksack System')
-            .setDescription(
-              'Hier kannst du deinen eigenen Rucksack einsehen oder den Rucksack eines anderen Spielers durchsuchen.\n\n' +
-              '▸ **Rucksack Öffnen** — zeigt dein eigenes Inventar\n' +
-              '▸ **Anderer Rucksack Öffnen** — suche nach einem Spieler und sieh seinen Rucksack ein'
-            );
-          const rRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('rucksack_self').setLabel('🎒 Rucksack Öffnen').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('rucksack_other').setLabel('👤 Anderer Rucksack Öffnen').setStyle(ButtonStyle.Secondary)
-          );
-          await rCh.send({ embeds: [rEmbed], components: [rRow] });
-          console.log('[RUCKSACK] Embed gesendet.');
-        }
-      } catch (e) { console.error('[RUCKSACK] Fehler:', e.message); }
 
     });
 
