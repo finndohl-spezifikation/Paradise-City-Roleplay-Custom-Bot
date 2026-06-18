@@ -47,7 +47,6 @@ function _fsGenToken(userId, createdBy) {
 // ─── Datenspeicherung ─────────────────────────────────────────────────────────
 const DATA_DIR      = path.join(__dirname, 'data');
 let _shopCb = {};
-let _cmdCount = 0; // wird im ready-Handler gesetzt, dann in /server genutzt
 const SHOP_MGR_TOK_FILE = path.join(DATA_DIR, 'shop_mgr_tokens.json');
 function loadShopMgrToks() { try { return JSON.parse(fs.readFileSync(SHOP_MGR_TOK_FILE,'utf8')); } catch { return {}; } }
 function saveShopMgrToks(d) { fs.writeFileSync(SHOP_MGR_TOK_FILE, JSON.stringify(d,null,2),'utf8'); }
@@ -952,6 +951,16 @@ function saveSetup(d)   { fs.writeFileSync(SETUP_FILE,   JSON.stringify(d, null,
 const inviteCache = new Map();
 const CAPTCHA_CH_ID = '1516251730357125202';
 
+// ─── Rucksack-System ──────────────────────────────────────────────────────────
+const RUCKSACK_CH       = '1490882591023173682';
+const RUCKSACK_ROLLE    = '1490855722534310003';
+const RUCKSACK_PER_PAGE = 10;
+
+// ─── Fehlendes-Item-System ────────────────────────────────────────────────────
+const FEHLEND_CH    = '1490882596668707017';
+const FEHLEND_ROLLE = '1490855718658510908';
+const pendingFehlend = new Map(); // requestId → { userId, item, qty }
+
 // ─── Kanal-IDs ───────────────────────────────────────────────────────────────
 const CH = {
   ACTIVITY:    '1497385121324732567',
@@ -1070,6 +1079,7 @@ const client = new Client({
   ],
   partials: [Partials.Channel, Partials.Message, Partials.GuildMember, Partials.Reaction, Partials.User],
 });
+client.setMaxListeners(50);
 
 // ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
 function isExempt(member) {
@@ -1359,6 +1369,7 @@ async function updateFirmenEmbed(client) {
 client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
   client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
+
   // ─── /dashboard Slash Command registrieren ────────────────────────────────
   try {
     const _dashRest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -1821,12 +1832,6 @@ client.once('ready', async () => {
       .toJSON(),
 
       new SlashCommandBuilder()
-        .setName('rucksack')
-        .setDescription('Zeigt dein Inventar an')
-        .addUserOption(opt => opt.setName('spieler').setDescription('Inventar eines anderen Spielers').setRequired(false))
-        .toJSON(),
-
-      new SlashCommandBuilder()
         .setName('übergeben')
         .setDescription('Übergibt Items an einen anderen Spieler')
         .addStringOption(opt => opt.setName('item').setDescription('Item aus deinem Inventar').setRequired(true).setAutocomplete(true))
@@ -2049,18 +2054,8 @@ client.once('ready', async () => {
       .setDescription('Zeigt alle verfügbaren Commands auf diesem Server an')
       .toJSON(),
 
-    new SlashCommandBuilder()
-      .setName('server')
-      .setDescription('Zeigt eine Übersicht des Servers (nur für dich sichtbar)')
-      .toJSON(),
-
-    new SlashCommandBuilder()
-      .setName('admin')
-      .setDescription('Öffnet das Admin-Panel (nur für dich sichtbar)')
-      .toJSON(),
-
     ];
-  _cmdCount = commands.length; // global merken für /server Handler
+
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   console.log('[COMMANDS] Guilds in cache:', client.guilds.cache.size, '| Commands to register:', commands.length);
@@ -2833,9 +2828,6 @@ client.once('ready', async () => {
 
       // ── LAPD: Team-Übersicht initialisieren ──────────────────────────────────
       await updateLapdTeamOverview();
-
-
-
 
     });
 
@@ -5277,17 +5269,6 @@ client.on('interactionCreate', async (interaction) => {
             await ch.send({ embeds: [embed] });
             return;
           }
-        // /rucksack
-        if (commandName === 'rucksack') {
-          if (interaction.channelId !== INV_CH) return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${INV_CH}>.`, ephemeral: true });
-          const target = interaction.options.getUser('spieler') || user;
-          const inv = getUserInv(target.id);
-          const totalPages = Math.max(1, Math.ceil(Object.keys(inv).length / ITEMS_PER_PAGE));
-          const embed = buildInvEmbed(target, 0, inv);
-          const rows = [invPageButtons(0, totalPages, target.id, 'inv')];
-          return interaction.reply({ embeds: [embed], components: rows, ephemeral: true });
-        }
-
         // /lager
         if (commandName === 'lager') {
           if (interaction.channelId !== INV_CH) return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${INV_CH}>.`, ephemeral: true });
@@ -5583,7 +5564,7 @@ client.on('interactionCreate', async (interaction) => {
               { name: '🔨 Moderation', value: '`/delete` `/ban` `/unban` `/timeout`', inline: false },
               { name: '⚠️ Verwarnungen', value: '`/warn` `/warn-remove` `/warnlist`\n`/teamwarn` `/teamwarn-remove` `/teamwarn-list`', inline: false },
               { name: '🪪 Charakter & Dokumente', value: '`/ausweis` `/ausweis-create` `/ausweis-delete`\n`/fuehrerschein` `/fuehrerschein-create` `/fuehrerschein-delete` `/fuehrerschein-edit`\n`/charakter-reset` `/einreise-link`', inline: false },
-              { name: '🎒 Inventar & Wirtschaft', value: '`/rucksack` `/lager` `/übergeben` `/use`\n`/item-give` `/item-remove`\n`/money-add` `/money-remove` `/bargeld`\n`/rechnung-create`', inline: false },
+              { name: '🎒 Inventar & Wirtschaft', value: '`/lager` `/übergeben` `/use`\n`/item-give` `/item-remove`\n`/money-add` `/money-remove` `/bargeld`\n`/rechnung-create`', inline: false },
               { name: '🏪 Shop & Lotto', value: '`/teamshop` `/shop-editor` `/lotto-ziehung`', inline: false },
               { name: '🏢 Fraktionen', value: '`/frakadd` `/frak-delete`\n`/frakwarn` `/frakwarn-remove`\n`/fraksperre` `/fraksperre-remove`', inline: false },
               { name: '🎉 Events & Abstimmungen', value: '`/event` `/giveaway` `/abstimmung` `/aktivitätscheck`\n`/vorschlag` `/vorschlag-yes` `/vorschlag-no`\n`/lobby-abstimmung` `/lobby-open` `/lobby-close`', inline: false },
@@ -5591,57 +5572,6 @@ client.on('interactionCreate', async (interaction) => {
             )
             .setFooter({ text: 'Tippe / in Discord um alle Commands direkt auszuwählen' });
           return interaction.reply({ embeds: [embed], ephemeral: true });
-        }
-
-        // ─── /server ────────────────────────────────────────────────────────────
-        if (commandName === 'server') {
-          const g = interaction.guild;
-          if (!g) return interaction.reply({ content: '❌ Nur auf einem Server nutzbar.', ephemeral: true });
-          await g.members.fetch().catch(() => {});
-          const memberCount   = g.memberCount;
-          const botCount      = g.members.cache.filter(m => m.user.bot).size;
-          const humanCount    = memberCount - botCount;
-          const roleCount     = g.roles.cache.size - 1; // ohne @everyone
-          const textChannels  = g.channels.cache.filter(c => c.type === ChannelType.GuildText).size;
-          const voiceChannels = g.channels.cache.filter(c => c.type === ChannelType.GuildVoice).size;
-          const categoryCount = g.channels.cache.filter(c => c.type === ChannelType.GuildCategory).size;
-          const cmdCount      = _cmdCount;
-          const created       = `<t:${Math.floor(g.createdTimestamp / 1000)}:D>`;
-          const embed = new EmbedBuilder()
-            .setColor(0xe65100)
-            .setTitle(`🏙️ ${g.name} — Server-Übersicht`)
-            .setThumbnail(g.iconURL({ dynamic: true }) || null)
-            .addFields(
-              { name: '👥 Mitglieder',       value: `**${memberCount}** gesamt\n👤 ${humanCount} Menschen · 🤖 ${botCount} Bots`, inline: true },
-              { name: '🎭 Rollen',            value: `**${roleCount}** Rollen`, inline: true },
-              { name: '💬 Kanäle',            value: `**${textChannels}** Text · **${voiceChannels}** Voice\n📁 ${categoryCount} Kategorien`, inline: true },
-              { name: '⚡ Slash-Commands',    value: `**${cmdCount}** registrierte Commands`, inline: true },
-              { name: '📅 Server erstellt',   value: created, inline: true },
-              { name: '🆔 Server-ID',         value: `\`${g.id}\``, inline: true },
-            )
-            .setFooter({ text: 'Nur für dich sichtbar • Paradise City Roleplay' })
-            .setTimestamp();
-          return interaction.reply({ embeds: [embed], ephemeral: true });
-        }
-
-        // ─── /admin ─────────────────────────────────────────────────────────────
-        if (commandName === 'admin') {
-          const domain = process.env.RAILWAY_PUBLIC_DOMAIN
-            || 'paradise-city-roleplay-custom-bot-production.up.railway.app';
-          const url = `https://${domain}/admin-panel`;
-          const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setLabel('Admin-Panel öffnen')
-              .setURL(url)
-              .setStyle(ButtonStyle.Link)
-              .setEmoji('🛠️')
-          );
-          await interaction.reply({
-            content: `🛠️ **Admin-Panel — Paradise City Roleplay**\n🔗 ${url}`,
-            components: [row],
-            ephemeral: true
-          });
-          return;
         }
 
         if (commandName === 'charakter-reset') {
@@ -8492,7 +8422,12 @@ client.on('interactionCreate', async (interaction) => {
         const u = await client.users.fetch(userId);
         await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe65100)
           .setTitle('🌲 Holz verkaufen — Foto erforderlich')
-          .setDescription('Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Fahrzeug am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.')
+          .setDescription(
+            '📦 **Dein Holz-Inventar (wird alles verkauft):**\n' +
+            verkauft.map(v => '▸ ' + v.menge + 'x ' + v.name + ' → **' + v.wert.toLocaleString('de-CH') + '$**').join('\n') +
+            '\n💰 **Gesamtbetrag: ' + totalGeld.toLocaleString('de-CH') + '$**\n\n' +
+            'Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Fahrzeug am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.'
+          )
           .setFooter({ text: 'Foto einfach als Nachricht in diese DM senden.' })
         ] });
       } catch {}
@@ -8673,7 +8608,12 @@ client.on('interactionCreate', async (interaction) => {
         const u = await client.users.fetch(userId);
         await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0x7f8c8d)
           .setTitle('⛏️ Erz verkaufen — Foto erforderlich')
-          .setDescription('Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Fahrzeug am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.')
+          .setDescription(
+            '📦 **Dein Erz-Inventar (wird alles verkauft):**\n' +
+            verkauft.map(v => '▸ ' + v.menge + 'x ' + v.name + ' → **' + v.wert.toLocaleString('de-CH') + '$**').join('\n') +
+            '\n💰 **Gesamtbetrag: ' + totalGeld.toLocaleString('de-CH') + '$**\n\n' +
+            'Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Fahrzeug am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.'
+          )
           .setFooter({ text: 'Foto einfach als Nachricht in diese DM senden.' })
         ] });
       } catch {}
@@ -8851,7 +8791,12 @@ client.on('interactionCreate', async (interaction) => {
         const u = await client.users.fetch(userId);
         await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe67e22)
           .setTitle('🎃 Kürbisse verkaufen — Foto erforderlich')
-          .setDescription('Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Fahrzeug am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.')
+          .setDescription(
+            '📦 **Dein Kürbis-Inventar (wird alles verkauft):**\n' +
+            verkauft.map(v => '▸ ' + v.menge + 'x ' + v.name + ' → **' + v.wert.toLocaleString('de-CH') + '$**').join('\n') +
+            '\n💰 **Gesamtbetrag: ' + totalGeld.toLocaleString('de-CH') + '$**\n\n' +
+            'Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Fahrzeug am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.'
+          )
           .setFooter({ text: 'Foto einfach als Nachricht in diese DM senden.' })
         ] });
       } catch {}
@@ -9081,7 +9026,12 @@ client.on('interactionCreate', async (interaction) => {
       const u = await client.users.fetch(userId);
       await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0x2980b9)
         .setTitle('🎣 Fisch verkaufen — Foto erforderlich')
-        .setDescription('Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Boot am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.')
+        .setDescription(
+          '📦 **Dein Fisch-Inventar (wird alles verkauft):**\n' +
+          verkauft.map(v => '▸ ' + v.menge + 'x ' + v.name + ' → **' + v.wert.toLocaleString('de-CH') + '$**').join('\n') +
+          '\n💰 **Gesamtbetrag: ' + totalGeld.toLocaleString('de-CH') + '$**\n\n' +
+          'Sende **ein Foto** als Nachricht in diesen Chat.\nAuf dem Foto muss dein **Boot am richtigen Standort** sichtbar sein.\n\n⏳ Du hast **10 Minuten** Zeit.'
+        )
         .setFooter({ text: 'Foto einfach als Nachricht in diese DM senden.' })
       ] });
     } catch {}
@@ -9210,6 +9160,117 @@ client.on('interactionCreate', async (interaction) => {
 });
 // ─── END VERKAUF-PRÜFUNG ──────────────────────────────────────────────────────
 
+// ─── RUCKSACK BUTTONS ─────────────────────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  try {
+    // ── 🎒 Eigener Rucksack ───────────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'rucksack_self') {
+      const inv = getUserInv(interaction.user.id);
+      const items = Object.entries(inv);
+      const totalPages = Math.max(1, Math.ceil(items.length / RUCKSACK_PER_PAGE));
+      const pageItems = items.slice(0, RUCKSACK_PER_PAGE);
+      const desc = pageItems.length
+        ? pageItems.map(([n,q],i) => `\`${(i+1).toString().padStart(2,'0')}\`  **${n}** — ${q}x`).join('\n')
+        : '_Dein Rucksack ist leer_';
+      const embed = new EmbedBuilder()
+        .setColor(0xe65100)
+        .setTitle('🎒 Rucksack von ' + interaction.user.username)
+        .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true }))
+        .setDescription(desc)
+        .setFooter({ text: 'Seite 1 / ' + totalPages });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('rinv_prev:0:' + interaction.user.id).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId('rinv_next:0:' + interaction.user.id).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1)
+      );
+      return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+    }
+
+    // ── 👤 Anderer Rucksack — Modal anzeigen ─────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'rucksack_other') {
+      const modal = new ModalBuilder()
+        .setCustomId('rucksack_search')
+        .setTitle('👤 Spieler suchen');
+      modal.addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('rucksack_name')
+          .setLabel('Spielername (Ingame-Name oder Discord-Name)')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('z.B. Max Mustermann')
+          .setMinLength(2)
+          .setRequired(true)
+      ));
+      return interaction.showModal(modal);
+    }
+
+    // ── 👤 Modal-Submit: Spieler suchen & Inventar anzeigen ──────────────────
+    if (interaction.isModalSubmit() && interaction.customId === 'rucksack_search') {
+      await interaction.deferReply({ ephemeral: true });
+      const query = interaction.fields.getTextInputValue('rucksack_name').toLowerCase().trim();
+      const guild = interaction.guild;
+      await guild.members.fetch().catch(() => {});
+      const matches = guild.members.cache.filter(m =>
+        m.roles.cache.has(RUCKSACK_ROLLE) &&
+        (
+          m.displayName.toLowerCase().includes(query) ||
+          m.user.username.toLowerCase().includes(query)
+        )
+      );
+      if (matches.size === 0) {
+        return interaction.editReply({ content: `❌ Kein Mitglied mit der Bürger-Rolle gefunden, das **${query}** im Namen hat.` });
+      }
+      const target = matches.first();
+      const inv = getUserInv(target.id);
+      const items = Object.entries(inv);
+      const totalPages = Math.max(1, Math.ceil(items.length / RUCKSACK_PER_PAGE));
+      const pageItems = items.slice(0, RUCKSACK_PER_PAGE);
+      const desc = pageItems.length
+        ? pageItems.map(([n,q],i) => `\`${(i+1).toString().padStart(2,'0')}\`  **${n}** — ${q}x`).join('\n')
+        : '_Rucksack ist leer_';
+      const embed = new EmbedBuilder()
+        .setColor(0xe65100)
+        .setTitle('🎒 Rucksack von ' + target.displayName)
+        .setThumbnail(target.user.displayAvatarURL({ dynamic: true }))
+        .setDescription(desc)
+        .setFooter({ text: 'Seite 1 / ' + totalPages + ' • ' + target.user.tag });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('rinv_prev:0:' + target.id).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId('rinv_next:0:' + target.id).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1)
+      );
+      return interaction.editReply({ embeds: [embed], components: [row] });
+    }
+
+    // ── Inventar-Pagination (rinv_prev / rinv_next) ───────────────────────────
+    if (interaction.isButton() && (interaction.customId.startsWith('rinv_prev:') || interaction.customId.startsWith('rinv_next:'))) {
+      const parts = interaction.customId.split(':');
+      const action = parts[0];
+      let page = parseInt(parts[1]);
+      const targetId = parts[2];
+      const targetUser = await client.users.fetch(targetId).catch(() => null);
+      if (!targetUser) return interaction.reply({ content: '❌ Spieler nicht gefunden.', ephemeral: true });
+      const inv = getUserInv(targetId);
+      const items = Object.entries(inv);
+      const totalPages = Math.max(1, Math.ceil(items.length / RUCKSACK_PER_PAGE));
+      if (action === 'rinv_prev') page = Math.max(0, page - 1);
+      else page = Math.min(totalPages - 1, page + 1);
+      const pageItems = items.slice(page * RUCKSACK_PER_PAGE, (page + 1) * RUCKSACK_PER_PAGE);
+      const desc = pageItems.length
+        ? pageItems.map(([n,q],i) => `\`${(page*RUCKSACK_PER_PAGE+i+1).toString().padStart(2,'0')}\`  **${n}** — ${q}x`).join('\n')
+        : '_Keine Items auf dieser Seite_';
+      const embed = new EmbedBuilder()
+        .setColor(0xe65100)
+        .setTitle('🎒 Rucksack von ' + targetUser.username)
+        .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+        .setDescription(desc)
+        .setFooter({ text: 'Seite ' + (page + 1) + ' / ' + totalPages });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('rinv_prev:' + page + ':' + targetId).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+        new ButtonBuilder().setCustomId('rinv_next:' + page + ':' + targetId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1)
+      );
+      return interaction.update({ embeds: [embed], components: [row] });
+    }
+  } catch (e) { console.error('[RUCKSACK] interaction:', e.message); }
+});
+
 (function loginWithRetry(attempt) {
 
 // ─── ! COMMAND WARNUNG ──────────────────────────────────────────────────────
@@ -9238,4 +9299,195 @@ client.on('messageCreate', async (msg) => {
       });
   })(1);
 }
+
+// ─── STARTUP EMBED SYSTEM ─────────────────────────────────────────────────────
+console.log('[STARTUP] Handler werden registriert...');
+
+async function _sendStartupEmbeds(source) {
+  console.log('[STARTUP] _sendStartupEmbeds aufgerufen von:', source);
+  console.log('[STARTUP] client.isReady():', client.isReady());
+  console.log('[STARTUP] RUCKSACK_CH:', RUCKSACK_CH, '| FEHLEND_CH:', FEHLEND_CH);
+
+  // ── Rucksack ─────────────────────────────────────────────────────────────
+  try {
+    const guild = client.guilds.cache.get(GUILD_ID) || await client.guilds.fetch(GUILD_ID).catch(() => null);
+    console.log('[RUCKSACK] Guild gefunden:', guild ? guild.name : 'NICHT GEFUNDEN');
+    const rCh = guild?.channels.cache.get(RUCKSACK_CH) || await client.channels.fetch(RUCKSACK_CH).catch(e => { console.error('[RUCKSACK] fetch-Fehler:', e.message); return null; });
+    if (!rCh) { console.error('[RUCKSACK] Kanal nicht gefunden:', RUCKSACK_CH); }
+    else {
+      console.log('[RUCKSACK] Kanal gefunden:', rCh.name);
+      const oldMsgs = await rCh.messages.fetch({ limit: 50 }).catch(e => { console.error('[RUCKSACK] messages.fetch Fehler:', e.message); return null; });
+      if (oldMsgs) { for (const msg of oldMsgs.values()) { if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '🎒 Rucksack System') await msg.delete().catch(() => {}); } }
+      await rCh.send({
+        embeds: [new EmbedBuilder().setColor(0xe65100).setTitle('🎒 Rucksack System').setDescription('Hier kannst du deinen eigenen Rucksack einsehen oder den Rucksack eines anderen Spielers durchsuchen.\n\n▸ **Rucksack Öffnen** — zeigt dein eigenes Inventar\n▸ **Anderer Rucksack Öffnen** — suche nach einem Spieler und sieh seinen Rucksack ein')],
+        components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('rucksack_self').setLabel('🎒 Rucksack Öffnen').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('rucksack_other').setLabel('👤 Anderer Rucksack Öffnen').setStyle(ButtonStyle.Secondary))]
+      });
+      console.log('[RUCKSACK] ✅ Embed gesendet.');
+    }
+  } catch (e) { console.error('[RUCKSACK] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
+
+  // ── Fehlendes Item ────────────────────────────────────────────────────────
+  try {
+    const fCh = client.channels.cache.get(FEHLEND_CH) || await client.channels.fetch(FEHLEND_CH).catch(e => { console.error('[FEHLEND] fetch-Fehler:', e.message); return null; });
+    if (!fCh) { console.error('[FEHLEND] Kanal nicht gefunden:', FEHLEND_CH); }
+    else {
+      console.log('[FEHLEND] Kanal gefunden:', fCh.name);
+      const oldMsgs = await fCh.messages.fetch({ limit: 50 }).catch(() => null);
+      if (oldMsgs) { for (const msg of oldMsgs.values()) { if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '❓ Fehlendes Item melden') await msg.delete().catch(() => {}); } }
+      await fCh.send({
+        embeds: [new EmbedBuilder().setColor(0xe74c3c).setTitle('❓ Fehlendes Item melden').setDescription('Du vermisst ein Item aus deinem Inventar?\n\nKlicke auf den Button, gib das Item und die Menge an — das Team prüft deinen Antrag und gibt dir das Item bei Bestätigung automatisch.')],
+        components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('fehlend_open').setLabel('🔍 Fehlendes Item').setStyle(ButtonStyle.Danger))]
+      });
+      console.log('[FEHLEND] ✅ Embed gesendet.');
+    }
+  } catch (e) { console.error('[FEHLEND] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
+}
+
+// Versuche ready (v14) UND clientReady (v15) abzufangen
+let _startupEmbedsDone = false;
+async function _onBotReady(source) {
+  if (_startupEmbedsDone) { console.log('[STARTUP] Handler schon gelaufen, überspringe (' + source + ')'); return; }
+  _startupEmbedsDone = true;
+  console.log('[STARTUP] Ready-Event empfangen von:', source, '| Bot:', client.user?.tag);
+  setTimeout(() => _sendStartupEmbeds(source + ':setTimeout').catch(e => console.error('[STARTUP] Fehler in setTimeout:', e.message)), 5000);
+}
+client.once('ready', () => _onBotReady('ready'));
+client.once('clientReady', () => _onBotReady('clientReady'));
+
+// ─── FEHLENDES-ITEM HANDLER ───────────────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  try {
+    // ── Button: Fehlendes Item öffnen ────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId === 'fehlend_open') {
+      const modal = new ModalBuilder()
+        .setCustomId('fehlend_modal')
+        .setTitle('Fehlendes Item melden');
+      const itemInput = new TextInputBuilder()
+        .setCustomId('fehlend_item')
+        .setLabel('Welches Item fehlt dir?')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('z.B. Goldbarren')
+        .setRequired(true)
+        .setMaxLength(80);
+      const mengeInput = new TextInputBuilder()
+        .setCustomId('fehlend_menge')
+        .setLabel('Menge')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('z.B. 5')
+        .setRequired(true)
+        .setMaxLength(10);
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(itemInput),
+        new ActionRowBuilder().addComponents(mengeInput)
+      );
+      return await interaction.showModal(modal);
+    }
+
+    // ── Modal: Antrag absenden ────────────────────────────────────────────────
+    if (interaction.isModalSubmit() && interaction.customId === 'fehlend_modal') {
+      const item = interaction.fields.getTextInputValue('fehlend_item').trim();
+      const mengeRaw = interaction.fields.getTextInputValue('fehlend_menge').trim();
+      const menge = parseInt(mengeRaw, 10);
+      if (!menge || menge < 1) {
+        return await interaction.reply({ content: '❌ Bitte gib eine gültige Menge ein (mindestens 1).', ephemeral: true });
+      }
+      const requestId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      pendingFehlend.set(requestId, { userId: interaction.user.id, item, qty: menge });
+      // Antrag in den Kanal posten
+      const fCh = await client.channels.fetch(FEHLEND_CH).catch(() => null);
+      if (!fCh) return await interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
+      const reqEmbed = new EmbedBuilder()
+        .setColor(0xf39c12)
+        .setTitle('📋 Item-Antrag')
+        .addFields(
+          { name: '👤 Spieler', value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true },
+          { name: '📦 Item', value: item, inline: true },
+          { name: '🔢 Menge', value: String(menge), inline: true }
+        )
+        .setFooter({ text: 'Antrag-ID: ' + requestId })
+        .setTimestamp();
+      const confirmRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('fehlend_confirm:' + requestId)
+          .setLabel('✅ Bestätigen')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId('fehlend_ablehnen:' + requestId)
+          .setLabel('❌ Ablehnen')
+          .setStyle(ButtonStyle.Danger)
+      );
+      const reqMsg = await fCh.send({ embeds: [reqEmbed], components: [confirmRow] });
+      // Referenz speichern für späteres Bearbeiten
+      pendingFehlend.set(requestId, { userId: interaction.user.id, item, qty: menge, msgId: reqMsg.id });
+      return await interaction.reply({ content: `✅ Dein Antrag für **${menge}x ${item}** wurde eingereicht und wird vom Team geprüft.`, ephemeral: true });
+    }
+
+    // ── Button: Bestätigen ────────────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId.startsWith('fehlend_confirm:')) {
+      const member = interaction.member || await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
+      if (!member?.roles?.cache?.has(FEHLEND_ROLLE)) {
+        return await interaction.reply({ content: '❌ Du hast keine Berechtigung, Anträge zu bestätigen.', ephemeral: true });
+      }
+      const requestId = interaction.customId.split(':')[1];
+      const req = pendingFehlend.get(requestId);
+      if (!req) {
+        return await interaction.reply({ content: '❌ Dieser Antrag ist nicht mehr aktiv oder bereits bearbeitet worden.', ephemeral: true });
+      }
+      // Item dem Spieler geben
+      const inv = getUserInv(req.userId);
+      inv[req.item] = (inv[req.item] || 0) + req.qty;
+      setUserInv(req.userId, inv);
+      pendingFehlend.delete(requestId);
+      // Embed aktualisieren
+      const doneEmbed = new EmbedBuilder()
+        .setColor(0x27ae60)
+        .setTitle('✅ Item-Antrag bestätigt')
+        .addFields(
+          { name: '👤 Spieler', value: `<@${req.userId}>`, inline: true },
+          { name: '📦 Item', value: req.item, inline: true },
+          { name: '🔢 Menge', value: String(req.qty), inline: true },
+          { name: '👮 Bestätigt von', value: `<@${interaction.user.id}>`, inline: true }
+        )
+        .setTimestamp();
+      await interaction.update({ embeds: [doneEmbed], components: [] });
+      // Spieler benachrichtigen
+      const player = await client.users.fetch(req.userId).catch(() => null);
+      if (player) {
+        await player.send(`✅ Dein Antrag für **${req.qty}x ${req.item}** wurde bestätigt. Das Item wurde deinem Inventar hinzugefügt.`).catch(() => {});
+      }
+      return;
+    }
+
+    // ── Button: Ablehnen ──────────────────────────────────────────────────────
+    if (interaction.isButton() && interaction.customId.startsWith('fehlend_ablehnen:')) {
+      const member = interaction.member || await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
+      if (!member?.roles?.cache?.has(FEHLEND_ROLLE)) {
+        return await interaction.reply({ content: '❌ Du hast keine Berechtigung, Anträge abzulehnen.', ephemeral: true });
+      }
+      const requestId = interaction.customId.split(':')[1];
+      const req = pendingFehlend.get(requestId);
+      if (!req) {
+        return await interaction.reply({ content: '❌ Dieser Antrag ist nicht mehr aktiv oder bereits bearbeitet worden.', ephemeral: true });
+      }
+      pendingFehlend.delete(requestId);
+      const rejectEmbed = new EmbedBuilder()
+        .setColor(0xe74c3c)
+        .setTitle('❌ Item-Antrag abgelehnt')
+        .addFields(
+          { name: '👤 Spieler', value: `<@${req.userId}>`, inline: true },
+          { name: '📦 Item', value: req.item, inline: true },
+          { name: '🔢 Menge', value: String(req.qty), inline: true },
+          { name: '👮 Abgelehnt von', value: `<@${interaction.user.id}>`, inline: true }
+        )
+        .setTimestamp();
+      await interaction.update({ embeds: [rejectEmbed], components: [] });
+      const player = await client.users.fetch(req.userId).catch(() => null);
+      if (player) {
+        await player.send(`❌ Dein Antrag für **${req.qty}x ${req.item}** wurde leider abgelehnt.`).catch(() => {});
+      }
+      return;
+    }
+  } catch (e) { console.error('[FEHLEND] Interaction-Fehler:', e.message); }
+});
+
 // deploy
