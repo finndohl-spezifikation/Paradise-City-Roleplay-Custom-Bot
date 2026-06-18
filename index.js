@@ -1378,29 +1378,34 @@ client.once('ready', async () => {
       console.log('[FIX] Team-Overview-Embed wird neu gesendet.');
     }
   }
-  // ─── IMMER: Verifikations-Embed aktualisieren ─────────────────────────────
+  // ─── EINMALIG: Verifikations-Embed senden (nur wenn noch nicht vorhanden) ──
   {
-    try {
-      const _captchaCh = await client.channels.fetch(CAPTCHA_CH_ID).catch(() => null);
-      if (_captchaCh) {
-        // Altes Bot-Embed löschen
-        const _oldMsgs = await _captchaCh.messages.fetch({ limit: 20 }).catch(() => null);
-        if (_oldMsgs) {
-          const _oldEmbed = _oldMsgs.find(m => m.author.id === client.user.id && m.embeds.length > 0 && m.components.length > 0);
-          if (_oldEmbed) await _oldEmbed.delete().catch(() => {});
+    const _captchaSetup = loadSetup();
+    if (!_captchaSetup.captchaEmbedSent) {
+      try {
+        const _captchaCh = await client.channels.fetch(CAPTCHA_CH_ID).catch(() => null);
+        if (_captchaCh) {
+          const _oldMsgs = await _captchaCh.messages.fetch({ limit: 20 }).catch(() => null);
+          if (_oldMsgs) {
+            const _oldEmbed = _oldMsgs.find(m => m.author.id === client.user.id && m.embeds.length > 0 && m.components.length > 0);
+            if (_oldEmbed) await _oldEmbed.delete().catch(() => {});
+          }
+          const _captchaEmbed = new EmbedBuilder()
+            .setColor(0xFF6B00)
+            .setTitle('🔐 Server-Verifikation')
+            .setDescription('Klicke auf den Button und bestätige alle wichtigen Serverregeln,\num Zugang zu **Paradise City Roleplay** zu erhalten.');
+          const _captchaRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('captcha_start').setLabel('🔒 Jetzt verifizieren').setStyle(ButtonStyle.Success)
+          );
+          await _captchaCh.send({ embeds: [_captchaEmbed], components: [_captchaRow] });
+          _captchaSetup.captchaEmbedSent = true;
+          saveSetup(_captchaSetup);
+          console.log('[VERIFY] Verifikations-Embed einmalig gesendet.');
         }
-        // Neues Embed senden
-        const _captchaEmbed = new EmbedBuilder()
-          .setColor(0xFF6B00)
-          .setTitle('🔐 Server-Verifikation')
-          .setDescription('Klicke auf den Button und bestätige alle wichtigen Serverregeln,\num Zugang zu **Paradise City Roleplay** zu erhalten.');
-        const _captchaRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId('captcha_start').setLabel('🔒 Jetzt verifizieren').setStyle(ButtonStyle.Success)
-        );
-        await _captchaCh.send({ embeds: [_captchaEmbed], components: [_captchaRow] });
-        console.log('[VERIFY] Verifikations-Embed neu gesendet.');
-      }
-    } catch(e) { console.error('[VERIFY] Embed Fehler:', e.message); }
+      } catch(e) { console.error('[VERIFY] Embed Fehler:', e.message); }
+    } else {
+      console.log('[VERIFY] Embed bereits vorhanden, übersprungen.');
+    }
   }
 
   // ─── AutoMod: Anti-Mention-Spam Regel anlegen (gibt Bot das AutoMod-Badge) ──
@@ -1534,9 +1539,14 @@ client.once('ready', async () => {
   setInterval(() => { updateFirmenEmbed(client).catch(e => console.error('[FIRMEN INTERVAL]', e.message)); }, 60 * 1000);
 
 
-  // ─── AUTO: Krypto-Embeds beim Start senden (channel-check) ──────────────
+  // ─── AUTO: Krypto-Embeds beim Start senden (nur einmalig) ───────────────
   setTimeout(async () => {
     try {
+      const _kryptoSetup = loadSetup();
+      if (_kryptoSetup.kryptoEmbedsSent) {
+        console.log('[KRYPTO] Embeds bereits vorhanden, übersprungen.');
+        return;
+      }
       const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
       const rateData = loadKryptoRate();
 
@@ -1597,7 +1607,12 @@ client.once('ready', async () => {
         }
       }
 
-      // Channel 3: Kurse (wird von updateKryptoRate() befüllt)
+      // Channel 3: Kurse (wird von updateKryptoRate() befüllt — kein Startup-Send)
+
+      // Flag setzen: Embeds wurden gesendet, bei nächstem Neustart überspringen
+      _kryptoSetup.kryptoEmbedsSent = true;
+      saveSetup(_kryptoSetup);
+      console.log('[KRYPTO] Embeds einmalig gesendet, Flag gesetzt.');
 
     } catch (e) { console.error('[KRYPTO AUTO-EMBED]', e.message); }
   }, 12000);
@@ -2062,13 +2077,24 @@ client.once('ready', async () => {
     }
   }
 
-  await sendLog(CH.RESTART_LOG, new EmbedBuilder()
-    .setColor(Colors.Green)
-    .setTitle('🔄 Bot neugestartet')
-    .setDescription(`**${client.user.tag}** ist wieder online.`)
-    .addFields({ name: '🕐 Zeitpunkt', value: `<t:${ts()}:F>` })
-    
-  );
+  // ── Restart-Log direkt senden (mit Fehlerausgabe) ────────────────────────
+  try {
+    const _restartCh = await client.channels.fetch(CH.RESTART_LOG).catch(e => {
+      console.error('[RESTART LOG] Channel-Fetch Fehler:', e.message);
+      return null;
+    });
+    if (_restartCh) {
+      await _restartCh.send({ embeds: [new EmbedBuilder()
+        .setColor(Colors.Green)
+        .setTitle('🔄 Bot neugestartet')
+        .setDescription(`**${client.user.tag}** ist wieder online.`)
+        .addFields({ name: '🕐 Zeitpunkt', value: `<t:${ts()}:F>` })
+      ]});
+      console.log('[RESTART LOG] ✅ Nachricht gesendet in', CH.RESTART_LOG);
+    } else {
+      console.warn('[RESTART LOG] ⚠️ Kanal nicht gefunden oder kein Zugriff:', CH.RESTART_LOG);
+    }
+  } catch (e) { console.error('[RESTART LOG] Fehler:', e.message); }
 
 
   await updateLohnlisteEmbed(client);
