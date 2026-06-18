@@ -9300,69 +9300,59 @@ client.on('messageCreate', async (msg) => {
   })(1);
 }
 
-// ─── RUCKSACK EMBED (standalone ready-Handler) ───────────────────────────────
-client.once('ready', async () => {
-  setTimeout(async () => {
-    try {
-      console.log('[RUCKSACK] Starte Embed-Versand...');
-      const rCh = await client.channels.fetch(RUCKSACK_CH).catch(e => { console.error('[RUCKSACK] fetch-Fehler:', e.message); return null; });
-      if (!rCh) { console.error('[RUCKSACK] Kanal nicht gefunden:', RUCKSACK_CH); return; }
-      const oldMsgs = await rCh.messages.fetch({ limit: 50 }).catch(() => null);
-      if (oldMsgs) {
-        for (const msg of oldMsgs.values()) {
-          if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '🎒 Rucksack System') {
-            await msg.delete().catch(() => {});
-          }
-        }
-      }
-      const rEmbed = new EmbedBuilder()
-        .setColor(0xe65100)
-        .setTitle('🎒 Rucksack System')
-        .setDescription(
-          'Hier kannst du deinen eigenen Rucksack einsehen oder den Rucksack eines anderen Spielers durchsuchen.\n\n' +
-          '▸ **Rucksack Öffnen** — zeigt dein eigenes Inventar\n' +
-          '▸ **Anderer Rucksack Öffnen** — suche nach einem Spieler und sieh seinen Rucksack ein'
-        );
-      const rRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('rucksack_self').setLabel('🎒 Rucksack Öffnen').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('rucksack_other').setLabel('👤 Anderer Rucksack Öffnen').setStyle(ButtonStyle.Secondary)
-      );
-      await rCh.send({ embeds: [rEmbed], components: [rRow] });
-      console.log('[RUCKSACK] Embed gesendet.');
-    } catch (e) { console.error('[RUCKSACK] Fehler:', e.message); }
-  }, 4000);
-});
+// ─── STARTUP EMBED SYSTEM ─────────────────────────────────────────────────────
+console.log('[STARTUP] Handler werden registriert...');
 
-// ─── FEHLENDES-ITEM EMBED (standalone ready-Handler) ─────────────────────────
-client.once('ready', async () => {
-  setTimeout(async () => {
-    try {
-      console.log('[FEHLEND] Starte Embed-Versand...');
-      const fCh = await client.channels.fetch(FEHLEND_CH).catch(e => { console.error('[FEHLEND] fetch-Fehler:', e.message); return null; });
-      if (!fCh) { console.error('[FEHLEND] Kanal nicht gefunden:', FEHLEND_CH); return; }
+async function _sendStartupEmbeds(source) {
+  console.log('[STARTUP] _sendStartupEmbeds aufgerufen von:', source);
+  console.log('[STARTUP] client.isReady():', client.isReady());
+  console.log('[STARTUP] RUCKSACK_CH:', RUCKSACK_CH, '| FEHLEND_CH:', FEHLEND_CH);
+
+  // ── Rucksack ─────────────────────────────────────────────────────────────
+  try {
+    const guild = client.guilds.cache.get(GUILD_ID) || await client.guilds.fetch(GUILD_ID).catch(() => null);
+    console.log('[RUCKSACK] Guild gefunden:', guild ? guild.name : 'NICHT GEFUNDEN');
+    const rCh = guild?.channels.cache.get(RUCKSACK_CH) || await client.channels.fetch(RUCKSACK_CH).catch(e => { console.error('[RUCKSACK] fetch-Fehler:', e.message); return null; });
+    if (!rCh) { console.error('[RUCKSACK] Kanal nicht gefunden:', RUCKSACK_CH); }
+    else {
+      console.log('[RUCKSACK] Kanal gefunden:', rCh.name);
+      const oldMsgs = await rCh.messages.fetch({ limit: 50 }).catch(e => { console.error('[RUCKSACK] messages.fetch Fehler:', e.message); return null; });
+      if (oldMsgs) { for (const msg of oldMsgs.values()) { if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '🎒 Rucksack System') await msg.delete().catch(() => {}); } }
+      await rCh.send({
+        embeds: [new EmbedBuilder().setColor(0xe65100).setTitle('🎒 Rucksack System').setDescription('Hier kannst du deinen eigenen Rucksack einsehen oder den Rucksack eines anderen Spielers durchsuchen.\n\n▸ **Rucksack Öffnen** — zeigt dein eigenes Inventar\n▸ **Anderer Rucksack Öffnen** — suche nach einem Spieler und sieh seinen Rucksack ein')],
+        components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('rucksack_self').setLabel('🎒 Rucksack Öffnen').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('rucksack_other').setLabel('👤 Anderer Rucksack Öffnen').setStyle(ButtonStyle.Secondary))]
+      });
+      console.log('[RUCKSACK] ✅ Embed gesendet.');
+    }
+  } catch (e) { console.error('[RUCKSACK] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
+
+  // ── Fehlendes Item ────────────────────────────────────────────────────────
+  try {
+    const fCh = client.channels.cache.get(FEHLEND_CH) || await client.channels.fetch(FEHLEND_CH).catch(e => { console.error('[FEHLEND] fetch-Fehler:', e.message); return null; });
+    if (!fCh) { console.error('[FEHLEND] Kanal nicht gefunden:', FEHLEND_CH); }
+    else {
+      console.log('[FEHLEND] Kanal gefunden:', fCh.name);
       const oldMsgs = await fCh.messages.fetch({ limit: 50 }).catch(() => null);
-      if (oldMsgs) {
-        for (const msg of oldMsgs.values()) {
-          if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '❓ Fehlendes Item melden') {
-            await msg.delete().catch(() => {});
-          }
-        }
-      }
-      const fEmbed = new EmbedBuilder()
-        .setColor(0xe74c3c)
-        .setTitle('❓ Fehlendes Item melden')
-        .setDescription(
-          'Du vermisst ein Item aus deinem Inventar?\n\n' +
-          'Klicke auf den Button, gib das Item und die Menge an — das Team prüft deinen Antrag und gibt dir das Item bei Bestätigung automatisch.'
-        );
-      const fRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('fehlend_open').setLabel('🔍 Fehlendes Item').setStyle(ButtonStyle.Danger)
-      );
-      await fCh.send({ embeds: [fEmbed], components: [fRow] });
-      console.log('[FEHLEND] Embed gesendet.');
-    } catch (e) { console.error('[FEHLEND] Fehler:', e.message); }
-  }, 5000);
-});
+      if (oldMsgs) { for (const msg of oldMsgs.values()) { if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '❓ Fehlendes Item melden') await msg.delete().catch(() => {}); } }
+      await fCh.send({
+        embeds: [new EmbedBuilder().setColor(0xe74c3c).setTitle('❓ Fehlendes Item melden').setDescription('Du vermisst ein Item aus deinem Inventar?\n\nKlicke auf den Button, gib das Item und die Menge an — das Team prüft deinen Antrag und gibt dir das Item bei Bestätigung automatisch.')],
+        components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('fehlend_open').setLabel('🔍 Fehlendes Item').setStyle(ButtonStyle.Danger))]
+      });
+      console.log('[FEHLEND] ✅ Embed gesendet.');
+    }
+  } catch (e) { console.error('[FEHLEND] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
+}
+
+// Versuche ready (v14) UND clientReady (v15) abzufangen
+let _startupEmbedsDone = false;
+async function _onBotReady(source) {
+  if (_startupEmbedsDone) { console.log('[STARTUP] Handler schon gelaufen, überspringe (' + source + ')'); return; }
+  _startupEmbedsDone = true;
+  console.log('[STARTUP] Ready-Event empfangen von:', source, '| Bot:', client.user?.tag);
+  setTimeout(() => _sendStartupEmbeds(source + ':setTimeout').catch(e => console.error('[STARTUP] Fehler in setTimeout:', e.message)), 5000);
+}
+client.once('ready', () => _onBotReady('ready'));
+client.once('clientReady', () => _onBotReady('clientReady'));
 
 // ─── FEHLENDES-ITEM HANDLER ───────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
