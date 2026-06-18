@@ -57,18 +57,44 @@ module.exports.init = function initDashboard(app, express, DATA_DIR, client) {
     res.redirect('/dashboard/login');
   });
 
+  // ── Hilfsfunktion: Member-Liste aufbauen & 5 Min cachen ────────────────────
+  async function ensureMembersCache() {
+    let list = getCached('members_list');
+    if (list) return list;
+    const guild = await client.guilds.fetch(DASHBOARD_GUILD);
+    // Alle Member via Chunking laden (GuildMembers-Intent erforderlich)
+    await guild.members.fetch();
+    list = [...guild.members.cache.values()]
+      .filter(m => !m.user.bot)
+      .map(m => ({
+        id:         m.user.id,
+        username:   m.user.username,
+        display:    m.displayName,
+        avatar:     m.user.displayAvatarURL({ size: 64 }),
+        topRole:    m.roles.cache.filter(r => r.id !== guild.id).sort((a,b) => b.position - a.position).first()?.name || 'Kein',
+        joinedAt:   m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('de-DE') : '—',
+        isTimedOut: !!(m.communicationDisabledUntilTimestamp && m.communicationDisabledUntilTimestamp > Date.now()),
+      }))
+      .sort((a,b) => a.username.localeCompare(b.username));
+    setCached('members_list', list, 300000); // 5 Minuten
+    return list;
+  }
+
   // ── Stats API ───────────────────────────────────────────────────────────────
   app.get('/dashboard/api/stats', requireAuth, async (req, res) => {
     try {
       const guild = await client.guilds.fetch(DASHBOARD_GUILD);
-      // Mitglieder nur alle 90s neu laden (Rate-Limit-Schutz)
-      if (!getCached('members_ok')) {
-        await guild.members.fetch();
-        setCached('members_ok', true, 90000);
+      // Member-Anzahl aus Cache (vermeidet opcode-8 Rate-Limit im Stats-Call)
+      const cachedList = getCached('members_list');
+      let total, bots;
+      if (cachedList) {
+        total = cachedList.length;
+        bots  = guild.members.cache.filter(m => m.user.bot).size;
+      } else {
+        // Noch kein Cache — kurzer Fallback aus Discord-Cache (ohne fetch)
+        total = guild.members.cache.filter(m => !m.user.bot).size;
+        bots  = guild.members.cache.filter(m =>  m.user.bot).size;
       }
-      const members  = guild.members.cache;
-      const total    = members.filter(m => !m.user.bot).size;
-      const bots     = members.filter(m =>  m.user.bot).size;
       // Bans aus Cache oder frisch holen
       let banSize = getCached('ban_size');
       if (banSize === null) {
@@ -76,7 +102,7 @@ module.exports.init = function initDashboard(app, express, DATA_DIR, client) {
         banSize = bans ? bans.size : 0;
         setCached('ban_size', banSize, 60000);
       }
-      const uptimeSec= Math.floor(process.uptime());
+      const uptimeSec = Math.floor(process.uptime());
       res.json({
         ok: true,
         serverName:   guild.name,
@@ -94,27 +120,24 @@ module.exports.init = function initDashboard(app, express, DATA_DIR, client) {
   // ── Members API ─────────────────────────────────────────────────────────────
   app.get('/dashboard/api/members', requireAuth, async (req, res) => {
     try {
-      const guild = await client.guilds.fetch(DASHBOARD_GUILD);
-      // Nur neu fetchen wenn Cache abgelaufen — Rate-Limit-Schutz (90s)
-      if (!getCached('members_ok')) {
-        await guild.members.fetch();
-        setCached('members_ok', true, 90000);
-      }
+      // Vollständige Liste aus Cache oder neu laden (alle Member, inkl. 1000+)
+      const list = await ensureMembersCache();
       const q = (req.query.q || '').toLowerCase();
-      const list = guild.members.cache
-        .filter(m => !m.user.bot)
-        .filter(m => !q || m.user.username.toLowerCase().includes(q) || (m.nickname||'').toLowerCase().includes(q) || m.user.id.includes(q))
-        .map(m => ({
-          id:         m.user.id,
-          username:   m.user.username,
-          display:    m.displayName,
-          avatar:     m.user.displayAvatarURL({ size: 64 }),
-          topRole:    m.roles.cache.filter(r => r.id !== guild.id).sort((a,b) => b.position - a.position).first()?.name || 'Kein',
-          joinedAt:   m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('de-DE') : '—',
-          isTimedOut: !!(m.communicationDisabledUntilTimestamp && m.communicationDisabledUntilTimestamp > Date.now()),
-        }))
-        .sort((a,b) => a.username.localeCompare(b.username));
-      res.json({ ok: true, members: list });
+      const filtered = !q ? list : list.filter(m =>
+        m.username.toLowerCase().includes(q) ||
+        m.display.toLowerCase().includes(q) ||
+        m.id.includes(q)
+      );
+      res.json({ ok: true, members: filtered });
+    } catch (e) { res.json({ ok: false, error: e.message }); }
+  });
+
+  // ── Members Cache Refresh (manuell) ─────────────────────────────────────────
+  app.post('/dashboard/api/members/refresh', requireAuth, async (req, res) => {
+    try {
+      invalidate('members_list');
+      const list = await ensureMembersCache();
+      res.json({ ok: true, count: list.length });
     } catch (e) { res.json({ ok: false, error: e.message }); }
   });
 
@@ -421,7 +444,10 @@ header{position:sticky;top:0;background:var(--bg2);border-bottom:1px solid var(-
   <div class="page" id="page-members">
     <div class="section-hd">
       <h2>👥 Mitglieder</h2>
-      <input class="search-box" type="text" id="member-search" placeholder="🔍  Name oder ID suchen…" oninput="searchMembers()">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input class="search-box" type="text" id="member-search" placeholder="🔍  Name oder ID suchen…" oninput="searchMembers()">
+        <button id="refresh-btn" onclick="refreshMembers()" style="background:rgba(230,81,0,.15);border:1px solid rgba(230,81,0,.4);color:var(--accent);border-radius:10px;padding:9px 14px;font-size:.82em;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s">🔄 Aktualisieren</button>
+      </div>
     </div>
     <div id="member-count" style="color:var(--text2);font-size:.8em;margin-bottom:14px"></div>
     <div class="member-grid" id="member-list"><div class="loader">Lade Mitglieder…</div></div>
@@ -559,6 +585,20 @@ async function loadMembers() {
     allMembers = d.members;
     renderMembers(allMembers);
   } catch(e) { el.innerHTML = '<div class="loader">Fehler beim Laden.</div>'; }
+}
+async function refreshMembers() {
+  const btn = document.getElementById('refresh-btn');
+  const el  = document.getElementById('member-list');
+  const ct  = document.getElementById('member-count');
+  btn.disabled = true; btn.textContent = '⏳ Lädt…';
+  el.innerHTML = '<div class="loader">Lade alle Mitglieder von Discord…</div>';
+  ct.textContent = '';
+  try {
+    const r = await apiFetch('/dashboard/api/members/refresh', { method: 'POST' });
+    if (!r.ok) { el.innerHTML = '<div class="loader">Fehler: ' + (r.error||'?') + '</div>'; }
+    else { await loadMembers(); }
+  } catch(e) { el.innerHTML = '<div class="loader">Fehler beim Aktualisieren.</div>'; }
+  finally { btn.disabled = false; btn.textContent = '🔄 Aktualisieren'; }
 }
 function renderMembers(list) {
   const el = document.getElementById('member-list');
