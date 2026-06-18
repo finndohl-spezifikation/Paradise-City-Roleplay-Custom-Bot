@@ -952,14 +952,12 @@ const inviteCache = new Map();
 const CAPTCHA_CH_ID = '1516251730357125202';
 
 // ─── Rucksack-System ──────────────────────────────────────────────────────────
-const RUCKSACK_CH       = '1490882591023173682';
-const RUCKSACK_ROLLE    = '1490855722534310003';
-const RUCKSACK_PER_PAGE = 10;
+const RUCKSACK_CH          = '1490882591023173682';
+const RUCKSACK_ROLLE       = '1490855722534310003';
+const RUCKSACK_PER_PAGE    = 10;
+const UEBERGABEN_EMBED_CH  = '1490882592445304972';
+const DASHBOARD_EMBED_CH   = '1491789518603419822';
 
-// ─── Fehlendes-Item-System ────────────────────────────────────────────────────
-const FEHLEND_CH    = '1490882596668707017';
-const FEHLEND_ROLLE = '1490855718658510908';
-const pendingFehlend = new Map(); // requestId → { userId, item, qty }
 
 // ─── Kanal-IDs ───────────────────────────────────────────────────────────────
 const CH = {
@@ -1370,15 +1368,6 @@ client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
   client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
 
-  // ─── /dashboard Slash Command registrieren ────────────────────────────────
-  try {
-    const _dashRest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-    await _dashRest.put(
-      Routes.applicationGuildCommands(client.user.id, '1498482541751963698'),
-      { body: [new SlashCommandBuilder().setName('dashboard').setDescription('Öffnet das Inhaber-Dashboard (nur für Inhaber)').toJSON()] }
-    );
-    console.log('[DASHBOARD] /dashboard erfolgreich registriert.');
-  } catch (e) { console.error('[DASHBOARD] Registrierung fehlgeschlagen:', e.message); }
   // ─── EINMALIG: Team-Overview-Embed neu senden (v_paradise_4) ───────────────
   {
     const setup = loadSetup();
@@ -1830,14 +1819,6 @@ client.once('ready', async () => {
       .setName('lobby-close')
       .setDescription('Schließt die Lobby')
       .toJSON(),
-
-      new SlashCommandBuilder()
-        .setName('übergeben')
-        .setDescription('Übergibt Items an einen anderen Spieler')
-        .addStringOption(opt => opt.setName('item').setDescription('Item aus deinem Inventar').setRequired(true).setAutocomplete(true))
-        .addIntegerOption(opt => opt.setName('menge').setDescription('Menge').setRequired(true).setMinValue(1))
-        .addUserOption(opt => opt.setName('an-wen').setDescription('Empfänger').setRequired(true))
-        .toJSON(),
 
       new SlashCommandBuilder()
         .setName('use')
@@ -4293,7 +4274,7 @@ client.on('interactionCreate', async (interaction) => {
             .map(v => ({ name: `#${v.id} — ${v.text.slice(0, 80)}`, value: String(v.id) }));
           return interaction.respond(choices);
         }
-        if (cmd === 'übergeben' || cmd === 'use') {
+        if (cmd === 'use') {
           const focused = interaction.options.getFocused().toLowerCase();
           const inv = getUserInv(interaction.user.id);
           const choices = Object.entries(inv)
@@ -5278,29 +5259,6 @@ client.on('interactionCreate', async (interaction) => {
           const embed = buildLagerEmbed(target, 0, lager);
           const rows = [invPageButtons(0, totalPages, target.id, 'lager'), lagerActionButtons(0, target.id)];
           return interaction.reply({ embeds: [embed], components: rows, ephemeral: true });
-        }
-
-        // /übergeben
-        if (commandName === 'übergeben') {
-          if (interaction.channelId !== UEBERGABE_CH) return interaction.reply({ content: `❌ Dieser Command funktioniert nur in <#${UEBERGABE_CH}>.`, ephemeral: true });
-          const itemName = interaction.options.getString('item');
-          const menge    = interaction.options.getInteger('menge');
-          const target   = interaction.options.getUser('an-wen');
-          if (target.id === user.id) return interaction.reply({ content: '❌ Du kannst dir nicht selbst Items übergeben.', ephemeral: true });
-          const inv = getUserInv(user.id);
-          const foundKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
-          if (!foundKey || inv[foundKey] < menge) return interaction.reply({ content: `❌ Du hast nicht genug **${itemName}** im Inventar (hast: ${foundKey ? inv[foundKey] : 0}x).`, ephemeral: true });
-          inv[foundKey] -= menge;
-          if (inv[foundKey] <= 0) delete inv[foundKey];
-          setUserInv(user.id, inv);
-          const targetInv = getUserInv(target.id);
-          targetInv[foundKey] = (targetInv[foundKey] || 0) + menge;
-          setUserInv(target.id, targetInv);
-          return interaction.reply({ ephemeral: true, embeds: [new EmbedBuilder()
-            .setColor(0x57F287).setTitle('📦  Übergabe erfolgreich')
-            .setDescription(`<@${user.id}> hat **${menge}x ${foundKey}** an <@${target.id}> übergeben.`)
-            
-          ]});
         }
 
         // /use
@@ -8149,48 +8107,6 @@ client.on('interactionCreate', async (interaction) => {
 });
 // ─── END DARKNET BETRETEN BUTTON ─────────────────────────────────────────────
 
-// ─── INHABER DASHBOARD COMMAND ────────────────────────────────────────────────
-const DASHBOARD_OWNER_ROLES = ['1490855702225485936'];
-const GUILD_ID_DASHBOARD    = '1498482541751963698';
-
-
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
-  if (interaction.commandName !== 'dashboard') return;
-  try {
-    const member = interaction.member;
-    const isOwner = DASHBOARD_OWNER_ROLES.some(r => member?.roles?.cache?.has(r));
-    if (!isOwner) {
-      return interaction.reply({ content: '❌ Du hast keine Berechtigung für das Inhaber-Dashboard.', ephemeral: true });
-    }
-    await interaction.deferReply({ ephemeral: true });
-    const WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
-    const tok = crypto.randomBytes(24).toString('hex');
-    const { dashboardTokens } = require('./web');
-    if (!dashboardTokens) {
-      return interaction.editReply({ content: '❌ Dashboard-System nicht bereit. Bitte kurz warten.' });
-    }
-    dashboardTokens.set(tok, { userId: interaction.user.id, expiresAt: Date.now() + 10 * 60 * 1000 });
-    setTimeout(() => dashboardTokens.delete(tok), 10 * 60 * 1000);
-    const url = WEBAPP + '/dashboard?token=' + tok;
-    try {
-      const dm = await interaction.user.createDM();
-      await dm.send({ embeds: [new EmbedBuilder()
-        .setColor(0x4f7cf7)
-        .setTitle('🏙️ Inhaber Dashboard — Zugang')
-        .setDescription('Klicke auf den Link um das Dashboard zu öffnen.\n\n⏳ **Link gültig für 10 Minuten.**\n🔒 Du wirst nach einem Passwort gefragt.')
-        .addFields({ name: '🔗 Dashboard-Link', value: url, inline: false })
-        .setFooter({ text: 'Teile diesen Link nicht mit anderen Personen.' })
-        .setTimestamp()
-      ] });
-    } catch {}
-    await interaction.editReply({ content: '📬 Der Dashboard-Link wurde dir per DM geschickt!' });
-  } catch (e) {
-    console.error('[DASHBOARD CMD]', e.message);
-    await interaction.editReply({ content: '❌ Fehler: ' + e.message }).catch(() => {});
-  }
-});
-// ─── END INHABER DASHBOARD COMMAND ───────────────────────────────────────────
 
 // ─── ERROR HANDLERS ──────────────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
@@ -9300,7 +9216,7 @@ console.log('[STARTUP] Handler werden registriert...');
 async function _sendStartupEmbeds(source) {
   console.log('[STARTUP] _sendStartupEmbeds aufgerufen von:', source);
   console.log('[STARTUP] client.isReady():', client.isReady());
-  console.log('[STARTUP] RUCKSACK_CH:', RUCKSACK_CH, '| FEHLEND_CH:', FEHLEND_CH);
+  console.log('[STARTUP] RUCKSACK_CH:', RUCKSACK_CH, '| UEBERGABEN_CH:', UEBERGABEN_EMBED_CH);
 
   // ── Rucksack ─────────────────────────────────────────────────────────────
   try {
@@ -9318,21 +9234,51 @@ async function _sendStartupEmbeds(source) {
     }
   } catch (e) { console.error('[RUCKSACK] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
 
-  // ── Fehlendes Item ────────────────────────────────────────────────────────
+  // ── Übergaben ─────────────────────────────────────────────────────────────
   try {
-    const fCh = client.channels.cache.get(FEHLEND_CH) || await client.channels.fetch(FEHLEND_CH).catch(e => { console.error('[FEHLEND] fetch-Fehler:', e.message); return null; });
-    if (!fCh) { console.error('[FEHLEND] Kanal nicht gefunden:', FEHLEND_CH); }
+    const uCh = client.channels.cache.get(UEBERGABEN_EMBED_CH) || await client.channels.fetch(UEBERGABEN_EMBED_CH).catch(e => { console.error('[ÜBERGABEN] fetch-Fehler:', e.message); return null; });
+    if (!uCh) { console.error('[ÜBERGABEN] Kanal nicht gefunden:', UEBERGABEN_EMBED_CH); }
     else {
-      console.log('[FEHLEND] Kanal gefunden:', fCh.name);
-      const oldMsgs = await fCh.messages.fetch({ limit: 50 }).catch(() => null);
-      if (oldMsgs) { for (const msg of oldMsgs.values()) { if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '❓ Fehlendes Item melden') await msg.delete().catch(() => {}); } }
-      await fCh.send({
-        embeds: [new EmbedBuilder().setColor(0xe74c3c).setTitle('❓ Fehlendes Item melden').setDescription('Du vermisst ein Item aus deinem Inventar?\n\nKlicke auf den Button, gib das Item und die Menge an — das Team prüft deinen Antrag und gibt dir das Item bei Bestätigung automatisch.')],
-        components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('fehlend_open').setLabel('🔍 Fehlendes Item').setStyle(ButtonStyle.Danger))]
+      console.log('[ÜBERGABEN] Kanal gefunden:', uCh.name);
+      const oldMsgs = await uCh.messages.fetch({ limit: 50 }).catch(() => null);
+      if (oldMsgs) { for (const msg of oldMsgs.values()) { if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '📦 Items Übergeben') await msg.delete().catch(() => {}); } }
+      await uCh.send({
+        embeds: [new EmbedBuilder()
+          .setColor(0x57F287)
+          .setTitle('📦 Items Übergeben')
+          .setDescription('Möchtest du Items aus deinem Inventar an einen anderen Spieler übergeben?\n\n▸ Klicke auf **Übergeben**\n▸ Wähle den Empfänger über die Suchleiste aus\n▸ Wähle das Item aus deinem Inventar\n▸ Gib die Menge ein & bestätige\n\nDie Items werden automatisch übertragen.')
+        ],
+        components: [new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('uebergaben_btn').setLabel('📦 Übergeben').setStyle(ButtonStyle.Success)
+        )]
       });
-      console.log('[FEHLEND] ✅ Embed gesendet.');
+      console.log('[ÜBERGABEN] ✅ Embed gesendet.');
     }
-  } catch (e) { console.error('[FEHLEND] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
+  } catch (e) { console.error('[ÜBERGABEN] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
+
+  // ── Dashboard-Embed ───────────────────────────────────────────────────────
+  try {
+    const dCh = client.channels.cache.get(DASHBOARD_EMBED_CH) || await client.channels.fetch(DASHBOARD_EMBED_CH).catch(e => { console.error('[DASHBOARD] fetch-Fehler:', e.message); return null; });
+    if (!dCh) { console.error('[DASHBOARD] Kanal nicht gefunden:', DASHBOARD_EMBED_CH); }
+    else {
+      console.log('[DASHBOARD] Kanal gefunden:', dCh.name);
+      const oldMsgs = await dCh.messages.fetch({ limit: 50 }).catch(() => null);
+      if (oldMsgs) { for (const msg of oldMsgs.values()) { if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '🏙️ Inhaber Dashboard') await msg.delete().catch(() => {}); } }
+      const WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/, '');
+      const dashUrl = WEBAPP ? WEBAPP + '/dashboard' : null;
+      await dCh.send({
+        embeds: [new EmbedBuilder()
+          .setColor(0x4f7cf7)
+          .setTitle('🏙️ Inhaber Dashboard')
+          .setDescription('Klicke auf den Button um das Inhaber-Dashboard zu öffnen.\n\n🔒 Nur für berechtigte Inhaber zugänglich.')
+        ],
+        components: dashUrl ? [new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setLabel('🏙️ Dashboard öffnen').setURL(dashUrl).setStyle(ButtonStyle.Link)
+        )] : []
+      });
+      console.log('[DASHBOARD] ✅ Embed gesendet.');
+    }
+  } catch (e) { console.error('[DASHBOARD] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
 }
 
 // Versuche ready (v14) UND clientReady (v15) abzufangen
@@ -9346,94 +9292,63 @@ async function _onBotReady(source) {
 client.once('ready', () => _onBotReady('ready'));
 client.once('clientReady', () => _onBotReady('clientReady'));
 
-// ─── FEHLENDES-ITEM HANDLER ───────────────────────────────────────────────────
+// ─── ÜBERGABEN HANDLER ────────────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
   try {
-    // ── Button: Fehlendes Item — Kategorie wählen ────────────────────────────
-    if (interaction.isButton() && interaction.customId === 'fehlend_open') {
+    // ── Button: Übergeben starten → Empfänger Suchleiste ─────────────────────
+    if (interaction.isButton() && interaction.customId === 'uebergaben_btn') {
       return interaction.reply({
-        content: '📦 **Schritt 1 von 2 — Wähle eine Kategorie:**',
+        content: '📦 **Schritt 1 — Wähle den Empfänger:**',
         ephemeral: true,
         components: [new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId('fehlend_kat')
-            .setPlaceholder('🔍 Kategorie wählen...')
-            .addOptions([
-              { label: '🎃 Kürbisse', value: 'kuerbis', description: 'Kronenkürbis, Black Futsu, Kakai, Butternut, Spaghetti' },
-              { label: '🪵 Holz', value: 'holz', description: 'Mammutbaum, Weisstannen, Rotahorn, Buchen, Fichten' },
-              { label: '⛏️ Erze & Mineralien', value: 'minen', description: 'Rubin, Smaragd, Diamant, Gold, Silber, Metall, Steinkohle' },
-              { label: '🐟 Fische', value: 'angeln', description: 'Goldener Saibling, Barrakuda, Lachs, Hecht, Forelle, Wels, ...' },
-              { label: '🛒 Werkzeuge & Items', value: 'items', description: 'Gartenschere, Angelrute, Brechstange, Sprengstoff' },
-            ])
+          new UserSelectMenuBuilder()
+            .setCustomId('uebergaben_user')
+            .setPlaceholder('🔍 Spieler suchen...')
+            .setMinValues(1)
+            .setMaxValues(1)
         )]
       });
     }
 
-    // ── StringSelect: Kategorie → Item-Liste ─────────────────────────────────
-    if (interaction.isStringSelectMenu() && interaction.customId === 'fehlend_kat') {
-      const kat = interaction.values[0];
-      const itemMap = {
-        kuerbis: [
-          { label: '🎃 Kronenkürbis',     value: '🎃 | Kronenkürbis' },
-          { label: '🎃 Black Futsu Kürbis', value: '🎃 | Black Futsu Kürbis' },
-          { label: '🎃 Kakai Kürbis',      value: '🎃 | Kakai Kürbis' },
-          { label: '🎃 Butternut Kürbis',  value: '🎃 | Butternut Kürbis' },
-          { label: '🎃 Spaghetti Kürbis',  value: '🎃 | Spaghetti Kürbis' },
-        ],
-        holz: [
-          { label: '🪵 Mammutbaum Holz',   value: '🪵 | Mammutbaum Holz' },
-          { label: '🪵 Weisstannen Holz',  value: '🪵 | Weisstannen Holz' },
-          { label: '🪵 Rotahorn Holz',     value: '🪵 | Rotahorn Holz' },
-          { label: '🪵 Buchen Holz',       value: '🪵 | Buchen Holz' },
-          { label: '🪵 Fichten Holz',      value: '🪵 | Fichten Holz' },
-        ],
-        minen: [
-          { label: '💎 Diamant',      value: '💎 | Diamant' },
-          { label: '💛 Gold',         value: '<:emoji_51:1516506190656438617> | Gold' },
-          { label: '🪙 Silber',       value: '🪙 | Silber' },
-          { label: '🪙 Metall',       value: '🪙 | Metall' },
-          { label: '🪨 Steinkohle',   value: '🪨 | Steinkohle' },
-          { label: '🔴 Rubin',        value: '<:emoji_49:1516505838607536250> | Rubin' },
-          { label: '🟢 Smaragd',      value: '<:emoji_50:1516505987492745276> | Smaragd' },
-        ],
-        angeln: [
-          { label: '🥇 Goldener Saibling',  value: '🥇 | Goldener Saibling' },
-          { label: '🐟 Stachelrochen',      value: '🐟 | Stachelrochen' },
-          { label: '🐟 Barrakuda',          value: '🐟 | Barrakuda' },
-          { label: '🐟 Lachs',              value: '🐟 | Lachs' },
-          { label: '🐟 Hecht',              value: '🐟 | Hecht' },
-          { label: '🐟 Forelle',            value: '🐟 | Forelle' },
-          { label: '🐟 Wels',               value: '🐟 | Wels' },
-        ],
-        items: [
-          { label: '✂️ Gartenschere',         value: 'Gartenschere' },
-          { label: '🎣 Angelrute',            value: 'Angelrute' },
-          { label: '🔨 Brechstange',          value: 'Brechstange' },
-          { label: '💣 Automaten Sprengstoff', value: 'Automaten Sprengstoff' },
-        ],
-      };
-      const opts = itemMap[kat] || [];
+    // ── UserSelect: Empfänger gewählt → Item aus eigenem Inventar ────────────
+    if ((interaction.isUserSelectMenu?.() || interaction.isStringSelectMenu()) && interaction.customId === 'uebergaben_user') {
+      const targetId = interaction.values[0];
+      if (targetId === interaction.user.id) {
+        return interaction.update({ content: '❌ Du kannst dir nicht selbst Items übergeben. Bitte wähle einen anderen Spieler.', components: [] });
+      }
+      const inv = getUserInv(interaction.user.id);
+      const invEntries = Object.entries(inv).filter(([, q]) => q > 0);
+      if (invEntries.length === 0) {
+        return interaction.update({ content: '❌ Dein Inventar ist leer — du hast keine Items zum Übergeben.', components: [] });
+      }
+      const targetB64 = Buffer.from(targetId).toString('base64');
+      const opts = invEntries.slice(0, 25).map(([name, qty]) => ({
+        label: (name.length > 100 ? name.slice(0, 97) + '…' : name),
+        description: qty + 'x vorhanden',
+        value: Buffer.from(name).toString('base64').slice(0, 100)
+      }));
       return interaction.update({
-        content: '📦 **Schritt 2 von 2 — Welches Item fehlt dir?**',
+        content: `📦 **Schritt 2 — Welches Item möchtest du an <@${targetId}> übergeben?**`,
         components: [new ActionRowBuilder().addComponents(
           new StringSelectMenuBuilder()
-            .setCustomId('fehlend_item')
+            .setCustomId('uebergaben_item:' + targetB64)
             .setPlaceholder('🔍 Item wählen...')
             .addOptions(opts)
         )]
       });
     }
 
-    // ── StringSelect: Item → Menge-Modal ─────────────────────────────────────
-    if (interaction.isStringSelectMenu() && interaction.customId === 'fehlend_item') {
-      const item = interaction.values[0];
+    // ── StringSelect: Item gewählt → Menge-Modal ─────────────────────────────
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('uebergaben_item:')) {
+      const targetB64 = interaction.customId.split(':')[1];
+      const itemB64   = interaction.values[0];
       const modal = new ModalBuilder()
-        .setCustomId('fehlend_qty:' + Buffer.from(item).toString('base64'))
+        .setCustomId('uebergaben_qty:' + targetB64 + ':' + itemB64)
         .setTitle('Menge eingeben');
       modal.addComponents(new ActionRowBuilder().addComponents(
         new TextInputBuilder()
-          .setCustomId('fehlend_menge')
-          .setLabel('Wie viele Stück fehlen dir?')
+          .setCustomId('uebergaben_menge')
+          .setLabel('Wie viele Stück möchtest du übergeben?')
           .setStyle(TextInputStyle.Short)
           .setPlaceholder('z.B. 5')
           .setRequired(true)
@@ -9442,101 +9357,50 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.showModal(modal);
     }
 
-    // ── Modal: Antrag absenden ────────────────────────────────────────────────
-    if (interaction.isModalSubmit() && interaction.customId.startsWith('fehlend_qty:')) {
-      const item = Buffer.from(interaction.customId.split(':')[1], 'base64').toString('utf8');
-      const menge = parseInt(interaction.fields.getTextInputValue('fehlend_menge').trim(), 10);
+    // ── Modal: Übergabe durchführen ───────────────────────────────────────────
+    if (interaction.isModalSubmit() && interaction.customId.startsWith('uebergaben_qty:')) {
+      const parts    = interaction.customId.split(':');
+      const targetId = Buffer.from(parts[1], 'base64').toString('utf8');
+      const itemName = Buffer.from(parts[2], 'base64').toString('utf8');
+      const menge    = parseInt(interaction.fields.getTextInputValue('uebergaben_menge').trim(), 10);
       if (!menge || menge < 1) {
         return interaction.reply({ content: '❌ Bitte gib eine gültige Menge ein (mindestens 1).', ephemeral: true });
       }
-      const requestId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      const fCh = await client.channels.fetch(FEHLEND_CH).catch(() => null);
-      if (!fCh) return interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
-      const reqEmbed = new EmbedBuilder()
-        .setColor(0xf39c12)
-        .setTitle('📋 Item-Antrag')
-        .addFields(
-          { name: '👤 Spieler', value: `<@${interaction.user.id}> (${interaction.user.username})`, inline: true },
-          { name: '📦 Item', value: item, inline: true },
-          { name: '🔢 Menge', value: String(menge), inline: true }
-        )
-        .setFooter({ text: 'Antrag-ID: ' + requestId })
-        .setTimestamp();
-      const confirmRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('fehlend_confirm:' + requestId).setLabel('✅ Bestätigen').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId('fehlend_ablehnen:' + requestId).setLabel('❌ Ablehnen').setStyle(ButtonStyle.Danger)
-      );
-      const reqMsg = await fCh.send({ embeds: [reqEmbed], components: [confirmRow] });
-      pendingFehlend.set(requestId, { userId: interaction.user.id, item, qty: menge, msgId: reqMsg.id });
-      return interaction.reply({ content: `✅ Dein Antrag für **${menge}x ${item}** wurde eingereicht und wird vom Team geprüft.`, ephemeral: true });
+      const senderInv = getUserInv(interaction.user.id);
+      const foundKey  = Object.keys(senderInv).find(k => k === itemName);
+      if (!foundKey || senderInv[foundKey] < menge) {
+        return interaction.reply({ content: `❌ Du hast nicht genug **${itemName}** im Inventar (hast: ${foundKey ? senderInv[foundKey] : 0}x).`, ephemeral: true });
+      }
+      // Transaktion
+      senderInv[foundKey] -= menge;
+      if (senderInv[foundKey] <= 0) delete senderInv[foundKey];
+      setUserInv(interaction.user.id, senderInv);
+      const targetInv = getUserInv(targetId);
+      targetInv[foundKey] = (targetInv[foundKey] || 0) + menge;
+      setUserInv(targetId, targetInv);
+      // Empfänger per DM benachrichtigen
+      try {
+        const targetUser = await client.users.fetch(targetId);
+        await (await targetUser.createDM()).send({
+          embeds: [new EmbedBuilder()
+            .setColor(0x57F287)
+            .setTitle('📦 Item erhalten!')
+            .setDescription(`<@${interaction.user.id}> hat dir **${menge}x ${foundKey}** übergeben. Das Item wurde deinem Inventar hinzugefügt.`)
+            .setTimestamp()
+          ]
+        });
+      } catch {}
+      return interaction.reply({
+        ephemeral: true,
+        embeds: [new EmbedBuilder()
+          .setColor(0x57F287)
+          .setTitle('✅ Übergabe erfolgreich')
+          .setDescription(`Du hast **${menge}x ${foundKey}** an <@${targetId}> übergeben.`)
+          .setTimestamp()
+        ]
+      });
     }
-
-    // ── Button: Bestätigen ────────────────────────────────────────────────────
-    if (interaction.isButton() && interaction.customId.startsWith('fehlend_confirm:')) {
-      const member = interaction.member || await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
-      if (!member?.roles?.cache?.has(FEHLEND_ROLLE)) {
-        return await interaction.reply({ content: '❌ Du hast keine Berechtigung, Anträge zu bestätigen.', ephemeral: true });
-      }
-      const requestId = interaction.customId.split(':')[1];
-      const req = pendingFehlend.get(requestId);
-      if (!req) {
-        return await interaction.reply({ content: '❌ Dieser Antrag ist nicht mehr aktiv oder bereits bearbeitet worden.', ephemeral: true });
-      }
-      // Item dem Spieler geben
-      const inv = getUserInv(req.userId);
-      inv[req.item] = (inv[req.item] || 0) + req.qty;
-      setUserInv(req.userId, inv);
-      pendingFehlend.delete(requestId);
-      // Embed aktualisieren
-      const doneEmbed = new EmbedBuilder()
-        .setColor(0x27ae60)
-        .setTitle('✅ Item-Antrag bestätigt')
-        .addFields(
-          { name: '👤 Spieler', value: `<@${req.userId}>`, inline: true },
-          { name: '📦 Item', value: req.item, inline: true },
-          { name: '🔢 Menge', value: String(req.qty), inline: true },
-          { name: '👮 Bestätigt von', value: `<@${interaction.user.id}>`, inline: true }
-        )
-        .setTimestamp();
-      await interaction.update({ embeds: [doneEmbed], components: [] });
-      // Spieler benachrichtigen
-      const player = await client.users.fetch(req.userId).catch(() => null);
-      if (player) {
-        await player.send(`✅ Dein Antrag für **${req.qty}x ${req.item}** wurde bestätigt. Das Item wurde deinem Inventar hinzugefügt.`).catch(() => {});
-      }
-      return;
-    }
-
-    // ── Button: Ablehnen ──────────────────────────────────────────────────────
-    if (interaction.isButton() && interaction.customId.startsWith('fehlend_ablehnen:')) {
-      const member = interaction.member || await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
-      if (!member?.roles?.cache?.has(FEHLEND_ROLLE)) {
-        return await interaction.reply({ content: '❌ Du hast keine Berechtigung, Anträge abzulehnen.', ephemeral: true });
-      }
-      const requestId = interaction.customId.split(':')[1];
-      const req = pendingFehlend.get(requestId);
-      if (!req) {
-        return await interaction.reply({ content: '❌ Dieser Antrag ist nicht mehr aktiv oder bereits bearbeitet worden.', ephemeral: true });
-      }
-      pendingFehlend.delete(requestId);
-      const rejectEmbed = new EmbedBuilder()
-        .setColor(0xe74c3c)
-        .setTitle('❌ Item-Antrag abgelehnt')
-        .addFields(
-          { name: '👤 Spieler', value: `<@${req.userId}>`, inline: true },
-          { name: '📦 Item', value: req.item, inline: true },
-          { name: '🔢 Menge', value: String(req.qty), inline: true },
-          { name: '👮 Abgelehnt von', value: `<@${interaction.user.id}>`, inline: true }
-        )
-        .setTimestamp();
-      await interaction.update({ embeds: [rejectEmbed], components: [] });
-      const player = await client.users.fetch(req.userId).catch(() => null);
-      if (player) {
-        await player.send(`❌ Dein Antrag für **${req.qty}x ${req.item}** wurde leider abgelehnt.`).catch(() => {});
-      }
-      return;
-    }
-  } catch (e) { console.error('[FEHLEND] Interaction-Fehler:', e.message); }
+  } catch (e) { console.error('[ÜBERGABEN] Interaction-Fehler:', e.message); }
 });
 
 // deploy
