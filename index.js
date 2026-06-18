@@ -8047,13 +8047,17 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
   if (interaction.customId !== 'einreise_starten') return;
 
-  const EINREISE_ROLLE = '1490855725516460234';
   const member = interaction.member;
-  const hasRole = member && member.roles && member.roles.cache && member.roles.cache.has(EINREISE_ROLLE);
+  if (!member) return interaction.reply({ content: '❌ Nur auf dem Server nutzbar.', ephemeral: true });
 
-  if (hasRole) {
-    return interaction.reply({ content: '❌ Du hast schon einen Charakter', ephemeral: true });
-  }
+  // Charakter-Check über Ausweis-Datei (wird beim Reset gelöscht — zuverlässig)
+  try {
+    const _ausweisCheck = loadAusweis();
+    if (_ausweisCheck && _ausweisCheck[interaction.user.id]) {
+      return interaction.reply({ content: '❌ Du hast bereits einen Charakter. Wende dich an einen Admin für einen Charakter-Reset.', ephemeral: true });
+    }
+  } catch {}
+
 
   const WEBAPP_URL_EI = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
   const linkBtn = new ButtonBuilder()
