@@ -169,20 +169,20 @@ function buildLogin(error) {
 <title>Inhaber Dashboard — Login</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#060b14;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif}
+body{background:#0d0805;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif}
 .wrap{width:100%;max-width:400px;padding:20px}
-.card{background:#0d1424;border:1px solid #1e2d4a;border-radius:18px;padding:44px 36px;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.card{background:#180e07;border:1px solid #3a1f08;border-radius:18px;padding:44px 36px;box-shadow:0 24px 80px rgba(0,0,0,.6)}
 .logo{text-align:center;margin-bottom:32px}
 .logo .icon{font-size:2.8em;display:block;margin-bottom:10px}
 .logo h1{font-size:1.2em;font-weight:700;color:#fff;letter-spacing:.5px}
-.logo p{color:#4a6081;font-size:.82em;margin-top:5px;letter-spacing:1px;text-transform:uppercase}
-label{display:block;color:#7ca3cc;font-size:.78em;font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:7px}
-input[type=password]{width:100%;padding:12px 16px;background:#0a1120;border:1.5px solid #1e2d4a;border-radius:10px;color:#e0e8ff;font-size:.95em;outline:none;transition:border .2s;letter-spacing:.05em}
-input[type=password]:focus{border-color:#4f7cf7}
-.btn{width:100%;padding:13px;margin-top:20px;background:linear-gradient(135deg,#3a6cf4,#5b3cf7);color:#fff;border:none;border-radius:10px;font-size:.95em;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:opacity .15s}
+.logo p{color:#8a6040;font-size:.82em;margin-top:5px;letter-spacing:1px;text-transform:uppercase}
+label{display:block;color:#c4864a;font-size:.78em;font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:7px}
+input[type=password]{width:100%;padding:12px 16px;background:#100804;border:1.5px solid #3a1f08;border-radius:10px;color:#ffe0c0;font-size:.95em;outline:none;transition:border .2s;letter-spacing:.05em}
+input[type=password]:focus{border-color:#e65100}
+.btn{width:100%;padding:13px;margin-top:20px;background:linear-gradient(135deg,#e65100,#f59e0b);color:#fff;border:none;border-radius:10px;font-size:.95em;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:opacity .15s}
 .btn:hover{opacity:.88}
-.err{background:#1a0c0c;border:1px solid #6b2a2a;color:#e07070;border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:.82em;text-align:center}
-.footer{text-align:center;color:#2a3a52;font-size:.72em;margin-top:20px}
+.err{background:#1a0a06;border:1px solid #7a2a0a;color:#e09070;border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:.82em;text-align:center}
+.footer{text-align:center;color:#4a2a12;font-size:.72em;margin-top:20px}
 </style>
 </head>
 <body>
@@ -216,11 +216,11 @@ function buildApp() {
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#060b14;--bg2:#0d1424;--bg3:#111d33;--bg4:#162040;
-  --border:#1e2d4a;--border2:#2a3d5a;
-  --accent:#4f7cf7;--accent2:#7c3cf7;
+  --bg:#0d0805;--bg2:#180e07;--bg3:#1e1108;--bg4:#26160a;
+  --border:#3a1f08;--border2:#5a2e0e;
+  --accent:#e65100;--accent2:#f59e0b;
   --green:#22c55e;--red:#ef4444;--orange:#f59e0b;
-  --text:#e2e8f0;--text2:#7ca3cc;--text3:#3d5470
+  --text:#ffe8d6;--text2:#c4864a;--text3:#6a3a1a
 }
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
 
@@ -365,7 +365,6 @@ header{position:sticky;top:0;background:var(--bg2);border-bottom:1px solid var(-
 <header>
   <button class="hamburger" onclick="toggleSidebar()" title="Menü öffnen">&#9776;</button>
   <div class="header-title">Inhaber Dashboard</div>
-  <div class="header-badge" id="hdr-badge">Paradise City Roleplay</div>
 </header>
 
 <!-- Main -->
@@ -494,10 +493,9 @@ async function loadStats() {
   try {
     const d = await apiFetch('/dashboard/api/stats');
     if (!d.ok) { g.innerHTML = '<div class="loader">Fehler: ' + (d.error||'?') + '</div>'; return; }
-    document.getElementById('hdr-badge').textContent = d.serverName || 'Paradise City Roleplay';
     const stats = [
-      { ico:'👥', label:'Mitglieder',  value: d.totalMembers, sub:'auf dem Server', color:'#4f7cf7' },
-      { ico:'🤖', label:'Bots',        value: d.bots,         sub:'aktive Bots', color:'#7c3cf7' },
+      { ico:'👥', label:'Mitglieder',  value: d.totalMembers, sub:'auf dem Server', color:'#e65100' },
+      { ico:'🤖', label:'Bots',        value: d.bots,         sub:'aktive Bots', color:'#f59e0b' },
       { ico:'🔨', label:'Bans',        value: d.bans,         sub:'gesperrte User', color:'#ef4444' },
       { ico:'🎭', label:'Rollen',       value: d.roles,        sub:'Serverrollen', color:'#f59e0b' },
       { ico:'💬', label:'Kanäle',       value: d.channels,     sub:'alle Kanäle', color:'#22c55e' },
