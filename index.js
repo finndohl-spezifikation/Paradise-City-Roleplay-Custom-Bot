@@ -1071,6 +1071,9 @@ const client = new Client({
   partials: [Partials.Channel, Partials.Message, Partials.GuildMember, Partials.Reaction, Partials.User],
 });
 
+// ─── Listener-Limit erhöhen (viele legitime Handler) ─────────────────────────
+client.setMaxListeners(50);
+
 // ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
 function isExempt(member) {
   return member?.roles?.cache?.has(EXEMPT_ROLE) ||
@@ -9210,8 +9213,6 @@ client.on('interactionCreate', async (interaction) => {
 });
 // ─── END VERKAUF-PRÜFUNG ──────────────────────────────────────────────────────
 
-(function loginWithRetry(attempt) {
-
 // ─── ! COMMAND WARNUNG ──────────────────────────────────────────────────────
 client.on('messageCreate', async (msg) => {
   if (msg.author.bot || !msg.guild) return;
@@ -9228,6 +9229,7 @@ client.on('messageCreate', async (msg) => {
   } catch { }
 });
 
+(function loginWithRetry(attempt) {
     client.login(process.env.DISCORD_TOKEN)
       .then(() => console.log('[LOGIN] Erfolgreich eingeloggt (Versuch ' + attempt + ')'))
       .catch(err => {
