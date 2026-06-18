@@ -9310,9 +9310,7 @@ async function _sendStartupEmbeds(source) {
 
   // ── Rucksack ─────────────────────────────────────────────────────────────
   try {
-    const guild = client.guilds.cache.get(GUILD_ID) || await client.guilds.fetch(GUILD_ID).catch(() => null);
-    console.log('[RUCKSACK] Guild gefunden:', guild ? guild.name : 'NICHT GEFUNDEN');
-    const rCh = guild?.channels.cache.get(RUCKSACK_CH) || await client.channels.fetch(RUCKSACK_CH).catch(e => { console.error('[RUCKSACK] fetch-Fehler:', e.message); return null; });
+    const rCh = client.channels.cache.get(RUCKSACK_CH) || await client.channels.fetch(RUCKSACK_CH).catch(e => { console.error('[RUCKSACK] fetch-Fehler:', e.message); return null; });
     if (!rCh) { console.error('[RUCKSACK] Kanal nicht gefunden:', RUCKSACK_CH); }
     else {
       console.log('[RUCKSACK] Kanal gefunden:', rCh.name);
