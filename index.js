@@ -8663,14 +8663,14 @@ client.once('ready', async () => {
         '`2.` Fahre mit deinem Fahrzeug zum **markierten Ort**\n' +
         '`3.` Poste ein **Foto** im <#' + KUERBIS_FOTO_CH + '> Kanal\n' +
         '`4.` Wähle dein **Fahrzeug** per DM aus\n' +
-        '`5.` Warte **3 Minuten** — du erhältst automatisch deinen **Kürbis**\n' +
+        '`5.` Warte **3 Minuten** — du erhältst automatisch deine **5 Kürbisse**\n' +
         '`6.` Klicke unten auf **💰 Kürbisse Verkaufen** um deine Ernte zu Geld zu machen\n\n' +
         '🎃 **Kürbissorten & Preise (pro Stück):**\n' +
         arten.map(a => '▸ ' + a.name + ' — **' + a.preis + '$**').join('\n') + '\n\n' +
         '⚖️ **Fahrzeug-Kapazitäten (RP-Regel):**\n' +
         KUERBIS_FAHRZEUGE.map(fz => '▸ ' + fz.label + ' — **' + fz.maxStueck + ' Kürbisse**').join('\n') + '\n\n' +
         '> **Info**\n' +
-        '> Pro **3 Minuten** erhältst du immer genau **1 Kürbis**. Die Sorte ist zufällig.\n' +
+        '> Pro **3 Minuten** erhältst du immer genau **5 Kürbisse**. Die Sorten werden zufällig vergeben und variieren jedes Mal.\n' +
         '> Auf dem Foto muss das Fahrzeug sichtbar sein — sonst gilt das Farmen als **ungültig**.\n' +
         '> Die Fahrzeug-Kapazitäten sind eine **RP-Regel**, an die sich jeder halten muss.'
       );
@@ -8727,28 +8727,34 @@ client.on('messageCreate', async (msg) => {
       const u = await client.users.fetch(userId);
       await (await u.createDM()).send({ embeds: [new EmbedBuilder().setColor(0xe67e22)
         .setTitle('🎃 Kürbisse ernten – Gestartet!')
-        .setDescription('Dein Foto wurde registriert. In **3 Minuten** erhältst du deinen Kürbis und wirst per DM benachrichtigt!')
-        .addFields({ name: '📦 Ausbeute', value: 'Immer genau **1 Kürbis** — Sorte ist zufällig', inline: false })
+        .setDescription('Dein Foto wurde registriert. In **3 Minuten** erhältst du deine Kürbisse und wirst per DM benachrichtigt!')
+        .addFields({ name: '📦 Ausbeute', value: '**5 Kürbisse** — Sorten sind zufällig & variieren', inline: false })
         .setTimestamp()
       ] });
     } catch (e) { console.error('[KÜRBIS] DM-Fehler:', e.message); }
     const kuerbisTimer = setTimeout(async () => {
       kuerbisActiveFarmers.delete(userId);
       const kuerbisArten = loadKuerbisArten();
-      const art = kuerbisArten[Math.floor(Math.random() * kuerbisArten.length)];
+      // 5 zufällige Kürbisse vergeben (jeder Pick unabhängig → natürliche Sortenvielfalt)
+      const geerntet = Array.from({ length: 5 }, () => kuerbisArten[Math.floor(Math.random() * kuerbisArten.length)]);
       const uInv = getUserInv(userId);
-      uInv[art.name] = (uInv[art.name] || 0) + 1;
+      for (const art of geerntet) {
+        uInv[art.name] = (uInv[art.name] || 0) + 1;
+      }
       setUserInv(userId, uInv);
+      // Zusammenfassung: nach Sorte gruppieren
+      const gruppiertMap = geerntet.reduce((acc, art) => { acc[art.name] = (acc[art.name] || 0) + 1; return acc; }, {});
+      const sortenText = Object.entries(gruppiertMap).map(([n, q]) => `▸ ${q}x ${n}`).join('\n');
+      const gesamtwert = geerntet.reduce((sum, art) => sum + art.preis, 0);
       try {
         const user = await client.users.fetch(userId);
         await (await user.createDM()).send({
           embeds: [new EmbedBuilder().setColor(0xe67e22)
-            .setTitle('🎃 Kürbis geerntet!')
-            .setDescription('Du hast folgenden Kürbis geerntet:\n\n▸ 1x ' + art.name + '\n\n💰 Gehe in den Kürbis-Kanal und klicke auf **Kürbisse Verkaufen** um deinen Kürbis zu verkaufen.')
+            .setTitle('🎃 Kürbisse geerntet!')
+            .setDescription('Du hast **5 Kürbisse** geerntet:\n\n' + sortenText + '\n\n💰 Gehe in den Kürbis-Kanal und klicke auf **Kürbisse Verkaufen** um deine Ernte zu verkaufen.')
             .addFields(
-              { name: '🎃 Sorte',  value: art.name, inline: true },
-              { name: '📦 Menge',  value: '1x Stück', inline: true },
-              { name: '💰 Wert',   value: '**' + art.preis + '$**', inline: true },
+              { name: '📦 Menge',      value: '5 Stück', inline: true },
+              { name: '💰 Gesamtwert', value: '**' + gesamtwert + '$**', inline: true },
             ).setTimestamp()
           ]
         });
@@ -9185,41 +9191,29 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
     }
 
-    // ── 👤 Anderer Rucksack — Modal anzeigen ─────────────────────────────────
+    // ── 👤 Anderer Rucksack — Suchleiste (UserSelectMenu) ────────────────────
     if (interaction.isButton() && interaction.customId === 'rucksack_other') {
-      const modal = new ModalBuilder()
-        .setCustomId('rucksack_search')
-        .setTitle('👤 Spieler suchen');
-      modal.addComponents(new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('rucksack_name')
-          .setLabel('Spielername (Ingame-Name oder Discord-Name)')
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder('z.B. Max Mustermann')
-          .setMinLength(2)
-          .setRequired(true)
-      ));
-      return interaction.showModal(modal);
+      return interaction.reply({
+        content: '👤 **Wähle einen Spieler aus:**\nTippe den Namen ein um zu suchen.',
+        ephemeral: true,
+        components: [new ActionRowBuilder().addComponents(
+          new UserSelectMenuBuilder()
+            .setCustomId('rucksack_user_select')
+            .setPlaceholder('🔍 Spieler suchen...')
+            .setMinValues(1)
+            .setMaxValues(1)
+        )]
+      });
     }
 
-    // ── 👤 Modal-Submit: Spieler suchen & Inventar anzeigen ──────────────────
-    if (interaction.isModalSubmit() && interaction.customId === 'rucksack_search') {
-      await interaction.deferReply({ ephemeral: true });
-      const query = interaction.fields.getTextInputValue('rucksack_name').toLowerCase().trim();
-      const guild = interaction.guild;
-      await guild.members.fetch().catch(() => {});
-      const matches = guild.members.cache.filter(m =>
-        m.roles.cache.has(RUCKSACK_ROLLE) &&
-        (
-          m.displayName.toLowerCase().includes(query) ||
-          m.user.username.toLowerCase().includes(query)
-        )
-      );
-      if (matches.size === 0) {
-        return interaction.editReply({ content: `❌ Kein Mitglied mit der Bürger-Rolle gefunden, das **${query}** im Namen hat.` });
-      }
-      const target = matches.first();
-      const inv = getUserInv(target.id);
+    // ── 👤 UserSelect-Submit: Inventar anzeigen ───────────────────────────────
+    if (interaction.isStringSelectMenu() && interaction.customId === 'rucksack_user_select' ||
+        interaction.isUserSelectMenu?.() && interaction.customId === 'rucksack_user_select') {
+      await interaction.deferUpdate();
+      const targetId = interaction.values[0];
+      const target = await interaction.guild.members.fetch(targetId).catch(() => null);
+      if (!target) return interaction.editReply({ content: '❌ Spieler nicht gefunden.', components: [] });
+      const inv = getUserInv(targetId);
       const items = Object.entries(inv);
       const totalPages = Math.max(1, Math.ceil(items.length / RUCKSACK_PER_PAGE));
       const pageItems = items.slice(0, RUCKSACK_PER_PAGE);
@@ -9233,10 +9227,10 @@ client.on('interactionCreate', async (interaction) => {
         .setDescription(desc)
         .setFooter({ text: 'Seite 1 / ' + totalPages + ' • ' + target.user.tag });
       const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('rinv_prev:0:' + target.id).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(true),
-        new ButtonBuilder().setCustomId('rinv_next:0:' + target.id).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1)
+        new ButtonBuilder().setCustomId('rinv_prev:0:' + targetId).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId('rinv_next:0:' + targetId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1)
       );
-      return interaction.editReply({ embeds: [embed], components: [row] });
+      return interaction.editReply({ content: '', embeds: [embed], components: [row] });
     }
 
     // ── Inventar-Pagination (rinv_prev / rinv_next) ───────────────────────────
@@ -9355,45 +9349,109 @@ client.once('clientReady', () => _onBotReady('clientReady'));
 // ─── FEHLENDES-ITEM HANDLER ───────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
   try {
-    // ── Button: Fehlendes Item öffnen ────────────────────────────────────────
+    // ── Button: Fehlendes Item — Kategorie wählen ────────────────────────────
     if (interaction.isButton() && interaction.customId === 'fehlend_open') {
+      return interaction.reply({
+        content: '📦 **Schritt 1 von 2 — Wähle eine Kategorie:**',
+        ephemeral: true,
+        components: [new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('fehlend_kat')
+            .setPlaceholder('🔍 Kategorie wählen...')
+            .addOptions([
+              { label: '🎃 Kürbisse', value: 'kuerbis', description: 'Kronenkürbis, Black Futsu, Kakai, Butternut, Spaghetti' },
+              { label: '🪵 Holz', value: 'holz', description: 'Mammutbaum, Weisstannen, Rotahorn, Buchen, Fichten' },
+              { label: '⛏️ Erze & Mineralien', value: 'minen', description: 'Rubin, Smaragd, Diamant, Gold, Silber, Metall, Steinkohle' },
+              { label: '🐟 Fische', value: 'angeln', description: 'Goldener Saibling, Barrakuda, Lachs, Hecht, Forelle, Wels, ...' },
+              { label: '🛒 Werkzeuge & Items', value: 'items', description: 'Gartenschere, Angelrute, Brechstange, Sprengstoff' },
+            ])
+        )]
+      });
+    }
+
+    // ── StringSelect: Kategorie → Item-Liste ─────────────────────────────────
+    if (interaction.isStringSelectMenu() && interaction.customId === 'fehlend_kat') {
+      const kat = interaction.values[0];
+      const itemMap = {
+        kuerbis: [
+          { label: '🎃 Kronenkürbis',     value: '🎃 | Kronenkürbis' },
+          { label: '🎃 Black Futsu Kürbis', value: '🎃 | Black Futsu Kürbis' },
+          { label: '🎃 Kakai Kürbis',      value: '🎃 | Kakai Kürbis' },
+          { label: '🎃 Butternut Kürbis',  value: '🎃 | Butternut Kürbis' },
+          { label: '🎃 Spaghetti Kürbis',  value: '🎃 | Spaghetti Kürbis' },
+        ],
+        holz: [
+          { label: '🪵 Mammutbaum Holz',   value: '🪵 | Mammutbaum Holz' },
+          { label: '🪵 Weisstannen Holz',  value: '🪵 | Weisstannen Holz' },
+          { label: '🪵 Rotahorn Holz',     value: '🪵 | Rotahorn Holz' },
+          { label: '🪵 Buchen Holz',       value: '🪵 | Buchen Holz' },
+          { label: '🪵 Fichten Holz',      value: '🪵 | Fichten Holz' },
+        ],
+        minen: [
+          { label: '💎 Diamant',      value: '💎 | Diamant' },
+          { label: '💛 Gold',         value: '<:emoji_51:1516506190656438617> | Gold' },
+          { label: '🪙 Silber',       value: '🪙 | Silber' },
+          { label: '🪙 Metall',       value: '🪙 | Metall' },
+          { label: '🪨 Steinkohle',   value: '🪨 | Steinkohle' },
+          { label: '🔴 Rubin',        value: '<:emoji_49:1516505838607536250> | Rubin' },
+          { label: '🟢 Smaragd',      value: '<:emoji_50:1516505987492745276> | Smaragd' },
+        ],
+        angeln: [
+          { label: '🥇 Goldener Saibling',  value: '🥇 | Goldener Saibling' },
+          { label: '🐟 Stachelrochen',      value: '🐟 | Stachelrochen' },
+          { label: '🐟 Barrakuda',          value: '🐟 | Barrakuda' },
+          { label: '🐟 Lachs',              value: '🐟 | Lachs' },
+          { label: '🐟 Hecht',              value: '🐟 | Hecht' },
+          { label: '🐟 Forelle',            value: '🐟 | Forelle' },
+          { label: '🐟 Wels',               value: '🐟 | Wels' },
+        ],
+        items: [
+          { label: '✂️ Gartenschere',         value: 'Gartenschere' },
+          { label: '🎣 Angelrute',            value: 'Angelrute' },
+          { label: '🔨 Brechstange',          value: 'Brechstange' },
+          { label: '💣 Automaten Sprengstoff', value: 'Automaten Sprengstoff' },
+        ],
+      };
+      const opts = itemMap[kat] || [];
+      return interaction.update({
+        content: '📦 **Schritt 2 von 2 — Welches Item fehlt dir?**',
+        components: [new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('fehlend_item')
+            .setPlaceholder('🔍 Item wählen...')
+            .addOptions(opts)
+        )]
+      });
+    }
+
+    // ── StringSelect: Item → Menge-Modal ─────────────────────────────────────
+    if (interaction.isStringSelectMenu() && interaction.customId === 'fehlend_item') {
+      const item = interaction.values[0];
       const modal = new ModalBuilder()
-        .setCustomId('fehlend_modal')
-        .setTitle('Fehlendes Item melden');
-      const itemInput = new TextInputBuilder()
-        .setCustomId('fehlend_item')
-        .setLabel('Welches Item fehlt dir?')
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder('z.B. Goldbarren')
-        .setRequired(true)
-        .setMaxLength(80);
-      const mengeInput = new TextInputBuilder()
-        .setCustomId('fehlend_menge')
-        .setLabel('Menge')
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder('z.B. 5')
-        .setRequired(true)
-        .setMaxLength(10);
-      modal.addComponents(
-        new ActionRowBuilder().addComponents(itemInput),
-        new ActionRowBuilder().addComponents(mengeInput)
-      );
-      return await interaction.showModal(modal);
+        .setCustomId('fehlend_qty:' + Buffer.from(item).toString('base64'))
+        .setTitle('Menge eingeben');
+      modal.addComponents(new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId('fehlend_menge')
+          .setLabel('Wie viele Stück fehlen dir?')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('z.B. 5')
+          .setRequired(true)
+          .setMaxLength(6)
+      ));
+      return interaction.showModal(modal);
     }
 
     // ── Modal: Antrag absenden ────────────────────────────────────────────────
-    if (interaction.isModalSubmit() && interaction.customId === 'fehlend_modal') {
-      const item = interaction.fields.getTextInputValue('fehlend_item').trim();
-      const mengeRaw = interaction.fields.getTextInputValue('fehlend_menge').trim();
-      const menge = parseInt(mengeRaw, 10);
+    if (interaction.isModalSubmit() && interaction.customId.startsWith('fehlend_qty:')) {
+      const item = Buffer.from(interaction.customId.split(':')[1], 'base64').toString('utf8');
+      const menge = parseInt(interaction.fields.getTextInputValue('fehlend_menge').trim(), 10);
       if (!menge || menge < 1) {
-        return await interaction.reply({ content: '❌ Bitte gib eine gültige Menge ein (mindestens 1).', ephemeral: true });
+        return interaction.reply({ content: '❌ Bitte gib eine gültige Menge ein (mindestens 1).', ephemeral: true });
       }
       const requestId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      pendingFehlend.set(requestId, { userId: interaction.user.id, item, qty: menge });
-      // Antrag in den Kanal posten
       const fCh = await client.channels.fetch(FEHLEND_CH).catch(() => null);
-      if (!fCh) return await interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
+      if (!fCh) return interaction.reply({ content: '❌ Kanal nicht gefunden.', ephemeral: true });
       const reqEmbed = new EmbedBuilder()
         .setColor(0xf39c12)
         .setTitle('📋 Item-Antrag')
@@ -9405,19 +9463,12 @@ client.on('interactionCreate', async (interaction) => {
         .setFooter({ text: 'Antrag-ID: ' + requestId })
         .setTimestamp();
       const confirmRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('fehlend_confirm:' + requestId)
-          .setLabel('✅ Bestätigen')
-          .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-          .setCustomId('fehlend_ablehnen:' + requestId)
-          .setLabel('❌ Ablehnen')
-          .setStyle(ButtonStyle.Danger)
+        new ButtonBuilder().setCustomId('fehlend_confirm:' + requestId).setLabel('✅ Bestätigen').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('fehlend_ablehnen:' + requestId).setLabel('❌ Ablehnen').setStyle(ButtonStyle.Danger)
       );
       const reqMsg = await fCh.send({ embeds: [reqEmbed], components: [confirmRow] });
-      // Referenz speichern für späteres Bearbeiten
       pendingFehlend.set(requestId, { userId: interaction.user.id, item, qty: menge, msgId: reqMsg.id });
-      return await interaction.reply({ content: `✅ Dein Antrag für **${menge}x ${item}** wurde eingereicht und wird vom Team geprüft.`, ephemeral: true });
+      return interaction.reply({ content: `✅ Dein Antrag für **${menge}x ${item}** wurde eingereicht und wird vom Team geprüft.`, ephemeral: true });
     }
 
     // ── Button: Bestätigen ────────────────────────────────────────────────────
