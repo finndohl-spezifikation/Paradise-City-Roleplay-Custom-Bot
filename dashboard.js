@@ -6,6 +6,17 @@ const dashboardTokens = new Map();
 
 module.exports.dashboardTokens = dashboardTokens;
 
+// ── Einfacher TTL-Cache (vermeidet Discord Rate Limits) ─────────────────────
+const _cache = new Map();
+function getCached(key) {
+  const e = _cache.get(key);
+  if (!e) return null;
+  if (Date.now() > e.exp) { _cache.delete(key); return null; }
+  return e.data;
+}
+function setCached(key, data, ttlMs) { _cache.set(key, { data, exp: Date.now() + ttlMs }); }
+function invalidate(key) { _cache.delete(key); }
+
 module.exports.init = function initDashboard(app, express, DATA_DIR, client) {
   const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'Sitten-Strolch';
 
@@ -50,18 +61,28 @@ module.exports.init = function initDashboard(app, express, DATA_DIR, client) {
   app.get('/dashboard/api/stats', requireAuth, async (req, res) => {
     try {
       const guild = await client.guilds.fetch(DASHBOARD_GUILD);
-      await guild.members.fetch();
+      // Mitglieder nur alle 90s neu laden (Rate-Limit-Schutz)
+      if (!getCached('members_ok')) {
+        await guild.members.fetch();
+        setCached('members_ok', true, 90000);
+      }
       const members  = guild.members.cache;
       const total    = members.filter(m => !m.user.bot).size;
       const bots     = members.filter(m =>  m.user.bot).size;
-      const bans     = await guild.bans.fetch().catch(() => ({ size: 0 }));
+      // Bans aus Cache oder frisch holen
+      let banSize = getCached('ban_size');
+      if (banSize === null) {
+        const bans = await guild.bans.fetch().catch(() => null);
+        banSize = bans ? bans.size : 0;
+        setCached('ban_size', banSize, 60000);
+      }
       const uptimeSec= Math.floor(process.uptime());
       res.json({
         ok: true,
         serverName:   guild.name,
         totalMembers: total,
         bots,
-        bans:         bans.size,
+        bans:         banSize,
         roles:        guild.roles.cache.size,
         channels:     guild.channels.cache.size,
         uptime:       Math.floor(uptimeSec/3600) + 'h ' + Math.floor((uptimeSec%3600)/60) + 'min',
@@ -74,7 +95,11 @@ module.exports.init = function initDashboard(app, express, DATA_DIR, client) {
   app.get('/dashboard/api/members', requireAuth, async (req, res) => {
     try {
       const guild = await client.guilds.fetch(DASHBOARD_GUILD);
-      await guild.members.fetch();
+      // Nur neu fetchen wenn Cache abgelaufen — Rate-Limit-Schutz (90s)
+      if (!getCached('members_ok')) {
+        await guild.members.fetch();
+        setCached('members_ok', true, 90000);
+      }
       const q = (req.query.q || '').toLowerCase();
       const list = guild.members.cache
         .filter(m => !m.user.bot)
@@ -96,6 +121,10 @@ module.exports.init = function initDashboard(app, express, DATA_DIR, client) {
   // ── Bans API ────────────────────────────────────────────────────────────────
   app.get('/dashboard/api/bans', requireAuth, async (req, res) => {
     try {
+      // Cache-Hit: gespeicherte Ban-Liste zurückgeben
+      const cached = getCached('bans_list');
+      if (cached) return res.json({ ok: true, bans: cached });
+      // Frisch von Discord laden
       const guild = await client.guilds.fetch(DASHBOARD_GUILD);
       const bans  = await guild.bans.fetch();
       const list  = bans.map(b => ({
@@ -104,6 +133,8 @@ module.exports.init = function initDashboard(app, express, DATA_DIR, client) {
         avatar:   b.user.displayAvatarURL({ size: 64 }),
         reason:   b.reason || '—',
       })).sort((a,b) => a.username.localeCompare(b.username));
+      setCached('bans_list', list, 60000); // 60s cachen
+      setCached('ban_size', list.length, 60000);
       res.json({ ok: true, bans: list });
     } catch (e) { res.json({ ok: false, error: e.message }); }
   });
@@ -140,6 +171,8 @@ module.exports.init = function initDashboard(app, express, DATA_DIR, client) {
         } catch {}
       }
       await guild.members.ban(userId, { reason: reason || 'Kein Grund angegeben' });
+      // Ban-Cache invalidieren damit die Liste sofort aktuell ist
+      invalidate('bans_list'); invalidate('ban_size');
       res.json({ ok: true });
     } catch (e) { res.json({ ok: false, error: e.message }); }
   });
@@ -151,6 +184,8 @@ module.exports.init = function initDashboard(app, express, DATA_DIR, client) {
       if (!userId) return res.json({ ok: false, error: 'Fehlende Parameter' });
       const guild = await client.guilds.fetch(DASHBOARD_GUILD);
       await guild.members.unban(userId);
+      // Ban-Cache invalidieren damit die Liste sofort aktuell ist
+      invalidate('bans_list'); invalidate('ban_size');
       res.json({ ok: true });
     } catch (e) { res.json({ ok: false, error: e.message }); }
   });
