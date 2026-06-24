@@ -1627,9 +1627,12 @@ client.once('ready', async () => {
   const commands = [
     new SlashCommandBuilder()
       .setName('delete')
-      .setDescription('Löscht Nachrichten in diesem Kanal (max. 200)')
+      .setDescription('Löscht Nachrichten — optional alle Kanäle einer Kategorie leeren')
       .addIntegerOption(opt =>
-        opt.setName('anzahl').setDescription('Anzahl (1–200)').setRequired(true).setMinValue(1).setMaxValue(200))
+        opt.setName('anzahl').setDescription('Anzahl (1–200) — nur ohne Kategorie').setRequired(false).setMinValue(1).setMaxValue(200))
+      .addChannelOption(opt =>
+        opt.setName('kategorie').setDescription('Kategorie: alle Kanäle darin werden komplett geleert').setRequired(false)
+          .addChannelTypes(4))
       .toJSON(),
 
     new SlashCommandBuilder()
@@ -4380,8 +4383,81 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'delete') {
     if (!member.permissions.has(PermissionFlagsBits.ManageMessages))
       return interaction.reply({ content: '⛔ Du hast keine Berechtigung dafür.', ephemeral: true });
+
+    const kategorie = interaction.options.getChannel('kategorie');
+    const anzahl    = interaction.options.getInteger('anzahl');
+
+    // ── KATEGORIE-MODUS: alle Kanäle der Kategorie komplett leeren ────────────
+    if (kategorie) {
+      await interaction.deferReply({ ephemeral: true });
+
+      // Alle Text-/Ankündigungs-Kanäle dieser Kategorie
+      const kanäle = interaction.guild.channels.cache.filter(
+        ch => ch.parentId === kategorie.id && ch.isTextBased()
+      );
+
+      if (kanäle.size === 0)
+        return interaction.editReply({ content: '⚠️ In dieser Kategorie gibt es keine Text-Kanäle.' });
+
+      // Hilfsfunktion: einen Kanal komplett leeren
+      async function clearChannel(ch) {
+        let total = 0;
+        const TWO_WEEKS = 14 * 24 * 60 * 60 * 1000;
+        // Schleife bis Kanal leer
+        for (let pass = 0; pass < 50; pass++) {
+          const msgs = await ch.messages.fetch({ limit: 100 }).catch(() => null);
+          if (!msgs || msgs.size === 0) break;
+
+          // Neuere Nachrichten (<14 Tage) per bulkDelete
+          const jung = msgs.filter(m => Date.now() - m.createdTimestamp < TWO_WEEKS);
+          if (jung.size >= 2) {
+            const res = await ch.bulkDelete(jung, true).catch(() => null);
+            total += res?.size || 0;
+          } else if (jung.size === 1) {
+            await jung.first().delete().catch(() => {});
+            total++;
+          }
+
+          // Ältere Nachrichten (>= 14 Tage) einzeln
+          const alt = msgs.filter(m => Date.now() - m.createdTimestamp >= TWO_WEEKS);
+          for (const [, m] of alt) {
+            await m.delete().catch(() => {});
+            total++;
+          }
+
+          if (msgs.size < 100) break;
+        }
+        return total;
+      }
+
+      let gesamtGelöscht = 0;
+      const ergebnisse = [];
+      for (const [, ch] of kanäle) {
+        const n = await clearChannel(ch);
+        gesamtGelöscht += n;
+        ergebnisse.push(`<#${ch.id}>: ${n} Nachrichten`);
+      }
+
+      await interaction.editReply({
+        content: `✅ **Kategorie „${kategorie.name}" geleert**\n${ergebnisse.join('\n')}\n\nGesamt: **${gesamtGelöscht} Nachrichten** gelöscht.`
+      });
+      await sendLog(CH.SERVER_LOG, new EmbedBuilder()
+        .setColor(Colors.Red).setTitle('🗑️ Kategorie geleert via /delete')
+        .addFields(
+          { name: 'Von',        value: `<@${user.id}> (${user.tag})` },
+          { name: 'Kategorie',  value: kategorie.name },
+          { name: 'Kanäle',     value: `${kanäle.size}` },
+          { name: 'Gelöscht',   value: `${gesamtGelöscht} Nachrichten` }
+        )
+      );
+      return;
+    }
+
+    // ── NORMALER MODUS: Anzahl Nachrichten im aktuellen Kanal löschen ─────────
+    if (!anzahl)
+      return interaction.reply({ content: '⚠️ Bitte entweder eine **Anzahl** oder eine **Kategorie** angeben.', ephemeral: true });
+
     await interaction.deferReply({ ephemeral: true });
-    const anzahl = interaction.options.getInteger('anzahl');
     const EIGHT_WEEKS_MS = 8 * 7 * 24 * 60 * 60 * 1000;
     const TWO_WEEKS_MS   = 14 * 24 * 60 * 60 * 1000;
     const now = Date.now();
