@@ -5020,7 +5020,8 @@ client.on('interactionCreate', async (interaction) => {
       const art    = interaction.options.getString('einreiseart');
       const ausweise = loadAusweisData();
       if (ausweise[target.id]) {
-        return interaction.reply({ content: `❌ **${target.tag}** hat bereits einen Ausweis. Erst mit \`/ausweis-delete\` löschen.`, ephemeral: true });
+        const _existTyp = ausweise[target.id].typ === 'illegal' ? 'illegale' : 'legale';
+        return interaction.reply({ content: `❌ **${target.tag}** hat bereits eine **${_existTyp} Einreise** und kann keinen neuen Ausweis erhalten. Erst mit \`/ausweis-delete\` den bestehenden Ausweis löschen.`, ephemeral: true });
       }
       const _ausweisTokens = loadAusweisTokens();
       const _tok    = genToken();
