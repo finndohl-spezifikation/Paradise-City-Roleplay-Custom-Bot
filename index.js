@@ -9501,7 +9501,7 @@ client.on('interactionCreate', async (interaction) => {
       selfInv[itemName] = (selfInv[itemName] || 0) + menge;
       setUserInv(interaction.user.id, selfInv);
 
-      sendLog(CH.MOD_LOG, new EmbedBuilder()
+      sendLog(CH.MEMBER_LOG, new EmbedBuilder()
         .setColor(0xE65100)
         .setTitle('🎒 Spieler-Log: Item weggenommen')
         .addFields(
