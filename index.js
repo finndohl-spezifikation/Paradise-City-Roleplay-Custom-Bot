@@ -6071,7 +6071,7 @@ client.on('interactionCreate', async (interaction) => {
     const lottoKey = Object.keys(inv).find(k => k.toLowerCase().includes('lottoschein'));
     if (!lottoKey || inv[lottoKey] < 1) {
       return interaction.reply({
-        content: '❌ Du hast keinen **Lottoschein** im Inventar!\n🛒 Kaufe einen im **Kwik-E-Markt** für **2.800 $**.',
+        content: '❌ Du hast keinen **Lottoschein** im Inventar!\n🛒 Kaufe einen im **Kwik-E-Markt** für **2.500 $**.',
         ephemeral: true
       });
     }
@@ -6639,9 +6639,9 @@ async function doLottoZiehung(client) {
       } catch (_) {}
     }
 
-    // Ziehungs-Ergebnis im Lotto-Kanal posten
-    const lottoCh = await client.channels.fetch(LOTTO_CH).catch(() => null);
-    if (lottoCh) {
+    // Ziehungs-Ergebnis als normale Nachricht posten
+    const lottoResultCh = await client.channels.fetch('1490890318214860890').catch(() => null);
+    if (lottoResultCh) {
       const zahlenStr = gezogeneZahlen.map(n => `\`${String(n).padStart(2,'0')}\``).join('  ');
       let winnersText = winners.length > 0
         ? winners.map(w => `<@${w.userId}> — ${w.label} — **${w.betrag.toLocaleString('de-CH')} $**`).join('\n')
@@ -6650,25 +6650,14 @@ async function doLottoZiehung(client) {
         winnersText = '⚠️ **Wochenlimit erreicht** — keine weiteren Gewinne bis nächste Woche!';
       }
 
-      const resultEmbed = new EmbedBuilder()
-        .setColor(DARK_ORANGE)
-        .setTitle('🎰 Paradise City Lotto — Tagesziehung')
-        .setDescription(
-          `**📅 Datum:** ${today}\n\n` +
-          `**🎱 Gezogene Zahlen:**\n${zahlenStr}\n\n` +
-          `**🌟 Superzahl:** \`${gezogeneSuperzahl}\`\n\n` +
-          `**🏆 Gewinner:**\n${winnersText}\n\n` +
-          `*Gewinne werden automatisch aufs Konto überwiesen.*\n` +
-          `*Die nächste Ziehung findet morgen um 12:00 Uhr statt.*`
-        )
-        
-        ;
-
-      const playBtn = new ButtonBuilder()
-        .setCustomId('lotto_play')
-        .setLabel('🎰 Lotto spielen')
-        .setStyle(ButtonStyle.Primary);
-      await lottoCh.send({ embeds: [resultEmbed], components: [new ActionRowBuilder().addComponents(playBtn)] });
+      await lottoResultCh.send(
+        `🎰 **Paradise City Lotto — Tagesziehung**\n\n` +
+        `📅 **Datum:** ${today}\n\n` +
+        `🎱 **Gezogene Zahlen:**\n${zahlenStr}\n\n` +
+        `🌟 **Superzahl:** \`${gezogeneSuperzahl}\`\n\n` +
+        `🏆 **Gewinner:**\n${winnersText}\n\n` +
+        `*Gewinne werden automatisch aufs Konto überwiesen. Die nächste Ziehung findet morgen um 12:00 Uhr statt.*`
+      );
     }
 
     // Alle heutigen Tickets löschen, Woche speichern
@@ -9575,7 +9564,7 @@ async function _sendStartupEmbeds(source) {
             .setTitle('🎰 Paradise City Lotto')
             .setDescription(
               '**Versuche dein Glück beim Paradise City Lotto!**\n\n' +
-              '▸ Kaufe einen **Lottoschein** im Kwik-E-Markt für **2.800 $**\n' +
+              '▸ Kaufe einen **Lottoschein** im Kwik-E-Markt für **2.500 $**\n' +
               '▸ Klicke auf **Lotto spielen** und wähle deine Zahlen\n' +
               '▸ Die Ziehung findet **täglich um 12:00 Uhr** statt\n' +
               '▸ Bei einem Treffer wird der Gewinn automatisch überwiesen\n\n' +
