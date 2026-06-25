@@ -9520,12 +9520,16 @@ async function _sendStartupEmbeds(source) {
     else {
       console.log('[RUCKSACK] Kanal gefunden:', rCh.name);
       const oldMsgs = await rCh.messages.fetch({ limit: 50 }).catch(e => { console.error('[RUCKSACK] messages.fetch Fehler:', e.message); return null; });
-      if (oldMsgs) { for (const msg of oldMsgs.values()) { if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '🎒 Rucksack System') await msg.delete().catch(() => {}); } }
-      await rCh.send({
-        embeds: [new EmbedBuilder().setColor(0xe65100).setTitle('🎒 Rucksack System').setDescription('Hier kannst du deinen eigenen Rucksack einsehen oder den Rucksack eines anderen Spielers durchsuchen.\n\n▸ **Rucksack Öffnen** — zeigt dein eigenes Inventar\n▸ **Anderer Rucksack Öffnen** — suche nach einem Spieler und sieh seinen Rucksack ein')],
-        components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('rucksack_self').setLabel('🎒 Rucksack Öffnen').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('rucksack_other').setLabel('👤 Anderer Rucksack Öffnen').setStyle(ButtonStyle.Secondary))]
-      });
-      console.log('[RUCKSACK] ✅ Embed gesendet.');
+      const rExists = oldMsgs && oldMsgs.some(m => m.author.id === client.user.id && m.embeds?.[0]?.title === '🎒 Rucksack System');
+      if (rExists) {
+        console.log('[RUCKSACK] Embed bereits vorhanden, überspringe.');
+      } else {
+        await rCh.send({
+          embeds: [new EmbedBuilder().setColor(0xe65100).setTitle('🎒 Rucksack System').setDescription('Hier kannst du deinen eigenen Rucksack einsehen oder den Rucksack eines anderen Spielers durchsuchen.\n\n▸ **Rucksack Öffnen** — zeigt dein eigenes Inventar\n▸ **Anderer Rucksack Öffnen** — suche nach einem Spieler und sieh seinen Rucksack ein')],
+          components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('rucksack_self').setLabel('🎒 Rucksack Öffnen').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('rucksack_other').setLabel('👤 Anderer Rucksack Öffnen').setStyle(ButtonStyle.Secondary))]
+        });
+        console.log('[RUCKSACK] ✅ Embed gesendet.');
+      }
     }
   } catch (e) { console.error('[RUCKSACK] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
 
@@ -9536,20 +9540,57 @@ async function _sendStartupEmbeds(source) {
     else {
       console.log('[ÜBERGABEN] Kanal gefunden:', uCh.name);
       const oldMsgs = await uCh.messages.fetch({ limit: 50 }).catch(() => null);
-      if (oldMsgs) { for (const msg of oldMsgs.values()) { if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '📦 Items Übergeben') await msg.delete().catch(() => {}); } }
-      await uCh.send({
-        embeds: [new EmbedBuilder()
-          .setColor(0x57F287)
-          .setTitle('📦 Items Übergeben')
-          .setDescription('Möchtest du Items aus deinem Inventar an einen anderen Spieler übergeben?\n\n▸ Klicke auf **Übergeben**\n▸ Wähle den Empfänger über die Suchleiste aus\n▸ Wähle das Item aus deinem Inventar\n▸ Gib die Menge ein & bestätige\n\nDie Items werden automatisch übertragen.')
-        ],
-        components: [new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId('uebergaben_btn').setLabel('📦 Übergeben').setStyle(ButtonStyle.Success)
-        )]
-      });
-      console.log('[ÜBERGABEN] ✅ Embed gesendet.');
+      const uExists = oldMsgs && oldMsgs.some(m => m.author.id === client.user.id && m.embeds?.[0]?.title === '📦 Items Übergeben');
+      if (uExists) {
+        console.log('[ÜBERGABEN] Embed bereits vorhanden, überspringe.');
+      } else {
+        await uCh.send({
+          embeds: [new EmbedBuilder()
+            .setColor(0x57F287)
+            .setTitle('📦 Items Übergeben')
+            .setDescription('Möchtest du Items aus deinem Inventar an einen anderen Spieler übergeben?\n\n▸ Klicke auf **Übergeben**\n▸ Wähle den Empfänger über die Suchleiste aus\n▸ Wähle das Item aus deinem Inventar\n▸ Gib die Menge ein & bestätige\n\nDie Items werden automatisch übertragen.')
+          ],
+          components: [new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('uebergaben_btn').setLabel('📦 Übergeben').setStyle(ButtonStyle.Success)
+          )]
+        });
+        console.log('[ÜBERGABEN] ✅ Embed gesendet.');
+      }
     }
   } catch (e) { console.error('[ÜBERGABEN] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
+
+  // ── Lotto ─────────────────────────────────────────────────────────────────
+  try {
+    const lCh = client.channels.cache.get(LOTTO_CH) || await client.channels.fetch(LOTTO_CH).catch(e => { console.error('[LOTTO] fetch-Fehler:', e.message); return null; });
+    if (!lCh) { console.error('[LOTTO] Kanal nicht gefunden:', LOTTO_CH); }
+    else {
+      const lottoMsgs = await lCh.messages.fetch({ limit: 50 }).catch(() => null);
+      const lExists = lottoMsgs && lottoMsgs.some(m => m.author.id === client.user.id && m.embeds?.[0]?.title === '🎰 Paradise City Lotto');
+      if (lExists) {
+        console.log('[LOTTO] Embed bereits vorhanden, überspringe.');
+      } else {
+        await lCh.send({
+          embeds: [new EmbedBuilder()
+            .setColor(0xf59e0b)
+            .setTitle('🎰 Paradise City Lotto')
+            .setDescription(
+              '**Versuche dein Glück beim Paradise City Lotto!**\n\n' +
+              '▸ Kaufe einen **Lottoschein** im Kwik-E-Markt für **2.800 $**\n' +
+              '▸ Klicke auf **Lotto spielen** und wähle deine Zahlen\n' +
+              '▸ Die Ziehung findet **täglich um 12:00 Uhr** statt\n' +
+              '▸ Bei einem Treffer wird der Gewinn automatisch überwiesen\n\n' +
+              '🍀 Viel Erfolg!'
+            )
+            .setFooter({ text: 'Paradise City Roleplay • Tägliche Ziehung um 12:00 Uhr' })
+          ],
+          components: [new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('lotto_play').setLabel('🎰 Lotto spielen').setStyle(ButtonStyle.Primary)
+          )]
+        });
+        console.log('[LOTTO] ✅ Embed gesendet.');
+      }
+    }
+  } catch (e) { console.error('[LOTTO] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
 
 }
 
