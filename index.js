@@ -2118,9 +2118,11 @@ client.once('ready', async () => {
   }
   // ── Einmalig: Einreise-Embed mit Button senden ─────────────────────────────
   const setup = loadSetup();
-  if (!setup.einreiseEmbedV9Sent) {
+  // Einreise-Embed: bei jedem Neustart altes löschen & neu senden
+  try {
     const _eiWAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/$/, '');
     const _eiUrl  = _eiWAPP && !_eiWAPP.includes('localhost') ? _eiWAPP + '/einreise' : null;
+    console.log('[EINREISE] WEBAPP_URL:', _eiWAPP || '(nicht gesetzt)', '| URL:', _eiUrl || 'Fallback-Button');
     const einreiseEmbed = new EmbedBuilder()
       .setColor(DARK_ORANGE)
       .setTitle('🛂  Einreise — Paradise City Roleplay')
@@ -2154,24 +2156,18 @@ client.once('ready', async () => {
 ` +
         `- Exklusives Starterfahrzeug`
       );
-
     const einreiseButton = _eiUrl
       ? new ButtonBuilder().setLabel('Einreise starten').setEmoji('🛂').setStyle(ButtonStyle.Link).setURL(_eiUrl)
       : new ButtonBuilder().setLabel('Einreise starten').setEmoji('🛂').setStyle(ButtonStyle.Primary).setCustomId('einreise_starten');
     const row = new ActionRowBuilder().addComponents(einreiseButton);
-
-    try {
-      const einreiseCh = await client.channels.fetch('1490878156582686853');
-      if (einreiseCh) {
-        const _eOld = await einreiseCh.messages.fetch({ limit: 20 }).catch(() => null);
-        if (_eOld) { for (const [, _m] of _eOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
-        await einreiseCh.send({ embeds: [einreiseEmbed], components: [row] });
-        setup.einreiseEmbedV9Sent = true;
-        saveSetup(setup);
-        console.log('✅ Einreise-Embed v9 einmalig gesendet. URL:', _eiUrl || 'Fallback-Button');
-      } else { console.error('[EINREISE] Kanal nicht gefunden: 1490878156582686853'); }
-    } catch (e) { console.error('[EINREISE] Embed Fehler:', e.message, e.stack?.split('\n')[1]); }
-  }
+    const einreiseCh = await client.channels.fetch('1490878156582686853').catch(e => { console.error('[EINREISE] Kanal-Fehler:', e.message); return null; });
+    if (einreiseCh) {
+      const _eOld = await einreiseCh.messages.fetch({ limit: 20 }).catch(() => null);
+      if (_eOld) { for (const [, _m] of _eOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
+      await einreiseCh.send({ embeds: [einreiseEmbed], components: [row] });
+      console.log('[EINREISE] ✅ Embed gesendet.');
+    }
+  } catch (e) { console.error('[EINREISE] Fehler:', e.message, e.stack?.split('\n')[1]); }
 
 
 
