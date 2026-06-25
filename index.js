@@ -5780,9 +5780,8 @@ client.on('interactionCreate', async (interaction) => {
         // ─── SERVER-INFO ─────────────────────────────────────────────────────────
         if (commandName === 'server-info') {
           const guild = interaction.guild;
-          await guild.members.fetch();
-          const totalMembers  = guild.members.cache.filter(m => !m.user.bot).size;
           const botCount      = guild.members.cache.filter(m => m.user.bot).size;
+          const totalMembers  = guild.memberCount - botCount;
           const categories    = guild.channels.cache.filter(c => c.type === 4).size;
           const textChannels  = guild.channels.cache.filter(c => c.type === 0).size;
           const voiceChannels = guild.channels.cache.filter(c => c.type === 2).size;
