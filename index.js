@@ -1966,6 +1966,10 @@ client.once('ready', async () => {
       .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
       .toJSON(),
     new SlashCommandBuilder()
+      .setName('server-info')
+      .setDescription('Zeigt Informationen über den Server an')
+      .toJSON(),
+    new SlashCommandBuilder()
       .setName('rechnung-create')
       .setDescription('Erstelle eine Rechnung für einen Spieler')
       .addUserOption(o => o.setName('spieler').setDescription('Spieler').setRequired(true))
@@ -5771,6 +5775,36 @@ client.on('interactionCreate', async (interaction) => {
           const target = interaction.options.getUser('spieler');
           const cash   = getCash(target.id);
           return interaction.reply({ content: `💵 **${target.username}** hat **${cash.toLocaleString('de-CH')} ${MONEY_GIF}** Bargeld.`, ephemeral: true });
+        }
+
+        // ─── SERVER-INFO ─────────────────────────────────────────────────────────
+        if (commandName === 'server-info') {
+          const guild = interaction.guild;
+          await guild.members.fetch();
+          const totalMembers = guild.members.cache.filter(m => !m.user.bot).size;
+          const botCount     = guild.members.cache.filter(m => m.user.bot).size;
+          const categories   = guild.channels.cache.filter(c => c.type === 4).size;
+          const textChannels = guild.channels.cache.filter(c => c.type === 0).size;
+          const voiceChannels= guild.channels.cache.filter(c => c.type === 2).size;
+          const roleCount    = guild.roles.cache.filter(r => r.id !== guild.id).size;
+          const createdAt    = guild.createdAt;
+          const createdStr   = `<t:${Math.floor(createdAt.getTime()/1000)}:F>`;
+          const embed = new EmbedBuilder()
+            .setColor(DARK_ORANGE)
+            .setTitle(`🏙️ ${guild.name} — Server Info`)
+            .setThumbnail(guild.iconURL({ dynamic: true }))
+            .addFields(
+              { name: '📅 Erstellt am',         value: createdStr,              inline: false },
+              { name: '👥 Mitglieder',           value: `${totalMembers}`,       inline: true  },
+              { name: '🤖 Bots',                 value: `${botCount}`,           inline: true  },
+              { name: '📁 Kategorien',           value: `${categories}`,         inline: true  },
+              { name: '💬 Textkanäle',           value: `${textChannels}`,       inline: true  },
+              { name: '🔊 Sprachkanäle',         value: `${voiceChannels}`,      inline: true  },
+              { name: '🎭 Rollen',               value: `${roleCount}`,          inline: true  }
+            )
+            .setFooter({ text: `Server-ID: ${guild.id}` })
+            .setTimestamp();
+          return interaction.reply({ embeds: [embed] });
         }
 
         // ─── RECHNUNG-CREATE ────────────────────────────────────────────────────
