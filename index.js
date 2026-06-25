@@ -2118,10 +2118,8 @@ client.once('ready', async () => {
   }
   // ── Einmalig: Einreise-Embed mit Button senden ─────────────────────────────
   const setup = loadSetup();
-  if (!setup.einreiseEmbedV7Sent) {
+  if (!setup.einreiseEmbedV8Sent) {
     const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'http://localhost:8080')).replace(/\/$/, '');
-    const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
-    const LINE2 = '─────────────────────────────────────────';
     const einreiseEmbed = new EmbedBuilder()
       .setColor(DARK_ORANGE)
       .setTitle('🛂  Einreise — Paradise City Roleplay')
@@ -2154,14 +2152,13 @@ client.once('ready', async () => {
         `- Mehr Startgeld
 ` +
         `- Exklusives Starterfahrzeug`
-      )
-      ;
+      );
 
     const einreiseButton = new ButtonBuilder()
       .setLabel('Einreise starten')
       .setEmoji('🛂')
-      .setStyle(ButtonStyle.Primary)
-      .setCustomId('einreise_starten');
+      .setStyle(ButtonStyle.Link)
+      .setURL(WEBAPP_URL + '/einreise');
     const row = new ActionRowBuilder().addComponents(einreiseButton);
 
     try {
@@ -2170,9 +2167,9 @@ client.once('ready', async () => {
         const _eOld = await einreiseCh.messages.fetch({ limit: 20 }).catch(() => null);
         if (_eOld) { for (const [, _m] of _eOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
         await einreiseCh.send({ embeds: [einreiseEmbed], components: [row] });
-        setup.einreiseEmbedV7Sent = true;
+        setup.einreiseEmbedV8Sent = true;
         saveSetup(setup);
-        console.log('✅ Einreise-Embed v2 (mit Button) einmalig gesendet.');
+        console.log('✅ Einreise-Embed v8 (Link-Button) einmalig gesendet.');
       }
     } catch (e) { console.error('Einreise-Embed Fehler:', e.message); }
   }
@@ -5048,27 +5045,53 @@ client.on('interactionCreate', async (interaction) => {
       if (ausweise[target.id]) {
         return interaction.reply({ content: `❌ **${target.tag}** hat bereits einen Ausweis. Erst mit \`/ausweis-delete\` löschen.`, ephemeral: true });
       }
-      if (art === 'illegal') {
-        return interaction.reply({ content: '❌ Illegale Bewohner erhalten **keinen Ausweis**.\nDie Illegale Einzel- und Gruppeneinreise berechtigt nicht zur Ausweiserstellung.', ephemeral: true });
+      const _ausweisTokens = loadAusweisTokens();
+      const _tok    = genToken();
+      const _WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : 'http://localhost:8080')).replace(/\/$/, '');
+      const _exp    = Date.now() + 24 * 60 * 60 * 1000;
+
+      if (art === 'legal') {
+        const _legalLink = `${_WEBAPP}/ausweis/create/${_tok}`;
+        _ausweisTokens[_tok] = { token: _tok, userId: target.id, userTag: target.tag, createdBy: interaction.user.id, typ: 'legal', expiresAt: _exp };
+        saveAusweisTokens(_ausweisTokens);
+        try {
+          await target.send({
+            embeds: [new EmbedBuilder()
+              .setColor(0x22c55e)
+              .setTitle('🆔 Legale Einreise — Ausweis erstellen')
+              .setDescription('Du wurdest aufgefordert, deinen Charakter-Ausweis auszufüllen.\n\nKlicke auf den Button und trage alle Daten ein.')
+              .addFields({ name: '⏱️ Gültig bis', value: `<t:${Math.floor(_exp/1000)}:F>`, inline: false })
+            ],
+            components: [new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setLabel('📋 Ausweis ausfüllen').setStyle(ButtonStyle.Link).setURL(_legalLink)
+            )]
+          });
+          return interaction.reply({ content: `✅ DM an **${target.tag}** gesendet — Legaler Ausweis-Link.`, ephemeral: true });
+        } catch {
+          return interaction.reply({ content: `❌ Konnte keine DM an **${target.tag}** senden. DMs möglicherweise deaktiviert.`, ephemeral: true });
+        }
       }
-      // Legal: DM mit Ausweis-Link
-      const tokens = loadAusweisTokens();
-      const pending = Object.values(tokens).find(t => t.userId === target.id && t.expiresAt > Date.now());
-      const tok    = genToken();
-      const domain = (process.env.REPLIT_DOMAINS || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:8080').split(',')[0];
-      const link   = `https://${domain}/ausweis/create/${tok}`;
-      tokens[tok]  = { token: tok, userId: target.id, userTag: target.tag, createdBy: interaction.user.id, expiresAt: Date.now() + 24 * 60 * 60 * 1000 };
-      saveAusweisTokens(tokens);
-      try {
-        await target.send({
-          embeds: [new EmbedBuilder().setColor(DARK_ORANGE).setTitle('🆔  Ausweis erstellen — Paradise City Roleplay')
-            .setDescription('Du wurdest aufgefordert, deinen Charakter-Ausweis auszufüllen.')
-            .addFields({ name: '🔗  Link', value: `[Hier klicken um Ausweis auszufüllen](${link})`, inline: false }, { name: '⏱️  Gültig bis', value: `<t:${Math.floor((Date.now()+86400000)/1000)}:F>`, inline: false })
-            ]
-        });
-        return interaction.reply({ content: `✅ DM an **${target.tag}** gesendet mit dem Ausweis-Erstellungslink.`, ephemeral: true });
-      } catch {
-        return interaction.reply({ content: `❌ Konnte keine DM an **${target.tag}** senden. DMs möglicherweise deaktiviert.`, ephemeral: true });
+
+      if (art === 'illegal') {
+        const _illLink = `${_WEBAPP}/ausweis/create-illegal/${_tok}`;
+        _ausweisTokens[_tok] = { token: _tok, userId: target.id, userTag: target.tag, createdBy: interaction.user.id, typ: 'illegal', expiresAt: _exp };
+        saveAusweisTokens(_ausweisTokens);
+        try {
+          await target.send({
+            embeds: [new EmbedBuilder()
+              .setColor(0xef4444)
+              .setTitle('🥷 Illegale Einreise — Charakter registrieren')
+              .setDescription('Du wurdest aufgefordert, deinen Charakter zu registrieren.\n\nKlicke auf den Button und trage alle Daten ein.')
+              .addFields({ name: '⏱️ Gültig bis', value: `<t:${Math.floor(_exp/1000)}:F>`, inline: false })
+            ],
+            components: [new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setLabel('🥷 Charakter registrieren').setStyle(ButtonStyle.Link).setURL(_illLink)
+            )]
+          });
+          return interaction.reply({ content: `✅ DM an **${target.tag}** gesendet — Illegaler Charakter-Link.`, ephemeral: true });
+        } catch {
+          return interaction.reply({ content: `❌ Konnte keine DM an **${target.tag}** senden. DMs möglicherweise deaktiviert.`, ephemeral: true });
+        }
       }
     }
 
