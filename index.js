@@ -1369,6 +1369,35 @@ client.once('ready', async () => {
   console.log(`✅ Bot online als ${client.user.tag}`);
   client.user.setPresence({ activities: [{ name: 'Paradise City Roleplay | PS5', type: ActivityType.Playing }], status: 'online' });
 
+  // ── Bot-Log: Neustart-Signal sofort senden (erster Schritt) ──────────────
+  try {
+    const _botLogSetup = loadSetup();
+    const _today = new Date().toISOString().slice(0, 10);
+    if (_botLogSetup.restartDate !== _today) {
+      _botLogSetup.restartDate  = _today;
+      _botLogSetup.restartCount = 0;
+    }
+    _botLogSetup.restartCount = (_botLogSetup.restartCount || 0) + 1;
+    saveSetup(_botLogSetup);
+    const _botCh = await client.channels.fetch(CH.BOT_LOG).catch(e => { console.error('[BOT LOG] Fetch Fehler:', e.message); return null; });
+    if (_botCh) {
+      await _botCh.send({ embeds: [new EmbedBuilder()
+        .setColor(0x22c55e)
+        .setTitle('✅ Bot erfolgreich neugestartet')
+        .addFields(
+          { name: '🤖 Bot',             value: `${client.user.tag}`,                                               inline: true  },
+          { name: '📅 Datum & Uhrzeit', value: `<t:${ts()}:F>`,                                                    inline: true  },
+          { name: '🔄 Neustarts heute', value: `**${_botLogSetup.restartCount}x** (Reset um Mitternacht)`,         inline: false }
+        )
+        .setFooter({ text: 'Railway Auto-Deploy / Manueller Neustart' })
+        .setTimestamp()
+      ]});
+      console.log('[BOT LOG] ✅ Neustart-Nachricht gesendet. Heute:', _botLogSetup.restartCount, 'x');
+    } else {
+      console.warn('[BOT LOG] ⚠️ Kanal nicht gefunden:', CH.BOT_LOG);
+    }
+  } catch (e) { console.error('[BOT LOG] Fehler:', e.message); }
+
   // ─── EINMALIG: Team-Overview-Embed neu senden (v_paradise_4) ───────────────
   {
     const setup = loadSetup();
@@ -2078,37 +2107,7 @@ client.once('ready', async () => {
     }
   }
 
-  // ── Bot-Log: Neustart mit täglichem Counter ──────────────────────────────
-  try {
-    const _botLogSetup = loadSetup();
-    const _today = new Date().toISOString().slice(0, 10); // "2026-06-24"
-    if (_botLogSetup.restartDate !== _today) {
-      _botLogSetup.restartDate  = _today;
-      _botLogSetup.restartCount = 0;
-    }
-    _botLogSetup.restartCount = (_botLogSetup.restartCount || 0) + 1;
-    saveSetup(_botLogSetup);
-    const _botCh = await client.channels.fetch(CH.BOT_LOG).catch(e => {
-      console.error('[BOT LOG] Channel-Fetch Fehler:', e.message);
-      return null;
-    });
-    if (_botCh) {
-      await _botCh.send({ embeds: [new EmbedBuilder()
-        .setColor(0x22c55e)
-        .setTitle('✅ Bot erfolgreich neugestartet')
-        .addFields(
-          { name: '🤖 Bot',             value: `${client.user.tag}`,                              inline: true },
-          { name: '📅 Datum & Uhrzeit', value: `<t:${ts()}:F>`,                                   inline: true },
-          { name: '🔄 Neustarts heute', value: `**${_botLogSetup.restartCount}x** (Reset um Mitternacht)`, inline: false }
-        )
-        .setFooter({ text: 'Railway Auto-Deploy / Manueller Neustart' })
-        .setTimestamp()
-      ]});
-      console.log('[BOT LOG] ✅ Neustart-Nachricht gesendet. Heute:', _botLogSetup.restartCount, 'x');
-    } else {
-      console.warn('[BOT LOG] ⚠️ Kanal nicht gefunden:', CH.BOT_LOG);
-    }
-  } catch (e) { console.error('[BOT LOG] Fehler:', e.message); }
+  // (Bot-Log bereits ganz am Anfang des ready-Handlers gesendet)
 
 
   await updateLohnlisteEmbed(client);
