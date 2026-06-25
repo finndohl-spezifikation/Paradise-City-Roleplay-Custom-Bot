@@ -1825,11 +1825,6 @@ client.once('ready', async () => {
 
 
     new SlashCommandBuilder()
-      .setName('krypto-setup')
-      .setDescription('Sendet die DarkCoin-Embeds in die entsprechenden Kanäle')
-      .toJSON(),
-
-    new SlashCommandBuilder()
       .setName('darknet-setup')
       .setDescription('Aktualisiert das Darknet-Embed im Darknet-Kanal (Admin)')
       .toJSON(),
@@ -1983,13 +1978,6 @@ client.once('ready', async () => {
       .addUserOption(o => o.setName('spieler').setDescription('Spieler auswählen').setRequired(true))
       .toJSON(),
     new SlashCommandBuilder()
-      .setName('einreise-link')
-      .setDescription('Sendet einem Spieler einen persönlichen Einreise-Link per DM')
-      .addUserOption(o => o.setName('spieler').setDescription('Spieler auswählen').setRequired(true))
-      .addStringOption(o => o.setName('art').setDescription('Einreiseart').setRequired(true)
-        .addChoices({ name: 'Legal', value: 'legal' }, { name: 'Illegal', value: 'illegal' }))
-      .toJSON(),
-    new SlashCommandBuilder()
       .setName('einreise-sperre')
       .setDescription('Aktiviert eine Einreise-Sperre auf dem Server (kein neuer Charakter möglich)')
       .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
@@ -2000,12 +1988,6 @@ client.once('ready', async () => {
       .setDescription('Hebt die Einreise-Sperre wieder auf')
       .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
       .toJSON(),
-    new SlashCommandBuilder()
-        .setName('lotto-ziehung')
-        .setDescription('Führt die Lotto-Ziehung manuell durch (Admin)')
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-        .toJSON(),
-
     new SlashCommandBuilder()
       .setName('ban')
       .setDescription('Bannt einen Nutzer permanent vom Server (inkl. Mod-Log-Eintrag)')
@@ -5815,14 +5797,6 @@ client.on('interactionCreate', async (interaction) => {
         }
 
 
-        // ── /rubbellos-setup ────────────────────────────────────────────────────
-        // ── /lotto-ziehung (manuell) ──────────────────────────────────────────────
-        if (commandName === 'lotto-ziehung') {
-          await interaction.deferReply({ ephemeral: true });
-          await doLottoZiehung(client);
-          return interaction.editReply({ content: '✅ Lotto-Ziehung wurde manuell durchgeführt!' });
-        }
-
         if (commandName === 'commands') {
           const embed = new EmbedBuilder()
             .setColor(0x5865F2)
@@ -5830,9 +5804,9 @@ client.on('interactionCreate', async (interaction) => {
             .addFields(
               { name: '🔨 Moderation', value: '`/delete` `/ban` `/unban` `/timeout`', inline: false },
               { name: '⚠️ Verwarnungen', value: '`/warn` `/warn-remove` `/warnlist`\n`/teamwarn` `/teamwarn-remove` `/teamwarn-list`', inline: false },
-              { name: '🪪 Charakter & Dokumente', value: '`/ausweis` `/ausweis-create` `/ausweis-delete`\n`/fuehrerschein` `/fuehrerschein-create` `/fuehrerschein-delete` `/fuehrerschein-edit`\n`/charakter-reset` `/einreise-link`', inline: false },
+              { name: '🪪 Charakter & Dokumente', value: '`/ausweis` `/ausweis-create` `/ausweis-delete`\n`/fuehrerschein` `/fuehrerschein-create` `/fuehrerschein-delete` `/fuehrerschein-edit`\n`/charakter-reset`', inline: false },
               { name: '🎒 Inventar & Wirtschaft', value: '`/lager` `/übergeben` `/use`\n`/item-give` `/item-remove`\n`/money-add` `/money-remove` `/bargeld`\n`/rechnung-create`', inline: false },
-              { name: '🏪 Shop & Lotto', value: '`/teamshop` `/shop-editor` `/lotto-ziehung`', inline: false },
+              { name: '🏪 Shop & Lotto', value: '`/teamshop` `/shop-editor`', inline: false },
               { name: '🏢 Fraktionen', value: '`/frakadd` `/frak-delete`\n`/frakwarn` `/frakwarn-remove`\n`/fraksperre` `/fraksperre-remove`', inline: false },
               { name: '🎉 Events & Abstimmungen', value: '`/event` `/giveaway` `/abstimmung` `/aktivitätscheck`\n`/vorschlag` `/vorschlag-yes` `/vorschlag-no`\n`/lobby-abstimmung` `/lobby-open` `/lobby-close`', inline: false },
               { name: '🎮 Spielmechaniken', value: '`/verstecken` `/fesseln`\n`/raub-fail` `/raub-cooldown`', inline: false },
@@ -7991,64 +7965,6 @@ client.on('interactionCreate', async (interaction) => {
 
 
 
-// ─── KRYPTO SETUP ────────────────────────────────────────────────────────────
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
-  if (interaction.commandName !== 'krypto-setup') return;
-  if (!interaction.member.permissions.has(require('discord.js').PermissionFlagsBits.Administrator)) {
-    return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
-  }
-  await interaction.deferReply({ ephemeral: true });
-  const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
-  const WEBAPP_URL_KS = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/,'');
-  const rateData = loadKryptoRate();
-
-  // 1. Wallet-Channel — interaktiver Button
-  try {
-    const ch1 = await client.channels.fetch(KRYPTO_WALLET_CH).catch(()=>null);
-    if(ch1) {
-      const embed1 = new EmbedBuilder()
-        .setColor(0xf59e0b)
-        .setTitle('<:emoji_29:1507071093540782110> PC Coin — Mein Wallet')
-        .setDescription('Sieh dein persönliches PC Coin-Guthaben ein und überweise <:emoji_29:1507071093540782110> an andere Spieler.\n\nKlicke auf den Button um dein Wallet zu sehen.')
-        .addFields(
-          { name:'💡 Was ist PC Coin?', value:'Die Kryptowährung von Paradise City. Überweise <:emoji_29:1507071093540782110> direkt an andere Spieler.', inline:false },
-          { name:'🔒 Sicherheit', value:'Dein Wallet ist nur für dich sichtbar.', inline:true }
-        )
-        ;
-      const row1 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('krypto_wallet').setLabel('💰 Wallet öffnen').setStyle(ButtonStyle.Primary)
-      );
-      await ch1.send({ embeds:[embed1], components:[row1] }).catch(()=>{});
-    }
-  } catch(e){ console.error('[KRYPTO SETUP W]',e.message); }
-
-  // 2. Tauschbörse-Channel — interaktiver Button
-  try {
-    const ch2 = await client.channels.fetch(KRYPTO_EXCH_CH).catch(()=>null);
-    if(ch2) {
-      const embed2 = new EmbedBuilder()
-        .setColor(0xf59e0b)
-        .setTitle('⚖️ PC Coin — Tauschbörse')
-        .setDescription('Tausche dein Bankgeld in PC Coin um — oder verkaufe deine <:emoji_29:1507071093540782110> zurück in Bankgeld.')
-        .addFields(
-          { name:'📈 Aktueller Kurs', value:`1 <:emoji_29:1507071093540782110> = **${rateData.rate.toLocaleString('de-DE')} $**`, inline:true },
-          { name:'🏦 Bankgeld → PC Coin', value:'Kaufe PC Coin mit deinem Bankkonto', inline:true },
-          { name:'💱 PC Coin → Bankgeld', value:'Verkaufe PC Coin zurück in Bankgeld', inline:true }
-        )
-        ;
-      const row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('krypto_exchange').setLabel('⚖️ Tauschbörse öffnen').setStyle(ButtonStyle.Primary)
-      );
-      await ch2.send({ embeds:[embed2], components:[row2] }).catch(()=>{});
-    }
-  } catch(e){ console.error('[KRYPTO SETUP E]',e.message); }
-
-  // 3. Kurse-Channel — Link-Button (direkt, kein Token)
-  await updateKryptoRate().catch(()=>{});
-
-  await interaction.editReply({ content: '✅ PC Coin Embeds gesendet!' });
-});
 // ─── END KRYPTO SETUP ─────────────────────────────────────────────────────────
 
 // ─── KRYPTO BUTTON INTERACTIONS ───────────────────────────────────────────────
