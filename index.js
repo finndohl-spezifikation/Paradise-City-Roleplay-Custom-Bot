@@ -2374,7 +2374,7 @@ client.once('ready', async () => {
     }
 
       // ── Einmalig: Regelwerk 2/2 Embed senden ──────────────────────────────────
-    if (!setup.regelwerkEmbed2SentV3) {
+    if (!setup.regelwerkEmbed2SentV4) {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const DIV   = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
       const regelEmbed2 = new EmbedBuilder()
@@ -2388,7 +2388,8 @@ client.once('ready', async () => {
               `**§7.1** Fahrzeuge: Müssen im RP gekauft sein — Fahrzeugdiebstahl ist verboten.\n` +
               `**§7.2** Waffen & Items: Nur eigene Items erlaubt.\n` +
               `**§7.3** Lager: Items dürfen nicht verwendet werden, solange sie im Lager liegen.\n` +
-              `**§7.4** Immobilien: Nur mit RP-Besitz nutzbar.`,
+              `**§7.4** Immobilien: Nur mit RP-Besitz nutzbar.\n` +
+              `**§7.5** Wegnehmen von Items: Das Wegnehmen von Items anderer Spieler/innen ist ohne einen RP-Hintergrund verboten und kann mit einer Verwarnung bestraft werden.`,
             inline: false,
           },
           { name: DIV, value: '👮  **Polizei & Medizin**', inline: false },
@@ -2449,7 +2450,7 @@ client.once('ready', async () => {
         const regelCh2 = await client.channels.fetch('1490882546144383156');
         if (regelCh2) {
           await regelCh2.send({ embeds: [regelEmbed2] });
-          setup.regelwerkEmbed2SentV3 = true;
+          setup.regelwerkEmbed2SentV4 = true;
           saveSetup(setup);
           console.log('✅ Regelwerk-Embed 2/2 einmalig gesendet.');
         }
@@ -9363,7 +9364,8 @@ client.on('interactionCreate', async (interaction) => {
         .setFooter({ text: 'Seite 1 / ' + totalPages + ' • ' + target.user.tag });
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('rinv_prev:0:' + targetId).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(true),
-        new ButtonBuilder().setCustomId('rinv_next:0:' + targetId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1)
+        new ButtonBuilder().setCustomId('rinv_next:0:' + targetId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1),
+        new ButtonBuilder().setCustomId('rinv_take:0:' + targetId).setLabel('📤 Item wegnehmen').setStyle(ButtonStyle.Danger).setDisabled(items.length === 0)
       );
       return interaction.editReply({ content: '', embeds: [embed], components: [row] });
     }
@@ -9393,11 +9395,104 @@ client.on('interactionCreate', async (interaction) => {
         .setFooter({ text: 'Seite ' + (page + 1) + ' / ' + totalPages });
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('rinv_prev:' + page + ':' + targetId).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
-        new ButtonBuilder().setCustomId('rinv_next:' + page + ':' + targetId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1)
+        new ButtonBuilder().setCustomId('rinv_next:' + page + ':' + targetId).setEmoji('➡️').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1),
+        new ButtonBuilder().setCustomId('rinv_take:' + page + ':' + targetId).setLabel('📤 Item wegnehmen').setStyle(ButtonStyle.Danger)
       );
       return interaction.update({ embeds: [embed], components: [row] });
     }
   } catch (e) { console.error('[RUCKSACK] interaction:', e.message); }
+});
+
+// ─── RUCKSACK WEGNEHMEN ───────────────────────────────────────────────────────
+client.on('interactionCreate', async (interaction) => {
+  try {
+    // Button: rinv_take:PAGE:TARGETID → Item-Auswahl anzeigen
+    if (interaction.isButton() && interaction.customId.startsWith('rinv_take:')) {
+      await interaction.deferUpdate();
+      const targetId = interaction.customId.split(':')[2];
+      const inv = getUserInv(targetId);
+      const items = Object.entries(inv).filter(([,q]) => q > 0);
+      if (items.length === 0) return interaction.editReply({ content: '❌ Rucksack ist leer.', embeds: [], components: [] });
+      const opts = items.slice(0, 25).map(([name, qty]) => ({
+        label: name.length > 100 ? name.slice(0, 97) + '…' : name,
+        description: qty + 'x vorhanden',
+        value: Buffer.from(name).toString('base64').slice(0, 100)
+      }));
+      return interaction.editReply({
+        content: '📤 **Welches Item möchtest du wegnehmen?**',
+        embeds: [],
+        components: [new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('rinv_take_item:' + targetId)
+            .setPlaceholder('Item auswählen...')
+            .addOptions(opts)
+        )]
+      });
+    }
+
+    // SelectMenu: rinv_take_item:TARGETID → Modal für Menge
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('rinv_take_item:')) {
+      const targetId = interaction.customId.split(':')[1];
+      const itemB64  = interaction.values[0];
+      const itemName = Buffer.from(itemB64, 'base64').toString('utf8');
+      const inv      = getUserInv(targetId);
+      const available = inv[itemName] || 0;
+      if (available === 0) return interaction.update({ content: '❌ Item nicht mehr vorhanden.', components: [] });
+      const modal = new ModalBuilder()
+        .setCustomId('rinv_take_modal:' + targetId + ':' + itemB64)
+        .setTitle('Item wegnehmen')
+        .addComponents(new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId('take_menge')
+            .setLabel('Menge (max. ' + available + 'x verfügbar)')
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder('z.B. 1')
+            .setRequired(true)
+            .setMaxLength(6)
+        ));
+      return interaction.showModal(modal);
+    }
+
+    // Modal: rinv_take_modal:TARGETID:ITEMB64 → Transfer + Log
+    if (interaction.isModalSubmit() && interaction.customId.startsWith('rinv_take_modal:')) {
+      const parts    = interaction.customId.split(':');
+      const targetId = parts[1];
+      const itemB64  = parts[2];
+      const itemName = Buffer.from(itemB64, 'base64').toString('utf8');
+      const mengeRaw = parseInt(interaction.fields.getTextInputValue('take_menge').replace(/[^0-9]/g, ''));
+      if (isNaN(mengeRaw) || mengeRaw <= 0) return interaction.reply({ content: '❌ Ungültige Menge.', ephemeral: true });
+
+      const targetInv = getUserInv(targetId);
+      const available = targetInv[itemName] || 0;
+      if (available === 0) return interaction.reply({ content: '❌ Das Item ist nicht mehr im Rucksack.', ephemeral: true });
+      const menge = Math.min(mengeRaw, available);
+
+      targetInv[itemName] = available - menge;
+      if (targetInv[itemName] <= 0) delete targetInv[itemName];
+      setUserInv(targetId, targetInv);
+
+      const selfInv = getUserInv(interaction.user.id);
+      selfInv[itemName] = (selfInv[itemName] || 0) + menge;
+      setUserInv(interaction.user.id, selfInv);
+
+      sendLog(CH.MOD_LOG, new EmbedBuilder()
+        .setColor(0xE65100)
+        .setTitle('🎒 Spieler-Log: Item weggenommen')
+        .addFields(
+          { name: '👤 Weggenommen von', value: `<@${interaction.user.id}>`, inline: true },
+          { name: '🎯 Ziel-Spieler',    value: `<@${targetId}>`,            inline: true },
+          { name: '📦 Item',            value: `**${itemName}** × ${menge}`, inline: false },
+          { name: '🕐 Zeit',            value: `<t:${Math.floor(Date.now()/1000)}:F>`, inline: false }
+        )
+        .setFooter({ text: 'Rucksack-System • Wegnehmen' })
+      ).catch(() => {});
+
+      return interaction.reply({
+        content: `✅ **${menge}x ${itemName}** aus dem Rucksack von <@${targetId}> entnommen und zu deinem Inventar hinzugefügt.`,
+        ephemeral: true
+      });
+    }
+  } catch (e) { console.error('[RUCKSACK TAKE]', e.message); }
 });
 
 (function loginWithRetry(attempt) {
