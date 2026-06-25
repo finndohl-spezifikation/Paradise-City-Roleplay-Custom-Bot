@@ -2118,8 +2118,9 @@ client.once('ready', async () => {
   }
   // ── Einmalig: Einreise-Embed mit Button senden ─────────────────────────────
   const setup = loadSetup();
-  if (!setup.einreiseEmbedV8Sent) {
-    const WEBAPP_URL = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'http://localhost:8080')).replace(/\/$/, '');
+  if (!setup.einreiseEmbedV9Sent) {
+    const _eiWAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/$/, '');
+    const _eiUrl  = _eiWAPP && !_eiWAPP.includes('localhost') ? _eiWAPP + '/einreise' : null;
     const einreiseEmbed = new EmbedBuilder()
       .setColor(DARK_ORANGE)
       .setTitle('🛂  Einreise — Paradise City Roleplay')
@@ -2154,11 +2155,9 @@ client.once('ready', async () => {
         `- Exklusives Starterfahrzeug`
       );
 
-    const einreiseButton = new ButtonBuilder()
-      .setLabel('Einreise starten')
-      .setEmoji('🛂')
-      .setStyle(ButtonStyle.Link)
-      .setURL(WEBAPP_URL + '/einreise');
+    const einreiseButton = _eiUrl
+      ? new ButtonBuilder().setLabel('Einreise starten').setEmoji('🛂').setStyle(ButtonStyle.Link).setURL(_eiUrl)
+      : new ButtonBuilder().setLabel('Einreise starten').setEmoji('🛂').setStyle(ButtonStyle.Primary).setCustomId('einreise_starten');
     const row = new ActionRowBuilder().addComponents(einreiseButton);
 
     try {
@@ -2167,11 +2166,11 @@ client.once('ready', async () => {
         const _eOld = await einreiseCh.messages.fetch({ limit: 20 }).catch(() => null);
         if (_eOld) { for (const [, _m] of _eOld) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
         await einreiseCh.send({ embeds: [einreiseEmbed], components: [row] });
-        setup.einreiseEmbedV8Sent = true;
+        setup.einreiseEmbedV9Sent = true;
         saveSetup(setup);
-        console.log('✅ Einreise-Embed v8 (Link-Button) einmalig gesendet.');
-      }
-    } catch (e) { console.error('Einreise-Embed Fehler:', e.message); }
+        console.log('✅ Einreise-Embed v9 einmalig gesendet. URL:', _eiUrl || 'Fallback-Button');
+      } else { console.error('[EINREISE] Kanal nicht gefunden: 1490878156582686853'); }
+    } catch (e) { console.error('[EINREISE] Embed Fehler:', e.message, e.stack?.split('\n')[1]); }
   }
 
 
@@ -9576,31 +9575,28 @@ async function _sendStartupEmbeds(source) {
     const lCh = client.channels.cache.get(LOTTO_CH) || await client.channels.fetch(LOTTO_CH).catch(e => { console.error('[LOTTO] fetch-Fehler:', e.message); return null; });
     if (!lCh) { console.error('[LOTTO] Kanal nicht gefunden:', LOTTO_CH); }
     else {
+      // Altes Lotto-Embed löschen und neu senden (Preis-Update)
       const lottoMsgs = await lCh.messages.fetch({ limit: 50 }).catch(() => null);
-      const lExists = lottoMsgs && lottoMsgs.some(m => m.author.id === client.user.id && m.embeds?.[0]?.title === '🎰 Paradise City Lotto');
-      if (lExists) {
-        console.log('[LOTTO] Embed bereits vorhanden, überspringe.');
-      } else {
-        await lCh.send({
-          embeds: [new EmbedBuilder()
-            .setColor(0xf59e0b)
-            .setTitle('🎰 Paradise City Lotto')
-            .setDescription(
-              '**Versuche dein Glück beim Paradise City Lotto!**\n\n' +
-              '▸ Kaufe einen **Lottoschein** im Kwik-E-Markt für **2.500 $**\n' +
-              '▸ Klicke auf **Lotto spielen** und wähle deine Zahlen\n' +
-              '▸ Die Ziehung findet **täglich um 12:00 Uhr** statt\n' +
-              '▸ Bei einem Treffer wird der Gewinn automatisch überwiesen\n\n' +
-              '🍀 Viel Erfolg!'
-            )
-            .setFooter({ text: 'Paradise City Roleplay • Tägliche Ziehung um 12:00 Uhr' })
-          ],
-          components: [new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('lotto_play').setLabel('🎰 Lotto spielen').setStyle(ButtonStyle.Primary)
-          )]
-        });
-        console.log('[LOTTO] ✅ Embed gesendet.');
-      }
+      if (lottoMsgs) { for (const [, m] of lottoMsgs) { if (m.author.id === client.user.id && m.embeds?.[0]?.title?.includes('Paradise City Lotto') && !m.embeds?.[0]?.title?.includes('Tagesziehung')) await m.delete().catch(() => {}); } }
+      await lCh.send({
+        embeds: [new EmbedBuilder()
+          .setColor(0xf59e0b)
+          .setTitle('🎰 Paradise City Lotto')
+          .setDescription(
+            '**Versuche dein Glück beim Paradise City Lotto!**\n\n' +
+            '▸ Kaufe einen **Lottoschein** im Kwik-E-Markt für **2.500 $**\n' +
+            '▸ Klicke auf **Lotto spielen** und wähle deine Zahlen\n' +
+            '▸ Die Ziehung findet **täglich um 12:00 Uhr** statt\n' +
+            '▸ Bei einem Treffer wird der Gewinn automatisch überwiesen\n\n' +
+            '🍀 Viel Erfolg!'
+          )
+          .setFooter({ text: 'Paradise City Roleplay • Tägliche Ziehung um 12:00 Uhr' })
+        ],
+        components: [new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('lotto_play').setLabel('🎰 Lotto spielen').setStyle(ButtonStyle.Primary)
+        )]
+      });
+      console.log('[LOTTO] ✅ Embed gesendet (aktualisiert).');
     }
   } catch (e) { console.error('[LOTTO] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
 
