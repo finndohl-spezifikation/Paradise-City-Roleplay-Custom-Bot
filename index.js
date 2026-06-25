@@ -2374,7 +2374,7 @@ client.once('ready', async () => {
     }
 
       // ── Einmalig: Regelwerk 2/2 Embed senden ──────────────────────────────────
-    if (!setup.regelwerkEmbed2SentV4) {
+    if (!setup.regelwerkEmbed2SentV3) {
       const LINE  = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
       const DIV   = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
       const regelEmbed2 = new EmbedBuilder()
@@ -2450,12 +2450,38 @@ client.once('ready', async () => {
         const regelCh2 = await client.channels.fetch('1490882546144383156');
         if (regelCh2) {
           await regelCh2.send({ embeds: [regelEmbed2] });
-          setup.regelwerkEmbed2SentV4 = true;
+          setup.regelwerkEmbed2SentV3 = true;
           saveSetup(setup);
           console.log('✅ Regelwerk-Embed 2/2 einmalig gesendet.');
         }
       } catch (e) { console.error('Regelwerk-Embed 2/2 Fehler:', e.message); }
     }
+
+  // ── Einmalig: Regelwerk-Nachricht 1513364449438990356 bearbeiten (§7.5) ──────
+  if (!setup.regelwerkMsgEdit7_5) {
+    try {
+      const _rwCh = await client.channels.fetch('1490882546144383156').catch(() => null);
+      if (_rwCh) {
+        const _rwMsg = await _rwCh.messages.fetch('1513364449438990356').catch(() => null);
+        if (_rwMsg) {
+          const _oldEmbed = _rwMsg.embeds[0];
+          if (_oldEmbed) {
+            const _eb = EmbedBuilder.from(_oldEmbed);
+            const _fields = _eb.data.fields || [];
+            const _idx = _fields.findIndex(f => f.value && f.value.includes('§7'));
+            if (_idx !== -1 && !_fields[_idx].value.includes('§7.5')) {
+              _fields[_idx].value += `\n**§7.5** Wegnehmen von Items: Das Wegnehmen von Items anderer Spieler/innen ist ohne einen RP-Hintergrund verboten und kann mit einer Verwarnung bestraft werden.`;
+              _eb.setFields(_fields);
+            }
+            await _rwMsg.edit({ embeds: [_eb] });
+            console.log('✅ Regelwerk-Nachricht §7.5 eingefügt.');
+          }
+          setup.regelwerkMsgEdit7_5 = true;
+          saveSetup(setup);
+        } else { console.warn('[REGELWERK EDIT] Nachricht 1513364449438990356 nicht gefunden.'); }
+      }
+    } catch (e) { console.error('[REGELWERK EDIT] Fehler:', e.message); }
+  }
 
   // ── Einmalig: Fraktionsregelwerk-Embed senden ──────────────────────────────
     if (!setup.fraktionsregelwerkEmbedV5) {
