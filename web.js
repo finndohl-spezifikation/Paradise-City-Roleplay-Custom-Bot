@@ -3054,6 +3054,110 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;mi
   });
 
 
+  // ── GET /ausweis/create-illegal/:token ──────────────────────────────────────
+  app.get('/ausweis/create-illegal/:token', (req, res) => {
+    const tokens = loadAusweisTokens();
+    const entry  = tokens[req.params.token];
+    if (!entry || entry.typ !== 'illegal' || entry.expiresAt < Date.now()) {
+      return res.send(page('Ungültiger Link', `${header('Ungültiger Link')}<div class="card"><div class="error-box">⚠️ Dieser Link ist ungültig oder abgelaufen. Wende dich ans Team.</div></div>`));
+    }
+    const error   = req.session['illAwError_'+req.params.token] || ''; delete req.session['illAwError_'+req.params.token];
+    const illForm = req.session['illAwForm_'+req.params.token]  || ''; delete req.session['illAwForm_'+req.params.token];
+    res.send(page('Illegale Einreise — Charakter', `
+      ${header('🥷 Illegale Einreise — Charakter registrieren')}
+      <div class="card">
+        ${error ? `<div class="error-box">⚠️ ${error}</div>` : ''}
+        <form method="POST" action="/ausweis/create-illegal/${req.params.token}">
+          <p class="section-title">🎭 Charakter-Daten</p>
+          <div class="form-row two">
+            <div class="form-group">
+              <label>Vorname <span class="req">*</span></label>
+              <input type="text" name="vorname" value="${escHtml((illForm&&illForm.vorname)||'')}" required placeholder="Vorname">
+            </div>
+            <div class="form-group">
+              <label>Nachname <span class="req">*</span></label>
+              <input type="text" name="nachname" value="${escHtml((illForm&&illForm.nachname)||'')}" required placeholder="Nachname">
+            </div>
+          </div>
+          <div class="form-row two">
+            <div class="form-group">
+              <label>Geburtsdatum <span class="req">*</span></label>
+              <input type="text" name="geburtsdatum" value="${escHtml((illForm&&illForm.geburtsdatum)||'')}" required placeholder="TT.MM.JJJJ">
+            </div>
+            <div class="form-group">
+              <label>Geburtsort <span class="req">*</span></label>
+              <input type="text" name="geburtsort" value="${escHtml((illForm&&illForm.geburtsort)||'')}" required placeholder="Los Santos">
+            </div>
+          </div>
+          <div class="form-row two">
+            <div class="form-group">
+              <label>PSN Name <span class="req">*</span></label>
+              <input type="text" name="psn" value="${escHtml((illForm&&illForm.psn)||'')}" required placeholder="dein_psn_name">
+            </div>
+            <div class="form-group">
+              <label>Geschlecht <span class="req">*</span></label>
+              <select name="geschlecht" required>
+                <option value="" disabled selected>Bitte wählen</option>
+                <option value="Männlich" ${illForm&&illForm.geschlecht==='Männlich'?'selected':''}>Männlich</option>
+                <option value="Weiblich" ${illForm&&illForm.geschlecht==='Weiblich'?'selected':''}>Weiblich</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn" style="background:#b71c1c">🥷 Charakter registrieren</button>
+          ${warning()}
+        </form>
+      </div>
+    `));
+  });
+
+  // ── POST /ausweis/create-illegal/:token ──────────────────────────────────────
+  app.post('/ausweis/create-illegal/:token', async (req, res) => {
+    const tokens = loadAusweisTokens();
+    const entry  = tokens[req.params.token];
+    const tok    = req.params.token;
+    if (!entry || entry.typ !== 'illegal' || entry.expiresAt < Date.now()) {
+      return res.send(page('Ungültiger Link', `${header('Ungültiger Link')}<div class="card"><div class="error-box">⚠️ Dieser Link ist ungültig oder abgelaufen.</div></div>`));
+    }
+    function errBack(msg) {
+      req.session['illAwError_'+tok] = msg;
+      req.session['illAwForm_'+tok]  = Object.assign({}, req.body);
+      return res.redirect('/ausweis/create-illegal/'+tok);
+    }
+    const illVor        = (req.body.vorname      || '').trim();
+    const illNach       = (req.body.nachname     || '').trim();
+    const illGeb        = (req.body.geburtsdatum || '').trim();
+    const illGeburtsort = (req.body.geburtsort   || '').trim();
+    const illPsn        = (req.body.psn          || '').trim();
+    const illGeschlecht = (req.body.geschlecht   || '').trim();
+    if (!illVor || !illNach)       return errBack('Bitte gib Vor- und Nachname ein.');
+    if (!illGeb)                   return errBack('Bitte gib das Geburtsdatum ein.');
+    if (!illGeburtsort)            return errBack('Bitte gib den Geburtsort ein.');
+    if (!illPsn)                   return errBack('Bitte gib deinen PSN Namen ein.');
+    if (!['Männlich','Weiblich'].includes(illGeschlecht)) return errBack('Bitte wähle ein Geschlecht.');
+    const ausweise = loadAusweis();
+    if (ausweise[entry.userId]) return errBack('Für diesen Spieler existiert bereits ein Eintrag.');
+    ausweise[entry.userId] = { vorname: illVor, nachname: illNach, geburtsdatum: illGeb, geburtsort: illGeburtsort, psn: illPsn, geschlecht: illGeschlecht, typ: 'illegal', createdAt: new Date().toISOString(), createdBy: entry.createdBy };
+    saveAusweis(ausweise);
+    // Nickname setzen
+    try {
+      const guild9 = client.guilds.cache.first();
+      const mem9   = guild9 ? await guild9.members.fetch(entry.userId).catch(() => null) : null;
+      if (mem9) await mem9.setNickname(`${illVor} ${illNach} | ${illPsn}`).catch(() => {});
+    } catch {}
+    // Token verbrauchen
+    delete tokens[tok];
+    saveAusweisTokens(tokens);
+    res.send(page('Charakter Registriert', `
+      ${header('Charakter Registriert')}
+      <div class="card"><div class="success-wrap">
+        <div class="icon">🥷</div>
+        <h2>Illegale Einreise registriert!</h2>
+        <p>Charakter <strong>${escHtml(illVor)} ${escHtml(illNach)}</strong> wurde erfasst.</p>
+        <p style="margin-top:14px;color:#555;font-size:.8em">Du kannst dieses Fenster schließen.</p>
+      </div></div>
+    `));
+  });
+
     // ─── LOTTO ROUTES ────────────────────────────────────────────────────────────
 
     // GET /lotto?token=XXX — serves the lotto number picker page
