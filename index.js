@@ -962,12 +962,13 @@ const DASHBOARD_EMBED_CH   = '1491789518603419822';
 // ─── Kanal-IDs ───────────────────────────────────────────────────────────────
 const CH = {
   ACTIVITY:    '1497385121324732567',
-  SERVER_LOG:  '1490878131240829028',
-  MOD_LOG:     '1490878132230819840',
-  RESTART_LOG: '1490878133279264842',
-  MEMBER_LOG:  '1490878134847930368',
-  MSG_LOG:     '1490878135837917234',
-  ROLE_LOG:    '1490878137385619598',
+  SERVER_LOG:  '1490878131240829028',  // Kanal/Kategorie/Server-Änderungen
+  MOD_LOG:     '1490878132230819840',  // Bans, Kicks, Timeouts, Warns
+  RESTART_LOG: '1490878133279264842',  // (alt, nicht mehr aktiv)
+  BOT_LOG:     '1519455249079861409',  // Bot-Neustart mit Counter
+  MEMBER_LOG:  '1490878134847930368',  // Beitritt, Verlassen, Voice, Nickname
+  MSG_LOG:     '1490878135837917234',  // Nachrichten gelöscht/bearbeitet
+  ROLE_LOG:    '1490878137385619598',  // Rollen vergeben/entfernt
   TEAM_WARN:   '1490878144146833450',
   WELCOME:     '1490878151897911557',
   GOODBYE:     '1490878154733260951',
@@ -2077,24 +2078,37 @@ client.once('ready', async () => {
     }
   }
 
-  // ── Restart-Log direkt senden (mit Fehlerausgabe) ────────────────────────
+  // ── Bot-Log: Neustart mit täglichem Counter ──────────────────────────────
   try {
-    const _restartCh = await client.channels.fetch(CH.RESTART_LOG).catch(e => {
-      console.error('[RESTART LOG] Channel-Fetch Fehler:', e.message);
+    const _botLogSetup = loadSetup();
+    const _today = new Date().toISOString().slice(0, 10); // "2026-06-24"
+    if (_botLogSetup.restartDate !== _today) {
+      _botLogSetup.restartDate  = _today;
+      _botLogSetup.restartCount = 0;
+    }
+    _botLogSetup.restartCount = (_botLogSetup.restartCount || 0) + 1;
+    saveSetup(_botLogSetup);
+    const _botCh = await client.channels.fetch(CH.BOT_LOG).catch(e => {
+      console.error('[BOT LOG] Channel-Fetch Fehler:', e.message);
       return null;
     });
-    if (_restartCh) {
-      await _restartCh.send({ embeds: [new EmbedBuilder()
-        .setColor(Colors.Green)
-        .setTitle('🔄 Bot neugestartet')
-        .setDescription(`**${client.user.tag}** ist wieder online.`)
-        .addFields({ name: '🕐 Zeitpunkt', value: `<t:${ts()}:F>` })
+    if (_botCh) {
+      await _botCh.send({ embeds: [new EmbedBuilder()
+        .setColor(0x22c55e)
+        .setTitle('✅ Bot erfolgreich neugestartet')
+        .addFields(
+          { name: '🤖 Bot',             value: `${client.user.tag}`,                              inline: true },
+          { name: '📅 Datum & Uhrzeit', value: `<t:${ts()}:F>`,                                   inline: true },
+          { name: '🔄 Neustarts heute', value: `**${_botLogSetup.restartCount}x** (Reset um Mitternacht)`, inline: false }
+        )
+        .setFooter({ text: 'Railway Auto-Deploy / Manueller Neustart' })
+        .setTimestamp()
       ]});
-      console.log('[RESTART LOG] ✅ Nachricht gesendet in', CH.RESTART_LOG);
+      console.log('[BOT LOG] ✅ Neustart-Nachricht gesendet. Heute:', _botLogSetup.restartCount, 'x');
     } else {
-      console.warn('[RESTART LOG] ⚠️ Kanal nicht gefunden oder kein Zugriff:', CH.RESTART_LOG);
+      console.warn('[BOT LOG] ⚠️ Kanal nicht gefunden:', CH.BOT_LOG);
     }
-  } catch (e) { console.error('[RESTART LOG] Fehler:', e.message); }
+  } catch (e) { console.error('[BOT LOG] Fehler:', e.message); }
 
 
   await updateLohnlisteEmbed(client);
@@ -3488,34 +3502,57 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
   }
 
   if (oldMember.nickname !== newMember.nickname) {
+    // Wer hat den Nickname geändert? Aus Audit-Log holen
+    const nickEntry = await getAuditEntry(newMember.guild, AuditLogEvent.MemberUpdate).catch(() => null);
+    const nickVon   = (nickEntry?.targetId === newMember.id && nickEntry?.executor)
+      ? `<@${nickEntry.executor.id}> (${nickEntry.executor.tag})`
+      : '_Nutzer selbst / unbekannt_';
     await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
-      .setColor(Colors.Blue).setTitle('✏️ Nickname geändert')
+      .setColor(0x3b82f6).setTitle('✏️ Server-Profilname geändert')
       .addFields(
-        { name: 'Mitglied',       value: `<@${newMember.id}> (${newMember.user.tag})` },
-        { name: 'Alter Nickname', value: oldMember.nickname || '_keiner_', inline: true },
-        { name: 'Neuer Nickname', value: newMember.nickname || '_keiner_', inline: true }
+        { name: '👤 Mitglied',      value: `<@${newMember.id}> (${newMember.user.tag})`, inline: false },
+        { name: '📝 Alter Name',    value: oldMember.nickname || '_keiner_',              inline: true  },
+        { name: '✏️ Neuer Name',    value: newMember.nickname || '_keiner_',              inline: true  },
+        { name: '🛡️ Geändert von', value: nickVon,                                       inline: false },
+        { name: '🕐 Zeitpunkt',     value: `<t:${ts()}:F>`,                               inline: false }
       )
     );
   }
   const addedRoles   = newMember.roles.cache.filter(r => !oldMember.roles.cache.has(r.id));
   const removedRoles = oldMember.roles.cache.filter(r => !newMember.roles.cache.has(r.id));
-  if (addedRoles.size > 0) {
-    await sendLog(CH.ROLE_LOG, new EmbedBuilder()
-      .setColor(Colors.Green).setTitle('🟢 Rolle(n) vergeben')
-      .addFields(
-        { name: 'Mitglied', value: `<@${newMember.id}> (${newMember.user.tag})` },
-        { name: 'Rollen',   value: addedRoles.map(r => r.name).join(', ') }
-      )
-    );
-  }
-  if (removedRoles.size > 0) {
-    await sendLog(CH.ROLE_LOG, new EmbedBuilder()
-      .setColor(Colors.Red).setTitle('🔴 Rolle(n) entfernt')
-      .addFields(
-        { name: 'Mitglied', value: `<@${newMember.id}> (${newMember.user.tag})` },
-        { name: 'Rollen',   value: removedRoles.map(r => r.name).join(', ') }
-      )
-    );
+
+  if (addedRoles.size > 0 || removedRoles.size > 0) {
+    // Executor aus Audit-Log holen
+    const roleEntry = await getAuditEntry(newMember.guild, AuditLogEvent.MemberRoleUpdate).catch(() => null);
+    const roleVon   = (roleEntry?.targetId === newMember.id && roleEntry?.executor)
+      ? `<@${roleEntry.executor.id}> (${roleEntry.executor.tag})`
+      : '_Automatisch (Bot)_';
+    const vonBot = roleVon.includes('Automatisch');
+
+    if (addedRoles.size > 0) {
+      await sendLog(CH.ROLE_LOG, new EmbedBuilder()
+        .setColor(0x22c55e)
+        .setTitle(vonBot ? '🤖 Auto-Rolle(n) vergeben' : '🟢 Rolle(n) vergeben')
+        .addFields(
+          { name: '👤 Mitglied',     value: `<@${newMember.id}> (${newMember.user.tag})`,    inline: false },
+          { name: '🎭 Rollen',       value: addedRoles.map(r => `<@&${r.id}> (${r.name})`).join('\n') || '_keine_', inline: false },
+          { name: '🛡️ Vergeben von', value: roleVon,                                           inline: true  },
+          { name: '🕐 Zeitpunkt',    value: `<t:${ts()}:F>`,                                   inline: true  }
+        )
+      );
+    }
+    if (removedRoles.size > 0) {
+      await sendLog(CH.ROLE_LOG, new EmbedBuilder()
+        .setColor(0xef4444)
+        .setTitle(vonBot ? '🤖 Auto-Rolle(n) entfernt' : '🔴 Rolle(n) entfernt')
+        .addFields(
+          { name: '👤 Mitglied',     value: `<@${newMember.id}> (${newMember.user.tag})`,       inline: false },
+          { name: '🎭 Rollen',       value: removedRoles.map(r => `<@&${r.id}> (${r.name})`).join('\n') || '_keine_', inline: false },
+          { name: '🛡️ Entfernt von', value: roleVon,                                              inline: true  },
+          { name: '🕐 Zeitpunkt',    value: `<t:${ts()}:F>`,                                      inline: true  }
+        )
+      );
+    }
   }
 
   // ── Firmen-Auslastung: sofort aktualisieren bei Rollen-Änderung ────────────
@@ -3529,6 +3566,107 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
       updateFirmenEmbed(client).catch(e => console.error('[FIRMEN UPDATE]', e.message));
     }
   }
+});
+
+// ─── VOICE STATE ─────────────────────────────────────────────────────────────
+client.on('voiceStateUpdate', async (oldState, newState) => {
+  if (newState.member?.user?.bot) return;
+  const member = newState.member || oldState.member;
+  if (!member) return;
+  const nutzer = `<@${member.id}> (${member.user.tag})`;
+
+  // Beigetreten
+  if (!oldState.channelId && newState.channelId) {
+    await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
+      .setColor(0x22c55e).setTitle('🔊 Sprachkanal betreten')
+      .addFields(
+        { name: '👤 Mitglied',  value: nutzer,                        inline: true },
+        { name: '🔊 Kanal',     value: `<#${newState.channelId}>`,    inline: true },
+        { name: '🕐 Zeitpunkt', value: `<t:${ts()}:F>`,               inline: true }
+      )
+    );
+    return;
+  }
+
+  // Verlassen
+  if (oldState.channelId && !newState.channelId) {
+    await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
+      .setColor(0xef4444).setTitle('🔇 Sprachkanal verlassen')
+      .addFields(
+        { name: '👤 Mitglied',  value: nutzer,                        inline: true },
+        { name: '🔊 Kanal',     value: `<#${oldState.channelId}>`,    inline: true },
+        { name: '🕐 Zeitpunkt', value: `<t:${ts()}:F>`,               inline: true }
+      )
+    );
+    return;
+  }
+
+  // Gewechselt
+  if (oldState.channelId && newState.channelId && oldState.channelId !== newState.channelId) {
+    await sendLog(CH.MEMBER_LOG, new EmbedBuilder()
+      .setColor(0xfbbf24).setTitle('🔀 Sprachkanal gewechselt')
+      .addFields(
+        { name: '👤 Mitglied',   value: nutzer,                        inline: false },
+        { name: '📤 Von',        value: `<#${oldState.channelId}>`,    inline: true  },
+        { name: '📥 Nach',       value: `<#${newState.channelId}>`,    inline: true  },
+        { name: '🕐 Zeitpunkt',  value: `<t:${ts()}:F>`,               inline: false }
+      )
+    );
+  }
+});
+
+// ─── SERVER-UPDATE (Servername etc.) ─────────────────────────────────────────
+client.on('guildUpdate', async (oldGuild, newGuild) => {
+  const entry    = await getAuditEntry(newGuild, AuditLogEvent.GuildUpdate).catch(() => null);
+  const executor = entry?.executor;
+  const von      = executor ? `<@${executor.id}> (${executor.tag})` : '_Unbekannt_';
+
+  if (oldGuild.name !== newGuild.name) {
+    await sendLog(CH.SERVER_LOG, new EmbedBuilder()
+      .setColor(0xfbbf24).setTitle('✏️ Servername geändert')
+      .addFields(
+        { name: '📝 Alter Name', value: oldGuild.name,       inline: true  },
+        { name: '✏️ Neuer Name', value: newGuild.name,       inline: true  },
+        { name: '🛡️ Von',        value: von,                 inline: false },
+        { name: '🕐 Zeitpunkt',  value: `<t:${ts()}:F>`,     inline: false }
+      )
+    );
+  } else {
+    // Sonstige Server-Einstellungsänderungen
+    await sendLog(CH.SERVER_LOG, new EmbedBuilder()
+      .setColor(0xfbbf24).setTitle('⚙️ Server-Einstellungen geändert')
+      .addFields(
+        { name: '🛡️ Geändert von', value: von,           inline: true },
+        { name: '🕐 Zeitpunkt',     value: `<t:${ts()}:F>`, inline: true }
+      )
+    );
+  }
+});
+
+// ─── THREADS ─────────────────────────────────────────────────────────────────
+client.on('threadCreate', async (thread) => {
+  if (!thread.guild) return;
+  await sendLog(CH.SERVER_LOG, new EmbedBuilder()
+    .setColor(0x22c55e).setTitle('🧵 Thread erstellt')
+    .addFields(
+      { name: '🧵 Thread',        value: `<#${thread.id}> — ${thread.name}`,           inline: true },
+      { name: '📢 Eltern-Kanal',  value: thread.parentId ? `<#${thread.parentId}>` : '_unbekannt_', inline: true },
+      { name: '👤 Erstellt von',  value: thread.ownerId ? `<@${thread.ownerId}>` : '_unbekannt_',   inline: true },
+      { name: '🕐 Zeitpunkt',     value: `<t:${ts()}:F>`,                              inline: false }
+    )
+  );
+});
+
+client.on('threadDelete', async (thread) => {
+  if (!thread.guild) return;
+  await sendLog(CH.SERVER_LOG, new EmbedBuilder()
+    .setColor(0xef4444).setTitle('🗑️ Thread gelöscht')
+    .addFields(
+      { name: '🧵 Thread',       value: '#' + thread.name,                                          inline: true },
+      { name: '📢 Eltern-Kanal', value: thread.parentId ? `<#${thread.parentId}>` : '_unbekannt_',  inline: true },
+      { name: '🕐 Zeitpunkt',    value: `<t:${ts()}:F>`,                                            inline: false }
+    )
+  );
 });
 
 // ─── NACHRICHTEN ─────────────────────────────────────────────────────────────
@@ -3912,45 +4050,111 @@ client.on('messageCreate', async (message) => {
 
 // ─── NACHRICHT GELÖSCHT ───────────────────────────────────────────────────────
 client.on('messageDelete', async (message) => {
+  if (!message.guild) return;
   if (message.author?.bot) return;
   const entry   = await getAuditEntry(message.guild, AuditLogEvent.MessageDelete);
   const deleter = entry?.executor;
-  await sendLog(CH.MSG_LOG, new EmbedBuilder()
-    .setColor(Colors.Red).setTitle('🗑️ Nachricht gelöscht')
+  const inhalt  = message.content?.slice(0, 900) || (message.attachments?.size ? `[${message.attachments.size} Anhang/Anhänge]` : '_kein Text_');
+  const msgLink = message.id ? `https://discord.com/channels/${message.guild.id}/${message.channel.id}/${message.id}` : null;
+  const embed = new EmbedBuilder()
+    .setColor(0xef4444)
+    .setTitle('🗑️ Nachricht gelöscht')
     .addFields(
-      { name: 'Autor',        value: message.author ? `<@${message.author.id}> (${message.author.tag})` : 'Unbekannt' },
-      { name: 'Kanal',        value: `<#${message.channel.id}>` },
-      { name: 'Inhalt',       value: message.content?.slice(0, 1000) || '_kein Text_' },
-      { name: 'Gelöscht von', value: deleter ? `<@${deleter.id}> (${deleter.tag})` : 'Nutzer selbst / unbekannt' }
+      { name: '👤 Autor',        value: message.author ? `<@${message.author.id}> (${message.author.tag})` : '_Unbekannt_', inline: true },
+      { name: '📢 Kanal',        value: `<#${message.channel.id}>`,                                                          inline: true },
+      { name: '🕐 Zeitpunkt',    value: `<t:${ts()}:F>`,                                                                    inline: true },
+      { name: '🚮 Gelöscht von', value: deleter ? `<@${deleter.id}> (${deleter.tag})` : '_Nutzer selbst / unbekannt_',      inline: false },
+      { name: '💬 Inhalt',       value: inhalt,                                                                              inline: false }
+    );
+  if (msgLink) embed.setFooter({ text: 'Nachrichten-ID: ' + message.id });
+  await sendLog(CH.MSG_LOG, embed);
+});
+
+// ─── MEHRERE NACHRICHTEN GELÖSCHT (Bulk) ─────────────────────────────────────
+client.on('messageDeleteBulk', async (messages, channel) => {
+  if (!channel.guild) return;
+  const count    = messages.size;
+  const nonBot   = messages.filter(m => !m.author?.bot);
+  const sample   = nonBot.first(5).map(m =>
+    `• **${m.author?.tag || 'Unbekannt'}**: ${(m.content || '[Anhang]').slice(0, 80)}`
+  ).join('\n') || '_keine lesbaren Nachrichten_';
+  await sendLog(CH.MSG_LOG, new EmbedBuilder()
+    .setColor(0xef4444)
+    .setTitle(`🗑️ ${count} Nachrichten gelöscht (Bulk)`)
+    .addFields(
+      { name: '📢 Kanal',          value: `<#${channel.id}>`,    inline: true  },
+      { name: '🔢 Anzahl',         value: `${count} Nachrichten`, inline: true  },
+      { name: '🕐 Zeitpunkt',      value: `<t:${ts()}:F>`,        inline: true  },
+      { name: '💬 Vorschau (max 5)', value: sample,               inline: false }
     )
+    .setFooter({ text: 'Ausgelöst durch /delete oder manuelle Massenlöschung' })
   );
 });
 
 // ─── NACHRICHT BEARBEITET ─────────────────────────────────────────────────────
 client.on('messageUpdate', async (oldMsg, newMsg) => {
-  if (newMsg.author?.bot || oldMsg.content === newMsg.content) return;
+  if (!newMsg.guild) return;
+  if (oldMsg.content === newMsg.content) return;
+  // Bot-eigene Änderungen loggen (z.B. 67/69 Zähler-Updates)
+  if (newMsg.author?.bot) {
+    const vorher  = oldMsg.content?.slice(0, 400) || '_unbekannt_';
+    const nachher = newMsg.content?.slice(0, 400) || '_leer_';
+    if (vorher === nachher) return;
+    await sendLog(CH.MSG_LOG, new EmbedBuilder()
+      .setColor(0xfbbf24)
+      .setTitle('🤖 Bot-Nachricht bearbeitet')
+      .addFields(
+        { name: '🤖 Bot',        value: `<@${newMsg.author.id}> (${newMsg.author.tag})`, inline: true },
+        { name: '📢 Kanal',      value: `<#${newMsg.channel.id}>`,                       inline: true },
+        { name: '🕐 Zeitpunkt',  value: `<t:${ts()}:F>`,                                 inline: true },
+        { name: '📝 Vorher',     value: vorher,                                           inline: false },
+        { name: '✏️ Nachher',    value: nachher,                                          inline: false }
+      )
+      .setFooter({ text: 'Nachrichten-ID: ' + newMsg.id })
+    );
+    return;
+  }
+  // Normale Nutzer-Bearbeitungen
+  const jumpUrl = `https://discord.com/channels/${newMsg.guild.id}/${newMsg.channel.id}/${newMsg.id}`;
   await sendLog(CH.MSG_LOG, new EmbedBuilder()
-    .setColor(Colors.Yellow).setTitle('✏️ Nachricht bearbeitet')
+    .setColor(0xfbbf24)
+    .setTitle('✏️ Nachricht bearbeitet')
+    .setURL(jumpUrl)
     .addFields(
-      { name: 'Nutzer',  value: `<@${newMsg.author.id}> (${newMsg.author.tag})` },
-      { name: 'Kanal',   value: `<#${newMsg.channel.id}>` },
-      { name: 'Vorher',  value: oldMsg.content?.slice(0, 500) || '_unbekannt_' },
-      { name: 'Nachher', value: newMsg.content?.slice(0, 500) || '_leer_' }
+      { name: '👤 Nutzer',     value: `<@${newMsg.author.id}> (${newMsg.author.tag})`, inline: true },
+      { name: '📢 Kanal',      value: `<#${newMsg.channel.id}>`,                       inline: true },
+      { name: '🕐 Zeitpunkt',  value: `<t:${ts()}:F>`,                                 inline: true },
+      { name: '📝 Vorher',     value: oldMsg.content?.slice(0, 500) || '_unbekannt_',  inline: false },
+      { name: '✏️ Nachher',    value: newMsg.content?.slice(0, 500) || '_leer_',       inline: false }
     )
+    .setFooter({ text: '[Zur Nachricht springen →]' })
   );
 });
 
-// ─── KANAL / ROLLE EVENTS ─────────────────────────────────────────────────────
+// ─── KANAL / KATEGORIE / ROLLE EVENTS ────────────────────────────────────────
+// Hilfsfunktion: Typ-Label für Kanal/Kategorie
+function chTypeLabel(ch) {
+  const { ChannelType } = require('discord.js');
+  if (ch.type === ChannelType.GuildCategory)      return '📁 Kategorie';
+  if (ch.type === ChannelType.GuildVoice)         return '🔊 Sprachkanal';
+  if (ch.type === ChannelType.GuildAnnouncement)  return '📣 Ankündigungs-Kanal';
+  if (ch.type === ChannelType.GuildForum)         return '💬 Forum-Kanal';
+  return '💬 Text-Kanal';
+}
+
 client.on('channelDelete', async (channel) => {
   if (!channel.guild) return;
   const entry    = await getAuditEntry(channel.guild, AuditLogEvent.ChannelDelete);
   const executor = entry?.executor;
+  const typ      = chTypeLabel(channel);
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
-    .setColor(Colors.Red).setTitle('🗑️ Kanal gelöscht')
+    .setColor(0xef4444)
+    .setTitle(`🗑️ ${typ} gelöscht`)
     .addFields(
-      { name: 'Kanal',        value: '#' + channel.name },
-      { name: 'Gelöscht von', value: executor ? '<@' + executor.id + '> (' + executor.tag + ')' : 'Unbekannt' },
-      { name: 'Zeitpunkt',    value: '<t:' + ts() + ':F>' }
+      { name: '📛 Name',        value: '#' + channel.name,                                                           inline: true },
+      { name: '🏷️ Typ',        value: typ,                                                                           inline: true },
+      { name: '🕐 Zeitpunkt',   value: '<t:' + ts() + ':F>',                                                         inline: true },
+      { name: '🚮 Gelöscht von',value: executor ? '<@' + executor.id + '> (' + executor.tag + ')' : '_Unbekannt_',   inline: false }
     )
   );
   if (!executor) return;
@@ -3959,11 +4163,11 @@ client.on('channelDelete', async (channel) => {
   try {
     await member.timeout(20 * 60 * 1000, 'Kanal gelöscht');
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
-      .setColor(Colors.Red).setTitle('⏱️ Timeout — Kanal gelöscht')
+      .setColor(0xef4444).setTitle('⏱️ Auto-Timeout — Kanal gelöscht')
       .addFields(
-        { name: 'Nutzer', value: '<@' + executor.id + '> (' + executor.tag + ')' },
-        { name: 'Dauer',  value: '20 Minuten' },
-        { name: 'Grund',  value: 'Kanal **#' + channel.name + '** gelöscht' }
+        { name: '👤 Nutzer', value: '<@' + executor.id + '> (' + executor.tag + ')' },
+        { name: '⏱️ Dauer',  value: '20 Minuten' },
+        { name: '📝 Grund',  value: typ + ' **#' + channel.name + '** gelöscht' }
       )
     );
   } catch (e) { console.error('Timeout Fehler:', e.message); }
@@ -3973,19 +4177,23 @@ client.on('channelCreate', async (channel) => {
   if (!channel.guild) return;
   const entry    = await getAuditEntry(channel.guild, AuditLogEvent.ChannelCreate);
   const executor = entry?.executor;
+  const typ      = chTypeLabel(channel);
+  const { ChannelType } = require('discord.js');
+  const isCategory = channel.type === ChannelType.GuildCategory;
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
-    .setColor(Colors.Green).setTitle('➕ Kanal erstellt')
+    .setColor(0x22c55e)
+    .setTitle(`➕ ${typ} erstellt`)
     .addFields(
-      { name: 'Kanal',        value: '<#' + channel.id + '> — #' + channel.name },
-      { name: 'Erstellt von', value: executor ? '<@' + executor.id + '> (' + executor.tag + ')' : 'Unbekannt' },
-      { name: 'Zeitpunkt',    value: '<t:' + ts() + ':F>' }
+      { name: '📛 Name',       value: (isCategory ? '📁 ' : '<#' + channel.id + '> — #') + channel.name, inline: true },
+      { name: '🏷️ Typ',       value: typ,                                                                  inline: true },
+      { name: '🕐 Zeitpunkt',  value: '<t:' + ts() + ':F>',                                                inline: true },
+      { name: '👤 Erstellt von',value: executor ? '<@' + executor.id + '> (' + executor.tag + ')' : '_Unbekannt_', inline: false }
     )
   );
 });
 
 client.on('channelUpdate', async (oldCh, newCh) => {
   if (!newCh.guild) return;
-  // Nur loggen wenn echte Inhaltsänderungen vorliegen (keine Positions-Updates)
   const meaningfulChange =
     oldCh.name !== newCh.name ||
     (oldCh.topic ?? '') !== (newCh.topic ?? '') ||
@@ -3998,18 +4206,21 @@ client.on('channelUpdate', async (oldCh, newCh) => {
   const entry    = await getAuditEntry(newCh.guild, AuditLogEvent.ChannelUpdate);
   const executor = entry?.executor;
   if (executor?.id === client.user?.id) return;
-  const _fields = [
-    { name: 'Kanal',          value: '<#' + newCh.id + '> — #' + newCh.name },
-    { name: 'Bearbeitet von', value: executor ? '<@' + executor.id + '> (' + executor.tag + ')' : 'Unbekannt' },
+  const typ = chTypeLabel(newCh);
+  const fields = [
+    { name: '📛 Name',         value: '#' + newCh.name,                                                            inline: true },
+    { name: '🏷️ Typ',          value: typ,                                                                          inline: true },
+    { name: '🕐 Zeitpunkt',    value: '<t:' + ts() + ':F>',                                                         inline: true },
+    { name: '✏️ Bearbeitet von',value: executor ? '<@' + executor.id + '> (' + executor.tag + ')' : '_Unbekannt_',  inline: false },
   ];
-  if (oldCh.name !== newCh.name) {
-    _fields.push({ name: 'Alter Name', value: '#' + oldCh.name, inline: true });
-    _fields.push({ name: 'Neuer Name', value: '#' + newCh.name, inline: true });
-  }
-  _fields.push({ name: 'Zeitpunkt', value: '<t:' + ts() + ':F>' });
+  if (oldCh.name !== newCh.name)
+    fields.push({ name: '🔄 Namensänderung', value: '`#' + oldCh.name + '` → `#' + newCh.name + '`', inline: false });
+  if ((oldCh.topic ?? '') !== (newCh.topic ?? ''))
+    fields.push({ name: '📝 Thema geändert', value: (newCh.topic || '_leer_').slice(0, 200), inline: false });
+  if (oldCh.parentId !== newCh.parentId)
+    fields.push({ name: '📁 Kategorie geändert', value: newCh.parentId ? '<#' + newCh.parentId + '>' : '_keine_', inline: false });
   await sendLog(CH.SERVER_LOG, new EmbedBuilder()
-    .setColor(Colors.Yellow).setTitle('✏️ Kanal bearbeitet')
-    .addFields(..._fields)
+    .setColor(0xfbbf24).setTitle(`✏️ ${typ} bearbeitet`).addFields(...fields)
   );
 });
 
@@ -4074,45 +4285,105 @@ client.on('roleUpdate', async (oldRole, newRole) => {
 
 // ─── AUDIT LOG ────────────────────────────────────────────────────────────────
 client.on('guildAuditLogEntryCreate', async (entry, guild) => {
+  const von = entry.executor ? `<@${entry.executor.id}> (${entry.executor.tag})` : '_Unbekannt_';
+  const ziel = entry.targetId ? `<@${entry.targetId}>` : '_Unbekannt_';
+
+  // ── Timeout vergeben / entfernt ──────────────────────────────────────────
   if (entry.action === AuditLogEvent.MemberUpdate) {
     const tc = entry.changes?.find(c => c.key === 'communication_disabled_until');
-    if (tc?.newValue) {
-      await sendLog(CH.MOD_LOG, new EmbedBuilder()
-        .setColor(Colors.Orange).setTitle('⏱️ Timeout vergeben')
-        .addFields(
-          { name: 'Nutzer', value: entry.targetId ? `<@${entry.targetId}>` : 'Unbekannt' },
-          { name: 'Von',    value: entry.executor ? `<@${entry.executor.id}>` : 'Unbekannt' },
-          { name: 'Bis',    value: `<t:${Math.floor(new Date(tc.newValue).getTime() / 1000)}:F>` },
-          { name: 'Grund',  value: entry.reason || '_kein Grund_' }
-        )
-      );
+    if (tc) {
+      if (tc.newValue) {
+        // Timeout vergeben
+        const bisSec = Math.floor(new Date(tc.newValue).getTime() / 1000);
+        await sendLog(CH.MOD_LOG, new EmbedBuilder()
+          .setColor(0xf97316).setTitle('⏱️ Timeout vergeben')
+          .addFields(
+            { name: '👤 Nutzer',     value: ziel,                          inline: true },
+            { name: '🛡️ Von',        value: von,                           inline: true },
+            { name: '🕐 Zeitpunkt',  value: `<t:${ts()}:F>`,               inline: true },
+            { name: '⏰ Bis',         value: `<t:${bisSec}:F>`,             inline: true },
+            { name: '📝 Grund',      value: entry.reason || '_kein Grund_', inline: false }
+          )
+        );
+      } else {
+        // Timeout entfernt (newValue ist null/leer)
+        await sendLog(CH.MOD_LOG, new EmbedBuilder()
+          .setColor(0x22c55e).setTitle('✅ Timeout entfernt')
+          .addFields(
+            { name: '👤 Nutzer',    value: ziel,         inline: true },
+            { name: '🛡️ Von',       value: von,          inline: true },
+            { name: '🕐 Zeitpunkt', value: `<t:${ts()}:F>`, inline: true }
+          )
+        );
+      }
     }
   }
+
+  // ── Kick ─────────────────────────────────────────────────────────────────
+  if (entry.action === AuditLogEvent.MemberKick) {
+    await sendLog(CH.MOD_LOG, new EmbedBuilder()
+      .setColor(0xf97316).setTitle('👢 Spieler gekickt')
+      .addFields(
+        { name: '👤 Spieler',   value: ziel,                           inline: true },
+        { name: '🛡️ Gekickt von', value: von,                          inline: true },
+        { name: '🕐 Zeitpunkt', value: `<t:${ts()}:F>`,                inline: true },
+        { name: '📝 Grund',     value: entry.reason || '_kein Grund_', inline: false }
+      )
+    );
+  }
+
+  // ── Ban vergeben ──────────────────────────────────────────────────────────
   if (entry.action === AuditLogEvent.MemberBanAdd) {
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
-      .setColor(Colors.DarkRed).setTitle('🔨 Ban vergeben')
+      .setColor(0x7f1d1d).setTitle('🔨 Spieler gebannt')
       .addFields(
-        { name: 'Nutzer', value: entry.targetId ? `<@${entry.targetId}>` : 'Unbekannt' },
-        { name: 'Von',    value: entry.executor ? `<@${entry.executor.id}>` : 'Unbekannt' },
-        { name: 'Grund',  value: entry.reason || '_kein Grund_' }
+        { name: '👤 Spieler',    value: ziel,                           inline: true },
+        { name: '🛡️ Gebannt von', value: von,                           inline: true },
+        { name: '🕐 Zeitpunkt',  value: `<t:${ts()}:F>`,                inline: true },
+        { name: '📝 Grund',      value: entry.reason || '_kein Grund_', inline: false }
       )
     );
   }
+
+  // ── Ban aufgehoben ────────────────────────────────────────────────────────
   if (entry.action === AuditLogEvent.MemberBanRemove) {
     await sendLog(CH.MOD_LOG, new EmbedBuilder()
-      .setColor(Colors.Green).setTitle('✅ Ban aufgehoben')
+      .setColor(0x22c55e).setTitle('✅ Spieler entbannt')
       .addFields(
-        { name: 'Nutzer', value: entry.targetId ? `<@${entry.targetId}>` : 'Unbekannt' },
-        { name: 'Von',    value: entry.executor ? `<@${entry.executor.id}>` : 'Unbekannt' }
+        { name: '👤 Spieler',     value: ziel,         inline: true },
+        { name: '🛡️ Entbannt von', value: von,          inline: true },
+        { name: '🕐 Zeitpunkt',   value: `<t:${ts()}:F>`, inline: true }
       )
     );
   }
+
+  // ── Kanal-Berechtigungen geändert ─────────────────────────────────────────
   if ([AuditLogEvent.ChannelOverwriteCreate, AuditLogEvent.ChannelOverwriteUpdate, AuditLogEvent.ChannelOverwriteDelete].includes(entry.action)) {
+    const aktion = entry.action === AuditLogEvent.ChannelOverwriteCreate ? 'hinzugefügt'
+                 : entry.action === AuditLogEvent.ChannelOverwriteDelete ? 'entfernt' : 'geändert';
     await sendLog(CH.SERVER_LOG, new EmbedBuilder()
-      .setColor(Colors.Blurple).setTitle('🔒 Kanal-Rechte geändert')
+      .setColor(0x6366f1).setTitle('🔒 Kanal-Berechtigung ' + aktion)
       .addFields(
-        { name: 'Kanal',        value: `<#${entry.targetId}>` },
-        { name: 'Geändert von', value: entry.executor ? `<@${entry.executor.id}> (${entry.executor.tag})` : 'Unbekannt' }
+        { name: '📢 Kanal',        value: `<#${entry.targetId}>`, inline: true },
+        { name: '✏️ Geändert von', value: von,                     inline: true },
+        { name: '🕐 Zeitpunkt',    value: `<t:${ts()}:F>`,         inline: true }
+      )
+    );
+  }
+
+  // ── AutoMod-Aktionen (Spam, Mention-Spam etc.) ────────────────────────────
+  if (entry.action === AuditLogEvent.AutoModerationBlockMessage ||
+      entry.action === AuditLogEvent.AutoModerationFlagToChannel ||
+      entry.action === AuditLogEvent.AutoModerationUserCommunicationDisabled) {
+    const aktion = entry.action === AuditLogEvent.AutoModerationBlockMessage   ? '🚫 Nachricht blockiert'
+                 : entry.action === AuditLogEvent.AutoModerationFlagToChannel ? '🚩 Nachricht gemeldet'
+                 : '⏱️ Nutzer getimeouted';
+    await sendLog(CH.MOD_LOG, new EmbedBuilder()
+      .setColor(0xf97316).setTitle('🤖 AutoMod — ' + aktion)
+      .addFields(
+        { name: '👤 Nutzer',    value: ziel,                          inline: true },
+        { name: '🕐 Zeitpunkt', value: `<t:${ts()}:F>`,               inline: true },
+        { name: '📝 Grund',     value: entry.reason || '_AutoMod_',   inline: false }
       )
     );
   }
