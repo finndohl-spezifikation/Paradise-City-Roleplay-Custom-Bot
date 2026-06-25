@@ -2148,7 +2148,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;mi
         <a class="select-card" href="/einreise/illegal/${tok}">
           <div class="sc-icon">🔴</div>
           <div class="sc-title">Illegale Einreise</div>
-          <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du startest mit 5.000 $ Schwarzgeld — bleib unter dem Radar.</div>
+          <div class="sc-desc">Du reist ohne offizielle Registrierung ein. Kein Ausweis, keine staatlichen Jobs. Du startest mit 5.000 $ auf dem Konto.</div>
         </a>
       </div>
     </div>
@@ -2166,7 +2166,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;mi
         <a class="select-card" href="/einreise/gruppe?mode=illegal">
           <div class="sc-icon">🔴</div>
           <div class="sc-title">Illegale Gruppeneinreise</div>
-          <div class="sc-desc">Alle Mitglieder reisen ohne Registrierung ein. Kein Ausweis, keine staatlichen Jobs, 5.000 $ Schwarzgeld.</div>
+          <div class="sc-desc">Alle Mitglieder reisen ohne Registrierung ein. Kein Ausweis, keine staatlichen Jobs, 5.000 $ auf dem Konto.</div>
         </a>
       </div>
     </div>
@@ -2390,7 +2390,7 @@ function goBack() {
         const _kf=path.join(DATA_DIR,'konto.json'); const _tf=path.join(DATA_DIR,'transaktionen.json');
         let _k={}; try{_k=JSON.parse(fs.readFileSync(_kf,'utf8'));}catch{}
         if(!_k[discordId]) _k[discordId]={konto:0,schwarz:0};
-        if(!_k[discordId]._startgeld){_k[discordId].schwarz+=5000;_k[discordId]._startgeld=true;fs.writeFileSync(_kf,JSON.stringify(_k,null,2));
+        if(!_k[discordId]._startgeld){_k[discordId].konto+=5000;_k[discordId]._startgeld=true;fs.writeFileSync(_kf,JSON.stringify(_k,null,2));
           let _t={}; try{_t=JSON.parse(fs.readFileSync(_tf,'utf8'));}catch{} if(!_t[discordId])_t[discordId]=[];
           _t[discordId].unshift({ts:Date.now(),text:'+5.000 $ Startgeld (Illegale Einreise)',betrag:5000}); fs.writeFileSync(_tf,JSON.stringify(_t,null,2));}
       } catch {}
@@ -2399,7 +2399,7 @@ function goBack() {
         <div class="card"><div class="success-wrap">
           <div class="icon">⚠️</div>
           <h2 style="color:#f85149">Illegale Einreise Bestätigt</h2>
-          <p>Du bist nun illegal in Paradise City. Bleib unter dem Radar — und pass auf dich auf.<br>5.000 $ Schwarzgeld wurden gutgeschrieben.</p>
+          <p>Du bist nun illegal in Paradise City. Bleib unter dem Radar — und pass auf dich auf.<br>5.000 $ Geld wurde deinem Konto gutgeschrieben.</p>
           <p style="margin-top:14px;color:#555;font-size:.8em">Du kannst dieses Fenster schließen.</p>
         </div></div>
       `));
@@ -2502,7 +2502,7 @@ function goBack() {
       const _kf=path.join(DATA_DIR,'konto.json'); const _tf=path.join(DATA_DIR,'transaktionen.json');
       let _k={}; try{_k=JSON.parse(fs.readFileSync(_kf,'utf8'));}catch{}
       if(!_k[discordId]) _k[discordId]={konto:0,schwarz:0};
-      if(!_k[discordId]._startgeld){_k[discordId].schwarz+=5000;_k[discordId]._startgeld=true;fs.writeFileSync(_kf,JSON.stringify(_k,null,2));
+      if(!_k[discordId]._startgeld){_k[discordId].konto+=5000;_k[discordId]._startgeld=true;fs.writeFileSync(_kf,JSON.stringify(_k,null,2));
         let _t={}; try{_t=JSON.parse(fs.readFileSync(_tf,'utf8'));}catch{} if(!_t[discordId])_t[discordId]=[];
         _t[discordId].unshift({ts:Date.now(),text:'+5.000 $ Startgeld (Illegale Einreise)',betrag:5000}); fs.writeFileSync(_tf,JSON.stringify(_t,null,2));}
     } catch {}
@@ -2843,7 +2843,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e0e0e0;mi
           let _k2={}; try{_k2=JSON.parse(fs.readFileSync(_kf2,'utf8'));}catch{}
           if(!_k2[uid]) _k2[uid]={konto:0,schwarz:0};
           if(!_k2[uid]._startgeld){
-            if(isLegal){_k2[uid].konto+=5000;}else{_k2[uid].schwarz+=5000;}
+            if(isLegal){_k2[uid].konto+=5000;}else{_k2[uid].konto+=5000;}
             _k2[uid]._startgeld=true; fs.writeFileSync(_kf2,JSON.stringify(_k2,null,2));
             let _t2={}; try{_t2=JSON.parse(fs.readFileSync(_tf2,'utf8'));}catch{} if(!_t2[uid])_t2[uid]=[];
             _t2[uid].unshift({ts:Date.now(),text:'+5.000 $ Startgeld (Gruppen-Einreise '+(isLegal?'Legal':'Illegal')+')',betrag:5000}); fs.writeFileSync(_tf2,JSON.stringify(_t2,null,2));
