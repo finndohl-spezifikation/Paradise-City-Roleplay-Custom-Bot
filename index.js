@@ -2079,6 +2079,12 @@ client.once('ready', async () => {
       .setDescription('Zeigt alle verfügbaren Commands auf diesem Server an')
       .toJSON(),
 
+    new SlashCommandBuilder()
+      .setName('setup-einreise')
+      .setDescription('Sendet das Einreise-Embed neu in den Einreise-Kanal')
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .toJSON(),
+
     ];
 
 
@@ -8336,6 +8342,44 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
     saveEinreiseSperre({ aktiv: false, grund: null });
     return interaction.reply({ content: '✅ Einreise-Sperre wurde aufgehoben.', ephemeral: true });
+  }
+  if (interaction.commandName === 'setup-einreise') {
+    if (!interaction.member.permissions.has(require('discord.js').PermissionFlagsBits.Administrator))
+      return interaction.reply({ content: '❌ Keine Berechtigung.', ephemeral: true });
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const _eiWAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/$/, '');
+      const _eiUrl  = _eiWAPP && !_eiWAPP.includes('localhost') ? _eiWAPP + '/einreise' : null;
+      const einreiseEmbed = new EmbedBuilder()
+        .setColor(DARK_ORANGE)
+        .setTitle('🛂  Einreise — Paradise City Roleplay')
+        .setDescription(
+          `👤  __**Legale Einreise**__\n\n` +
+          `- Ausweis\n` +
+          `- Zugang zur Staatlichen Jobs\n` +
+          `- Zugang zur Legalen Routen\n\n` +
+          `🥷🏻 __**Illegale Einreise**__\n\n` +
+          `- Keinen Ausweis\n` +
+          `- Zugang zur Keinen Staatlichen Jobs\n` +
+          `- Zugang zur Illegalen Routen\n\n` +
+          `👥 __**Gruppen Einreise**__\n\n` +
+          `- Ab 4 Personen\n` +
+          `- Mehr Startgeld\n` +
+          `- Exklusives Starterfahrzeug`
+        );
+      const einreiseButton = _eiUrl
+        ? new ButtonBuilder().setLabel('Einreise starten').setEmoji('🛂').setStyle(ButtonStyle.Link).setURL(_eiUrl)
+        : new ButtonBuilder().setLabel('Einreise starten').setEmoji('🛂').setStyle(ButtonStyle.Primary).setCustomId('einreise_starten');
+      const row = new ActionRowBuilder().addComponents(einreiseButton);
+      const einreiseCh = await client.channels.fetch('1490878156582686853');
+      const oldMsgs = await einreiseCh.messages.fetch({ limit: 20 }).catch(() => null);
+      if (oldMsgs) { for (const [, _m] of oldMsgs) { if (_m.author.id === client.user.id && _m.embeds.length > 0) await _m.delete().catch(() => {}); } }
+      await einreiseCh.send({ embeds: [einreiseEmbed], components: [row] });
+      return interaction.editReply({ content: '✅ Einreise-Embed wurde gesendet!' });
+    } catch (e) {
+      console.error('[SETUP-EINREISE] Fehler:', e.message);
+      return interaction.editReply({ content: `❌ Fehler: ${e.message}` });
+    }
   }
 });
 // ─── END EINREISE-SPERRE COMMANDS ────────────────────────────────────────────
