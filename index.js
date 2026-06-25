@@ -6193,16 +6193,16 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.isButton() && interaction.customId === 'bank_einzahlen') {
       const modal = new ModalBuilder().setCustomId('bank_modal_einzahlen').setTitle('💰 Bargeld einzahlen');
       modal.addComponents(new ActionRowBuilder().addComponents(
-        new TextInputBuilder().setCustomId('bank_betrag').setLabel(`Betrag ${MONEY_GIF}`).setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 1000')
+        new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag in $').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 1000')
       ));
       return interaction.showModal(modal);
     }
 
     // ─── BANKING: Auszahlen Modal ────────────────────────────────────────────
     if (interaction.isButton() && interaction.customId === 'bank_auszahlen') {
-      const modal = new ModalBuilder().setCustomId('bank_modal_auszahlen').setTitle(`💸 Kontogeld auszahlen ${MONEY_GIF}`);
+      const modal = new ModalBuilder().setCustomId('bank_modal_auszahlen').setTitle('💸 Kontogeld auszahlen');
       modal.addComponents(new ActionRowBuilder().addComponents(
-        new TextInputBuilder().setCustomId('bank_betrag').setLabel(`Betrag ${MONEY_GIF}`).setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 1000')
+        new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag in $').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 1000')
       ));
       return interaction.showModal(modal);
     }
@@ -6226,7 +6226,7 @@ client.on('interactionCreate', async (interaction) => {
       const targetId = interaction.values[0];
       if (targetId === interaction.user.id) return interaction.reply({ content: '❌ Du kannst nicht an dich selbst überweisen.', ephemeral: true });
       const modal = new ModalBuilder().setCustomId(`bank_modal_ueb:${targetId}`).setTitle('📤 Betrag überweisen');
-      modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('bank_betrag').setLabel(`Betrag ${MONEY_GIF}`).setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')));
+      modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag in $').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')));
       return interaction.showModal(modal);
     }
 
@@ -6234,8 +6234,8 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.isUserSelectMenu() && interaction.customId === 'bank_sel_schw') {
       const targetId = interaction.values[0];
       if (targetId === interaction.user.id) return interaction.reply({ content: '❌ Du kannst nicht an dich selbst senden.', ephemeral: true });
-      const modal = new ModalBuilder().setCustomId(`bank_modal_schw:${targetId}`).setTitle(`🖤 Schwarzgeld senden ${MONEY_GIF}`);
-      modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('bank_betrag').setLabel(`Betrag ${MONEY_GIF}`).setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')));
+      const modal = new ModalBuilder().setCustomId(`bank_modal_schw:${targetId}`).setTitle('🖤 Schwarzgeld senden');
+      modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('bank_betrag').setLabel('Betrag in $').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('z.B. 500')));
       return interaction.showModal(modal);
     }
     // ─── RECHNUNGEN OPEN ────────────────────────────────────────────────────
