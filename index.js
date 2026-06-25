@@ -956,7 +956,6 @@ const RUCKSACK_CH          = '1490882591023173682';
 const RUCKSACK_ROLLE       = '1490855722534310003';
 const RUCKSACK_PER_PAGE    = 10;
 const UEBERGABEN_EMBED_CH  = '1490882592445304972';
-const DASHBOARD_EMBED_CH   = '1491789518603419822';
 
 
 // ─── Kanal-IDs ───────────────────────────────────────────────────────────────
@@ -9552,29 +9551,6 @@ async function _sendStartupEmbeds(source) {
     }
   } catch (e) { console.error('[ÜBERGABEN] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
 
-  // ── Dashboard-Embed ───────────────────────────────────────────────────────
-  try {
-    const dCh = client.channels.cache.get(DASHBOARD_EMBED_CH) || await client.channels.fetch(DASHBOARD_EMBED_CH).catch(e => { console.error('[DASHBOARD] fetch-Fehler:', e.message); return null; });
-    if (!dCh) { console.error('[DASHBOARD] Kanal nicht gefunden:', DASHBOARD_EMBED_CH); }
-    else {
-      console.log('[DASHBOARD] Kanal gefunden:', dCh.name);
-      const oldMsgs = await dCh.messages.fetch({ limit: 50 }).catch(() => null);
-      if (oldMsgs) { for (const msg of oldMsgs.values()) { if (msg.author.id === client.user.id && msg.embeds?.[0]?.title === '🏙️ Inhaber Dashboard') await msg.delete().catch(() => {}); } }
-      const WEBAPP = (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/, '');
-      const dashUrl = WEBAPP ? WEBAPP + '/dashboard' : null;
-      await dCh.send({
-        embeds: [new EmbedBuilder()
-          .setColor(0x4f7cf7)
-          .setTitle('🏙️ Inhaber Dashboard')
-          .setDescription('Klicke auf den Button um das Inhaber-Dashboard zu öffnen.\n\n🔒 Nur für berechtigte Inhaber zugänglich.')
-        ],
-        components: dashUrl ? [new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setLabel('🏙️ Dashboard öffnen').setURL(dashUrl).setStyle(ButtonStyle.Link)
-        )] : []
-      });
-      console.log('[DASHBOARD] ✅ Embed gesendet.');
-    }
-  } catch (e) { console.error('[DASHBOARD] Unerwarteter Fehler:', e.message, e.stack?.split('\n')[1]); }
 }
 
 // Versuche ready (v14) UND clientReady (v15) abzufangen
